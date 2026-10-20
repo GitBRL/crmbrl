@@ -1,0 +1,82 @@
+{
+  "atualizadoEm": "2026-10-20T17:19:18.826Z",
+  "commit": "e5e8dc8441442470d796fc250e93485122f7b9d1",
+  "commitCurto": "e5e8dc8",
+  "inventario": {
+    "nome": "crmbrl",
+    "versao": "0.0.0",
+    "framework": {
+      "nome": "Angular",
+      "versao": "^22.2.0",
+      "tipo": "frontend"
+    },
+    "gerenciadorDePacotes": "npm",
+    "scripts": {
+      "ng": "ng",
+      "start": "ng serve",
+      "build": "ng build",
+      "watch": "ng build --watch --configuration development",
+      "test": "ng test",
+      "docs": "node tools/doc-updater/index.mjs"
+    },
+    "dependencias": {
+      "@angular/common": "^22.2.0",
+      "@angular/compiler": "^22.2.0",
+      "@angular/core": "^22.2.0",
+      "@angular/forms": "^22.2.0",
+      "@angular/platform-browser": "^22.2.0",
+      "@angular/router": "^22.2.0",
+      "rxjs": "~7.8.0",
+      "tslib": "^2.3.0"
+    },
+    "dependenciasDev": {
+      "@angular/build": "^22.2.2",
+      "@angular/cli": "^22.2.2",
+      "@angular/compiler-cli": "^22.2.0",
+      "jsdom": "^30.0.0",
+      "prettier": "^3.8.1",
+      "typescript": "~6.0.2",
+      "vitest": "^5.0.0"
+    },
+    "totalDeArquivos": 20,
+    "linhasDeCodigo": 422,
+    "porExtensao": {
+      "": 3,
+      ".json": 6,
+      ".ico": 1,
+      ".md": 1,
+      ".ts": 5,
+      ".html": 2,
+      ".scss": 2
+    },
+    "modulos": [],
+    "controllers": [],
+    "servicos": [],
+    "componentes": [
+      {
+        "classe": "App",
+        "arquivo": "src/app/app.ts",
+        "seletor": "app-root",
+        "template": "./app.html"
+      }
+    ],
+    "diretivas": [],
+    "pipes": [],
+    "rotasHttp": [],
+    "rotasFront": [],
+    "chamadasHttp": [],
+    "variaveisDeAmbiente": [],
+    "testes": [
+      "src/app/app.spec.ts"
+    ],
+    "git": {
+      "repositorio": true,
+      "head": "e5e8dc8441442470d796fc250e93485122f7b9d1",
+      "headCurto": "e5e8dc8",
+      "branch": "dev",
+      "remoto": "https://github.com/GitBRL/crmbrl.git",
+      "sujo": true,
+      "totalDeCommits": 2
+    }
+  }
+}

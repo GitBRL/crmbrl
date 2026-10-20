@@ -2,6 +2,23 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.2.
 
+## Documentação
+
+- [Arquitetura](docs/ARQUITETURA.md) — contexto, inventário técnico e decisões
+- [Histórico](docs/HISTORICO.md) — o que foi feito, execução por execução
+
+Para atualizar depois de mexer no código:
+
+```bash
+npm run docs -- --nota "o que foi feito"
+```
+
+Sem a nota (`npm run docs`) o histórico se vira sozinho com os commits novos. As
+flags precisam vir depois de `--`, senão o npm as engole.
+
+Pelo Claude Code: `/atualizar-docs <o que foi feito>`. Detalhes em
+[`tools/doc-updater/README.md`](tools/doc-updater/README.md).
+
 ## Development server
 
 To start a local development server, run:
