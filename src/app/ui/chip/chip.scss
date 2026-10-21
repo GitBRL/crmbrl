@@ -1,0 +1,111 @@
+@use 'mixins' as m;
+
+:host {
+  --_altura: var(--altura-sm);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  max-width: 100%;
+  min-height: var(--_altura);
+  padding: 0 var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
+  white-space: nowrap;
+  vertical-align: middle;
+  transition:
+    background-color var(--duracao) var(--curva),
+    border-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva),
+    box-shadow var(--duracao) var(--curva),
+    transform var(--duracao) var(--curva);
+}
+
+// No toque, o chip cresce para 44px (alvo confortável), como no mobile da referência.
+@include m.toque {
+  :host {
+    --_altura: var(--altura-md);
+  }
+}
+
+:host(.chip--com-tipo) {
+  gap: 10px;
+  padding-left: var(--esp-1);
+}
+
+.chip__tipo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--_altura) - 8px);
+  height: calc(var(--_altura) - 8px);
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  font: var(--fonte-rotulo);
+  transition: background-color var(--duracao) var(--curva);
+}
+
+.chip__rotulo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:host(.chip--arrastavel) {
+  cursor: grab;
+  user-select: none;
+
+  &:hover {
+    border-color: var(--cor-borda-forte);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+:host(.chip--multilinha) {
+  padding-block: 3px;
+  line-height: 1.3;
+  white-space: normal;
+
+  .chip__rotulo {
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
+// Selecionado: coral sólido, texto preto.
+:host(.chip--selecionado) {
+  border-color: transparent;
+  background: var(--cor-destaque);
+  color: var(--cor-sobre-destaque);
+
+  .chip__tipo {
+    background: color-mix(in srgb, var(--cor-sobre-destaque) 14%, transparent);
+  }
+}
+
+// Em voo: vidro tingido de coral com borda coral (como "Forecast Category" na referência),
+// sombra flutuante e leve rotação. O texto segue a cor do tema (nada de branco sobre coral
+// sólido, §2.1).
+:host(.chip--arrastando) {
+  position: relative;
+  z-index: var(--z-flutuante);
+  border-color: var(--cor-destaque);
+  background: color-mix(
+    in srgb,
+    var(--cor-destaque) 22%,
+    color-mix(in srgb, var(--cor-flutuante) 78%, transparent)
+  );
+  backdrop-filter: blur(10px);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  transform: rotate(-4deg) scale(1.03);
+
+  .chip__tipo {
+    background: color-mix(in srgb, var(--cor-texto) 14%, transparent);
+  }
+}

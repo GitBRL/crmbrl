@@ -1,0 +1,40 @@
+<div class="notificacoes__ancora" (keydown)="aoTeclar($event)">
+  <button
+    #botao
+    appBotaoIcone
+    type="button"
+    [icone]="iconeSino"
+    [rotulo]="rotulo()"
+    [ponto]="naoLidas() > 0"
+    [attr.aria-expanded]="aberto()"
+    [attr.aria-controls]="aberto() ? idPainel : null"
+    (click)="alternar()"
+  ></button>
+
+  @if (aberto()) {
+    <section class="notificacoes__painel" [id]="idPainel" [attr.aria-labelledby]="idTitulo">
+      <header class="notificacoes__cabecalho">
+        <h2 class="notificacoes__titulo" [id]="idTitulo">Notificações</h2>
+        <app-selo variante="contorno">Dados de exemplo</app-selo>
+      </header>
+      <ul class="notificacoes__lista" role="list">
+        @for (item of itens(); track item.id) {
+          <li class="notificacoes__item">
+            <span class="notificacoes__icone" aria-hidden="true">
+              <svg [lucideIcon]="item.icone" [size]="18" />
+            </span>
+            <div class="notificacoes__texto">
+              <p>{{ item.texto }}</p>
+              <time class="notificacoes__quando" [attr.datetime]="item.iso">{{
+                item.relativo
+              }}</time>
+            </div>
+          </li>
+        }
+      </ul>
+      <p class="notificacoes__nota">
+        Exemplo ilustrativo: as notificações reais chegam com o núcleo do CRM (Fase 1).
+      </p>
+    </section>
+  }
+</div>

@@ -1,0 +1,118 @@
+// Partes comuns aos conteúdos do palco (jornada, atendimento e equipe). Pequeno de
+// propósito: o CSS entra em cada componente que usa este arquivo.
+//
+// O conteúdo é um contêiner (container queries): os indicadores e as barras se ajustam à
+// largura do palco, que muda com a navegação aberta ou recolhida, e não só com a tela.
+
+:host {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-8);
+}
+
+// Topo do conteúdo (o título do painel é só para leitores de tela: a aba já o nomeia):
+// selos e dicas; a legenda das séries à direita, quando há (desce quando não cabe).
+.palco__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3) var(--esp-6);
+}
+
+.palco__titulo-linha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+// Indicadores com a base das variações logo acima ("Variações em relação aos…").
+.palco__bloco {
+  display: grid;
+  gap: var(--esp-3);
+}
+
+.palco__base {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+// Indicadores: grade de duas (atendimento) ou três (jornada) colunas que se reorganiza com a
+// largura do palco. Limites medidos com o maior número de cada aba ("R$ 42,4 mil" e "4,2 min"
+// com o selo de variação).
+//
+// O grupo é um contêiner, e a linha do número dentro de cada indicador também (ui/indicador):
+// o número que não cabe na célula encolhe aos poucos, e "mil" nunca desce sozinho.
+//
+// Cada indicador ocupa duas linhas da grade, número (com o selo) e legenda, em subgrid: as
+// legendas de uma linha ficam na mesma altura mesmo quando só um número tem selo de variação
+// ("38" ao lado de "4,2 min ↓ 12%") ou uma legenda quebra.
+.palco__kpis {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-6);
+
+  > app-indicador {
+    display: grid;
+    grid-row: span 2;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: subgrid;
+    row-gap: var(--esp-2);
+    align-items: start;
+  }
+}
+
+// Jornada: três colunas a partir de 33rem, com o número longo encolhendo nas células estreitas
+// (a 1440px com a navegação aberta, cada uma tem ~199px e "R$ 42,4 mil" pede ~213px no tamanho
+// cheio). Abaixo disso ele ficaria menor que a escala do h1 (40px): os indicadores se
+// reorganizam em 2 + 1, o terceiro (o valor longo) com a linha toda.
+.palco__kpis--3 > :last-child {
+  grid-column: 1 / -1;
+}
+
+@container (width >= 33rem) {
+  .palco__kpis--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    > :last-child {
+      grid-column: auto;
+    }
+  }
+}
+
+@container (width >= 52rem) {
+  .palco__kpis--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+// Palco estreito: a coluna do total das barras encolhe (3rem ainda cabe "4.520") para a
+// queda, o nome da etapa e o selo de dias caberem na mesma linha até em telas de 360px.
+@container (width < 25rem) {
+  app-barra-funil {
+    --funil-coluna-total: 3rem;
+  }
+}
+
+// Com espaço, a queda fica a ~1/3 da largura, como no widget da referência.
+@container (width >= 36rem) {
+  app-barra-funil {
+    --funil-coluna-total: 30%;
+  }
+}
+
+.palco__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  max-width: 72ch;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg, 400 0.8125rem/1.35 var(--familia));
+
+  svg {
+    margin-top: 1px;
+  }
+}

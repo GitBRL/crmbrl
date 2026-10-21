@@ -1,0 +1,84 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.campo-busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: var(--altura-md);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  transition:
+    border-color var(--duracao) var(--curva),
+    background-color var(--duracao) var(--curva);
+
+  &:hover {
+    border-color: var(--cor-borda-forte);
+  }
+
+  // O anel de foco fica na pílula inteira, não só no <input>.
+  &:focus-within {
+    border-color: var(--cor-borda-forte);
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.campo-busca__lupa {
+  position: absolute;
+  left: 16px;
+  color: var(--cor-texto-suave);
+  pointer-events: none;
+}
+
+.campo-busca__campo {
+  flex: 1;
+  min-width: 0;
+  height: calc(var(--altura-md) - 2px);
+  padding: 0 var(--esp-4) 0 44px;
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  font: var(--fonte-rotulo);
+  font-weight: 400;
+  outline: none;
+  appearance: none;
+
+  &::placeholder {
+    color: var(--cor-texto-fraco);
+    opacity: 1;
+  }
+
+  &::-webkit-search-cancel-button,
+  &::-webkit-search-decoration {
+    appearance: none;
+  }
+}
+
+// Botão de 32px com alvo de 44px (6px a mais de cada lado).
+.campo-busca__limpar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin-right: var(--esp-1);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto-suave);
+
+  &:hover {
+    color: var(--cor-texto);
+  }
+
+  @include m.area-toque(6px, 6px);
+}

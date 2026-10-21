@@ -1,0 +1,196 @@
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+
+import { CHAVE_PERFIL_DEMO, PerfilDemoService } from '../../nucleo/perfil-demo.service';
+import { descreverQuemAcessa, EmBreve } from './em-breve';
+import { termosNoTexto } from './glossario';
+import { FASES_ROADMAP, numeroDaFase } from './roadmap';
+
+describe('glossário', () => {
+  const termos = (texto: string) => termosNoTexto(texto).map((item) => item.termo);
+
+  it('acha os termos como palavra inteira, sem diferenciar maiúsculas, com plural', () => {
+    expect(termos('Origem e campanhas (UTM)')).toEqual(['UTM']);
+    expect(termos('Pesquisas de satisfação (NPS/CSAT)')).toEqual(['NPS', 'CSAT']);
+    expect(termos('Funil Kanban com etapas configuráveis')).toEqual(['kanban']);
+    expect(termos('Webhooks de entrada (captação de leads)')).toEqual(['webhook']);
+    expect(termos('Importação e deduplicação')).toEqual(['deduplicação']);
+    expect(termos('App mobile (PWA)')).toEqual(['PWA']);
+    expect(termos('Métricas de atendimento (tempo de resposta, SLA, satisfação)')).toEqual(['SLA']);
+    expect(termos('Receita recorrente (MRR)')).toEqual(['MRR']);
+    // Pedaço de outra palavra não conta.
+    expect(termos('Gatewayzinho, utmost, MQLX, Slack, MRRs2')).toEqual([]);
+  });
+
+  it('explica SLA e MRR em português simples, como os outros termos', () => {
+    const explicacao = (texto: string) => termosNoTexto(texto)[0]?.explicacao;
+    expect(explicacao('SLA')).toBe('Prazo máximo combinado para responder o cliente.');
+    expect(explicacao('MRR')).toBe(
+      'Receita recorrente mensal: quanto os contratos ativos faturam por mês.',
+    );
+  });
+});
+
+describe('quem acessa', () => {
+  it('diz "todos, menos…" quando faltam um ou dois papéis; senão, a lista', () => {
+    expect(
+      descreverQuemAcessa([
+        'ADMIN',
+        'C_LEVEL',
+        'LIDER_COMERCIAL',
+        'COMERCIAL',
+        'LIDER_MARKETING',
+        'LIDER_CS',
+        'CS',
+      ]),
+    ).toBe('todos os papéis, menos Marketing');
+    expect(
+      descreverQuemAcessa([
+        'ADMIN',
+        'C_LEVEL',
+        'LIDER_COMERCIAL',
+        'LIDER_MARKETING',
+        'LIDER_CS',
+        'CS',
+      ]),
+    ).toBe('todos os papéis, menos Comercial e Marketing');
+    expect(descreverQuemAcessa(['ADMIN', 'C_LEVEL'])).toBe('Admin e C-level');
+  });
+});
+
+describe('roadmap', () => {
+  it('lê o número da fase', () => {
+    expect(numeroDaFase('Fase 2')).toBe(2);
+    expect(numeroDaFase(null)).toBeNull();
+    expect(numeroDaFase('Sem fase')).toBeNull();
+  });
+
+  it('tem as fases de 0 a 6, só a base concluída', () => {
+    expect(FASES_ROADMAP.map((fase) => fase.numero)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(FASES_ROADMAP.filter((fase) => fase.concluida).map((fase) => fase.numero)).toEqual([0]);
+  });
+});
+
+describe('EmBreve', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+  });
+  afterEach(() => localStorage.clear());
+
+  function criar(modulo: string | undefined) {
+    const fixture = TestBed.createComponent(EmBreve);
+    fixture.componentRef.setInput('modulo', modulo);
+    fixture.detectChanges();
+    return { fixture, raiz: fixture.nativeElement as HTMLElement };
+  }
+
+  it('mostra o módulo no palco: título em dois tons, descrição, fase e funcionalidades', () => {
+    const { raiz } = criar('atendimento');
+    const titulo = raiz.querySelector('h1') as HTMLElement;
+    expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Atendimento · em breve');
+    // O "·" fica no fim da primeira linha; o complemento desce inteiro.
+    expect(titulo.querySelector('.tom-fraco')?.textContent?.trim()).toBe('·');
+    expect(titulo.querySelector('.tom-fraco.sem-quebra')?.textContent?.trim()).toBe('em breve');
+    expect(raiz.querySelector('app-cartao.em-breve__palco')?.classList).toContain('cartao--palco');
+    expect(raiz.textContent).toContain('Converse com clientes de todos os canais sem sair do CRM.');
+    expect(raiz.querySelector('app-selo')?.textContent?.trim()).toBe('Fase 2');
+
+    const chips = [...raiz.querySelectorAll('app-chip')].map((chip) => chip.textContent?.trim());
+    expect(chips.length).toBe(6);
+    expect(chips[0]).toBe('WhatsApp integrado por conexão própria (sem serviços de terceiros)');
+
+    const [fase, total] = [...raiz.querySelectorAll('app-indicador')];
+    expect(fase.querySelector('.indicador__unidade--antes')?.textContent).toBe('Fase');
+    expect(fase.querySelector('.indicador__valor')?.textContent).toBe('2');
+    expect(total.querySelector('.indicador__valor')?.textContent).toBe('6');
+    expect(total.textContent).toContain('Funcionalidades planejadas');
+  });
+
+  it('destaca a fase do módulo no roadmap', () => {
+    const { raiz } = criar('bi');
+    const fases = [...raiz.querySelectorAll('.roadmap__fase')];
+    expect(fases.length).toBe(7);
+    const atual = raiz.querySelector('[aria-current="step"]') as HTMLElement;
+    expect(atual.textContent).toContain('Fase 3');
+    expect(atual.textContent).toContain('BI e relatórios');
+    expect(fases[0].textContent).toContain('no ar');
+  });
+
+  it('siglas e termos das funcionalidades ganham uma dica ao lado do chip (Marketing)', () => {
+    const { raiz } = criar('funil-marketing');
+    const dicas = [...raiz.querySelectorAll('.em-breve__chips app-dica button')].map((botao) =>
+      botao.getAttribute('aria-label'),
+    );
+    expect(dicas).toEqual(['O que é webhook?', 'O que é kanban?', 'O que é UTM?', 'O que é MQL?']);
+    const utm = raiz.querySelector('.em-breve__chips app-dica button[aria-label="O que é UTM?"]');
+    const balao = raiz.querySelector(`#${utm?.getAttribute('aria-describedby')}`);
+    expect(balao?.textContent).toContain(
+      'Etiquetas no link do anúncio que dizem de qual campanha o lead veio.',
+    );
+    // A dica fica junto do chip que cita o termo.
+    expect(utm?.closest('li')?.querySelector('app-chip')?.textContent).toContain('(UTM)');
+  });
+
+  it('as métricas do Atendimento explicam SLA e a receita do Financeiro explica MRR', () => {
+    const dicaDoChip = (modulo: string, termo: string) => {
+      const { raiz } = criar(modulo);
+      const botao = raiz.querySelector(
+        `.em-breve__chips app-dica button[aria-label="O que é ${termo}?"]`,
+      );
+      return {
+        chip: botao?.closest('li')?.querySelector('app-chip')?.textContent?.trim(),
+        balao: raiz.querySelector(`#${botao?.getAttribute('aria-describedby')}`)?.textContent,
+      };
+    };
+    const sla = dicaDoChip('atendimento', 'SLA');
+    expect(sla.chip).toBe('Métricas de atendimento (tempo de resposta, SLA, satisfação)');
+    expect(sla.balao).toContain('Prazo máximo combinado para responder o cliente.');
+    const mrr = dicaDoChip('financeiro', 'MRR');
+    expect(mrr.chip).toBe('Receita recorrente (MRR)');
+    expect(mrr.balao).toContain('Receita recorrente mensal');
+  });
+
+  it('o roadmap explica a sigla PWA', () => {
+    const { raiz } = criar('atendimento');
+    const pwa = raiz.querySelector('.roadmap app-dica button');
+    expect(pwa?.getAttribute('aria-label')).toBe('O que é PWA?');
+    expect(pwa?.closest('.roadmap__fase')?.textContent).toContain('App mobile (PWA)');
+  });
+
+  it('mostra a nota do módulo quando existe (Disparos)', () => {
+    const { raiz } = criar('disparos');
+    expect(raiz.querySelector('.em-breve__nota')?.textContent).toContain('construído do zero');
+  });
+
+  it('sem acesso: explica quem acessa e oferece "Ver como"', async () => {
+    localStorage.setItem(CHAVE_PERFIL_DEMO, 'MARKETING');
+    const { fixture, raiz } = criar('atendimento');
+    const titulo = raiz.querySelector('h1') as HTMLElement;
+    expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Atendimento · sem acesso');
+    expect(raiz.textContent).toContain('O papel Marketing não acessa este módulo.');
+    expect(raiz.textContent?.replace(/\s+/g, ' ')).toContain(
+      'Quem acessa: todos os papéis, menos Marketing.',
+    );
+    expect(raiz.querySelector('.em-breve__nota')?.textContent?.replace(/\s+/g, ' ')).toContain(
+      'use “Ver como”, no seu avatar, para trocar de papel.',
+    );
+    expect(raiz.querySelectorAll('app-chip').length).toBe(0);
+
+    const verComo = [...raiz.querySelectorAll('button')].find((botao) =>
+      botao.textContent?.includes('Ver como Admin'),
+    ) as HTMLButtonElement;
+    verComo.click();
+    await fixture.whenStable();
+    expect(TestBed.inject(PerfilDemoService).papel()).toBe('ADMIN');
+    const novoTitulo = raiz.querySelector('h1') as HTMLElement;
+    expect(novoTitulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Atendimento · em breve');
+    expect(document.activeElement).toBe(novoTitulo);
+  });
+
+  it('módulo desconhecido mostra o aviso genérico', () => {
+    const { raiz } = criar('nao-existe');
+    expect(raiz.querySelector('h1')?.textContent?.trim()).toBe('Em breve');
+    expect(raiz.querySelector('a[href="/inicio"]')).not.toBeNull();
+  });
+});

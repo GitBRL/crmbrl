@@ -1,0 +1,165 @@
+@if (info(); as modulo) {
+  @if (temAcesso()) {
+    <app-cartao variante="palco" class="em-breve__palco">
+      <div class="em-breve__topo">
+        <span class="em-breve__icone" aria-hidden="true">
+          <svg [lucideIcon]="modulo.icone" [size]="34" [strokeWidth]="1.5" />
+        </span>
+        <div class="em-breve__selos">
+          @if (modulo.fase) {
+            <app-selo variante="lima">{{ modulo.fase }}</app-selo>
+          }
+          <app-selo variante="contorno" ponto>Em construção</app-selo>
+        </div>
+      </div>
+
+      <h1 #titulo class="texto-display em-breve__titulo" tabindex="-1">
+        {{ modulo.rotulo }}&nbsp;<span class="tom-fraco">· </span
+        ><span class="tom-fraco sem-quebra">em breve</span>
+      </h1>
+      <p class="em-breve__descricao">{{ modulo.descricao }}</p>
+      @if (modulo.nota) {
+        <p class="em-breve__nota">
+          <svg lucideInfo [size]="16" />
+          <span>{{ modulo.nota }}</span>
+        </p>
+      }
+
+      <div class="em-breve__indicadores">
+        @if (fase() !== null) {
+          <app-indicador
+            prefixo="Fase"
+            legenda="Etapa do roadmap em que o módulo chega"
+            disposicao="lado"
+            [valor]="fase()!"
+          />
+        }
+        <app-indicador
+          legenda="Funcionalidades planejadas"
+          disposicao="lado"
+          [valor]="modulo.funcionalidades.length"
+        />
+      </div>
+    </app-cartao>
+
+    <div class="em-breve__grade">
+      <app-cartao titulo="O que vem por aí" [nivel]="2">
+        <ul class="em-breve__chips" role="list">
+          @for (funcionalidade of funcionalidades(); track funcionalidade.texto) {
+            <li class="em-breve__funcionalidade">
+              <app-chip multilinha [icone]="icones.planejado">{{ funcionalidade.texto }}</app-chip>
+              @for (termo of funcionalidade.termos; track termo.termo) {
+                <app-dica
+                  [rotulo]="'O que é ' + termo.termo + '?'"
+                  [titulo]="termo.termo"
+                  [texto]="termo.explicacao"
+                />
+              }
+            </li>
+          }
+        </ul>
+      </app-cartao>
+
+      <app-cartao
+        titulo="Roadmap"
+        complemento="· em fases"
+        dica="O CRM chega em fases. Cada fase libera um conjunto de módulos; a Fase 0, a base, já está no ar."
+        [nivel]="2"
+      >
+        <ol class="roadmap" role="list">
+          @for (etapa of fases; track etapa.numero) {
+            <li
+              class="roadmap__fase"
+              [class.roadmap__fase--atual]="etapa.numero === fase()"
+              [class.roadmap__fase--concluida]="etapa.concluida"
+              [attr.aria-current]="etapa.numero === fase() ? 'step' : null"
+            >
+              <span class="roadmap__marcador" aria-hidden="true">
+                @if (etapa.concluida) {
+                  <svg lucideCheck [size]="14" [strokeWidth]="2.5" />
+                } @else {
+                  {{ etapa.numero }}
+                }
+              </span>
+              <span class="roadmap__nome">
+                Fase {{ etapa.numero }} <span class="tom-fraco">· {{ etapa.nome }}</span>
+                @for (termo of etapa.termos; track termo.termo) {
+                  <app-dica
+                    [rotulo]="'O que é ' + termo.termo + '?'"
+                    [titulo]="termo.termo"
+                    [texto]="termo.explicacao"
+                  />
+                }
+              </span>
+              @if (etapa.concluida) {
+                <app-selo variante="menta">no ar</app-selo>
+              } @else if (etapa.numero === fase()) {
+                <app-selo variante="coral">{{ modulo.rotulo }}</app-selo>
+              }
+            </li>
+          }
+        </ol>
+      </app-cartao>
+    </div>
+
+    <div class="em-breve__acoes">
+      <a appBotao variante="invertido" routerLink="/inicio" [icone]="icones.voltar"
+        >Ir para a visão geral</a
+      >
+    </div>
+  } @else {
+    <app-cartao variante="palco" class="em-breve__palco">
+      <div class="em-breve__topo">
+        <span class="em-breve__icone em-breve__icone--bloqueado" aria-hidden="true">
+          <svg lucideLockKeyhole [size]="34" [strokeWidth]="1.5" />
+        </span>
+        <div class="em-breve__selos">
+          <app-selo variante="contorno" [icone]="modulo.icone">{{ modulo.rotulo }}</app-selo>
+        </div>
+      </div>
+
+      <h1 #titulo class="texto-display em-breve__titulo" tabindex="-1">
+        {{ modulo.rotulo }}&nbsp;<span class="tom-fraco">· </span
+        ><span class="tom-fraco sem-quebra">sem acesso</span>
+      </h1>
+      <p class="em-breve__descricao">
+        O papel <strong>{{ perfil.rotuloPapel() }}</strong> não acessa este módulo. Quem acessa:
+        {{ quemAcessa() }}.
+      </p>
+      <p class="em-breve__nota">
+        <svg lucideFlaskConical [size]="16" />
+        <span
+          >Você está no modo demonstração: use “Ver como”, no seu avatar, para trocar de
+          papel.</span
+        >
+      </p>
+
+      <div class="em-breve__acoes">
+        @if (papelSugerido(); as papel) {
+          <button
+            appBotao
+            type="button"
+            variante="invertido"
+            [icone]="icones.ver"
+            (click)="verComo(papel)"
+          >
+            Ver como {{ rotuloPapel[papel] }}
+          </button>
+        }
+        <a appBotao variante="contorno" routerLink="/inicio" [icone]="icones.voltar"
+          >Ir para a visão geral</a
+        >
+      </div>
+    </app-cartao>
+  }
+} @else {
+  <app-cartao variante="palco" class="em-breve__palco">
+    <h1 class="texto-display em-breve__titulo">Em breve</h1>
+    <p class="em-breve__descricao">Este módulo ainda está sendo planejado.</p>
+    <div class="em-breve__acoes">
+      <a appBotao variante="invertido" routerLink="/inicio" [icone]="icones.voltar"
+        >Ir para a visão geral</a
+      >
+    </div>
+  </app-cartao>
+}

@@ -1,0 +1,80 @@
+@use 'painel-suspenso' as p;
+
+// Sino e painel de notificações. Só tokens.
+
+:host {
+  display: inline-flex;
+}
+
+.notificacoes__ancora {
+  position: relative;
+  display: inline-flex;
+}
+
+.notificacoes__painel {
+  @include p.painel-suspenso(360px);
+
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+}
+
+.notificacoes__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  padding: 0 var(--esp-1);
+}
+
+.notificacoes__titulo {
+  font: var(--fonte-h3);
+}
+
+.notificacoes__lista {
+  display: grid;
+  gap: var(--esp-1);
+}
+
+.notificacoes__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-3);
+  padding: var(--esp-2);
+  border-radius: var(--raio-lg);
+  background: var(--cor-vidro);
+}
+
+.notificacoes__icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--altura-sm);
+  height: var(--altura-sm);
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+}
+
+.notificacoes__texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 2px;
+  font: var(--fonte-corpo-sm, 400 0.875rem/1.5 var(--familia));
+}
+
+// O horário fica sobre o vidro do item: o texto fraco não passa de 4,5:1 ali; o suave, sim.
+.notificacoes__quando {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+// A nota fica direto sobre o painel opaco.
+.notificacoes__nota {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.notificacoes__nota {
+  padding: 0 var(--esp-1);
+}

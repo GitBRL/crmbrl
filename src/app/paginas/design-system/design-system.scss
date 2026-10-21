@@ -1,0 +1,325 @@
+@use 'mixins' as m;
+@use 'catalogo';
+
+// Catálogo do design system: topo, índice e as seções de componentes. Só tokens.
+
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-16);
+  max-width: var(--largura-pagina);
+  padding-bottom: var(--esp-16);
+}
+
+// Topo e índice ---------------------------------------------------------------------------
+.ds-topo,
+.ds-demo,
+.arrastar,
+.busca,
+.funil,
+.dois-temas__painel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-3);
+}
+
+.ds-topo {
+  gap: var(--esp-5);
+}
+
+.ds-topo__selos,
+.ds-topo__tema,
+.ds-indice__lista,
+.arrastar__campos,
+.grupo-icones,
+.seletor-visualizacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.ds-topo__frase {
+  max-width: 64ch;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-lead);
+}
+
+.ds-topo__tema {
+  gap: var(--esp-3);
+  font: var(--fonte-rotulo);
+}
+
+.ds-indice__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--altura-sm);
+  padding: 0 var(--esp-4) 0 var(--esp-1);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  font: var(--fonte-rotulo);
+  text-decoration: none;
+  transition: background-color var(--duracao) var(--curva);
+
+  &:hover {
+    background: var(--cor-superficie-3);
+  }
+
+  @include m.toque {
+    min-height: var(--altura-md);
+  }
+}
+
+// Celular: o índice vira uma linha que rola (.rolagem-horizontal) em vez de seis linhas de
+// pílulas; a folga de 4px não corta o anel de foco.
+@include m.abaixo(m.$sm) {
+  .ds-indice__lista {
+    flex-wrap: nowrap;
+    margin: -4px;
+    padding: 4px;
+  }
+}
+
+.ds-indice__numero {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-micro);
+}
+
+// Demonstrações ---------------------------------------------------------------------------
+.ds-demo__rotulo {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.ds-painel-texto {
+  max-width: 68ch;
+  color: var(--cor-texto-suave);
+}
+
+// Grade com um cartão alto (.ds-alto) ocupando duas linhas ao lado de dois mais baixos
+// empilhados. Nenhum cartão estica: cada um tem a altura do próprio conteúdo.
+.ds-grade--densa {
+  grid-auto-flow: row dense;
+  align-items: start;
+
+  > .ds-alto {
+    grid-row: span 2;
+  }
+}
+
+// Fundo da página dentro de um cartão: mostra o componente como ele fica na tela.
+.ds-moldura {
+  --botao-icone-anel: var(--cor-fundo);
+  --pilha-anel: var(--cor-fundo);
+  --recorte-cor: var(--cor-fundo);
+
+  padding: var(--esp-5);
+  border-radius: var(--raio-lg);
+  background: var(--cor-fundo);
+}
+
+// O palco ocupa a linha toda; os outros dois dividem a de baixo, com a mesma altura (com
+// 300px de mínimo sobrava uma terceira coluna vazia ao lado deles).
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  align-items: stretch;
+  gap: var(--esp-entre-cartoes);
+}
+
+.cartoes__palco {
+  grid-column: 1 / -1;
+
+  app-barra-funil {
+    margin-top: var(--esp-6);
+  }
+}
+
+.cartoes__chip {
+  margin-top: var(--esp-4);
+}
+
+// Lista curta do cartão padrão (como as atividades recentes da visão geral).
+.ds-atividades {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.ds-atividade {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-3);
+}
+
+.ds-atividade__texto {
+  display: grid;
+  gap: 2px;
+  font: var(--fonte-corpo-sm);
+}
+
+// Indicadores lado a lado numa grade: cada um recebe a largura da célula (o indicador é um
+// contêiner e encolhe o número quando ela fica estreita).
+.ds-indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--esp-6) var(--esp-8);
+}
+
+// Três células estreitas (~165px, menos que a do palco a 1440px com a navegação aberta).
+.ds-celulas-estreitas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--esp-6);
+  max-inline-size: 34rem;
+}
+
+.funil {
+  gap: var(--esp-5);
+  margin-top: var(--esp-6);
+}
+
+// Botões-ícone sobrepostos, com anel da cor do fundo (barra de ações da referência).
+.grupo-icones {
+  --recorte-largura: 3px;
+
+  gap: 0;
+
+  > * + * {
+    margin-left: -6px;
+  }
+}
+
+.ds-rotulo-dica {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  font: var(--fonte-h3);
+}
+
+.busca {
+  max-width: 30rem;
+}
+
+.ds-chip-estreito {
+  max-width: 16rem;
+}
+
+// Ponto do "ao vivo" na cor do contexto (como o Status do sistema com a API no ar).
+.ds-selo-ao-vivo {
+  --selo-ponto: var(--cor-sucesso);
+}
+
+// Tema e marca ----------------------------------------------------------------------------
+// O logo nos dois temas: cada painel tem `data-tema` e o fundo da página daquele tema.
+.marca {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: var(--esp-4);
+}
+
+.marca__painel {
+  display: grid;
+  gap: var(--esp-5);
+  margin: 0;
+  padding: var(--esp-6);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-lg);
+  background: var(--cor-fundo);
+}
+
+.marca__logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--esp-5) var(--esp-8);
+}
+
+.marca__item {
+  display: grid;
+  justify-items: start;
+  gap: var(--esp-2);
+}
+
+.marca__visual {
+  display: flex;
+  align-items: center;
+  height: var(--esp-10);
+}
+
+.marca__nota {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+// A regra de cor: a amostra e o valor de --cor-logo lido do CSS do próprio painel.
+.marca__regra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.marca__amostra {
+  width: var(--esp-4);
+  height: var(--esp-4);
+  border-radius: 50%;
+  background: var(--cor-logo);
+  box-shadow: 0 0 0 1px var(--cor-borda-forte);
+}
+
+.marca__valor {
+  color: var(--cor-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+// Favicon como aparece na aba do navegador, nos dois temas: a imagem SVG segue o
+// color-scheme do contêiner (data-tema), como segue o do sistema na aba de verdade.
+.marca__abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
+
+.marca__aba {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--altura-sm);
+  padding: 0 var(--esp-4) 0 var(--esp-3);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-sm) var(--raio-sm) 0 0;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font: var(--fonte-legenda-lg);
+  white-space: nowrap;
+}
+
+// Dois temas ------------------------------------------------------------------------------
+.dois-temas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  gap: var(--esp-entre-cartoes);
+}
+
+.dois-temas__painel {
+  gap: var(--esp-4);
+  padding: var(--esp-5);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-2xl);
+  background: var(--cor-fundo);
+}
+
+.dois-temas__rotulo {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}

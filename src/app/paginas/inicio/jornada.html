@@ -1,0 +1,64 @@
+<h2 class="visualmente-oculto">Jornada do cliente · {{ periodo().complemento }}</h2>
+
+<div class="palco__kpis palco__kpis--3">
+  <app-indicador
+    [valor]="dados().conversaoTotal"
+    casas="1.0-0"
+    unidade="%"
+    legenda="Conversão total do funil"
+    [dica]="dicaConversao()"
+  />
+  <app-indicador
+    [valor]="dados().cicloMedioDias"
+    unidade="d"
+    legenda="Ciclo médio de venda"
+    dica="Tempo médio entre o lead virar negócio no Comercial (quando é qualificado) e o fechamento."
+  />
+  <app-indicador
+    [valor]="receita().numero"
+    prefixo="R$"
+    [unidade]="receita().sufixo || null"
+    legenda="Receita ganha"
+    dica="Soma do valor dos negócios ganhos no período."
+  />
+</div>
+
+<div class="jornada__funil">
+  <div class="jornada__legenda">
+    <app-legenda [series]="origens" />
+    <app-dica
+      rotulo="Como ler o funil"
+      titulo="Como ler o funil"
+      texto="Cada barra é uma etapa, com largura proporcional aos leads do início. As cores mostram a origem do lead; a seta, quanto caiu em relação à etapa anterior; o selo, o tempo médio na etapa. Site e webhooks: leads que chegam sozinhos do site e de outras ferramentas ligadas ao CRM (o webhook é essa ligação automática)."
+    />
+  </div>
+
+  <div class="etapas">
+    @for (grupo of grupos(); track grupo.id) {
+      <div class="etapas__grupo">
+        <div class="etapas__area">
+          <h3 class="etapas__nome">{{ grupo.rotulo }}</h3>
+          @if (grupo.passagem; as passagem) {
+            <span class="etapas__passagem">
+              <span class="etapas__passagem-texto">
+                <svg lucideWorkflow [size]="14" />
+                passagem automática
+              </span>
+              <app-dica [rotulo]="'Como o negócio chega ao ' + grupo.rotulo" [texto]="passagem" />
+            </span>
+          }
+        </div>
+        @for (etapa of grupo.etapas; track etapa.id) {
+          <app-barra-funil
+            [etapa]="etapa.etapa"
+            [total]="etapa.total"
+            [series]="etapa.series"
+            [totalReferencia]="referencia()"
+            [queda]="etapa.queda"
+            [tempoMedioDias]="etapa.tempoMedioDias"
+          />
+        }
+      </div>
+    }
+  </div>
+</div>

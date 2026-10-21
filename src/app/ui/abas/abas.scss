@@ -1,0 +1,241 @@
+@use 'mixins' as m;
+
+:host {
+  --_altura: var(--altura-md);
+
+  display: block;
+  min-width: 0;
+}
+
+:host(.abas--sm) {
+  --_altura: var(--altura-sm);
+}
+
+// A lista rola na horizontal quando não cabe (mobile); a folga de 4px evita cortar o foco.
+// A rolagem é suave (instantânea com movimento reduzido, pela regra global de _base.scss).
+.abas__lista {
+  display: flex;
+  gap: var(--esp-2);
+  margin: -4px;
+  padding: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// A borda com abas escondidas esmaece em 24px: sinal de que a linha continua.
+:host(:not(.abas--opcoes)) {
+  .abas__lista--mais-inicio {
+    mask-image: linear-gradient(to right, transparent, black var(--esp-6));
+  }
+
+  .abas__lista--mais-fim {
+    mask-image: linear-gradient(to left, transparent, black var(--esp-6));
+  }
+
+  .abas__lista--mais-inicio.abas__lista--mais-fim {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black var(--esp-6),
+      black calc(100% - var(--esp-6)),
+      transparent
+    );
+  }
+}
+
+.abas__aba {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--_altura);
+  margin: 0;
+  padding: 0 var(--esp-5);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  white-space: nowrap;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  &:hover {
+    background: color-mix(in srgb, var(--cor-texto) 7%, var(--cor-superficie-2));
+    color: var(--cor-texto);
+  }
+}
+
+// Aba inativa: no tema claro ganha o contorno de controle (superfície-2 sobre o fundo claro
+// dá 1,05:1). Não muda o tamanho; a aba ativa fica sem contorno.
+:host(:not(.abas--opcoes)) .abas__aba:not(.abas__aba--ativa) {
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-controle);
+}
+
+:host(.abas--sm) .abas__aba {
+  padding: 0 var(--esp-4);
+}
+
+.abas__aba--ativa,
+.abas__aba--ativa:hover {
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+}
+
+.abas__painel {
+  margin-top: var(--esp-4);
+  border-radius: var(--raio-cartao);
+}
+
+// Controle segmentado: um trilho em pílula com as opções dentro. Não rola (as opções cabem),
+// para a área de toque e o anel de foco não serem cortados pela lista.
+:host(.abas--opcoes) {
+  display: inline-block;
+  max-width: 100%;
+
+  .abas__lista {
+    gap: 2px;
+    margin: 0;
+    padding: 3px;
+    overflow: visible;
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-pilula);
+    background: var(--cor-superficie-2);
+  }
+
+  .abas__aba {
+    min-height: calc(var(--_altura) - 8px);
+    background: transparent;
+
+    &:hover {
+      background: var(--cor-vidro-forte);
+    }
+
+    // O anel cabe nos 3px do trilho (por dentro, o anel lima sumiria na opção branca).
+    &:focus-visible {
+      outline-offset: 1px;
+    }
+  }
+
+  .abas__aba--ativa,
+  .abas__aba--ativa:hover {
+    background: var(--cor-inverso);
+    color: var(--cor-sobre-inverso);
+  }
+}
+
+// No toque, a opção de 28px (sm) ganha 8px de alvo em cima e embaixo: 44px, mesmo desenho.
+@include m.toque {
+  :host(.abas--opcoes) .abas__aba {
+    @include m.area-toque(8px, 0px);
+  }
+}
+
+// Entalhe: o painel tem a cor do conjunto em qualquer largura.
+:host(.abas--entalhe) {
+  --_entalhe: var(--abas-entalhe-fundo, var(--cor-superficie));
+  --_raio: 20px;
+
+  .abas__painel {
+    padding: var(--esp-cartao);
+    background: var(--_entalhe);
+    box-shadow: var(--sombra-cartao);
+  }
+}
+
+// A partir de 600px, a aba ativa tem a cor do painel e cantos invertidos na base (o entalhe
+// da referência). Abaixo disso as abas são pílulas que rolam (a ativa invertida) e o painel
+// tem os quatro cantos arredondados: o entalhe não cabe e colidia com o canto do painel.
+@include m.acima(m.$sm) {
+  :host(.abas--entalhe) {
+    .abas__lista {
+      align-items: flex-end;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .abas__aba {
+      margin-bottom: var(--esp-2);
+    }
+
+    .abas__aba--ativa,
+    .abas__aba--ativa:hover {
+      z-index: 1; // acima da sombra do painel (tema claro)
+      min-height: calc(var(--_altura) + var(--esp-2));
+      margin-bottom: 0;
+      padding-bottom: var(--esp-2);
+      border-radius: var(--_raio) var(--_raio) 0 0;
+      background: var(--_entalhe);
+      color: var(--cor-texto);
+
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        width: var(--_raio);
+        height: var(--_raio);
+        pointer-events: none;
+      }
+
+      &::before {
+        right: 100%;
+        background: radial-gradient(
+          circle at 0 0,
+          transparent var(--_raio),
+          var(--_entalhe) calc(var(--_raio) + 0.5px)
+        );
+      }
+
+      &::after {
+        left: 100%;
+        background: radial-gradient(
+          circle at 100% 0,
+          transparent var(--_raio),
+          var(--_entalhe) calc(var(--_raio) + 0.5px)
+        );
+      }
+    }
+
+    // Anel por dentro: por fora, a lista rolável cortava a esquerda e a base.
+    .abas__aba--ativa:focus-visible {
+      outline-offset: -4px;
+    }
+
+    .abas__painel {
+      margin-top: 0;
+    }
+  }
+
+  :host(.abas--entalhe.abas--primeira-ativa) {
+    .abas__lista {
+      padding-left: 0;
+      margin-left: 0;
+    }
+
+    .abas__aba--ativa::before {
+      display: none;
+    }
+
+    .abas__painel {
+      border-top-left-radius: 0;
+    }
+  }
+}
+
+// Alto contraste (cores forçadas): o fundo da aba ativa some; um contorno a marca. Com foco,
+// vale o anel de foco.
+@media (forced-colors: active) {
+  .abas__aba--ativa:not(:focus-visible) {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

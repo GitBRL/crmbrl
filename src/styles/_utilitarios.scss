@@ -1,0 +1,98 @@
+// Utilitários globais pequenos, usados por páginas e componentes.
+
+// Esconde da tela mas mantém para leitores de tela.
+.visualmente-oculto {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Escala tipográfica (§2.3) aplicada como classe.
+.texto-display {
+  font: var(--fonte-display);
+  letter-spacing: var(--tracking-display);
+}
+
+.texto-h1 {
+  font: var(--fonte-h1);
+  letter-spacing: var(--tracking-titulo);
+}
+
+.texto-h2 {
+  font: var(--fonte-h2);
+}
+
+.texto-h3 {
+  font: var(--fonte-h3);
+}
+
+.texto-corpo {
+  font: var(--fonte-corpo);
+}
+
+.texto-rotulo {
+  font: var(--fonte-rotulo);
+}
+
+.texto-legenda {
+  font: var(--fonte-legenda);
+}
+
+.texto-micro {
+  font: var(--fonte-micro);
+}
+
+.texto-suave {
+  color: var(--cor-texto-suave);
+}
+
+.texto-fraco {
+  color: var(--cor-texto-fraco);
+}
+
+// Segundo tom dos títulos (DESIGN-SYSTEM.md §2.3). O "·" fica no fim da primeira linha e o
+// complemento desce inteiro:
+// `Visão geral&nbsp;<span class="tom-fraco">·</span> <span class="tom-fraco sem-quebra">outubro de 2026</span>`.
+.tom-fraco {
+  color: var(--cor-texto-fraco);
+}
+
+// Trecho que nunca quebra no meio (o complemento de um título em dois tons, um valor com
+// unidade): desce inteiro para a linha de baixo.
+.sem-quebra {
+  white-space: nowrap;
+}
+
+.numeros {
+  font-variant-numeric: tabular-nums;
+}
+
+// Anel da cor do fundo em volta de um círculo que "recorta" o que está atrás
+// (o botão "»" entre os painéis da referência).
+.recorte {
+  box-shadow: 0 0 0 var(--recorte-largura, 4px) var(--recorte-cor, var(--cor-fundo));
+}
+
+// Linha de pílulas/abas que rola na horizontal no mobile, sem barra de rolagem.
+.rolagem-horizontal {
+  display: flex;
+  gap: var(--esp-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  > * {
+    flex: none;
+  }
+}

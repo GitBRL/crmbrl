@@ -1,0 +1,58 @@
+:host {
+  --_lado: var(--altura-md);
+
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--_lado);
+  height: var(--_lado);
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--dado-1);
+  color: var(--pb-preto);
+  font: var(--fonte-rotulo);
+  font-weight: 600;
+  vertical-align: middle;
+  user-select: none;
+  // Contorno interno só no tema claro (`--cor-contorno-dado`): lima e menta somem no branco.
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+:host(.avatar--sm) {
+  --_lado: 32px;
+  font-size: 0.75rem;
+}
+
+:host(.avatar--lg) {
+  --_lado: 56px;
+  font-size: 1.125rem;
+}
+
+// Pílula: mais larga que alta, a pessoa no centro e a cor aparecendo dos lados.
+:host(.avatar--pilula) {
+  width: calc(var(--_lado) * 1.45);
+  border-radius: var(--raio-pilula);
+}
+
+:host(.avatar--menta) {
+  background: var(--dado-2);
+}
+
+:host(.avatar--lima) {
+  background: var(--dado-3);
+}
+
+:host(.avatar--coral) {
+  background: var(--dado-4);
+}
+
+.avatar__foto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:host(.avatar--pilula) .avatar__foto {
+  width: var(--_lado);
+}

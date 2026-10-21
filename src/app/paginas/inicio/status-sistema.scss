@@ -1,0 +1,161 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+// Ao lado das atividades (lateral em duas colunas), o cartão estica até a altura delas e o
+// rodapé desce para o pé (margem automática); o conteúdo guarda 20px até ele.
+app-cartao {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.status__lista,
+.status__consultando,
+.status__erro {
+  margin-bottom: var(--esp-5);
+}
+
+// Com o servidor respondendo, o ponto do "ao vivo" é menta (o selo lê --selo-ponto).
+.status__ao-vivo {
+  --selo-ponto: var(--cor-sucesso);
+}
+
+.status__lista {
+  container-type: inline-size;
+  display: grid;
+}
+
+.status__linha {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-3) 0;
+  border-top: 1px solid var(--cor-borda);
+
+  &:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  dt {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-rotulo);
+    font-weight: 400;
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-1) var(--esp-2);
+    min-width: 0;
+    margin: 0;
+    font: var(--fonte-rotulo);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@container (width < 18rem) {
+  .status__linha {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--esp-1);
+  }
+}
+
+.status__extra {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.status__codigo {
+  color: var(--cor-texto-suave);
+  font-family: var(--familia-mono, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.status__consultando {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+}
+
+.status__giro {
+  animation: girar 0.9s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// API fora do ar: um aviso calmo, com o que fazer. O ícone fica na linha do título e o
+// texto usa a largura toda (a coluna lateral é estreita).
+.status__erro {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-4);
+  border: 1px solid color-mix(in srgb, var(--cor-erro) 32%, transparent);
+  border-radius: var(--raio-md);
+  background: color-mix(in srgb, var(--cor-erro) 8%, transparent);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm, 400 0.875rem/1.5 var(--familia));
+
+  // "ng serve" e "crmbrl-api" não quebram no meio.
+  .status__codigo {
+    white-space: nowrap;
+  }
+}
+
+.status__erro-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  margin-bottom: var(--esp-1);
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
+}
+
+.status__erro-icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--cor-erro);
+  color: var(--cor-sobre-erro);
+}
+
+// Ajuda técnica (só em desenvolvimento), separada do texto para todos.
+.status__dev {
+  padding-top: var(--esp-2);
+  border-top: 1px solid var(--cor-borda);
+  font: var(--fonte-legenda);
+}
+
+.status__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  margin-top: auto;
+  padding-top: var(--esp-4);
+  border-top: 1px solid var(--cor-borda);
+
+  // Quando o texto e o botão não cabem lado a lado, o botão desce e continua à direita.
+  > button {
+    margin-left: auto;
+  }
+}
+
+.status__atualizado {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}

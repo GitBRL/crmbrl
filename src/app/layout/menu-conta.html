@@ -1,0 +1,67 @@
+<button
+  #botao
+  type="button"
+  class="conta__botao"
+  aria-haspopup="menu"
+  [attr.aria-expanded]="aberto()"
+  [attr.aria-controls]="aberto() ? idMenu : null"
+  (click)="alternar()"
+  (keydown)="aoTeclarNoBotao($event)"
+>
+  <app-avatar class="conta__avatar" tamanho="sm" decorativo [nome]="perfil.persona().nome" />
+  <span class="visualmente-oculto"
+    >Conta: {{ perfil.persona().nome }}, {{ perfil.rotuloPapel() }} (modo demonstração)</span
+  >
+  <svg lucideChevronDown class="conta__seta" [size]="16" />
+</button>
+
+@if (aberto()) {
+  <div class="conta__painel" (keydown)="aoTeclarNoMenu($event)">
+    <div class="conta__cabecalho">
+      <app-avatar tamanho="lg" decorativo [nome]="perfil.persona().nome" />
+      <div class="conta__quem">
+        <p class="conta__nome">{{ perfil.persona().nome }}</p>
+        <p class="conta__papel">{{ perfil.rotuloPapel() }}</p>
+      </div>
+    </div>
+
+    <div class="conta__aviso" [id]="idAviso">
+      <app-selo variante="lima" [icone]="iconeDemo">Modo demonstração</app-selo>
+      <p>
+        Ainda não há login. Escolha uma pessoa de exemplo para ver o CRM como cada papel: a
+        navegação e as telas mudam conforme o acesso.
+      </p>
+    </div>
+
+    <p class="conta__grupo" aria-hidden="true">Ver como</p>
+    <div
+      class="conta__menu"
+      role="menu"
+      aria-label="Ver como"
+      [id]="idMenu"
+      [attr.aria-describedby]="idAviso"
+    >
+      @for (persona of perfil.personas; track persona.papel) {
+        <button
+          #item
+          type="button"
+          role="menuitemradio"
+          class="conta__item"
+          tabindex="-1"
+          [attr.aria-label]="persona.nome + ', ' + persona.rotuloPapel"
+          [attr.aria-checked]="persona.papel === perfil.papel()"
+          (click)="escolher(persona)"
+        >
+          <app-avatar tamanho="sm" decorativo [nome]="persona.nome" />
+          <span class="conta__item-texto">
+            <span class="conta__item-nome">{{ persona.nome }}</span>
+            <span class="conta__item-papel">{{ persona.rotuloPapel }}</span>
+          </span>
+          <svg lucideCheck class="conta__marca" [size]="18" />
+        </button>
+      }
+    </div>
+  </div>
+}
+
+<p class="visualmente-oculto" role="status">{{ anuncio() }}</p>

@@ -1,0 +1,36 @@
+// Classes comuns às partes do catálogo (página e fundamentos). Pequeno de propósito: o CSS
+// entra em cada componente que usa este arquivo.
+
+.ds-token {
+  font-family: var(--familia-mono);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.ds-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.ds-linha--espalhada {
+  gap: var(--esp-6) var(--esp-10);
+}
+
+.ds-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--esp-entre-cartoes);
+}
+
+// Pares de exemplos lado a lado, com a mesma altura (sem vazio embaixo do mais curto).
+.ds-grade--2 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  align-items: stretch;
+}
+
+.ds-nota {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}

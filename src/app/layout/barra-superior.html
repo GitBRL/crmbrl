@@ -1,0 +1,54 @@
+<header
+  class="topo"
+  [class.topo--busca-aberta]="buscaAberta()"
+  [class.topo--compacto]="somenteSimbolo()"
+>
+  <div class="topo__inicio">
+    <button
+      appBotaoIcone
+      type="button"
+      class="topo__menu"
+      aria-haspopup="dialog"
+      aria-controls="gaveta-navegacao"
+      rotulo="Abrir a navegação"
+      [icone]="icones.menu"
+      [attr.aria-expanded]="estado.gavetaAberta()"
+      (click)="estado.abrirGaveta()"
+    ></button>
+    <a class="topo__marca" routerLink="/inicio" aria-label="BRL CRM: ir para a visão geral">
+      <app-logo [somenteSimbolo]="somenteSimbolo()" />
+    </a>
+    <p class="topo__secao">{{ secao() }}</p>
+  </div>
+
+  <div class="topo__fim">
+    <div class="topo__busca" id="busca-global" (keydown.escape)="fecharBusca()">
+      <app-campo-busca
+        rotulo="Buscar no CRM"
+        placeholder="Buscar módulo (ex.: Disparos)…"
+        (valorChange)="aoDigitar()"
+        (buscar)="buscar($event)"
+      />
+      <p class="topo__aviso" role="status" [class.topo__aviso--visivel]="aviso() !== null">
+        {{ aviso() }}
+      </p>
+    </div>
+
+    <div class="topo__acoes">
+      <button
+        #botaoBusca
+        appBotaoIcone
+        type="button"
+        class="topo__abrir-busca"
+        rotulo="Buscar no CRM"
+        aria-controls="busca-global"
+        [icone]="icones.busca"
+        [attr.aria-expanded]="buscaAberta()"
+        (click)="buscaAberta() ? fecharBusca() : abrirBusca()"
+      ></button>
+      <span class="topo__tema"><app-alternador-tema /></span>
+      <app-notificacoes />
+      <app-menu-conta />
+    </div>
+  </div>
+</header>

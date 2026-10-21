@@ -1,0 +1,80 @@
+@use 'mixins' as m;
+
+:host {
+  position: relative;
+  display: block;
+  min-width: 0;
+  padding: var(--esp-cartao);
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-cartao);
+}
+
+// Palco: brilhos radiais suaves; controles neutros viram vidro sobre ele.
+:host(.cartao--palco) {
+  --cor-superficie-2: var(--cor-vidro);
+  --cor-superficie-3: var(--cor-vidro-forte);
+  --pilha-anel: color-mix(in srgb, var(--cor-fundo) 70%, transparent);
+
+  padding: var(--esp-8);
+  border-radius: var(--raio-palco);
+  background: var(--gradiente-palco);
+}
+
+@include m.abaixo(m.$sm) {
+  :host(.cartao--palco) {
+    padding: var(--esp-5);
+  }
+}
+
+// Destaque: coral listrado; o conteúdo passa para tons de preto. O texto fraco fica em 78%
+// (como o suave): com 66%, a legenda de 12px dava 4,36:1 no coral liso e 4,02:1 na listra;
+// com 78%, 5,58:1 e 4,98:1. A superfície-3 em 8% deixa o selo do chip (preto) em ~4,85:1.
+:host(.cartao--destaque) {
+  --cor-texto: var(--pb-preto);
+  --cor-texto-suave: color-mix(in srgb, var(--pb-preto) 78%, transparent);
+  --cor-texto-fraco: color-mix(in srgb, var(--pb-preto) 78%, transparent);
+  --cor-borda: color-mix(in srgb, var(--pb-preto) 16%, transparent);
+  --cor-borda-forte: color-mix(in srgb, var(--pb-preto) 28%, transparent);
+  --cor-superficie-2: color-mix(in srgb, var(--pb-preto) 6%, transparent);
+  --cor-superficie-3: color-mix(in srgb, var(--pb-preto) 8%, transparent);
+  --cor-vidro: color-mix(in srgb, var(--pb-preto) 6%, transparent);
+  --cor-vidro-forte: color-mix(in srgb, var(--pb-preto) 12%, transparent);
+  --cor-foco: var(--pb-preto);
+
+  background: var(--listras-destaque), var(--cor-destaque);
+  box-shadow: none;
+}
+
+.cartao__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-5);
+}
+
+.cartao__titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.cartao__h {
+  font: var(--fonte-h3);
+  letter-spacing: var(--tracking-titulo);
+}
+
+.cartao__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+
+  &:empty {
+    display: none;
+  }
+}

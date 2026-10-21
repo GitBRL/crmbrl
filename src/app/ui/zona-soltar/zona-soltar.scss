@@ -1,0 +1,49 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-2);
+  min-height: 120px;
+  padding: var(--esp-5);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: var(--raio-lg);
+  color: var(--cor-texto-fraco);
+  text-align: center;
+  transition:
+    border-color var(--duracao) var(--curva),
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+}
+
+.zona__circulo {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 50%;
+  color: var(--cor-texto-suave);
+  transition:
+    background-color var(--duracao) var(--curva),
+    border-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+}
+
+.zona__legenda {
+  font: var(--fonte-legenda);
+}
+
+// Recebendo um item: borda coral.
+:host(.zona--recebendo) {
+  border-style: solid;
+  border-color: var(--cor-destaque);
+  background: color-mix(in srgb, var(--cor-destaque) 8%, transparent);
+  color: var(--cor-destaque-texto);
+
+  .zona__circulo {
+    border-color: var(--cor-destaque);
+    background: var(--cor-destaque);
+    color: var(--cor-sobre-destaque);
+  }
+}

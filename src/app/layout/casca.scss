@@ -1,0 +1,383 @@
+@use 'mixins' as m;
+
+// Casca: grade da página (DESIGN-SYSTEM.md §5). Colunas: margem · navegação · vão ·
+// conteúdo · margem. A barra superior ocupa a linha de cima inteira e reaproveita as colunas
+// (subgrid). Só tokens.
+
+:host {
+  display: block;
+}
+
+.casca {
+  // Altura da barra superior (lida também pela barra e pelos painéis suspensos). O mesmo
+  // valor do token global; fica aqui para a casca não depender da ordem dos estilos.
+  --casca-altura-topo: 76px;
+  // Recuo lateral da página (24px; 16px no celular). Público: as páginas o leem para levar
+  // uma linha que rola até a borda da tela (as abas do palco no celular).
+  --casca-margem: var(--esp-6);
+  --_navegacao: 288px;
+
+  display: grid;
+  grid-template-columns:
+    var(--casca-margem) var(--_navegacao) var(--esp-6) minmax(0, 1fr)
+    var(--casca-margem);
+  grid-template-rows: auto 1fr;
+  min-height: 100dvh;
+  transition: grid-template-columns var(--duracao) var(--curva);
+}
+
+.casca--recolhida {
+  --_navegacao: 68px;
+}
+
+// Tablet com a navegação aberta: a coluna continua a do trilho e o cartão passa por cima do
+// conteúdo (a lateral já fica acima dele), com a sombra do que flutua.
+.casca--sobreposta {
+  --_navegacao: 68px;
+
+  .casca__lateral {
+    width: 288px;
+  }
+
+  .casca__cartao {
+    box-shadow:
+      var(--sombra-flutuante),
+      0 0 0 1px var(--cor-borda);
+  }
+}
+
+// Navegação lateral: um cartão da altura da tela, fixo enquanto o conteúdo rola.
+.casca__lateral {
+  position: sticky;
+  top: calc(var(--casca-altura-topo) + var(--esp-4));
+  // Acima do conteúdo: a dica do item recolhido e a navegação sobreposta passam por cima.
+  z-index: 2;
+  grid-column: 2;
+  align-self: start;
+  height: calc(100dvh - var(--casca-altura-topo) - var(--esp-4) - var(--esp-6));
+  min-height: 320px;
+  margin-top: var(--esp-4);
+}
+
+// O cartão não rola: a lista rola dentro dele e o aviso de demonstração fica fixo no pé.
+.casca__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  height: 100%;
+  padding-bottom: var(--esp-3);
+  overflow: hidden;
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+// À direita, 8px: com barra de rolagem clássica (Windows, Linux), "Contatos e empresas" ainda
+// cabe numa linha ao lado do selo.
+.casca__rolagem {
+  --_respiro-fim: var(--esp-2);
+
+  flex: 1;
+  min-height: 0;
+  padding-inline: var(--esp-3) var(--_respiro-fim);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+
+  // O respiro de cima e de baixo fica no conteúdo, não na área que rola: os degradês das
+  // bordas grudam na beirada dela.
+  > app-menu-lateral {
+    padding-block: var(--esp-3);
+  }
+}
+
+// No trilho de círculos (68px) uma barra de rolagem espremeria os itens: ali o sinal de que
+// a lista continua é só o esmaecimento (rolam a roda do mouse, o toque e o teclado).
+.casca--recolhida .casca__rolagem {
+  --_respiro-fim: var(--esp-3);
+
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.casca__aviso {
+  flex: none;
+  margin-inline: var(--esp-3);
+}
+
+// Tela baixa (celular deitado, janela pequena): o cartão inteiro rola, para o aviso não
+// espremer a lista.
+@media (max-height: 560px) {
+  .casca__cartao {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .casca--recolhida .casca__cartao {
+    scrollbar-width: none;
+  }
+
+  .casca__rolagem {
+    flex: none;
+    overflow: visible;
+  }
+}
+
+// Bordas esmaecidas de uma área que rola (diretiva RolagemEsmaecida): degradês da cor do
+// cartão, grudados no topo e no pé, visíveis só quando há conteúdo escondido daquele lado.
+// Não usa mask-image: a máscara cortaria a dica da navegação recolhida (`position: fixed`,
+// fora da área). O scroll-padding mantém o item focado pelo Tab fora dos degradês.
+.rolagem-esmaecida {
+  --_degrade: var(--esp-10);
+
+  scroll-padding-block: var(--_degrade);
+
+  &::before,
+  &::after {
+    content: '';
+    position: sticky;
+    z-index: 1;
+    display: block;
+    height: var(--_degrade);
+    // Cobre também o respiro lateral da área (o mesmo padding dela).
+    margin-inline: calc(-1 * var(--esp-3)) calc(-1 * var(--_respiro-fim, var(--esp-3)));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--duracao) var(--curva);
+  }
+
+  &::before {
+    top: 0;
+    margin-bottom: calc(-1 * var(--_degrade));
+    background: linear-gradient(var(--cor-superficie), transparent);
+  }
+
+  &::after {
+    bottom: 0;
+    margin-top: calc(-1 * var(--_degrade));
+    background: linear-gradient(transparent, var(--cor-superficie));
+  }
+}
+
+.rolagem-esmaecida--acima::before,
+.rolagem-esmaecida--abaixo::after {
+  opacity: 1;
+}
+
+// O "»" da referência: círculo no vão entre a navegação e o conteúdo, recortado com a cor
+// do fundo, avançando um pouco sobre os dois lados.
+.casca__recolher {
+  position: absolute;
+  top: calc(50% - 18px);
+  right: calc(var(--esp-6) / -2 - 18px);
+}
+
+.casca__conteudo {
+  grid-column: 4;
+  min-width: 0;
+  padding: var(--esp-4) 0 var(--esp-16);
+}
+
+// Navegação demorada: barra de 2px no topo, na cor do foco, indo e voltando (parada com
+// movimento reduzido).
+.casca__progresso {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: var(--z-flutuante);
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 40%;
+    border-radius: var(--raio-pilula);
+    background: var(--cor-foco);
+    animation: progresso 1.2s var(--curva) infinite;
+  }
+}
+
+@keyframes progresso {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casca__progresso::before {
+    width: 100%;
+    animation: none;
+  }
+}
+
+// Mobile: sem coluna lateral (a navegação abre na gaveta).
+@include m.abaixo(m.$md) {
+  .casca {
+    --casca-altura-topo: 68px;
+    --casca-margem: var(--esp-4);
+
+    grid-template-columns: var(--casca-margem) minmax(0, 1fr) var(--casca-margem);
+  }
+
+  .casca__lateral {
+    display: none;
+  }
+
+  .casca__conteudo {
+    grid-column: 2;
+    padding-top: var(--esp-2);
+  }
+}
+
+// Gaveta (mobile) ----------------------------------------------------------------------------
+.gaveta {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(320px, calc(100vw - 32px));
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0 var(--raio-2xl) var(--raio-2xl) 0;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  transition:
+    transform var(--duracao-lenta) var(--curva),
+    display var(--duracao-lenta) allow-discrete,
+    overlay var(--duracao-lenta) allow-discrete;
+
+  &::backdrop {
+    background: var(--cor-veu);
+    backdrop-filter: blur(4px);
+    transition:
+      opacity var(--duracao-lenta) ease-out,
+      display var(--duracao-lenta) allow-discrete,
+      overlay var(--duracao-lenta) allow-discrete;
+  }
+
+  &:not([open]) {
+    transform: translateX(-100%);
+  }
+}
+
+@starting-style {
+  .gaveta[open] {
+    transform: translateX(-100%);
+  }
+
+  .gaveta[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.gaveta__caixa {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.gaveta__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  padding: var(--esp-4) var(--esp-4) var(--esp-2) var(--esp-5);
+}
+
+// A marca é um link: alvo de 44px mesmo com o logo menor.
+.gaveta__marca {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--altura-md);
+  min-height: var(--altura-md);
+  border-radius: var(--raio-sm);
+  text-decoration: none;
+}
+
+.gaveta__menu {
+  flex: 1;
+  min-height: 0;
+  padding-inline: var(--esp-3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  > app-menu-lateral {
+    padding-block: var(--esp-2);
+  }
+}
+
+.gaveta__rodape {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-3) var(--esp-3) var(--esp-5);
+  border-top: 1px solid var(--cor-borda);
+}
+
+// Linha inteira é o botão do tema: o círculo do ícone, como nos itens do menu, e a ação.
+.gaveta__tema {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  width: 100%;
+  min-height: var(--altura-md);
+  margin: 0;
+  padding: 3px var(--esp-3) 3px 3px;
+  border: 1px solid transparent;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  &:hover {
+    background: var(--cor-vidro);
+    color: var(--cor-texto);
+  }
+}
+
+.gaveta__tema-circulo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(var(--altura-md) - 8px);
+  height: calc(var(--altura-md) - 8px);
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+}
+
+// Tela baixa (celular deitado): a gaveta inteira rola, em vez de o rodapé espremer a lista.
+@media (max-height: 560px) {
+  .gaveta__caixa {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .gaveta__menu {
+    flex: none;
+    overflow: visible;
+  }
+}

@@ -1,0 +1,79 @@
+# Caddy do front do CRM BRL: serve o build do Angular (em /srv) e repassa /api para a API.
+# Variáveis de ambiente: PORT (padrão 8080) e API_UPSTREAM (host:porta da API, padrão
+# api:3000 — o nome do serviço no docker-compose.yml do crmbrl-api).
+{
+	admin off
+	auto_https off
+}
+
+# Cabeçalhos de segurança de toda resposta, inclusive as da API e as de erro (ex.: 502 com a
+# API fora). As remoções (-) valem também para o que vem do reverse_proxy.
+(seguranca) {
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# CRM interno: fora dos buscadores
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+		-Via
+		-X-Powered-By
+	}
+	# Content-Security-Policy com o hash de cada <script> inline do index.html, gerada no
+	# build da imagem (Dockerfile). Fora da imagem (ex.: validar só este arquivo), o padrão
+	# não encontra o arquivo e a política fica de fora.
+	import /etc/caddy/csp*.caddy
+}
+
+:{$PORT:8080} {
+	encode zstd gzip
+	import seguranca
+
+	# Arquivos do build com hash no nome (main-…, chunk-…, styles-…, media/): nunca mudam.
+	# Só valem se existirem — um chunk antigo que sumiu não ganha cache longo.
+	@comHash {
+		path *.js *.css /media/*
+		file
+	}
+
+	# Fontes auto-hospedadas (public/fonts): mudam pouco.
+	@fontes path /fonts/*
+
+	# Arquivo do build que não existe (um chunk de antes do último deploy, por exemplo): 404 de
+	# verdade. Se caísse no index.html, a aba antiga receberia HTML no lugar de JS.
+	@ausente {
+		not file
+		path *.js *.mjs *.css *.map *.woff2 *.svg *.png *.ico *.webmanifest /media/* /fonts/*
+	}
+
+	# API: repassada com o prefixo /api (as rotas da API começam por /api), inclusive o /api
+	# sem barra.
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy {$API_UPSTREAM:api:3000}
+	}
+
+	# Front (SPA): rota de navegação que não é arquivo cai no index.html, e o roteador do
+	# Angular resolve.
+	handle {
+		root * /srv
+		route {
+			error @ausente 404
+			# index.html e rotas da SPA sempre revalidados: atualização chega na hora.
+			header Cache-Control "no-cache"
+			header @comHash Cache-Control "public, max-age=31536000, immutable"
+			header @fontes Cache-Control "public, max-age=604800"
+			try_files {path} /index.html
+			file_server
+		}
+	}
+
+	# Erros (ex.: API fora do ar → 502, arquivo ausente → 404): resposta curta, sem cache, com
+	# os mesmos cabeçalhos de segurança.
+	handle_errors {
+		import seguranca
+		header Cache-Control "no-store"
+		respond "{err.status_code} {err.status_text}"
+	}
+}

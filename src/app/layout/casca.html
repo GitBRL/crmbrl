@@ -1,0 +1,89 @@
+<a class="link-pular" href="#conteudo" (click)="pularParaConteudo($event)">
+  Pular para o conteúdo
+</a>
+
+@if (navegando()) {
+  <div class="casca__progresso" aria-hidden="true"></div>
+}
+
+<div
+  class="casca"
+  [class.casca--recolhida]="estado.recolhida()"
+  [class.casca--sobreposta]="estado.sobreposta()"
+>
+  <app-barra-superior />
+
+  <div #lateral class="casca__lateral" (keydown.escape)="recolherComEsc()">
+    <div id="navegacao-lateral" class="casca__cartao">
+      <div class="casca__rolagem" appRolagemEsmaecida>
+        <app-menu-lateral [recolhida]="estado.recolhida()" />
+      </div>
+      @if (!estado.recolhida()) {
+        <app-aviso-demo class="casca__aviso" (trocar)="trocarPersona()" />
+      }
+    </div>
+    <button
+      #alternar
+      appBotaoIcone
+      type="button"
+      class="casca__recolher recorte"
+      tamanho="sm"
+      aria-controls="navegacao-lateral"
+      [icone]="alternador().icone"
+      [rotulo]="alternador().rotulo"
+      [attr.aria-expanded]="!estado.recolhida()"
+      (click)="estado.alternarNavegacao()"
+    ></button>
+  </div>
+
+  <main
+    #conteudo
+    id="conteudo"
+    class="casca__conteudo"
+    tabindex="-1"
+    [attr.aria-busy]="navegando() || null"
+  >
+    <router-outlet />
+  </main>
+</div>
+
+<dialog
+  #gaveta
+  id="gaveta-navegacao"
+  class="gaveta"
+  aria-label="Navegação"
+  (close)="aoFecharGaveta()"
+  (keydown)="aoTeclarNaGaveta($event)"
+  (pointerdown)="aoPressionarGaveta($event)"
+  (click)="aoClicarNaGaveta($event)"
+>
+  <div class="gaveta__caixa">
+    <div class="gaveta__topo">
+      <a class="gaveta__marca" routerLink="/inicio" aria-label="BRL CRM: ir para a visão geral">
+        <app-logo />
+      </a>
+      <button
+        appBotaoIcone
+        type="button"
+        autofocus
+        rotulo="Fechar a navegação"
+        [icone]="icones.fechar"
+        (click)="estado.fecharGaveta()"
+      ></button>
+    </div>
+
+    <div class="gaveta__menu" appRolagemEsmaecida>
+      <app-menu-lateral />
+    </div>
+
+    <div class="gaveta__rodape">
+      <app-aviso-demo (trocar)="trocarPersona(true)" />
+      <button type="button" class="gaveta__tema" (click)="tema.alternar()">
+        <span class="gaveta__tema-circulo" aria-hidden="true">
+          <svg [lucideIcon]="tema.ehEscuro() ? icones.sol : icones.lua" [size]="20" />
+        </span>
+        {{ tema.ehEscuro() ? 'Usar tema claro' : 'Usar tema escuro' }}
+      </button>
+    </div>
+  </div>
+</dialog>

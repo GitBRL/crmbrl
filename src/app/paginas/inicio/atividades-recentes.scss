@@ -1,0 +1,111 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+// Linha do tempo: marca (avatar ou ícone) à esquerda, ligada à próxima por um fio.
+.linha-tempo {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.evento {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--esp-3);
+
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    top: calc(32px + var(--esp-1));
+    bottom: calc(-1 * var(--esp-5) + var(--esp-1));
+    left: 15.5px;
+    width: 1px;
+    background: var(--cor-borda-forte);
+  }
+}
+
+.evento__marca {
+  width: 32px;
+  height: 32px;
+}
+
+.evento__icone {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+
+  // Preenchimento de dado: como nos avatares, no tema claro ganha o contorno interno de 1px
+  // (`--cor-contorno-dado`; lima, menta e ciano somem no branco — o lima dá 1,17:1).
+  &[data-cor] {
+    color: var(--pb-preto);
+    box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+  }
+
+  &[data-cor='ciano'] {
+    background: var(--dado-1);
+  }
+
+  &[data-cor='menta'] {
+    background: var(--dado-2);
+  }
+
+  &[data-cor='lima'] {
+    background: var(--dado-3);
+  }
+
+  &[data-cor='coral'] {
+    background: var(--dado-4);
+  }
+}
+
+.evento__corpo {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 5px;
+}
+
+.evento__titulo {
+  font: var(--fonte-rotulo);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.evento__detalhe {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.evento__quando {
+  margin-top: 2px;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+// Rodapé com o atalho para a auditoria completa (só para quem acessa a Administração).
+.atividades__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  margin-top: var(--esp-5);
+  padding-top: var(--esp-4);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.atividades__nota {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+// O atalho e o selo "em breve" andam juntos (o módulo de auditoria ainda não existe).
+.atividades__acao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
