@@ -1,0 +1,181 @@
+<app-modal [(aberto)]="aberto" largura="lg" [titulo]="titulo()">
+  @if (aberto()) {
+    @if (segredoCriado(); as criado) {
+      <div class="formulario">
+        <p class="formulario__frase formulario__resultado" tabindex="-1">
+          Este é o segredo das assinaturas de “{{ criado.webhook.nome }}”. É a única vez que ele
+          aparece: guarde-o no sistema de destino para conferir o cabeçalho
+          <code>X-CRM-Assinatura</code> de cada entrega.
+        </p>
+        <app-valor-unico rotulo="Segredo das assinaturas" oQue="Segredo" [valor]="criado.segredo" />
+        <p class="formulario__nota">
+          O passo a passo e o código para conferir a assinatura estão em “Como validar a
+          assinatura”, embaixo da lista. Para testar agora, use “Enviar teste” no destino.
+        </p>
+      </div>
+    } @else {
+      <form class="formulario" novalidate [formGroup]="form" (ngSubmit)="salvar()">
+        @if (erroGeral(); as mensagem) {
+          <p class="formulario__alerta" role="alert">{{ mensagem }}</p>
+        }
+        <app-campo-texto
+          rotulo="Nome"
+          placeholder="TicketHub — abrir chamados"
+          [maximoCaracteres]="100"
+          formControlName="nome"
+        />
+        <app-campo-texto
+          rotulo="URL do destino"
+          tipo="url"
+          placeholder="https://sistema.exemplo.com.br/webhooks/brl-crm"
+          dica="O CRM faz um POST com JSON para este endereço. Em produção precisa ser HTTPS; endereços da rede interna só se a TI liberou."
+          [mensagens]="mensagensUrl"
+          formControlName="url"
+        />
+
+        <fieldset class="formulario__grupo formulario__eventos">
+          <legend class="formulario__legenda">
+            Eventos
+            <app-dica
+              rotulo="Sobre os eventos"
+              texto="O CRM avisa o destino a cada evento marcado, com o envelope { id, evento, ocorridoEm, dados }. O evento de teste vai sempre que você usar “Enviar teste”."
+            />
+          </legend>
+          @if (carregandoEventos()) {
+            <div aria-busy="true" class="formulario__carregando">
+              <p class="visualmente-oculto" role="status">Carregando os eventos…</p>
+              <app-esqueleto [linhas]="4" />
+            </div>
+          } @else if (erroEventos(); as falha) {
+            <app-estado-vazio
+              compacto
+              variante="erro"
+              [falha]="falha"
+              titulo="Não conseguimos carregar os eventos"
+              [texto]="falha.resumo"
+              [codigo]="falha.requisicaoId"
+            >
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                (click)="recarregarEventos()"
+              >
+                Tentar de novo
+              </button>
+            </app-estado-vazio>
+          } @else {
+            <app-caixa-selecao
+              class="formulario__todos"
+              rotulo="Todos os eventos"
+              [valor]="todosMarcados()"
+              [indeterminado]="algunsMarcados()"
+              (valorChange)="marcarTodos($event)"
+            />
+            <div class="formulario__lista-eventos">
+              @for (opcao of opcoesEvento(); track opcao.evento) {
+                <app-caixa-selecao
+                  [rotulo]="opcao.rotulo"
+                  [dica]="opcao.descricao"
+                  [valor]="marcados().has(opcao.evento)"
+                  (valorChange)="marcar(opcao.evento, $event)"
+                />
+              }
+            </div>
+            @if (erroDosEventos(); as mensagem) {
+              <p class="formulario__erro" role="alert">{{ mensagem }}</p>
+            }
+          }
+        </fieldset>
+
+        <fieldset class="formulario__grupo" formArrayName="cabecalhos">
+          <legend class="formulario__legenda">
+            Cabeçalhos extras <span class="formulario__opcional">(opcional)</span>
+            <app-dica
+              rotulo="Para que servem"
+              texto="Vão em toda entrega, por exemplo um token de acesso do sistema de destino (Authorization). Ficam cifrados e depois só aparecem mascarados."
+            />
+          </legend>
+          @for (salvo of cabecalhosSalvos(); track salvo.nome) {
+            @let removido = removidos().has(salvo.nome);
+            <div class="cabecalho cabecalho--salvo" [class.cabecalho--removido]="removido">
+              <code class="cabecalho__nome">{{ salvo.nome }}</code>
+              <code class="cabecalho__valor">{{ salvo.valorMascarado }}</code>
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                [attr.aria-pressed]="removido"
+                (click)="alternarRemocao(salvo.nome)"
+              >
+                {{ removido ? 'Manter' : 'Remover' }}
+              </button>
+              @if (removido) {
+                <span class="formulario__nota cabecalho__aviso">Sai ao salvar.</span>
+              }
+            </div>
+          }
+          @for (grupo of cabecalhos.controls; track grupo; let i = $index) {
+            <div class="cabecalho" [formGroupName]="i">
+              <app-campo-texto
+                rotuloOculto
+                [rotulo]="'Nome do cabeçalho ' + (i + 1)"
+                placeholder="Authorization"
+                [mensagens]="mensagensCabecalho"
+                formControlName="nome"
+              />
+              <app-campo-texto
+                rotuloOculto
+                [rotulo]="'Valor do cabeçalho ' + (i + 1)"
+                placeholder="Bearer …"
+                formControlName="valor"
+              />
+              <button
+                appBotaoIcone
+                type="button"
+                variante="contorno"
+                [icone]="icones.remover"
+                [rotulo]="'Remover o cabeçalho ' + (i + 1)"
+                (click)="removerCabecalho(i)"
+              ></button>
+            </div>
+          }
+          @if (editando() && cabecalhos.length) {
+            <p class="formulario__nota">Um cabeçalho com o mesmo nome de um salvo o substitui.</p>
+          }
+          <div>
+            <button
+              appBotao
+              type="button"
+              variante="contorno"
+              tamanho="sm"
+              [icone]="icones.adicionar"
+              [disabled]="total() >= maximoCabecalhos"
+              (click)="adicionarCabecalho()"
+            >
+              Adicionar cabeçalho
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    }
+  }
+  <div modal-rodape class="formulario__rodape">
+    @if (segredoCriado()) {
+      <button appBotao type="button" variante="invertido" (click)="fechar()">Já copiei</button>
+    } @else {
+      <button appBotao type="button" variante="contorno" (click)="fechar()">Cancelar</button>
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [carregando]="enviando()"
+        (click)="salvar()"
+      >
+        {{ editando() ? 'Salvar alterações' : 'Cadastrar destino' }}
+      </button>
+    }
+  </div>
+</app-modal>

@@ -1,0 +1,231 @@
+<div class="historico__barra">
+  <app-filtros-pilula
+    class="historico__filtros"
+    rotulo="Mostrar recebimentos"
+    [opcoes]="filtros"
+    [selecionado]="filtro()"
+    (selecionadoChange)="escolherFiltro($event)"
+  />
+  <button
+    appBotaoIcone
+    type="button"
+    variante="contorno"
+    tamanho="sm"
+    rotulo="Atualizar recebimentos"
+    [icone]="icones.atualizar"
+    (click)="carregar()"
+  ></button>
+</div>
+
+@if (erro(); as falha) {
+  <app-estado-vazio
+    variante="erro"
+    [falha]="falha"
+    compacto
+    titulo="Não conseguimos carregar os recebimentos"
+    [texto]="falha.resumo"
+    [codigo]="falha.requisicaoId"
+  >
+    <button appBotao type="button" variante="invertido" tamanho="sm" (click)="carregar()">
+      Tentar de novo
+    </button>
+  </app-estado-vazio>
+} @else if (carregando() && !resposta()) {
+  <div class="historico__carregando" aria-busy="true">
+    <p class="visualmente-oculto" role="status">Carregando…</p>
+    @for (linha of [1, 2, 3]; track linha) {
+      <app-esqueleto forma="bloco" altura="56px" />
+    }
+  </div>
+} @else if (!itens().length) {
+  @if (filtrado()) {
+    <app-estado-vazio
+      variante="busca"
+      compacto
+      [titulo]="tituloVazio()"
+      texto="Troque o filtro para ver os outros recebimentos."
+    >
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        tamanho="sm"
+        (click)="escolherFiltro('todos')"
+      >
+        Ver todos
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <app-estado-vazio
+      compacto
+      titulo="Nenhum recebimento ainda"
+      texto="Quando o sistema de origem mandar o primeiro lead para o endereço deste webhook, ele aparece aqui em segundos."
+    />
+  }
+} @else {
+  <ul class="historico__lista" [attr.aria-busy]="carregando() || null" aria-label="Recebimentos">
+    @for (recebimento of itens(); track recebimento.id) {
+      @let aberto_ = aberto() === recebimento.id;
+      <li class="historico__item" [class.historico__item--aberto]="aberto_">
+        <button
+          type="button"
+          class="historico__resumo"
+          [attr.aria-expanded]="aberto_"
+          [attr.aria-controls]="'recebimento-' + recebimento.id"
+          (click)="alternar(recebimento)"
+        >
+          <app-selo tamanho="sm" [variante]="seloStatus[recebimento.status]">
+            {{ rotuloStatus[recebimento.status] }}
+          </app-selo>
+          <span class="historico__texto">
+            {{ recebimento.mensagem ?? 'Aguardando a fila processar este envio.' }}
+          </span>
+          <time
+            class="historico__meta"
+            [attr.datetime]="recebimento.recebidoEm"
+            [title]="dataHora(recebimento.recebidoEm)"
+            >{{ quando(recebimento.recebidoEm) }}</time
+          >
+          <svg lucideChevronDown class="historico__seta" [size]="18" />
+        </button>
+
+        @if (aberto_) {
+          <div class="historico__detalhe" [id]="'recebimento-' + recebimento.id">
+            <dl class="historico__dados">
+              <div>
+                <dt>Recebido em</dt>
+                <dd>{{ dataHora(recebimento.recebidoEm) }}</dd>
+              </div>
+              <div>
+                <dt>Processado em</dt>
+                <dd>{{ dataHora(recebimento.processadoEm) }}</dd>
+              </div>
+              <div>
+                <dt>Tentativas</dt>
+                <dd>{{ recebimento.tentativas }}</dd>
+              </div>
+              <div>
+                <dt>Formato</dt>
+                <dd>{{ recebimento.tipoConteudo ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt>Origem (IP)</dt>
+                <dd>{{ ip(recebimento.ip) }}</dd>
+              </div>
+              @if (recebimento.contato; as contato) {
+                <div>
+                  <dt>Contato</dt>
+                  <dd>
+                    <a class="historico__link" [routerLink]="['/contatos', contato.id]">{{
+                      contato.nome
+                    }}</a>
+                  </dd>
+                </div>
+              }
+              @if (recebimento.negocio; as negocio) {
+                <div>
+                  <dt>Negócio</dt>
+                  <dd>
+                    <a class="historico__link" [routerLink]="['/funis', slugArea(), negocio.id]">{{
+                      negocio.titulo
+                    }}</a>
+                  </dd>
+                </div>
+              }
+            </dl>
+
+            @if (carregandoDetalhe() === recebimento.id) {
+              <div aria-busy="true">
+                <p class="visualmente-oculto" role="status">Carregando o corpo…</p>
+                <app-esqueleto forma="bloco" altura="7rem" />
+              </div>
+            } @else if (detalhes().get(recebimento.id); as detalhe) {
+              @if (detalhe.corpo !== null) {
+                <app-bloco-codigo
+                  rotulo="Corpo recebido"
+                  oQue="Corpo"
+                  [codigo]="json(detalhe.corpo)"
+                />
+              } @else {
+                <p class="historico__nota">
+                  O corpo não foi guardado (grande demais, formato não aceito ou apagado a pedido do
+                  contato, pela LGPD).
+                </p>
+              }
+              <app-bloco-codigo
+                compacto
+                rotulo="Cabeçalhos recebidos"
+                oQue="Cabeçalhos"
+                alturaMaxima="12rem"
+                [codigo]="json(detalhe.cabecalhos)"
+              />
+            } @else if (erroDetalhe(); as falhaDetalhe) {
+              <p class="historico__nota" role="alert">
+                {{ falhaDetalhe.mensagem }}
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  (click)="carregarDetalhe(recebimento.id)"
+                >
+                  Tentar de novo
+                </button>
+              </p>
+            }
+
+            @if (simulacoes().get(recebimento.id); as simulacao) {
+              <div aria-live="polite">
+                <app-previa-mapeamento [resultado]="simulacao" />
+              </div>
+            }
+
+            <div class="historico__acoes">
+              @let motivo_ = motivo(recebimento);
+              <button
+                appBotao
+                type="button"
+                variante="invertido"
+                tamanho="sm"
+                [icone]="icones.atualizar"
+                [carregando]="reprocessando() === recebimento.id"
+                [disabled]="!!motivo_"
+                [attr.aria-describedby]="motivo_ ? 'motivo-' + recebimento.id : null"
+                (click)="reprocessar(recebimento)"
+              >
+                Reprocessar
+              </button>
+              @if (!recebimento.recusadoNaRecepcao) {
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  [icone]="icones.simular"
+                  [carregando]="simulando() === recebimento.id"
+                  (click)="simular(recebimento)"
+                >
+                  Simular com a configuração atual
+                </button>
+              }
+              @if (motivo_) {
+                <span class="historico__motivo" [id]="'motivo-' + recebimento.id">{{
+                  motivo_
+                }}</span>
+              }
+            </div>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+  @if (total() > porPagina) {
+    <app-paginacao
+      rotulo="Paginação dos recebimentos"
+      [total]="total()"
+      [porPagina]="porPagina"
+      [pagina]="pagina()"
+      (paginaChange)="pagina.set($event)"
+    />
+  }
+}

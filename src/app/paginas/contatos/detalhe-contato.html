@@ -1,0 +1,310 @@
+<nav class="trilha" aria-label="Você está em">
+  <a
+    appBotaoIcone
+    routerLink="/contatos"
+    variante="contorno"
+    tamanho="sm"
+    [icone]="icones.voltar"
+    rotulo="Voltar para Contatos e empresas"
+  ></a>
+  <a class="trilha__link" routerLink="/contatos">Contatos e empresas</a>
+</nav>
+
+@if (erro(); as falha) {
+  @if (falha.ehNaoEncontrado) {
+    <app-estado-vazio
+      titulo="Contato não encontrado"
+      texto="Ele pode ter sido anonimizado a pedido da pessoa (LGPD), ou o link está incompleto."
+    >
+      <a appBotao variante="invertido" routerLink="/contatos">Ver todos os contatos</a>
+    </app-estado-vazio>
+  } @else {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos abrir o contato"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="icones.tentar"
+        (click)="recurso.reload()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  }
+} @else if (contato(); as contato) {
+  <app-cartao variante="palco" class="perfil">
+    <div class="perfil__topo">
+      <app-avatar class="perfil__avatar" [nome]="contato.nome" tamanho="lg" decorativo />
+      <div class="perfil__identidade">
+        <h1 class="perfil__nome">{{ contato.nome }}</h1>
+        @if (contato.cargo || contato.empresa) {
+          <p class="perfil__sub">
+            @if (contato.cargo) {
+              <span>{{ contato.cargo }}</span>
+            }
+            @if (contato.cargo && contato.empresa) {
+              <span class="perfil__separador" aria-hidden="true">·</span>
+            }
+            @if (contato.empresa; as empresa) {
+              <a class="perfil__empresa" [routerLink]="['/empresas', empresa.id]">{{
+                empresa.nome
+              }}</a>
+            }
+          </p>
+        }
+        <div class="perfil__selos">
+          @if (contato.optOutMarketing) {
+            <app-selo variante="contorno">Opt-out de marketing</app-selo>
+          }
+          @for (etiqueta of contato.etiquetas; track etiqueta) {
+            <app-selo>{{ etiqueta }}</app-selo>
+          }
+        </div>
+      </div>
+      <div class="perfil__acoes" [class.so-desktop]="contato.podeEditar">
+        @if (contato.podeEditar) {
+          <button
+            appBotao
+            type="button"
+            variante="invertido"
+            [icone]="icones.editar"
+            (click)="editando.set(true)"
+          >
+            Editar
+          </button>
+        } @else {
+          <p class="perfil__so-leitura">
+            Só leitura
+            <app-dica rotulo="Por que só leitura?" [texto]="motivoSemEdicao()" />
+          </p>
+        }
+      </div>
+    </div>
+
+    <div class="perfil__detalhes">
+      <div class="perfil__bloco">
+        <h2 class="perfil__rotulo">Contato</h2>
+        <app-meios-de-contato [email]="contato.email" [telefone]="contato.telefone" />
+      </div>
+      <div class="perfil__bloco">
+        <h2 class="perfil__rotulo">Responsável</h2>
+        @if (contato.responsavel; as responsavel) {
+          <p class="perfil__pessoa">
+            <app-avatar [nome]="responsavel.nome" tamanho="sm" decorativo />
+            {{ responsavel.nome }}
+            @if (!responsavel.ativo) {
+              <app-selo tamanho="sm" variante="contorno">desligado</app-selo>
+            }
+          </p>
+        } @else {
+          <p class="perfil__vazio">Sem responsável</p>
+        }
+      </div>
+      <div class="perfil__bloco">
+        <h2 class="perfil__rotulo">Última entrada</h2>
+        <p class="perfil__texto">
+          {{ rotuloOrigem[contato.ultimaOrigem.tipo] }}
+          @if (contato.ultimaOrigem.detalhe) {
+            · {{ contato.ultimaOrigem.detalhe }}
+          }
+        </p>
+        <p class="perfil__vazio" [attr.title]="formatarDataHora(contato.ultimaOrigem.em)">
+          {{ formatarTempoRelativo(contato.ultimaOrigem.em) }}
+          @if (contato.conversoes > 1) {
+            · chegou {{ contato.conversoes }} vezes
+          }
+        </p>
+      </div>
+    </div>
+  </app-cartao>
+
+  <div class="detalhe__grade detalhe__grade--lado">
+    <app-abas
+      class="detalhe__abas"
+      variante="entalhe"
+      rotulo="Seções do contato"
+      [abas]="abas()"
+      [selecionada]="abaAtual()"
+      (selecionadaChange)="mudarAba($event)"
+    >
+      @switch (abaAtual()) {
+        @case ('negocios') {
+          <app-negocios-relacionados
+            [negocios]="negocios()"
+            [carregando]="carregandoNegocios()"
+            [erro]="erroNegocios()"
+            (tentarDeNovo)="recarregarNegocios()"
+          />
+        }
+        @case ('atividades') {
+          <app-atividades-relacionadas
+            dono="contato"
+            [id]="contato.id"
+            [nome]="contato.nome"
+            (mudou)="aoMudarHistorico()"
+          />
+        }
+        @case ('dados') {
+          <div class="dados">
+            <dl class="dados__lista">
+              <div>
+                <dt>Nome</dt>
+                <dd>{{ contato.nome }}</dd>
+              </div>
+              <div>
+                <dt>E-mail</dt>
+                <dd>{{ contato.email ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt>Telefone</dt>
+                <dd class="numeros">{{ formatarTelefone(contato.telefone) || '—' }}</dd>
+              </div>
+              <div>
+                <dt>Cargo</dt>
+                <dd>{{ contato.cargo ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt>Empresa</dt>
+                <dd>
+                  @if (contato.empresa; as empresa) {
+                    <a class="dados__link" [routerLink]="['/empresas', empresa.id]">{{
+                      empresa.nome
+                    }}</a>
+                  } @else {
+                    —
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>Responsável</dt>
+                <dd>{{ contato.responsavel?.nome ?? 'Sem responsável' }}</dd>
+              </div>
+              <div>
+                <dt>Cadastrado</dt>
+                <dd>
+                  {{ formatarDataHora(contato.criadoEm) }}
+                  @if (contato.criadoPor; as quem) {
+                    por {{ quem.nome }}
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>Última alteração</dt>
+                <dd>{{ formatarDataHora(contato.atualizadoEm) }}</dd>
+              </div>
+            </dl>
+
+            <section class="dados__secao">
+              <h3 class="dados__titulo">Campos personalizados</h3>
+              @if (campos().length) {
+                <dl class="dados__lista">
+                  @for (campo of campos(); track campo.chave) {
+                    <div>
+                      <dt [attr.title]="campo.chave">{{ rotuloDoCampo(campo.chave) }}</dt>
+                      <dd>{{ campo.valor || '—' }}</dd>
+                    </div>
+                  }
+                </dl>
+              } @else {
+                <p class="dados__vazio">
+                  Nenhum. Campos que chegam por webhook (como o faturamento) aparecem aqui.
+                </p>
+              }
+            </section>
+          </div>
+        }
+        @default {
+          <app-linha-do-tempo dono="contato" [id]="contato.id" [versao]="versao()" />
+        }
+      }
+    </app-abas>
+
+    <aside class="detalhe__lado" aria-label="Origem e privacidade">
+      <app-cartao
+        titulo="Origem"
+        [nivel]="2"
+        dica="A primeira origem é de onde a pessoa veio na primeira vez e nunca muda. A última muda a cada vez que ela volta por outro canal (reconversão), sem criar um contato repetido."
+      >
+        <dl class="origem">
+          <div>
+            <dt>Primeira</dt>
+            <dd>
+              <app-selo tamanho="sm">{{ rotuloOrigem[contato.primeiraOrigem.tipo] }}</app-selo>
+              @if (contato.primeiraOrigem.detalhe) {
+                <span>{{ contato.primeiraOrigem.detalhe }}</span>
+              }
+            </dd>
+            @if (descreverUtm(contato.primeiraOrigem.utm); as utm) {
+              <dd class="origem__utm">{{ utm }}</dd>
+            }
+            <dd class="origem__quando">{{ formatarData(contato.criadoEm) }}</dd>
+          </div>
+          <div>
+            <dt>Última</dt>
+            <dd>
+              <app-selo tamanho="sm">{{ rotuloOrigem[contato.ultimaOrigem.tipo] }}</app-selo>
+              @if (contato.ultimaOrigem.detalhe) {
+                <span>{{ contato.ultimaOrigem.detalhe }}</span>
+              }
+            </dd>
+            @if (descreverUtm(contato.ultimaOrigem.utm); as utm) {
+              <dd class="origem__utm">{{ utm }}</dd>
+            }
+            <dd class="origem__quando">{{ formatarData(contato.ultimaOrigem.em) }}</dd>
+          </div>
+          <div>
+            <dt>Entradas</dt>
+            <dd class="numeros">
+              {{ contato.conversoes }}
+              {{ contato.conversoes === 1 ? 'vez' : 'vezes' }}
+            </dd>
+          </div>
+        </dl>
+      </app-cartao>
+
+      <app-cartao>
+        <app-bloco-lgpd
+          [contato]="contato"
+          (atualizado)="aoSalvar($event)"
+          (anonimizado)="aoAnonimizar()"
+        />
+      </app-cartao>
+    </aside>
+  </div>
+
+  @if (contato.podeEditar) {
+    <button
+      appBotaoIcone
+      type="button"
+      class="acao-flutuante"
+      variante="invertido"
+      tamanho="lg"
+      [icone]="icones.editar"
+      rotulo="Editar contato"
+      (click)="editando.set(true)"
+    ></button>
+  }
+
+  <app-formulario-contato [(aberto)]="editando" [contato]="contato" (salvo)="aoSalvar($event)" />
+} @else {
+  <div class="detalhe__carregando" aria-busy="true">
+    <p class="visualmente-oculto" role="status">Carregando o contato…</p>
+    <div class="perfil perfil--esqueleto">
+      <div class="perfil__topo">
+        <app-esqueleto forma="circulo" largura="56px" altura="56px" />
+        <div class="perfil__identidade">
+          <app-esqueleto forma="texto" largura="16rem" altura="40px" />
+          <app-esqueleto forma="texto" largura="10rem" />
+        </div>
+      </div>
+      <app-esqueleto [linhas]="2" largura="50%" />
+    </div>
+    <app-esqueleto forma="bloco" altura="18rem" />
+  </div>
+}

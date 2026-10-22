@@ -1,36 +1,53 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 
-import { CHAVE_PERFIL_DEMO, PerfilDemoService } from '../nucleo/perfil-demo.service';
-import { EstadoCasca } from './estado-casca';
+import { RECARREGAR_EM } from '../nucleo/sessao/sessao.service';
+import { entrarComo } from '../nucleo/sessao/sessao-de-teste';
 import { MenuConta } from './menu-conta';
 
-describe('MenuConta (Ver como)', () => {
+@Component({ template: '' })
+class PaginaFalsa {}
+
+describe('MenuConta', () => {
+  const recarregarEm = vi.fn();
+
   beforeEach(() => {
-    localStorage.clear();
-    TestBed.configureTestingModule({ providers: [EstadoCasca] });
+    recarregarEm.mockReset();
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([{ path: '**', component: PaginaFalsa }]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: RECARREGAR_EM, useValue: recarregarEm },
+      ],
+    });
+    entrarComo('LIDER_COMERCIAL', { usuario: { email: 'carla@brl.com.br' } });
   });
-  afterEach(() => localStorage.clear());
 
   function criar() {
     const fixture = TestBed.createComponent(MenuConta);
     fixture.detectChanges();
     const raiz = fixture.nativeElement as HTMLElement;
     const botao = raiz.querySelector('.conta__botao') as HTMLButtonElement;
-    const itens = () => [...raiz.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')];
+    const itens = () => [...raiz.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
     const teclar = (alvo: HTMLElement, key: string) =>
       alvo.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
     return { fixture, raiz, botao, itens, teclar };
   }
 
-  it('botão de menu com o nome da persona para leitores de tela', () => {
+  it('botão de menu com o nome e o papel do usuário logado', () => {
     const { raiz, botao } = criar();
     expect(botao.getAttribute('aria-haspopup')).toBe('menu');
     expect(botao.getAttribute('aria-expanded')).toBe('false');
-    expect(botao.textContent).toContain('Conta: Ana Ribeiro, Admin (modo demonstração)');
+    expect(botao.textContent).toContain('Conta: Carla Nogueira, Líder Comercial');
+    expect(botao.textContent).not.toContain('demonstração');
     expect(raiz.querySelector('[role="menu"]')).toBeNull();
   });
 
-  it('abre com o aviso de demonstração e o foco na persona atual', async () => {
+  it('abre com nome, papel e e-mail, e o foco em "Meu perfil"', async () => {
     const { fixture, raiz, botao, itens } = criar();
     botao.click();
     await fixture.whenStable();
@@ -38,87 +55,74 @@ describe('MenuConta (Ver como)', () => {
     const menu = raiz.querySelector('[role="menu"]') as HTMLElement;
     expect(botao.getAttribute('aria-expanded')).toBe('true');
     expect(botao.getAttribute('aria-controls')).toBe(menu.id);
-    expect(menu.getAttribute('aria-label')).toBe('Ver como');
-    const aviso = raiz.querySelector(`#${menu.getAttribute('aria-describedby')}`);
-    expect(aviso?.textContent).toContain('Modo demonstração');
-    expect(aviso?.textContent).toContain('Ainda não há login');
-
-    expect(itens().length).toBe(8);
-    const marcados = itens().filter((item) => item.getAttribute('aria-checked') === 'true');
-    expect(marcados.map((item) => item.getAttribute('aria-label'))).toEqual(['Ana Ribeiro, Admin']);
-    expect(document.activeElement).toBe(marcados[0]);
+    const quem = raiz.querySelector(`#${menu.getAttribute('aria-describedby')}`);
+    expect(quem?.textContent).toContain('Carla Nogueira');
+    expect(quem?.textContent).toContain('Líder Comercial');
+    expect(quem?.textContent).toContain('carla@brl.com.br');
+    expect(itens().map((item) => item.textContent?.trim())).toEqual([
+      'Meu perfil',
+      'Trocar senha',
+      'Sair',
+    ]);
+    expect(document.activeElement).toBe(itens()[0]);
     expect(itens().every((item) => item.tabIndex === -1)).toBe(true);
   });
 
-  it('setas, Home e End movem o foco entre as personas', async () => {
-    const { fixture, botao, itens, teclar } = criar();
+  it('setas, Home e End movem o foco; Esc fecha e devolve o foco ao botão', async () => {
+    const { fixture, raiz, botao, itens, teclar } = criar();
     botao.click();
     await fixture.whenStable();
     teclar(itens()[0], 'ArrowDown');
     expect(document.activeElement).toBe(itens()[1]);
     teclar(itens()[1], 'End');
-    expect(document.activeElement).toBe(itens()[7]);
-    teclar(itens()[7], 'ArrowDown');
+    expect(document.activeElement).toBe(itens()[2]);
+    teclar(itens()[2], 'ArrowDown');
     expect(document.activeElement).toBe(itens()[0]);
     teclar(itens()[0], 'ArrowUp');
-    expect(document.activeElement).toBe(itens()[7]);
-    teclar(itens()[7], 'Home');
+    expect(document.activeElement).toBe(itens()[2]);
+    teclar(itens()[2], 'Home');
     expect(document.activeElement).toBe(itens()[0]);
+    teclar(itens()[0], 'Escape');
+    fixture.detectChanges();
+    expect(raiz.querySelector('[role="menu"]')).toBeNull();
+    expect(document.activeElement).toBe(botao);
   });
 
-  it('seta para cima no botão abre com o foco na última persona', async () => {
+  it('seta para cima no botão abre com o foco em "Sair"', async () => {
     const { fixture, botao, itens, teclar } = criar();
     teclar(botao, 'ArrowUp');
     await fixture.whenStable();
-    expect(document.activeElement).toBe(itens()[7]);
+    expect(document.activeElement).toBe(itens()[2]);
   });
 
-  it('escolher uma persona troca o papel, salva, anuncia e fecha', async () => {
+  it('"Meu perfil" e "Trocar senha" levam às telas e fecham o menu', async () => {
     const { fixture, raiz, botao, itens } = criar();
-    const perfil = TestBed.inject(PerfilDemoService);
+    const router = TestBed.inject(Router);
     botao.click();
     await fixture.whenStable();
-
-    itens()
-      .find((item) => item.getAttribute('aria-label') === 'Rafael Souto, Marketing')!
-      .click();
+    itens()[0].click();
     await fixture.whenStable();
-
-    expect(perfil.papel()).toBe('MARKETING');
-    expect(localStorage.getItem(CHAVE_PERFIL_DEMO)).toBe('MARKETING');
+    expect(router.url).toBe('/configuracoes/perfil');
     expect(raiz.querySelector('[role="menu"]')).toBeNull();
-    expect(document.activeElement).toBe(botao);
-    expect(raiz.querySelector('[role="status"]')?.textContent).toBe(
-      'Agora você vê o CRM como Rafael Souto, Marketing.',
-    );
-    expect(botao.textContent).toContain('Rafael Souto, Marketing');
-  });
 
-  it('Esc fecha e devolve o foco ao botão', async () => {
-    const { fixture, raiz, botao, itens, teclar } = criar();
     botao.click();
     await fixture.whenStable();
-    teclar(itens()[0], 'Escape');
+    itens()[1].click();
     await fixture.whenStable();
-    expect(raiz.querySelector('[role="menu"]')).toBeNull();
-    expect(botao.getAttribute('aria-expanded')).toBe('false');
-    expect(document.activeElement).toBe(botao);
+    expect(router.url).toBe('/trocar-senha');
   });
 
-  it('fecha com toque fora', async () => {
-    const { fixture, raiz, botao } = criar();
+  it('"Sair" encerra a sessão na API e recarrega em /entrar', async () => {
+    const { fixture, botao, itens } = criar();
     botao.click();
     await fixture.whenStable();
-    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    itens()[2].click();
+    fixture.detectChanges();
+    expect(itens()[2].textContent?.trim()).toBe('Saindo…');
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/v1/auth/sair')
+      .flush(null, { status: 204, statusText: 'No Content' });
     await fixture.whenStable();
-    expect(raiz.querySelector('[role="menu"]')).toBeNull();
-  });
-
-  it('abre quando outra parte da casca pede ("Trocar persona")', async () => {
-    const { fixture, raiz, itens } = criar();
-    TestBed.inject(EstadoCasca).pedirMenuConta();
-    await fixture.whenStable();
-    expect(raiz.querySelector('[role="menu"]')).not.toBeNull();
-    expect(document.activeElement).toBe(itens()[0]);
+    expect(recarregarEm).toHaveBeenCalledWith('/entrar');
   });
 });

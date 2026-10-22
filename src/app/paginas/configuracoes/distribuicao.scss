@@ -1,0 +1,130 @@
+@use 'secao' as s;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+@include s.faixa;
+
+// Um cartão por área, lado a lado quando cabem.
+.rodizio__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--esp-entre-cartoes);
+  align-items: start;
+}
+
+.rodizio__corpo {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.rodizio__esqueleto {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.rodizio__esqueleto-linha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+// "Próximo da vez": o destaque do cartão (coral = o que está ativo agora).
+.rodizio__proximo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: 68px;
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+}
+
+.rodizio__proximo-textos {
+  display: grid;
+  min-width: 0;
+}
+
+.rodizio__rotulo {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.rodizio__proximo-nome {
+  font: var(--fonte-rotulo);
+  font-size: 1rem;
+}
+
+// O próximo da vez ainda não entrou no CRM: aviso em tom de atenção.
+.rodizio__proximo-aviso {
+  margin-top: var(--esp-1);
+  color: var(--cor-aviso);
+  font: var(--fonte-legenda-lg);
+}
+
+.rodizio__sem-fila {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.rodizio__lider {
+  padding-bottom: var(--esp-2);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.rodizio__pessoas {
+  display: grid;
+  gap: var(--esp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rodizio__pessoa {
+  display: grid;
+  grid-template-columns: 28px auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-1) 0;
+}
+
+// A posição na fila num círculo; o próximo da vez em coral.
+.rodizio__posicao {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-micro);
+  font-variant-numeric: tabular-nums;
+}
+
+.rodizio__pessoa--proximo .rodizio__posicao {
+  background: var(--cor-destaque);
+  color: var(--cor-sobre-destaque);
+}
+
+.rodizio__pessoa--fora {
+  .rodizio__posicao {
+    background: transparent;
+    color: var(--cor-texto-fraco);
+  }
+
+  app-avatar {
+    opacity: 0.55;
+  }
+}
+
+.rodizio__vazio {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}

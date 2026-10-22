@@ -1,9 +1,7 @@
 import {
-  ATIVIDADES_RECENTES,
   DADOS_POR_PERIODO,
   DESLIGAMENTO,
   ehIdPeriodo,
-  EQUIPE,
   gerarSugestoes,
   ORIGENS,
   percentual,
@@ -109,39 +107,6 @@ describe('Dados de exemplo do painel', () => {
     for (const ticket of tickets) {
       expect(Math.abs(ticket / tickets[1] - 1)).toBeLessThan(0.02);
     }
-  });
-
-  it('as atividades recentes contam as regras do produto, da mais nova para a mais antiga', () => {
-    const minutos = ATIVIDADES_RECENTES.map((evento) => evento.minutosAtras);
-    expect(minutos).toEqual([...minutos].sort((a, b) => a - b));
-    const titulos = ATIVIDADES_RECENTES.map((evento) => evento.titulo).join(' | ');
-    expect(titulos).toContain('Webhook “Site” criou o lead Maria Souza');
-    expect(titulos).toContain('moveu “Escola Horizonte” para Proposta');
-    expect(titulos).toContain('Negócio “Colégio Atlas” ganho → enviado ao pipeline de CS');
-    expect(titulos).toContain(
-      'Pedro Martins foi desligado — 12 atividades encaminhadas para Carla Nogueira (Líder Comercial)',
-    );
-    expect(titulos).toContain('TicketHub');
-    expect(EQUIPE.length).toBeGreaterThan(3);
-  });
-
-  it('eventos restritos dizem quem os vê; os demais são de todos', () => {
-    const papeis = Object.fromEntries(
-      ATIVIDADES_RECENTES.map((evento) => [evento.id, evento.papeis ?? null]),
-    );
-    // O histórico das dúvidas à IA é só do Admin (contrato §6.1).
-    expect(papeis['tickethub']).toEqual(['ADMIN']);
-    expect(papeis['desligamento-pedro']).toEqual(['ADMIN', 'C_LEVEL', 'LIDER_COMERCIAL']);
-    expect(papeis['webhook-site']).toBeNull();
-  });
-
-  it('a pilha de avatares começa por quem tem a mesma cor pela posição e pelo nome', () => {
-    expect(EQUIPE.slice(0, 3).map((pessoa) => pessoa.nome)).toEqual([
-      'Ana Ribeiro',
-      'Carla Nogueira',
-      'Lucas Prado',
-    ]);
-    expect(new Set(EQUIPE.map((pessoa) => pessoa.nome)).size).toBe(EQUIPE.length);
   });
 
   it('cada período sabe quantos dias cobre e com o que compara', () => {

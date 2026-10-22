@@ -1,0 +1,31 @@
+@use 'campo' as c;
+
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.moldura__topo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 28px;
+}
+
+.moldura__rotulo {
+  @include c.rotulo;
+}
+
+.moldura__opcional {
+  @include c.opcional;
+}
+
+.moldura__erro {
+  @include c.erro;
+}
+
+.moldura__dica {
+  @include c.dica;
+}

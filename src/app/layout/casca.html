@@ -18,9 +18,6 @@
       <div class="casca__rolagem" appRolagemEsmaecida>
         <app-menu-lateral [recolhida]="estado.recolhida()" />
       </div>
-      @if (!estado.recolhida()) {
-        <app-aviso-demo class="casca__aviso" (trocar)="trocarPersona()" />
-      }
     </div>
     <button
       #alternar
@@ -77,7 +74,6 @@
     </div>
 
     <div class="gaveta__rodape">
-      <app-aviso-demo (trocar)="trocarPersona(true)" />
       <button type="button" class="gaveta__tema" (click)="tema.alternar()">
         <span class="gaveta__tema-circulo" aria-hidden="true">
           <svg [lucideIcon]="tema.ehEscuro() ? icones.sol : icones.lua" [size]="20" />
@@ -87,3 +83,10 @@
     </div>
   </div>
 </dialog>
+
+<app-confirmacao />
+<app-avisos
+  [avisos]="avisos.lista()"
+  (dispensar)="avisos.dispensar($event)"
+  (agir)="avisos.agir($event)"
+/>

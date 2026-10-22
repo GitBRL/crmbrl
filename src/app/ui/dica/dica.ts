@@ -93,6 +93,31 @@ export class Dica {
     inject(DestroyRef).onDestroy(() => this.limparOuvintes());
   }
 
+  /** O balão está aberto. */
+  estaAberta(): boolean {
+    return this.aberta();
+  }
+
+  /**
+   * Abre o balão e põe o foco no "?" (para Esc, Tab e o clique fora fecharem como sempre).
+   * Para quem oferece um gatilho maior que o "?", como as pílulas de regra do quadro.
+   */
+  abrir(): void {
+    const botao = this.botao().nativeElement;
+    botao.focus({ preventScroll: true });
+    if (this.aberta()) {
+      return;
+    }
+    const balao = this.balao().nativeElement;
+    if (this.suportaPopover) {
+      if (!balao.matches(':popover-open')) {
+        balao.showPopover();
+      }
+    } else {
+      this.definirAberta(true);
+    }
+  }
+
   /** Com a Popover API o próprio navegador alterna (popovertarget); aqui só o modo reserva. */
   protected aoClicar(): void {
     if (!this.suportaPopover) {
@@ -159,12 +184,19 @@ export class Dica {
             this.botao().nativeElement.focus();
           }
         }),
-        this.renderer.listen(this.documento, 'click', (evento: Event) => {
-          if (!this.host.nativeElement.contains(evento.target as Node)) {
-            this.definirAberta(false);
-          }
-        }),
       );
+      // O clique fora fecha, a partir do próximo clique: o que abriu (um gatilho fora da
+      // dica, como a pílula de regra do quadro) ainda está subindo até o documento.
+      const espera = setTimeout(() => {
+        this.removerOuvintes.push(
+          this.renderer.listen(this.documento, 'click', (evento: Event) => {
+            if (!this.host.nativeElement.contains(evento.target as Node)) {
+              this.definirAberta(false);
+            }
+          }),
+        );
+      });
+      this.removerOuvintes.push(() => clearTimeout(espera));
     }
   }
 

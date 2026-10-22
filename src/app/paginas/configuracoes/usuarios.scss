@@ -1,0 +1,102 @@
+@use 'mixins' as m;
+@use 'secao' as s;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+@include s.acao-flutuante('button.secao__acao');
+@include s.faixa;
+
+.faixa__textos {
+  display: grid;
+  gap: var(--esp-3);
+}
+
+.faixa__pessoas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  padding: 0;
+  list-style: none;
+}
+
+// Busca, situação e papel numa linha (quebra no celular).
+.usuarios__barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3) var(--esp-4);
+}
+
+.usuarios__busca {
+  flex: 1 1 18rem;
+  max-width: 26rem;
+}
+
+.usuarios__papel {
+  flex: 0 1 15rem;
+  min-width: 12rem;
+}
+
+@include m.abaixo(m.$sm) {
+  .usuarios__busca,
+  .usuarios__papel {
+    flex-basis: 100%;
+    max-width: none;
+  }
+}
+
+.usuarios__pessoa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.usuarios__nome {
+  overflow-wrap: break-word;
+}
+
+// Nome, e-mail e líder podem ir para duas linhas (o e-mail só depois da arroba): é o que deixa
+// a tabela caber num notebook (1280 px) sem esconder a coluna de ações. Com espaço sobrando,
+// cada um fica numa linha só.
+.usuarios__email {
+  color: var(--cor-texto-suave);
+  overflow-wrap: break-word;
+}
+
+.usuarios__lider {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--esp-2);
+}
+
+.usuarios__vazio,
+.usuarios__acesso--nunca {
+  color: var(--cor-texto-fraco);
+}
+
+.usuarios__acesso {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// "Ativo" é o normal: selo neutro com um ponto verde parado; as exceções têm cor.
+.usuarios__ponto {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--cor-sucesso);
+  vertical-align: 1px;
+}

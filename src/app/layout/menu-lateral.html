@@ -14,10 +14,9 @@
         @for (modulo of secao.modulos; track modulo.id) {
           <li>
             <a
-              #link
               class="menu__item"
-              routerLinkActive="menu__item--ativo"
-              ariaCurrentWhenActive="page"
+              [class.menu__item--ativo]="modulo.id === ativo()"
+              [attr.aria-current]="modulo.id === ativo() ? 'page' : null"
               [routerLink]="modulo.rota"
               [attr.aria-label]="
                 modulo.status === 'em-breve' ? modulo.rotulo + ' (em breve)' : null
@@ -27,7 +26,6 @@
               (focus)="mostrarDica($event, modulo)"
               (blur)="esconderDica()"
               (keydown.escape)="esconderDica()"
-              (isActiveChange)="aoMudarAtivo($event, link)"
             >
               <span class="menu__circulo" aria-hidden="true">
                 <svg [lucideIcon]="modulo.icone" [size]="20" />

@@ -17,26 +17,56 @@ import {
 } from '@lucide/angular';
 
 import { abreviarNumero } from '../../nucleo/formatos';
+import { AREAS, type Area } from '../../nucleo/sessao/perfil';
+import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Dica } from '../../ui/dica/dica';
+import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { Indicador, type UnidadeVariacao } from '../../ui/indicador/indicador';
+import { Selo } from '../../ui/selo/selo';
 import { gerarId } from '../../ui/tipos';
 import type { DadosPeriodo } from './dados-exemplo';
+import type { EstadoJornada } from './jornada';
+import type { IndicadoresReais } from './metricas-jornada';
 
 interface Kpi {
   readonly id: string;
   readonly icone: LucideIcon;
-  readonly valor: number | string;
+  /** `null` enquanto carrega (o cartão mostra o esqueleto). */
+  readonly valor: number | string | null;
   readonly prefixo: string | null;
   readonly unidade: string | null;
   /** O nome do indicador ("Leads em 30 dias"), para o rótulo da dica. */
   readonly nome: string;
   /** O nome como legenda, com o número e a unidade presos ("30 dias"). */
   readonly legenda: string;
-  readonly variacao: number;
+  readonly variacao: number | null;
   /** % (padrão), pontos percentuais na taxa e pontos da nota no health score. */
   readonly unidadeVariacao: UnidadeVariacao;
   readonly dica: string;
+  /** Depende de um módulo que ainda não existe: número fictício, com o selo "exemplo". */
+  readonly exemplo: boolean;
 }
+
+/** "Leads em 30 dias" → "Negócios novos em 30 dias" para quem vê só o Comercial. */
+const ROTULO_NOVOS: Readonly<Record<Area, string>> = {
+  MARKETING: 'Leads',
+  COMERCIAL: 'Negócios novos',
+  CS: 'Clientes novos',
+};
+
+const ICONE_AREA: Readonly<Record<Area, LucideIcon>> = {
+  MARKETING: LucideMegaphone,
+  COMERCIAL: LucideHandshake,
+  CS: LucideHeartHandshake,
+};
+
+const DICA_NOVOS: Readonly<Record<Area, string>> = {
+  MARKETING:
+    'Negócios novos no funil de Marketing: leads que chegaram por webhook, formulário, WhatsApp, indicação ou cadastrados à mão.',
+  COMERCIAL:
+    'Negócios novos no funil Comercial no período: os que vieram do Marketing (qualificados) e os criados à mão.',
+  CS: 'Clientes que entraram no funil de Customer Success no período, vindos dos negócios ganhos no Comercial.',
+};
 
 /**
  * "Leads em 30 dias" → o número e a palavra que vem depois dele presos por um espaço
@@ -44,43 +74,57 @@ interface Kpi {
  * DESIGN-SYSTEM.md §2.10, para um texto que chega como valor).
  */
 export function semQuebraNumeroUnidade(texto: string): string {
-  return texto.replace(/(\d) (?=\p{L})/gu, '$1\u00a0');
+  return texto.replace(/(\d) (?=\p{L})/gu, '$1 ');
 }
 
 /**
- * Linha de indicadores do período: leads, taxa de ganho, MRR e health score. Cada cartão tem
- * no topo o ícone do módulo de onde o número vem (Marketing, Comercial, Financeiro e CS, os
- * mesmos da navegação) e a dica que explica a sigla e com o que a seta compara; embaixo, o
- * número, a variação (menta sobe, coral cai) e a legenda. Acima, uma linha diz a base das
- * variações. Quatro numa linha quando cabem; dois por linha; no celular, um por linha, com o
- * ícone à esquerda e a dica à direita. A dica fica no topo do cartão (e não ao lado da
- * legenda) para todas ficarem na mesma altura e a legenda ter a largura toda do cartão.
+ * Linha de indicadores do período. Negócios novos (leads do Marketing, ou os da área de quem
+ * vê uma só) e a taxa de ganho do Comercial (para quem vê a jornada inteira) são reais, das
+ * métricas dos funis (R5.10); MRR e health score dependem dos
+ * módulos Financeiro e de Customer Success, que ainda não existem: ficam com números de
+ * exemplo e o selo "exemplo". Cada cartão tem o ícone do módulo de onde o número vem, a dica
+ * que explica a sigla e com o que a seta compara e, embaixo, o número, a variação (menta sobe,
+ * coral cai) e a legenda. Quatro numa linha quando cabem; dois por linha; no celular, um por
+ * linha, com o ícone à esquerda e a dica à direita.
  */
 @Component({
   selector: 'app-inicio-indicadores',
-  imports: [Dica, Indicador, LucideDynamicIcon],
+  imports: [Dica, Esqueleto, Indicador, LucideDynamicIcon, Selo],
   template: `
     <h2 class="visualmente-oculto" [id]="idTitulo">
       Indicadores · {{ dados().periodo.descricao }}
     </h2>
     <p class="kpis__base">Variações {{ dados().periodo.comparacao }}</p>
-    <ul class="kpis" role="list">
+    <ul class="kpis" role="list" [style.--kpis]="kpis().length">
       @for (kpi of kpis(); track kpi.id) {
         <li class="kpi">
           <span class="kpi__icone" aria-hidden="true">
             <svg [lucideIcon]="kpi.icone" [size]="20" />
           </span>
-          <app-indicador
-            tamanho="sm"
-            variacaoAbaixo
-            [valor]="kpi.valor"
-            [prefixo]="kpi.prefixo"
-            [unidade]="kpi.unidade"
-            [legenda]="kpi.legenda"
-            [variacao]="kpi.variacao"
-            [unidadeVariacao]="kpi.unidadeVariacao"
-          />
-          <app-dica class="kpi__dica" [rotulo]="'Sobre: ' + kpi.nome" [texto]="kpi.dica" />
+          @if (kpi.valor === null) {
+            <div class="kpi__carregando" aria-busy="true">
+              <span class="visualmente-oculto" role="status">Carregando {{ kpi.nome }}…</span>
+              <app-esqueleto forma="bloco" altura="2.5rem" largura="60%" />
+              <app-esqueleto largura="75%" />
+            </div>
+          } @else {
+            <app-indicador
+              tamanho="sm"
+              variacaoAbaixo
+              [valor]="kpi.valor"
+              [prefixo]="kpi.prefixo"
+              [unidade]="kpi.unidade"
+              [legenda]="kpi.legenda"
+              [variacao]="kpi.variacao"
+              [unidadeVariacao]="kpi.unidadeVariacao"
+            />
+          }
+          <span class="kpi__lado">
+            @if (kpi.exemplo) {
+              <app-selo variante="contorno" tamanho="sm">exemplo</app-selo>
+            }
+            <app-dica class="kpi__dica" [rotulo]="'Sobre: ' + kpi.nome" [texto]="kpi.dica" />
+          </span>
         </li>
       }
     </ul>
@@ -94,41 +138,67 @@ export function semQuebraNumeroUnidade(texto: string): string {
 })
 export class InicioIndicadores {
   private readonly locale = inject(LOCALE_ID);
+  private readonly sessao = inject(SessaoService);
 
+  /** Os dados de exemplo do período (MRR, health score) e os textos do período. */
   readonly dados = input.required<DadosPeriodo>();
+  /** Leads e taxa de ganho reais; `null` enquanto carregam ou se falharam. */
+  readonly reais = input<IndicadoresReais | null>(null);
+  readonly estado = input<EstadoJornada>('carregando');
 
   protected readonly idTitulo = gerarId('indicadores-titulo');
 
   protected readonly kpis = computed<readonly Kpi[]>(() => {
-    const { indicadores, jornada, periodo } = this.dados();
-    const total = (id: string) => jornada.etapas.find((etapa) => etapa.id === id)?.total ?? 0;
+    const { indicadores, periodo } = this.dados();
+    const reais = this.reais();
+    const estado = this.estado();
+    const areas = this.sessao.permissoes()?.areasVisiveis ?? [];
     const numero = (valor: number) => formatNumber(valor, this.locale, '1.0-0');
     const mrr = abreviarNumero(indicadores.mrr.valor, this.locale);
     const comparaPeriodo = `A seta compara com ${periodo.anterior}.`;
     const comparaHoje = 'Valor de hoje; a seta compara com o início do período.';
-    const lista: readonly Omit<Kpi, 'legenda'>[] = [
-      {
-        id: 'leads',
-        icone: LucideMegaphone,
-        valor: indicadores.leads.valor,
+    /** Enquanto carrega: `null` (esqueleto); com erro: "—". */
+    const pendente = estado === 'carregando' ? null : '—';
+    const lista: Omit<Kpi, 'legenda'>[] = [];
+
+    // Negócios novos: os leads do Marketing para quem vê a jornada inteira; os da própria
+    // área para quem vê uma só (a primeira área visível, na ordem da jornada).
+    const areaNovos = AREAS.find((area) => areas.includes(area));
+    if (areaNovos) {
+      const novos = reais?.novos;
+      const nome = periodo.rotuloLeads.replace('Leads', ROTULO_NOVOS[areaNovos]);
+      lista.push({
+        id: 'novos',
+        icone: ICONE_AREA[areaNovos],
+        valor: novos ? novos.valor : pendente,
         prefixo: null,
         unidade: null,
-        nome: periodo.rotuloLeads,
-        variacao: indicadores.leads.variacao,
+        nome,
+        variacao: novos?.variacao ?? null,
         unidadeVariacao: '%',
-        dica: `Contatos novos que chegaram por webhook, formulário, WhatsApp ou indicação. ${comparaPeriodo}`,
-      },
-      {
+        dica: `${DICA_NOVOS[areaNovos]} ${comparaPeriodo}`,
+        exemplo: false,
+      });
+    }
+    // Taxa de ganho do Comercial: com uma área só, a jornada já a mostra.
+    if (areas.includes('COMERCIAL') && areas.length > 1) {
+      const taxa = reais?.taxaGanho;
+      lista.push({
         id: 'taxa-ganho',
         icone: LucideHandshake,
-        valor: indicadores.taxaGanho.valor,
+        valor: taxa ? (taxa.valor ?? '—') : pendente,
         prefixo: null,
-        unidade: '%',
+        unidade: taxa?.valor === null || !taxa ? null : '%',
         nome: 'Taxa de ganho',
-        variacao: indicadores.taxaGanho.variacao,
+        variacao: taxa?.variacao ?? null,
         unidadeVariacao: 'p.p.',
-        dica: `Parte das oportunidades do Comercial que virou negócio ganho: ${numero(total('ganhos'))} de ${numero(total('oportunidades'))}. ${comparaPeriodo} p.p. são pontos percentuais.`,
-      },
+        dica: taxa
+          ? `Parte dos negócios criados no Comercial no período que já foi ganha: ${numero(taxa.ganhos)} de ${numero(taxa.criados)}. ${comparaPeriodo} p.p. são pontos percentuais.`
+          : `Parte dos negócios criados no Comercial no período que já foi ganha. ${comparaPeriodo}`,
+        exemplo: false,
+      });
+    }
+    lista.push(
       {
         id: 'mrr',
         icone: LucideWallet,
@@ -138,7 +208,8 @@ export class InicioIndicadores {
         nome: 'Receita recorrente (MRR)',
         variacao: indicadores.mrr.variacao,
         unidadeVariacao: '%',
-        dica: `MRR é a receita recorrente mensal: quanto os contratos ativos faturam por mês. Sobe com os negócios ganhos e cai com os cancelamentos. ${comparaHoje}`,
+        dica: `Número de exemplo: o MRR chega com o módulo Financeiro. MRR é a receita recorrente mensal: quanto os contratos ativos faturam por mês. Sobe com os negócios ganhos e cai com os cancelamentos. ${comparaHoje}`,
+        exemplo: true,
       },
       {
         id: 'health-score',
@@ -149,9 +220,10 @@ export class InicioIndicadores {
         nome: 'Health score médio (CS)',
         variacao: indicadores.healthScore.variacao,
         unidadeVariacao: 'pts',
-        dica: `Health score é uma nota de 0 a 100 para a saúde de cada cliente: uso do produto, pagamentos em dia, chamados e satisfação. Abaixo de 60, o CS entra em ação. ${comparaHoje}`,
+        dica: `Número de exemplo: o health score chega com o módulo de Customer Success. É uma nota de 0 a 100 para a saúde de cada cliente: uso do produto, pagamentos em dia, chamados e satisfação. Abaixo de 60, o CS entra em ação. ${comparaHoje}`,
+        exemplo: true,
       },
-    ];
+    );
     return lista.map((kpi) => ({ ...kpi, legenda: semQuebraNumeroUnidade(kpi.nome) }));
   });
 }

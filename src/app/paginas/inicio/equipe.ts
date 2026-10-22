@@ -8,7 +8,8 @@ import { Selo } from '../../ui/selo/selo';
 import { DESLIGAMENTO, type DadosEquipe, type Periodo } from './dados-exemplo';
 
 /**
- * Aba "Equipe" do palco: ranking da equipe comercial por negócios ganhos, com o papel, as
+ * Aba "Equipe" do palco (prévia com dados de exemplo: as metas dependem do módulo de BI):
+ * ranking da equipe comercial por negócios ganhos, com o papel, as
  * atividades concluídas e a meta em barra. É uma lista ordenada com os números em `<dl>`:
  * no desktop, as linhas se alinham como uma tabela sob um cabeçalho visual; no celular,
  * cada pessoa vira um cartão com os rótulos visíveis. O nome da aba já titula o painel: o
@@ -21,10 +22,11 @@ import { DESLIGAMENTO, type DadosEquipe, type Periodo } from './dados-exemplo';
     <h2 class="visualmente-oculto">Equipe comercial · {{ periodo().complemento }}</h2>
     <header class="palco__topo">
       <div class="palco__titulo-linha">
+        <app-selo variante="contorno">Dados de exemplo</app-selo>
         <app-selo>{{ dados().ganhos | number }} negócios ganhos</app-selo>
         <app-dica
           rotulo="Como o ranking funciona"
-          texto="Ordem por negócios ganhos no período; no empate, vem antes quem está mais perto da meta. A meta de cada pessoa é definida pelo líder dela."
+          texto="Prévia com números fictícios: as metas por pessoa chegam com o módulo de BI. A ordem é por negócios ganhos no período; no empate, vem antes quem está mais perto da meta, definida pelo líder de cada pessoa."
         />
       </div>
     </header>

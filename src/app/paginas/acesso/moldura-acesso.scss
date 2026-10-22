@@ -1,0 +1,374 @@
+@use 'mixins' as m;
+
+// Moldura das telas de acesso (grade, palco da marca e cartão). Sem encapsulamento: tudo com o
+// prefixo `acesso`; as classes do conteúdo projetado pelas telas ficam em `conteudo-acesso.scss`.
+
+app-moldura-acesso {
+  display: block;
+}
+
+// ── Grade: palco à esquerda; alternador de tema e cartão à direita ───────────────────────
+.acesso {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'palco topo'
+    'palco lado';
+  gap: 0 var(--esp-4);
+  min-height: 100dvh;
+  padding: var(--esp-4);
+}
+
+.acesso__topo {
+  grid-area: topo;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--esp-3);
+}
+
+.acesso__logo-topo {
+  display: none !important;
+}
+
+// ── Palco da marca ──────────────────────────────────────────────────────────────────────
+.acesso__palco {
+  --cor-superficie-2: var(--cor-vidro);
+  --cor-superficie-3: var(--cor-vidro-forte);
+
+  grid-area: palco;
+  position: sticky;
+  top: var(--esp-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--esp-10);
+  height: calc(100dvh - 2 * var(--esp-4));
+  min-height: 34rem;
+  padding: var(--esp-12);
+  overflow: hidden;
+  border-radius: var(--raio-palco);
+  background: var(--gradiente-palco);
+  box-shadow: var(--sombra-cartao);
+  color: var(--cor-texto);
+}
+
+.acesso__chamada {
+  display: grid;
+  gap: var(--esp-5);
+  max-width: 34rem;
+}
+
+.acesso__slogan {
+  margin: 0;
+  font: var(--fonte-display);
+  letter-spacing: var(--tracking-display);
+  text-wrap: balance;
+}
+
+// Sobre o vidro do palco, o texto secundário fica no tom suave (o fraco é para fundo opaco).
+.acesso__palco .tom-fraco {
+  color: var(--cor-texto-suave);
+}
+
+.acesso__frase-palco {
+  max-width: 30rem;
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-lead);
+}
+
+// Ilustração: três barras de funil (Marketing → Comercial → CS), cada uma com o ciano à
+// esquerda, a cápsula menta no meio e o lima na ponta, como as barras da referência.
+.acesso__ilustracao {
+  display: grid;
+  gap: var(--esp-4);
+  max-width: 36rem;
+}
+
+.ilustracao__linha {
+  display: grid;
+  gap: var(--esp-2);
+
+  &:nth-child(1) {
+    --_largura: 100%;
+    --_ciano: 46%;
+    --_menta-inicio: 28%;
+    --_menta-largura: 34%;
+  }
+
+  &:nth-child(2) {
+    --_largura: 80%;
+    --_ciano: 40%;
+    --_menta-inicio: 24%;
+    --_menta-largura: 38%;
+  }
+
+  &:nth-child(3) {
+    --_largura: 60%;
+    --_ciano: 34%;
+    --_menta-inicio: 20%;
+    --_menta-largura: 44%;
+  }
+}
+
+.ilustracao__rotulos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  width: var(--_largura);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  font-weight: 400;
+}
+
+.ilustracao__selo {
+  padding: 2px var(--esp-3);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-vidro-forte);
+  color: var(--cor-texto);
+  font: var(--fonte-legenda);
+}
+
+.ilustracao__barra {
+  position: relative;
+  width: var(--_largura);
+  height: 48px;
+  overflow: hidden;
+  border-radius: var(--raio-pilula);
+  background: var(--dado-3);
+  transition: width var(--duracao-lenta) var(--curva);
+
+  @starting-style {
+    width: 0;
+  }
+
+  // Contorno de dado do tema claro (§2.2) por cima dos segmentos.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+  }
+}
+
+.ilustracao__ciano,
+.ilustracao__menta {
+  position: absolute;
+  inset-block: 0;
+  border-radius: var(--raio-pilula);
+}
+
+.ilustracao__ciano {
+  left: 0;
+  width: var(--_ciano);
+  background: var(--dado-1);
+}
+
+.ilustracao__menta {
+  left: var(--_menta-inicio);
+  width: var(--_menta-largura);
+  background: var(--dado-2-gradiente);
+}
+
+// ── Coluna do cartão ────────────────────────────────────────────────────────────────────
+.acesso__lado {
+  grid-area: lado;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-5);
+  padding: var(--esp-8) var(--esp-4) var(--esp-12);
+}
+
+.acesso__cartao {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 28rem;
+  padding: var(--esp-10);
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+  color: var(--cor-texto);
+}
+
+.acesso__icone {
+  --_cor: var(--cor-superficie-3);
+  --_sobre: var(--cor-texto);
+
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--_cor);
+  color: var(--_sobre);
+}
+
+.acesso__icone--sucesso,
+.acesso__icone--atencao {
+  --_sobre: var(--pb-preto);
+
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.acesso__icone--sucesso {
+  --_cor: var(--dado-2);
+}
+
+.acesso__icone--atencao {
+  --_cor: var(--dado-3);
+}
+
+.acesso__icone--erro {
+  --_cor: var(--cor-erro);
+  --_sobre: var(--cor-sobre-erro);
+}
+
+.acesso__titulo {
+  margin: 0;
+  font: var(--fonte-h1);
+  letter-spacing: var(--tracking-titulo);
+  text-wrap: balance;
+  outline: none;
+}
+
+.acesso__frase {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo);
+  text-wrap: pretty;
+}
+
+// Ritmo do cartão: 20px entre blocos; 12px do título à frase; 32px até o conteúdo.
+.acesso__cartao > * + * {
+  margin-top: var(--esp-5);
+}
+
+.acesso__cartao > .acesso__titulo + .acesso__frase {
+  margin-top: var(--esp-3);
+}
+
+.acesso__cartao > .acesso__frase + *,
+.acesso__cartao > .acesso__titulo + :not(.acesso__frase) {
+  margin-top: var(--esp-8);
+}
+
+.acesso__ajuda {
+  max-width: 28rem;
+  margin: 0;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda-lg);
+  text-align: center;
+}
+
+// ── Tablet: palco mais estreito ─────────────────────────────────────────────────────────
+@include m.abaixo(m.$lg) {
+  .acesso {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .acesso__palco {
+    padding: var(--esp-8);
+  }
+
+  .acesso__frase-palco {
+    display: none;
+  }
+
+  .acesso__cartao {
+    padding: var(--esp-8);
+  }
+}
+
+// ── Duas colunas em tela baixa (notebook, até 960px de altura): ritmo mais curto, para os
+// cartões altos (trocar senha) mostrarem o botão principal sem rolar ───────────────────
+@media (min-width: m.$md) and (max-height: 60rem) {
+  .acesso__lado {
+    padding-top: var(--esp-2);
+    padding-bottom: var(--esp-6);
+  }
+
+  .acesso__cartao {
+    padding: var(--esp-8);
+  }
+
+  .acesso__cartao > .acesso__frase + *,
+  .acesso__cartao > .acesso__titulo + :not(.acesso__frase) {
+    margin-top: var(--esp-6);
+  }
+}
+
+// ── Celular: uma coluna; o palco vira a linha do logo ───────────────────────────────────
+@include m.abaixo(m.$md) {
+  .acesso {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'topo'
+      'palco'
+      'lado';
+    gap: var(--esp-3);
+    padding: var(--esp-3) var(--esp-3) var(--esp-6);
+  }
+
+  .acesso__topo {
+    justify-content: space-between;
+    padding-left: var(--esp-2);
+  }
+
+  .acesso__logo-topo {
+    display: inline-flex !important;
+  }
+
+  .acesso__palco {
+    display: none;
+  }
+
+  .acesso--slogan .acesso__palco {
+    position: static;
+    display: grid;
+    gap: var(--esp-5);
+    height: auto;
+    min-height: 0;
+    padding: var(--esp-6) var(--esp-5);
+    border-radius: var(--raio-cartao);
+  }
+
+  .acesso__logo-palco,
+  .acesso__frase-palco,
+  .ilustracao__rotulos {
+    display: none !important;
+  }
+
+  .acesso__ilustracao {
+    gap: var(--esp-2);
+  }
+
+  .ilustracao__barra {
+    height: 20px;
+  }
+
+  .acesso__lado {
+    justify-content: flex-start;
+    gap: var(--esp-4);
+    padding: 0;
+  }
+
+  .acesso__cartao {
+    max-width: none;
+    padding: var(--esp-6) var(--esp-cartao) var(--esp-cartao);
+  }
+}
+
+@include m.abaixo(m.$sm) {
+  .acesso__slogan {
+    font: var(--fonte-h1);
+    letter-spacing: var(--tracking-titulo);
+  }
+}

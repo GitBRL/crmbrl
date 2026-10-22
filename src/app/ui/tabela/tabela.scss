@@ -1,0 +1,317 @@
+// Tabela: linhas com separador fino; a linha sob o mouse vira uma faixa de vidro com as
+// pontas arredondadas. Em contêiner estreito, vira lista de cartões (container query).
+
+:host {
+  container: tabela / inline-size;
+
+  display: block;
+  min-width: 0;
+}
+
+// `position: relative` prende aqui dentro o que é posicionado na tabela (o texto oculto do
+// cabeçalho "Ações", o link esticado): sem isso, ele escapa da rolagem e a página inteira rola
+// na horizontal.
+.tabela__rolagem {
+  position: relative;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font: var(--fonte-corpo-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+// Cabeçalho ------------------------------------------------------------------------------
+.tabela__cabecalho .tabela__celula {
+  height: auto;
+  padding-block: 0 var(--esp-2);
+  box-shadow: inset 0 -1px 0 var(--cor-borda-forte);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  font-weight: 500;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.tabela__ordenar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  min-height: 28px;
+  margin: 0 calc(-1 * var(--esp-2));
+  padding: 0 var(--esp-2);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  &:hover {
+    background: var(--cor-vidro);
+    color: var(--cor-texto);
+  }
+}
+
+.tabela__ordenar--ativo {
+  color: var(--cor-texto);
+}
+
+.tabela__ordenar-neutro {
+  opacity: 0.6;
+}
+
+// Células --------------------------------------------------------------------------------
+.tabela__celula {
+  height: 56px;
+  padding: var(--esp-2) var(--esp-3);
+  box-shadow: inset 0 -1px 0 var(--cor-borda);
+  color: var(--cor-texto);
+  text-align: start;
+  vertical-align: middle;
+  transition: background-color var(--duracao) var(--curva);
+}
+
+.tabela--densa .tabela__celula {
+  height: var(--altura-md);
+  padding-block: var(--esp-1);
+}
+
+.tabela__celula--fim {
+  text-align: end;
+}
+
+.tabela__celula--centro {
+  text-align: center;
+}
+
+.tabela__corpo .tabela__linha:last-child .tabela__celula {
+  box-shadow: none;
+}
+
+// Coluna fixa na borda direita (ações "⋯"): continua à vista quando a tabela rola na
+// horizontal. O fundo cobre o que passa por baixo (`--tabela-fundo`: o fundo de onde a tabela
+// está; padrão, o da página).
+.tabela__celula--fixa {
+  position: sticky;
+  inset-inline-end: 0;
+  z-index: 2;
+  background-color: var(--tabela-fundo, var(--cor-fundo));
+}
+
+.tabela__linha--clicavel:hover .tabela__celula--fixa {
+  background: linear-gradient(var(--cor-vidro), var(--cor-vidro))
+    var(--tabela-fundo, var(--cor-fundo));
+}
+
+// Linha que abre: faixa de vidro com as pontas arredondadas sob o mouse.
+.tabela__linha--clicavel {
+  position: relative;
+
+  &:hover .tabela__celula {
+    background: var(--cor-vidro);
+    box-shadow: none;
+  }
+
+  &:hover .tabela__celula:first-child {
+    border-radius: var(--raio-md) 0 0 var(--raio-md);
+  }
+
+  &:hover .tabela__celula:last-child {
+    border-radius: 0 var(--raio-md) var(--raio-md) 0;
+  }
+}
+
+// O link/botão da coluna principal se estica sobre a linha inteira (::after); o anel de
+// foco desenha a linha toda.
+.tabela__abrir {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  text-align: inherit;
+  text-decoration: none;
+  cursor: pointer;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--raio-md);
+  }
+
+  &:focus-visible {
+    outline: none;
+
+    &::after {
+      outline: 2px solid var(--cor-foco);
+      outline-offset: -2px;
+    }
+  }
+}
+
+// Outros controles da linha (menu de ações, caixa de seleção) ficam por cima do link esticado.
+// O conteúdo vem dos modelos da tela (outro escopo de estilo): por isso o ::ng-deep.
+.tabela__linha--clicavel
+  .tabela__celula
+  ::ng-deep
+  :is(a, button, input, select, label, [tabindex]):not(.tabela__abrir) {
+  position: relative;
+  z-index: 1;
+}
+
+.tabela__linha-vazia > td {
+  padding: 0;
+}
+
+// Ordenação no modo cartões (escondida na tabela) ------------------------------------------
+.tabela__ordem-cartoes {
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--esp-2);
+  margin-bottom: var(--esp-3);
+}
+
+.tabela__ordem-rotulo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.tabela__ordem-seletor {
+  min-height: var(--altura-sm);
+  padding: 0 var(--esp-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  font: var(--fonte-rotulo);
+
+  option {
+    background: var(--cor-flutuante);
+  }
+}
+
+// Lista de cartões -------------------------------------------------------------------------
+@container tabela (width < 40rem) {
+  .tabela__ordem-cartoes {
+    display: flex;
+  }
+
+  .tabela,
+  .tabela__corpo,
+  .tabela__linha,
+  .tabela__linha-vazia,
+  .tabela__linha-vazia > td {
+    display: block;
+  }
+
+  // O cabeçalho sai da tela, mas continua para leitores de tela (papéis ARIA explícitos).
+  .tabela__cabecalho {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tabela__corpo {
+    display: grid;
+    gap: var(--esp-2);
+  }
+
+  .tabela__linha {
+    display: grid;
+    gap: var(--esp-2);
+    padding: var(--esp-4);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-lg);
+    background: var(--cor-superficie-2);
+  }
+
+  .tabela__linha--clicavel:hover {
+    border-color: var(--cor-borda-forte);
+
+    .tabela__celula {
+      background: none;
+    }
+  }
+
+  .tabela__abrir::after {
+    border-radius: var(--raio-lg);
+  }
+
+  .tabela__corpo .tabela__celula {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-3);
+    height: auto;
+    padding: 0;
+    box-shadow: none;
+    text-align: end;
+
+    // "Rótulo: valor": o nome da coluna à esquerda, em tom suave.
+    &::before {
+      content: attr(data-rotulo);
+      flex: none;
+      color: var(--cor-texto-suave);
+      font: var(--fonte-legenda);
+      text-align: start;
+    }
+  }
+
+  .tabela__corpo .tabela__celula--titulo {
+    order: -1;
+    justify-content: flex-start;
+    font: var(--fonte-rotulo);
+    font-size: 0.9375rem;
+    text-align: start;
+
+    &::before {
+      content: none;
+    }
+  }
+
+  // Coluna sem rótulo (ações "⋯"): no canto de cima do cartão, ao lado do título.
+  .tabela__linha {
+    position: relative;
+  }
+
+  .tabela__corpo .tabela__celula--fixa {
+    background: none;
+  }
+
+  .tabela__corpo .tabela__celula--sem-rotulo {
+    position: absolute;
+    top: var(--esp-3);
+    right: var(--esp-3);
+
+    &::before {
+      content: none;
+    }
+  }
+
+  .tabela__linha:has(.tabela__celula--sem-rotulo) .tabela__celula--titulo {
+    min-height: var(--altura-sm);
+    padding-inline-end: calc(var(--altura-sm) + var(--esp-2));
+  }
+
+  .tabela__corpo .tabela__celula--ocultar-cartao {
+    display: none;
+  }
+
+  .tabela__linha--esqueleto .tabela__celula::before {
+    content: none;
+  }
+}

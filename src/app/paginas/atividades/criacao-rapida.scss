@@ -1,0 +1,117 @@
+@use 'mixins' as m;
+
+// Criação rápida: um cartão com o "O que precisa ser feito?" e o Adicionar na mesma linha e,
+// embaixo, tipo (pílulas), quando e vínculo. O cartão é um contêiner: a linha de detalhes se
+// reorganiza pela largura dele (a navegação aberta ou recolhida muda essa largura).
+
+:host {
+  container-type: inline-size;
+  display: block;
+  padding: var(--esp-cartao);
+  border-radius: var(--raio-cartao);
+  background: var(--gradiente-palco);
+  box-shadow: var(--sombra-cartao);
+}
+
+.criacao {
+  --cor-superficie-2: var(--cor-vidro);
+  --cor-superficie-3: var(--cor-vidro-forte);
+
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.criacao__topo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.criacao__titulo {
+  font: var(--fonte-h3);
+  letter-spacing: var(--tracking-titulo);
+}
+
+// O campo e o botão: o botão alinha com a pílula (não com o rótulo) e o campo fica com o resto.
+.criacao__linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--esp-3);
+}
+
+.criacao__enviar {
+  // Rótulo (28px) + vão (8px): o botão fica na altura da pílula do campo.
+  margin-top: calc(28px + var(--esp-2));
+}
+
+.criacao__detalhes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--esp-4);
+}
+
+.criacao__quando {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-3);
+}
+
+// Com espaço: tipo na linha toda; quando e vínculo lado a lado embaixo.
+@container (width >= 36rem) {
+  .criacao__detalhes {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .criacao__tipo {
+    grid-column: 1 / -1;
+  }
+
+  .criacao__quando:has(.criacao__fim) {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+}
+
+// Bem largo: tipo, quando e vínculo numa linha só.
+@container (width >= 70rem) {
+  .criacao__detalhes {
+    grid-template-columns: auto minmax(14rem, 1fr) minmax(14rem, 1fr);
+  }
+
+  .criacao__tipo {
+    grid-column: auto;
+  }
+}
+
+// Celular: o botão vai para o fim do cartão, com a largura toda (a linha se desfaz e o campo e
+// o botão viram itens da grade do formulário).
+@container (width < 30rem) {
+  .criacao__linha {
+    display: contents;
+  }
+
+  .criacao__detalhes {
+    order: 2;
+  }
+
+  .criacao__enviar {
+    order: 3;
+    justify-self: stretch;
+    margin-top: 0;
+  }
+
+  // Fechado (sem foco e sem nada preenchido): só o campo, para a lista aparecer logo.
+  :host(:not(.criacao-rapida--aberta)) {
+    .criacao__detalhes,
+    .criacao__enviar {
+      display: none;
+    }
+  }
+}
+
+@include m.abaixo(m.$sm) {
+  :host {
+    padding: var(--esp-5);
+  }
+}

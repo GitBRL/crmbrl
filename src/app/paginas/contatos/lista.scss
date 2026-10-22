@@ -1,0 +1,127 @@
+@use 'mixins' as m;
+@use 'contatos-comum' as c;
+
+// Abas "Pessoas" e "Empresas" de /contatos: barra de busca e filtros, tabela e paginação.
+// Só tokens.
+
+:host {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+// Busca larga e o filtro de marketing ao lado; sem espaço, um embaixo do outro.
+.lista__barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3) var(--esp-4);
+  min-width: 0;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+.lista__barra > .lista__busca {
+  flex: 1 1 20rem;
+  max-width: 36rem;
+}
+
+// O botão "Filtros" só existe no celular, onde os filtros ficam recolhidos atrás dele.
+.lista__mostrar-filtros {
+  display: none;
+}
+
+@include m.abaixo(m.$sm) {
+  .lista__barra {
+    flex-wrap: nowrap;
+  }
+
+  .lista__barra > .lista__busca {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .lista__mostrar-filtros {
+    display: inline-flex;
+    flex: none;
+  }
+
+  .lista__filtros:not(.lista__filtros--aberto) {
+    display: none;
+  }
+}
+
+// Seletores lado a lado (três por linha no desktop, dois no tablet, um no celular).
+.lista__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.lista__filtro {
+  flex: 1 1 13rem;
+  max-width: 17rem;
+
+  @include m.abaixo(m.$sm) {
+    max-width: none;
+  }
+}
+
+.lista__resultado {
+  @include c.meta;
+
+  min-height: 1lh;
+  font-variant-numeric: tabular-nums;
+}
+
+.pessoa {
+  @include c.pessoa;
+
+  max-width: 100%;
+}
+
+.lista__meios {
+  display: grid;
+  min-width: 0;
+}
+
+.lista__meio {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista__meio + .lista__meio {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.lista__origem {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1) var(--esp-2);
+}
+
+.lista__quando {
+  @include c.meta;
+
+  font-variant-numeric: tabular-nums;
+}
+
+.lista__selos {
+  @include c.selos;
+}
+
+.lista__vazio {
+  color: var(--cor-texto-fraco);
+}
+
+.lista__numero {
+  font-variant-numeric: tabular-nums;
+}

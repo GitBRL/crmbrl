@@ -1,0 +1,113 @@
+<section class="secao" aria-labelledby="passagens-titulo">
+  <header class="secao__cabecalho">
+    <div class="secao__textos">
+      <h2 class="secao__titulo" id="passagens-titulo">Passagens entre funis</h2>
+      <p class="secao__frase">
+        O que acontece quando um negócio chega a certas etapas: ele segue para o próximo funil
+        sozinho.
+      </p>
+    </div>
+  </header>
+
+  <div class="faixa faixa--info">
+    <svg lucideWorkflow class="faixa__icone" [size]="20" />
+    <p><strong>Como funciona.</strong> {{ dica }}</p>
+  </div>
+
+  @if (lista.erro(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar as passagens"
+      [texto]="erro.resumo"
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeTentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (lista.dados() === null) {
+    <div class="passagens__lista" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando as passagens…</p>
+      @for (item of [1, 2]; track item) {
+        <app-cartao>
+          <div class="passagens__esqueleto">
+            <app-esqueleto largura="35%" />
+            <div class="passagens__esqueleto-fluxo">
+              <app-esqueleto forma="bloco" altura="72px" />
+              <app-esqueleto forma="bloco" altura="72px" />
+            </div>
+            <app-esqueleto largura="55%" />
+          </div>
+        </app-cartao>
+      }
+    </div>
+  } @else if (passagens().length === 0) {
+    <app-estado-vazio
+      titulo="Nenhuma passagem entre funis"
+      texto="Sem passagens, cada funil anda sozinho: os negócios não seguem para o próximo."
+    />
+  } @else {
+    <div class="passagens__lista">
+      @for (item of passagens(); track item.passagem.id) {
+        <app-cartao
+          class="passagem"
+          regiao
+          [class.passagem--inativa]="!item.passagem.ativa"
+          [nivel]="3"
+          [titulo]="item.passagem.nome"
+        >
+          <app-selo cartao-acoes [variante]="item.passagem.ativa ? 'menta' : 'contorno'">{{
+            item.passagem.ativa ? 'Ativa' : 'Desativada'
+          }}</app-selo>
+
+          <div class="passagem__corpo">
+            <div class="passagem__fluxo">
+              <div class="passagem__ponta">
+                <span class="passagem__rotulo">Quando um negócio entra em</span>
+                <strong class="passagem__etapa">{{ item.passagem.etapaGatilho.nome }}</strong>
+                <span class="passagem__funil">Funil {{ item.passagem.funilOrigem.nome }}</span>
+              </div>
+              <span class="passagem__seta" aria-hidden="true">
+                <svg lucideArrowRight [size]="20" />
+              </span>
+              <div class="passagem__ponta">
+                <span class="passagem__rotulo">cria um negócio em</span>
+                <strong class="passagem__etapa">{{ item.passagem.etapaDestino.nome }}</strong>
+                <span class="passagem__funil">Funil {{ item.passagem.funilDestino.nome }}</span>
+              </div>
+            </div>
+
+            <dl class="passagem__detalhes">
+              <div>
+                <dt>Quem recebe</dt>
+                <dd>{{ item.quemRecebe }}</dd>
+              </div>
+              <div>
+                <dt>Execuções</dt>
+                <dd>{{ item.execucoes }}</dd>
+              </div>
+            </dl>
+
+            @for (versao of [revisao()]; track versao) {
+              <app-alternador
+                class="passagem__ativa"
+                rotulo="Passagem ativa"
+                [dica]="item.dicaAtiva"
+                [desabilitado]="emAndamento(item.passagem.id)"
+                [valor]="item.passagem.ativa"
+                (valorChange)="definirAtiva(item.passagem, $event)"
+              />
+            }
+          </div>
+        </app-cartao>
+      }
+    </div>
+  }
+</section>

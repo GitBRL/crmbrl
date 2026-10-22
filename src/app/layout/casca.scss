@@ -59,7 +59,7 @@
   margin-top: var(--esp-4);
 }
 
-// O cartão não rola: a lista rola dentro dele e o aviso de demonstração fica fixo no pé.
+// O cartão não rola: a lista rola dentro dele.
 .casca__cartao {
   display: flex;
   flex-direction: column;
@@ -104,13 +104,7 @@
   }
 }
 
-.casca__aviso {
-  flex: none;
-  margin-inline: var(--esp-3);
-}
-
-// Tela baixa (celular deitado, janela pequena): o cartão inteiro rola, para o aviso não
-// espremer a lista.
+// Tela baixa (celular deitado, janela pequena): o cartão inteiro rola.
 @media (max-height: 560px) {
   .casca__cartao {
     overflow-x: hidden;

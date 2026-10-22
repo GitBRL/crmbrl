@@ -1,21 +1,33 @@
 import {
+  afterNextRender,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
   DOCUMENT,
+  effect,
   ElementRef,
   inject,
+  Injector,
   input,
   linkedSignal,
+  untracked,
   viewChild,
 } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { LucideDynamicIcon } from '@lucide/angular';
+import { filter, map } from 'rxjs';
 
-import { agruparModulos, type IdGrupo, type Modulo } from '../nucleo/navegacao';
-import { PerfilDemoService } from '../nucleo/perfil-demo.service';
+import {
+  agruparModulos,
+  MODULOS,
+  moduloPorRota,
+  type IdGrupo,
+  type Modulo,
+} from '../nucleo/navegacao';
+import { SessaoService } from '../nucleo/sessao/sessao.service';
 import { Selo } from '../ui/selo/selo';
 import { gerarId } from '../ui/tipos';
 import { trazerParaVista } from './rolagem';
@@ -29,10 +41,11 @@ interface DicaMenu {
 }
 
 /**
- * Navegação principal (DESIGN-SYSTEM.md §5): os módulos que a persona do modo demonstração
- * enxerga, agrupados como em `nucleo/navegacao.ts`. Cada item é uma pílula com o ícone num
- * círculo; o item da página atual tem o círculo invertido e `aria-current="page"`. Módulos
- * "em breve" levam um selo.
+ * Navegação principal (DESIGN-SYSTEM.md §5): os módulos que o usuário logado acessa (papel e
+ * permissões do `auth/eu`), agrupados como em `nucleo/navegacao.ts`. Cada item é uma pílula
+ * com o ícone num círculo; o item do módulo da página atual (inclusive as rotas relacionadas,
+ * como `/empresas/:id` em Contatos e empresas) tem o círculo invertido e
+ * `aria-current="page"`. Módulos "em breve" levam um selo.
  *
  * `recolhida` mostra só os círculos: os rótulos continuam para leitores de tela e aparecem
  * numa dica ao passar o mouse ou focar pelo teclado. A dica segue a WCAG 1.4.13: fecha com
@@ -41,20 +54,34 @@ interface DicaMenu {
  */
 @Component({
   selector: 'app-menu-lateral',
-  imports: [RouterLink, RouterLinkActive, LucideDynamicIcon, Selo],
+  imports: [RouterLink, LucideDynamicIcon, Selo],
   templateUrl: './menu-lateral.html',
   styleUrl: './menu-lateral.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MenuLateral {
-  private readonly perfil = inject(PerfilDemoService);
+  private readonly sessao = inject(SessaoService);
   private readonly documento = inject(DOCUMENT);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly injector = inject(Injector);
   private readonly balao = viewChild.required<ElementRef<HTMLElement>>('balao');
+  private readonly router = inject(Router);
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((evento) => evento instanceof NavigationEnd),
+      map((evento) => evento.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
 
   /** Só os círculos (desktop recolhido e tablet). */
   readonly recolhida = input(false, { transform: booleanAttribute });
 
-  protected readonly secoes = computed(() => agruparModulos(this.perfil.modulosVisiveis()));
+  protected readonly secoes = computed(() =>
+    agruparModulos(MODULOS.filter((modulo) => this.sessao.pode(modulo))),
+  );
+  /** Id do módulo da página atual. */
+  protected readonly ativo = computed(() => moduloPorRota(this.url())?.id ?? null);
   /** A dica só existe com a navegação recolhida: expandir ou recolher a descarta. */
   protected readonly dica = linkedSignal<boolean, DicaMenu | null>({
     source: this.recolhida,
@@ -73,6 +100,23 @@ export class MenuLateral {
     inject(DestroyRef).onDestroy(() =>
       this.documento.removeEventListener('keydown', this.aoTeclar),
     );
+    // A lista pode ser maior que a área visível: mostra o item da página atual, se preciso.
+    effect(() => {
+      if (!this.ativo()) {
+        return;
+      }
+      untracked(() =>
+        afterNextRender(
+          () => {
+            const link = this.host.querySelector<HTMLElement>('.menu__item--ativo');
+            if (link) {
+              trazerParaVista(link);
+            }
+          },
+          { injector: this.injector },
+        ),
+      );
+    });
   }
 
   protected idGrupo(grupo: IdGrupo): string {
@@ -115,13 +159,6 @@ export class MenuLateral {
     const link = this.dica()?.link;
     if (!(link && destino instanceof Node && link.contains(destino))) {
       this.esconderDica();
-    }
-  }
-
-  /** A lista pode ser maior que a área visível: mostra o item da página atual, se preciso. */
-  protected aoMudarAtivo(ativo: boolean, link: HTMLElement): void {
-    if (ativo) {
-      trazerParaVista(link);
     }
   }
 

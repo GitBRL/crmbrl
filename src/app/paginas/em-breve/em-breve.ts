@@ -1,29 +1,17 @@
-import {
-  afterNextRender,
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  ElementRef,
-  inject,
-  Injector,
-  input,
-  viewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   LucideArrowLeft,
   LucideCheck,
   LucideCircleDashed,
   LucideDynamicIcon,
-  LucideEye,
-  LucideFlaskConical,
   LucideInfo,
   LucideLockKeyhole,
 } from '@lucide/angular';
 
 import { moduloPorId } from '../../nucleo/navegacao';
-import { listarPapeis, ROTULO_PAPEL, TODOS_OS_PAPEIS, type Papel } from '../../nucleo/papeis';
-import { PerfilDemoService } from '../../nucleo/perfil-demo.service';
+import { listarPapeis, TODOS_OS_PAPEIS, type Papel } from '../../nucleo/papeis';
+import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Botao } from '../../ui/botao/botao';
 import { Cartao } from '../../ui/cartao/cartao';
 import { Chip } from '../../ui/chip/chip';
@@ -31,7 +19,7 @@ import { Dica } from '../../ui/dica/dica';
 import { Indicador } from '../../ui/indicador/indicador';
 import { Selo } from '../../ui/selo/selo';
 import { termosNoTexto } from './glossario';
-import { FASES_ROADMAP, numeroDaFase } from './roadmap';
+import { FASES_ROADMAP, frasesNoAr, numeroDaFase } from './roadmap';
 
 /**
  * "Todos os papéis, menos Marketing" quando faltam só um ou dois papéis; senão, a lista
@@ -54,8 +42,9 @@ export function descreverQuemAcessa(papeis: readonly Papel[]): string {
  * tons, a descrição, a fase do roadmap e as funcionalidades planejadas (chips). Siglas e
  * termos que não se explicam sozinhos (UTM, MQL, kanban…) ganham uma dica ao lado do chip.
  *
- * Se a persona do modo demonstração não acessa o módulo, mostra o estado "sem acesso": qual
- * papel acessa e um atalho para ver o CRM como esse papel.
+ * Se o papel do usuário não acessa o módulo, mostra o estado "sem acesso" e qual papel
+ * acessa (a guarda da casca já leva quem não acessa para `/sem-acesso`; o estado fica de
+ * reserva).
  */
 @Component({
   selector: 'app-em-breve',
@@ -64,7 +53,6 @@ export function descreverQuemAcessa(papeis: readonly Papel[]): string {
     LucideDynamicIcon,
     LucideCheck,
     LucideInfo,
-    LucideFlaskConical,
     LucideLockKeyhole,
     Botao,
     Cartao,
@@ -81,20 +69,18 @@ export class EmBreve {
   /** Id do módulo (de `nucleo/navegacao.ts`), vindo de `data.modulo` da rota. */
   readonly modulo = input<string>();
 
-  protected readonly perfil = inject(PerfilDemoService);
-  private readonly injector = inject(Injector);
-  private readonly titulo = viewChild<ElementRef<HTMLElement>>('titulo');
+  protected readonly perfil = inject(SessaoService);
 
   protected readonly icones = {
     voltar: LucideArrowLeft,
     planejado: LucideCircleDashed,
-    ver: LucideEye,
   };
   /** As fases do roadmap, com os termos do glossário de cada nome ("App mobile (PWA)"). */
   protected readonly fases = FASES_ROADMAP.map((fase) => ({
     ...fase,
     termos: termosNoTexto(fase.nome),
   }));
+  protected readonly dicaRoadmap = `O CRM chega em fases. Cada fase libera um conjunto de módulos; ${frasesNoAr()}.`;
   protected readonly info = computed(() => moduloPorId(this.modulo()));
   /** As funcionalidades planejadas, cada uma com os termos do glossário que ela cita. */
   protected readonly funcionalidades = computed(() =>
@@ -106,13 +92,4 @@ export class EmBreve {
   });
   protected readonly fase = computed(() => numeroDaFase(this.info()?.fase));
   protected readonly quemAcessa = computed(() => descreverQuemAcessa(this.info()?.papeis ?? []));
-  /** Papel sugerido no "sem acesso": o primeiro que acessa o módulo. */
-  protected readonly papelSugerido = computed<Papel | null>(() => this.info()?.papeis[0] ?? null);
-  protected readonly rotuloPapel = ROTULO_PAPEL;
-
-  /** Troca a persona e leva o foco ao título (o botão some com o estado "sem acesso"). */
-  protected verComo(papel: Papel): void {
-    this.perfil.verComo(papel);
-    afterNextRender(() => this.titulo()?.nativeElement.focus(), { injector: this.injector });
-  }
 }

@@ -11,7 +11,7 @@ export const MIDIA_MOBILE = '(max-width: 899.98px)';
 
 /**
  * Estado compartilhado da casca (`layout/`): navegação recolhida, navegação aberta por cima
- * do conteúdo no tablet, gaveta do mobile e o atalho para abrir o menu da conta. É fornecido
+ * do conteúdo no tablet e gaveta do mobile. É fornecido
  * pela `Casca`, então vale para a barra superior, a navegação lateral e a gaveta — e morre
  * com ela.
  */
@@ -24,7 +24,6 @@ export class EstadoCasca {
   /** Tablet: a navegação aberta por cima do conteúdo (momentânea, não fica salva). */
   private readonly expandidaNoTablet = signal(false);
   private readonly gaveta = signal(false);
-  private abrirMenuConta: (() => void) | null = null;
 
   /** Tablet (900–1199px): o trilho de círculos, que se abre por cima do conteúdo. */
   readonly ehTablet = this.acompanharMidia(MIDIA_TABLET, (tablet) => {
@@ -72,24 +71,6 @@ export class EstadoCasca {
 
   fecharGaveta(): void {
     this.gaveta.set(false);
-  }
-
-  /**
-   * O menu da conta se registra aqui para outras partes da casca poderem abri-lo ("Ver como"
-   * no aviso de demonstração). Devolve a função que desfaz o registro.
-   */
-  registrarAbrirMenuConta(abrir: () => void): () => void {
-    this.abrirMenuConta = abrir;
-    return () => {
-      if (this.abrirMenuConta === abrir) {
-        this.abrirMenuConta = null;
-      }
-    };
-  }
-
-  /** Abre o menu da conta com o foco na persona atual. */
-  pedirMenuConta(): void {
-    this.abrirMenuConta?.();
   }
 
   /** Signal que acompanha uma media query (sem `matchMedia`, como no jsdom, fica `false`). */

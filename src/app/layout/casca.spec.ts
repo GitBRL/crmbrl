@@ -1,14 +1,25 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, type Routes } from '@angular/router';
+import { provideRouter, RouterOutlet, type Routes } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
+import { AvisosService } from '../nucleo/avisos.service';
+import { ConfirmacaoService } from '../nucleo/confirmacao.service';
+import { entrarComo } from '../nucleo/sessao/sessao-de-teste';
 import { TemaService } from '../nucleo/tema.service';
 import { ATRASO_PROGRESSO_MS, Casca } from './casca';
 import { CHAVE_NAVEGACAO_RECOLHIDA } from './estado-casca';
 
 @Component({ template: '<h1>Página</h1>' })
 class PaginaFalsa {}
+
+@Component({
+  imports: [RouterOutlet],
+  template: '<h1>Quadro</h1><a href="#" class="cartao">Cartão</a><router-outlet />',
+})
+class QuadroFalso {}
 
 const esperar = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms));
 
@@ -19,6 +30,12 @@ const rotas: Routes = [
     children: [
       { path: 'inicio', component: PaginaFalsa },
       { path: 'atendimento', component: PaginaFalsa },
+      // Quadro com o detalhe em painel de rota filha (como /funis/:area/:negocioId).
+      {
+        path: 'quadro',
+        component: QuadroFalso,
+        children: [{ path: ':id', component: PaginaFalsa, data: { painel: true } }],
+      },
       // Página que demora a abrir (rede lenta): a casca mostra o progresso.
       {
         path: 'lenta',
@@ -37,7 +54,10 @@ const FOCAVEIS = 'a[href], button:not([disabled]), input, [tabindex]:not([tabind
 describe('Casca', () => {
   beforeEach(() => {
     localStorage.clear();
-    TestBed.configureTestingModule({ providers: [provideRouter(rotas)] });
+    TestBed.configureTestingModule({
+      providers: [provideRouter(rotas), provideHttpClient(), provideHttpClientTesting()],
+    });
+    entrarComo('ADMIN');
   });
   afterEach(() => localStorage.clear());
 
@@ -72,19 +92,27 @@ describe('Casca', () => {
     expect(raiz.querySelector('header.topo')).not.toBeNull();
     expect(raiz.querySelector('.casca__lateral nav[aria-label="Principal"]')).not.toBeNull();
     expect(raiz.querySelector('main h1')?.textContent).toBe('Página');
-    expect(raiz.querySelector('.casca__lateral app-aviso-demo')?.textContent).toContain(
-      'Ana Ribeiro',
-    );
+    // Sem modo demonstração: nada de "Ver como".
+    expect(raiz.textContent).not.toContain('Ver como');
+    expect(raiz.querySelector('app-aviso-demo')).toBeNull();
   });
 
-  it('a lista rola dentro do cartão e o aviso de demonstração fica fora dela, no pé', async () => {
+  it('a lista rola dentro do cartão da navegação', async () => {
     const { raiz } = await criar();
     const cartao = raiz.querySelector('.casca__cartao') as HTMLElement;
     const rolagem = cartao.querySelector('.casca__rolagem') as HTMLElement;
     expect(rolagem.classList).toContain('rolagem-esmaecida');
     expect(rolagem.querySelector('nav[aria-label="Principal"]')).not.toBeNull();
-    expect(rolagem.querySelector('app-aviso-demo')).toBeNull();
-    expect(cartao.lastElementChild?.tagName.toLowerCase()).toBe('app-aviso-demo');
+    expect(cartao.children.length).toBe(1);
+  });
+
+  it('hospeda os avisos e o modal de confirmação', async () => {
+    const { raiz, estabilizar } = await criar();
+    TestBed.inject(AvisosService).sucesso('Contato salvo.');
+    void TestBed.inject(ConfirmacaoService).confirmar({ titulo: 'Sair?', mensagem: 'Você sai.' });
+    await estabilizar();
+    expect(raiz.querySelector('app-avisos')?.textContent).toContain('Contato salvo.');
+    expect(raiz.querySelector('app-confirmacao dialog')?.textContent).toContain('Sair?');
   });
 
   it('recolhe e expande a navegação, com a escolha salva', async () => {
@@ -97,7 +125,6 @@ describe('Casca', () => {
     await estabilizar();
     expect(raiz.querySelector('.casca')?.classList).toContain('casca--recolhida');
     expect(raiz.querySelector('.casca__lateral nav')?.classList).toContain('menu--recolhido');
-    expect(raiz.querySelector('.casca__lateral app-aviso-demo')).toBeNull();
     expect(localStorage.getItem(CHAVE_NAVEGACAO_RECOLHIDA)).toBe('true');
     expect(alternar.getAttribute('aria-label')).toBe('Expandir a navegação');
     expect(alternar.getAttribute('aria-expanded')).toBe('false');
@@ -183,13 +210,27 @@ describe('Casca', () => {
     expect(document.activeElement).not.toBe(main);
   });
 
-  it('o rodapé da gaveta tem o aviso compacto e o tema numa linha que é um botão só', async () => {
+  it('abrir e fechar um painel de rota filha não leva o foco ao <main>', async () => {
+    const { harness, raiz, estabilizar } = await criar('/quadro');
+    const cartao = raiz.querySelector('.cartao') as HTMLElement;
+    cartao.focus();
+    await harness.navigateByUrl('/quadro/n1');
+    await estabilizar();
+    expect(document.activeElement).toBe(cartao);
+    await harness.navigateByUrl('/quadro');
+    await estabilizar();
+    expect(document.activeElement).toBe(cartao);
+
+    await harness.navigateByUrl('/atendimento');
+    await estabilizar();
+    expect(document.activeElement).toBe(raiz.querySelector('main'));
+  });
+
+  it('o rodapé da gaveta tem o tema numa linha que é um botão só', async () => {
     const { raiz, estabilizar, gaveta, botaoMenu } = await criar();
     botaoMenu.click();
     await estabilizar();
-    const aviso = gaveta.querySelector('.gaveta__rodape app-aviso-demo') as HTMLElement;
-    expect(aviso.textContent).toContain('Ana Ribeiro');
-    expect(aviso.querySelector('button')?.getAttribute('aria-label')).toBe('Ver como outro papel');
+    expect(gaveta.querySelector('app-aviso-demo')).toBeNull();
 
     const tema = TestBed.inject(TemaService);
     const botaoTema = gaveta.querySelector('button.gaveta__tema') as HTMLButtonElement;
@@ -204,24 +245,5 @@ describe('Casca', () => {
       antes === 'escuro' ? 'Usar tema escuro' : 'Usar tema claro',
     );
     expect(raiz.querySelector('.gaveta__rodape app-alternador-tema')).toBeNull();
-  });
-
-  it('"Ver como" no aviso abre o menu da conta', async () => {
-    const { raiz, estabilizar } = await criar();
-    (raiz.querySelector('.casca__lateral app-aviso-demo button') as HTMLButtonElement).click();
-    await estabilizar();
-    expect(raiz.querySelector('[role="menu"]')).not.toBeNull();
-    expect(document.activeElement?.getAttribute('role')).toBe('menuitemradio');
-  });
-
-  it('na gaveta, "Ver como" fecha a gaveta antes de abrir o menu', async () => {
-    const { raiz, estabilizar, gaveta, botaoMenu } = await criar();
-    botaoMenu.click();
-    await estabilizar();
-    (gaveta.querySelector('app-aviso-demo button') as HTMLButtonElement).click();
-    await estabilizar();
-    expect(gaveta.hasAttribute('open')).toBe(false);
-    expect(raiz.querySelector('[role="menu"]')).not.toBeNull();
-    expect(document.activeElement?.getAttribute('role')).toBe('menuitemradio');
   });
 });

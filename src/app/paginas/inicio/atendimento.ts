@@ -20,7 +20,10 @@ import { SERIES_ATENDIMENTO, type DadosAtendimento, type Periodo } from './dados
   template: `
     <h2 class="visualmente-oculto">Atendimento · {{ periodo().complemento }}</h2>
     <header class="palco__topo">
-      <app-selo variante="contorno" [icone]="iconeFase">módulo da Fase 2</app-selo>
+      <div class="palco__titulo-linha">
+        <app-selo variante="contorno">Dados de exemplo</app-selo>
+        <app-selo variante="contorno" [icone]="iconeFase">módulo da Fase 2</app-selo>
+      </div>
     </header>
 
     <div class="palco__bloco">

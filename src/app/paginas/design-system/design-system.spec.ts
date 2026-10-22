@@ -17,8 +17,8 @@ describe('DesignSystem (catálogo)', () => {
     const secoes = [...raiz.querySelectorAll<HTMLElement>('[role="region"]')].filter(
       (secao) => secao.tagName === 'APP-DS-SECAO',
     );
-    expect(links.length).toBe(13);
-    expect(secoes.length).toBe(13);
+    expect(links.length).toBe(16);
+    expect(secoes.length).toBe(16);
     for (const [i, link] of links.entries()) {
       expect(link.getAttribute('href')).toBe(`/design-system#${secoes[i].id}`);
       const titulo = raiz.querySelector(`#${secoes[i].getAttribute('aria-labelledby')}`);

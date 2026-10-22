@@ -1,0 +1,414 @@
+<app-modal [(aberto)]="aberto" largura="lg" [titulo]="titulo()" [complemento]="complemento()">
+  <div class="assistente">
+    @if (aberto()) {
+      @if (!resultado()) {
+        <ol class="assistente__passos" aria-label="Passos">
+          @for (nome of passos(); track nome; let i = $index) {
+            <li
+              class="assistente__passo"
+              [class.assistente__passo--atual]="passo() === i + 1"
+              [class.assistente__passo--feito]="passo() > i + 1"
+              [attr.aria-current]="passo() === i + 1 ? 'step' : null"
+            >
+              <span class="assistente__numero" aria-hidden="true">
+                @if (passo() > i + 1) {
+                  <svg lucideCheck [size]="14" />
+                } @else {
+                  {{ i + 1 }}
+                }
+              </span>
+              <span class="assistente__nome-passo">{{ nome }}</span>
+              @if (passo() > i + 1) {
+                <span class="visualmente-oculto">(concluído)</span>
+              }
+            </li>
+          }
+        </ol>
+      }
+
+      @if (carregandoApoio()) {
+        <div class="assistente__carregando" aria-busy="true">
+          <p class="visualmente-oculto" role="status">Carregando…</p>
+          <app-esqueleto forma="texto" largura="40%" />
+          <app-esqueleto forma="pilula" />
+          <app-esqueleto forma="pilula" />
+          <app-esqueleto forma="bloco" altura="9rem" />
+        </div>
+      } @else if (erroApoio(); as erro) {
+        <app-estado-vazio
+          variante="erro"
+          [falha]="erro"
+          compacto
+          titulo="Não conseguimos carregar os funis e os modelos"
+          [texto]="erro.resumo"
+          [codigo]="erro.requisicaoId"
+        >
+          <button appBotao type="button" variante="invertido" (click)="recarregarApoio()">
+            Tentar de novo
+          </button>
+        </app-estado-vazio>
+      } @else {
+        <form class="assistente__form" novalidate [formGroup]="form" (ngSubmit)="avancar()">
+          @switch (passo()) {
+            @case (1) {
+              <h3 class="assistente__titulo-passo" tabindex="-1">Nome e destino</h3>
+              <p class="assistente__frase">
+                Dê um nome que diga de onde os leads vêm e escolha onde eles entram no CRM.
+              </p>
+              @if (erroGeral(); as mensagem) {
+                <p class="assistente__alerta" role="alert">{{ mensagem }}</p>
+              }
+              <app-campo-texto
+                rotulo="Nome"
+                formControlName="nome"
+                [erro]="erroNome()"
+                [maximoCaracteres]="100"
+                placeholder="Landing page — Black Friday"
+                dica="Vira a origem dos contatos que chegarem por aqui."
+              />
+              <div class="assistente__dupla">
+                <app-seletor rotulo="Funil" [opcoes]="opcoesFunil()" formControlName="funilId" />
+                <app-seletor
+                  rotulo="Etapa de entrada"
+                  ajuda="Onde o negócio novo começa. A etapa de perda não pode receber leads."
+                  [opcoes]="opcoesEtapa()"
+                  formControlName="etapaId"
+                />
+              </div>
+              <app-grupo-opcoes
+                rotulo="Quem fica com o lead"
+                ajuda="Como o negócio criado ganha um responsável. Um lead que volta (reconversão) segue as regras do funil."
+                [opcoes]="opcoesEstrategia()"
+                formControlName="estrategia"
+              />
+              @if (ehFixo()) {
+                <app-seletor
+                  rotulo="Responsável fixo"
+                  dica="Só aparecem pessoas ativas que veem este funil."
+                  [opcoes]="opcoesResponsavel()"
+                  formControlName="responsavelFixoId"
+                />
+              }
+            }
+
+            @case (2) {
+              <h3 class="assistente__titulo-passo" tabindex="-1">Mapeamento</h3>
+              <p class="assistente__frase">
+                Diga ao CRM onde ficam o nome, o e-mail e os outros dados no que o sistema envia.
+              </p>
+              @if (erroGeral(); as mensagem) {
+                <p class="assistente__alerta" role="alert">{{ mensagem }}</p>
+              }
+              <app-grupo-opcoes
+                rotulo="Formato do envio"
+                disposicao="pilulas"
+                ajuda="Genérico: campos name, email, phone e utm_*. Disparos BRL: o formato que o sistema de disparos já envia. Personalizado: você diz o caminho de cada dado."
+                [opcoes]="opcoesModelo()"
+                formControlName="modelo"
+              />
+
+              @if (modeloPronto(); as pronto) {
+                <div class="assistente__modelo">
+                  <p class="assistente__descricao">
+                    @for (parte of partesDaDescricao(pronto.descricao); track $index) {
+                      <span [class.assistente__codigo]="parte.codigo">{{ parte.texto }}</span>
+                    }
+                  </p>
+                  <table class="assistente__tabela">
+                    <caption class="visualmente-oculto">
+                      Regras do modelo
+                      {{
+                        pronto.nome
+                      }}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Caminho no envio</th>
+                        <th scope="col">Vai para</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (regra of pronto.mapeamento.campos; track $index) {
+                        <tr>
+                          <td>
+                            <code>{{ regra.caminho }}</code>
+                          </td>
+                          <td>{{ rotuloDestino(regra.destino) }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                  @for (condicao of pronto.mapeamento.ignorarQuando; track $index) {
+                    <p class="assistente__nota">
+                      Ignora o envio quando <code>{{ condicao.caminho }}</code> vier igual a
+                      <code>{{ condicao.valor }}</code> (envio de teste).
+                    </p>
+                  }
+                </div>
+              } @else if (ehPersonalizado()) {
+                <fieldset class="assistente__grupo" formArrayName="regras">
+                  <legend class="assistente__legenda">
+                    Regras
+                    <app-dica
+                      rotulo="Como escrever o caminho"
+                      texto="Chaves separadas por ponto (lead.contato.email), índice de lista (itens[0].nome) e um * no fim para pegar várias colunas (planilha_*). Para o mesmo campo vale o primeiro caminho que vier com valor."
+                    />
+                  </legend>
+                  @if (regras.length) {
+                    <div class="regra regra--cabecalho" aria-hidden="true">
+                      <span>Caminho no envio</span>
+                      <span>Vai para</span>
+                    </div>
+                  }
+                  @for (grupo of regras.controls; track grupo; let i = $index) {
+                    <div class="regra" [formGroupName]="i">
+                      <app-campo-texto
+                        class="regra__caminho"
+                        rotuloOculto
+                        [rotulo]="'Caminho no envio da regra ' + (i + 1)"
+                        placeholder="lead.email"
+                        formControlName="caminho"
+                      />
+                      <app-seletor
+                        class="regra__destino"
+                        rotuloOculto
+                        [rotulo]="'Campo do CRM da regra ' + (i + 1)"
+                        placeholder="Escolha o campo"
+                        [opcoes]="opcoesDestino()"
+                        formControlName="destino"
+                      />
+                      <button
+                        appBotaoIcone
+                        type="button"
+                        class="regra__remover"
+                        variante="contorno"
+                        [icone]="icones.remover"
+                        [rotulo]="'Remover a regra ' + (i + 1)"
+                        (click)="removerRegra(i)"
+                      ></button>
+                      @if (destinoDaRegra(i) === destinoPersonalizado) {
+                        <app-campo-texto
+                          class="regra__chave"
+                          [rotulo]="'Nome do campo personalizado da regra ' + (i + 1)"
+                          placeholder="faturamento"
+                          dica="Com * no caminho, use * aqui também (planilha_*)."
+                          formControlName="chave"
+                        />
+                      }
+                    </div>
+                  }
+                  <div>
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      [icone]="icones.adicionar"
+                      (click)="adicionarRegra()"
+                    >
+                      Adicionar regra
+                    </button>
+                  </div>
+                </fieldset>
+
+                <fieldset class="assistente__grupo" formArrayName="ignorar">
+                  <legend class="assistente__legenda">
+                    Ignorar envios
+                    <app-dica
+                      rotulo="Quando ignorar"
+                      texto="Se o campo vier com este valor (sem diferenciar maiúsculas), o envio é registrado como ignorado e nada é criado. Ex.: teste = true."
+                    />
+                  </legend>
+                  @for (grupo of ignorar.controls; track grupo; let i = $index) {
+                    <div class="regra" [formGroupName]="i">
+                      <app-campo-texto
+                        class="regra__caminho"
+                        rotuloOculto
+                        [rotulo]="'Campo da condição ' + (i + 1)"
+                        placeholder="teste"
+                        formControlName="caminho"
+                      />
+                      <app-campo-texto
+                        class="regra__destino"
+                        rotuloOculto
+                        [rotulo]="'Valor da condição ' + (i + 1)"
+                        placeholder="true"
+                        formControlName="valor"
+                      />
+                      <button
+                        appBotaoIcone
+                        type="button"
+                        class="regra__remover"
+                        variante="contorno"
+                        [icone]="icones.remover"
+                        [rotulo]="'Remover a condição ' + (i + 1)"
+                        (click)="removerCondicao(i)"
+                      ></button>
+                    </div>
+                  }
+                  <div>
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      [icone]="icones.adicionar"
+                      (click)="adicionarCondicao()"
+                    >
+                      Adicionar condição
+                    </button>
+                  </div>
+                </fieldset>
+              }
+
+              <app-campo-texto
+                rotulo="Etiquetas fixas"
+                opcional
+                placeholder="Landing, Black Friday"
+                dica="Separe por vírgula. Todo contato que chegar por aqui ganha essas etiquetas."
+                formControlName="etiquetas"
+              />
+
+              <section class="assistente__previa" aria-labelledby="assistente-previa">
+                <h4 class="assistente__subtitulo" id="assistente-previa">
+                  Prévia
+                  <app-dica
+                    rotulo="O que é a prévia"
+                    texto="O CRM aplica o mapeamento ao exemplo e mostra o que criaria. Nada é gravado."
+                  />
+                </h4>
+                <app-area-texto
+                  rotulo="Corpo de exemplo (JSON)"
+                  monoespacado
+                  dica="Cole um envio real do sistema de origem para conferir."
+                  [linhas]="7"
+                  [maximoLinhas]="14"
+                  formControlName="exemplo"
+                />
+                <div>
+                  <button
+                    appBotao
+                    type="button"
+                    variante="contorno"
+                    [icone]="icones.previa"
+                    [carregando]="carregandoPrevia()"
+                    (click)="verPrevia()"
+                  >
+                    Ver prévia
+                  </button>
+                </div>
+                <div aria-live="polite">
+                  @if (previa(); as resultadoDaPrevia) {
+                    <app-previa-mapeamento [resultado]="resultadoDaPrevia" />
+                  }
+                </div>
+              </section>
+            }
+
+            @case (3) {
+              <h3 class="assistente__titulo-passo" tabindex="-1">Segurança</h3>
+              <p class="assistente__frase">
+                Escolha se o sistema que envia precisa assinar cada chamada com um segredo.
+              </p>
+              @if (erroGeral(); as mensagem) {
+                <p class="assistente__alerta" role="alert">{{ mensagem }}</p>
+              }
+              <app-grupo-opcoes
+                rotulo="Assinatura das chamadas"
+                ajuda="Com segredo, cada chamada precisa do cabeçalho X-Assinatura: sha256=<HMAC-SHA256 do corpo com o segredo>. Sem assinatura válida, o CRM recusa (401) e registra o recebimento com erro."
+                [opcoes]="opcoesSeguranca"
+                formControlName="seguranca"
+              />
+              @if (form.controls.seguranca.value === 'INFORMAR') {
+                <app-campo-senha
+                  rotulo="Segredo"
+                  autocomplete="off"
+                  dica="De 16 a 200 caracteres. Depois ele só aparece mascarado."
+                  formControlName="segredo"
+                />
+              }
+              <section class="assistente__resumo" aria-labelledby="assistente-resumo">
+                <h4 class="assistente__subtitulo" id="assistente-resumo">Confira</h4>
+                <dl class="assistente__dados">
+                  <div>
+                    <dt>Nome</dt>
+                    <dd>{{ resumo().nome }}</dd>
+                  </div>
+                  <div>
+                    <dt>Entra em</dt>
+                    <dd>{{ resumo().destino }}</dd>
+                  </div>
+                  <div>
+                    <dt>Quem fica com o lead</dt>
+                    <dd>{{ resumo().distribuicao }}</dd>
+                  </div>
+                  <div>
+                    <dt>Formato</dt>
+                    <dd>{{ resumo().mapeamento }}</dd>
+                  </div>
+                  <div>
+                    <dt>Etiquetas fixas</dt>
+                    <dd>{{ resumo().etiquetas }}</dd>
+                  </div>
+                </dl>
+              </section>
+            }
+
+            @case (4) {
+              @if (resultado(); as criado) {
+                <div class="assistente__pronto">
+                  <h3 class="assistente__titulo-passo" tabindex="-1">Copie o endereço agora</h3>
+                  <p class="assistente__frase">
+                    É a única vez que o endereço completo aparece. Depois ele fica mascarado; se
+                    perder, gere um novo pelo menu do webhook (o antigo para de funcionar).
+                  </p>
+                  <app-valor-unico
+                    rotulo="Endereço do webhook"
+                    oQue="Endereço"
+                    [valor]="criado.url"
+                  />
+                  @if (criado.segredo) {
+                    <app-valor-unico
+                      rotulo="Segredo da assinatura"
+                      oQue="Segredo"
+                      [valor]="criado.segredo"
+                    />
+                  }
+                  <app-bloco-codigo rotulo="Teste com curl" oQue="Exemplo" [codigo]="curl()" />
+                  <p class="assistente__nota">
+                    O envio de teste aparece em poucos segundos na aba Recebimentos do webhook.
+                  </p>
+                </div>
+              }
+            }
+          }
+        </form>
+      }
+    }
+  </div>
+
+  <div modal-rodape class="assistente__rodape">
+    @if (resultado()) {
+      <button appBotao type="button" variante="contorno" (click)="abrirRecebimentos()">
+        Ver recebimentos
+      </button>
+      <button appBotao type="button" variante="invertido" (click)="fechar()">Concluir</button>
+    } @else {
+      @if (passo() === 1) {
+        <button appBotao type="button" variante="contorno" (click)="fechar()">Cancelar</button>
+      } @else {
+        <button appBotao type="button" variante="contorno" (click)="voltar()">Voltar</button>
+      }
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [carregando]="enviando()"
+        [disabled]="carregandoApoio() || !!erroApoio()"
+        (click)="avancar()"
+      >
+        {{ rotuloAvancar() }}
+      </button>
+    }
+  </div>
+</app-modal>

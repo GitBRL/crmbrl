@@ -15,8 +15,9 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { LucideMenu, LucideSearch } from '@lucide/angular';
 import { filter, map } from 'rxjs';
 
-import { moduloPorRota, type Modulo } from '../nucleo/navegacao';
-import { PerfilDemoService } from '../nucleo/perfil-demo.service';
+import type { ModuloBase } from '../nucleo/modulos';
+import { moduloPorRota } from '../nucleo/navegacao';
+import { SessaoService } from '../nucleo/sessao/sessao.service';
 import { AlternadorTema } from '../ui/alternador-tema/alternador-tema';
 import { BotaoIcone } from '../ui/botao-icone/botao-icone';
 import { CampoBusca } from '../ui/campo-busca/campo-busca';
@@ -41,12 +42,15 @@ export function normalizarBusca(texto: string): string {
  * Módulo que melhor responde a um termo de busca: nome que começa com o termo, depois nome
  * que contém o termo, depois descrição ou funcionalidades.
  */
-export function buscarModulo(termo: string, modulos: readonly Modulo[]): Modulo | undefined {
+export function buscarModulo<T extends ModuloBase>(
+  termo: string,
+  modulos: readonly T[],
+): T | undefined {
   const alvo = normalizarBusca(termo);
   if (!alvo) {
     return undefined;
   }
-  const nome = (modulo: Modulo) => normalizarBusca(modulo.rotulo);
+  const nome = (modulo: T) => normalizarBusca(modulo.rotulo);
   return (
     modulos.find((modulo) => nome(modulo).startsWith(alvo)) ??
     modulos.find((modulo) => nome(modulo).includes(alvo)) ??
@@ -63,9 +67,9 @@ export function buscarModulo(termo: string, modulos: readonly Modulo[]): Modulo 
  * Desktop: logo, busca, alternador de tema, sino e menu da conta. Mobile: botão da gaveta,
  * símbolo, título da seção, busca num círculo (abre o campo numa linha própria), sino e conta.
  *
- * Nesta etapa a busca leva ao módulo procurado ("disparos" → Disparos), e o campo diz isso;
- * pessoas, empresas e negócios entram na busca com a Fase 1 (o aviso explica quando nada é
- * encontrado).
+ * A busca leva ao módulo procurado ("disparos" → Disparos). Quando o termo não é nome de
+ * módulo, procura em Contatos e empresas (`/contatos?busca=<termo>`), onde a tela de contatos
+ * filtra pessoas por nome, e-mail ou telefone.
  */
 @Component({
   selector: 'app-barra-superior',
@@ -76,7 +80,7 @@ export function buscarModulo(termo: string, modulos: readonly Modulo[]): Modulo 
 })
 export class BarraSuperior {
   protected readonly estado = inject(EstadoCasca);
-  private readonly perfil = inject(PerfilDemoService);
+  private readonly sessao = inject(SessaoService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
 
@@ -101,9 +105,13 @@ export class BarraSuperior {
     { initialValue: this.router.url },
   );
   /** Título da seção no mobile (o nome do módulo da página atual). */
-  protected readonly secao = computed(
-    () => moduloPorRota(this.url())?.rotulo ?? 'Página não encontrada',
-  );
+  protected readonly secao = computed(() => {
+    const url = this.url();
+    if (url.startsWith('/sem-acesso')) {
+      return 'Sem acesso';
+    }
+    return moduloPorRota(url)?.rotulo ?? 'Página não encontrada';
+  });
 
   private readonly campo = viewChild.required(CampoBusca);
   private readonly botaoBusca = viewChild.required('botaoBusca', {
@@ -123,17 +131,17 @@ export class BarraSuperior {
     if (!texto) {
       return;
     }
-    const modulo = buscarModulo(texto, this.perfil.modulosVisiveis());
-    if (!modulo) {
-      this.mostrarAviso(
-        `Nenhum módulo encontrado para “${texto}”. Por enquanto a busca encontra módulos. Pessoas, empresas e negócios entram na Fase 1.`,
-      );
+    const modulo = buscarModulo(texto, this.sessao.modulosVisiveis());
+    if (!modulo && !this.sessao.pode('contatos')) {
+      this.mostrarAviso(`Nenhum módulo encontrado para “${texto}”.`);
       return;
     }
     this.campo().valor.set('');
     this.mostrarAviso(null);
     this.buscaAberta.set(false);
-    void this.router.navigateByUrl(modulo.rota);
+    void (modulo
+      ? this.router.navigateByUrl(modulo.rota)
+      : this.router.navigate(['/contatos'], { queryParams: { busca: texto } }));
   }
 
   protected abrirBusca(): void {

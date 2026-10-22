@@ -12,7 +12,7 @@
 }
 
 .notificacoes__painel {
-  @include p.painel-suspenso(360px);
+  @include p.painel-suspenso(380px);
 
   gap: var(--esp-3);
   padding: var(--esp-4);
@@ -36,12 +36,18 @@
 }
 
 .notificacoes__item {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--esp-3);
-  padding: var(--esp-2);
+  padding: var(--esp-2) var(--esp-6) var(--esp-2) var(--esp-2);
   border-radius: var(--raio-lg);
   background: var(--cor-vidro);
+  transition: background-color var(--duracao) var(--curva);
+
+  &:has(.notificacoes__link:hover) {
+    background: var(--cor-vidro-forte);
+  }
 }
 
 .notificacoes__icone {
@@ -63,18 +69,133 @@
   font: var(--fonte-corpo-sm, 400 0.875rem/1.5 var(--familia));
 }
 
-// O horário fica sobre o vidro do item: o texto fraco não passa de 4,5:1 ali; o suave, sim.
+.notificacoes__item-titulo {
+  font-weight: 500;
+}
+
+.notificacoes__item:not(.notificacoes__item--nova) .notificacoes__item-titulo {
+  font-weight: 400;
+}
+
+// O título é o link do item inteiro: o alvo cobre o cartão (o ::after estica o clique).
+.notificacoes__link {
+  color: inherit;
+  text-decoration: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  &:focus-visible {
+    outline: none;
+
+    &::after {
+      outline: 2px solid var(--cor-foco);
+      outline-offset: 2px;
+    }
+  }
+}
+
+// Sobre o vidro do item o texto fraco não passa de 4,5:1; o suave, sim.
+.notificacoes__descricao,
 .notificacoes__quando {
   color: var(--cor-texto-suave);
+}
+
+.notificacoes__quando {
   font: var(--fonte-legenda);
+}
+
+.notificacoes__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+// Ação secundária no próprio item (só nas notificações sem link). Fica acima do link
+// esticado e tem alvo de 44px de altura.
+.notificacoes__marcar {
+  position: relative;
+  z-index: 1;
+  min-height: var(--altura-md);
+  margin: calc(var(--esp-3) * -1) 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cor-texto);
+  font: var(--fonte-legenda);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+// Não lida: ponto no canto (a informação também vai em texto para leitores de tela).
+.notificacoes__ponto {
+  position: absolute;
+  top: var(--esp-4);
+  right: var(--esp-3);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cor-erro);
+}
+
+.notificacoes__estado {
+  display: grid;
+  justify-items: start;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-1);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm, 400 0.875rem/1.5 var(--familia));
+}
+
+.notificacoes__vazio-titulo {
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
 }
 
 // A nota fica direto sobre o painel opaco.
 .notificacoes__nota {
+  padding: 0 var(--esp-1);
   color: var(--cor-texto-fraco);
   font: var(--fonte-legenda);
 }
 
-.notificacoes__nota {
-  padding: 0 var(--esp-1);
+// Esqueleto do primeiro carregamento, com a forma das linhas.
+.notificacoes__item--esqueleto .notificacoes__icone {
+  background: var(--cor-superficie-3);
+}
+
+.notificacoes__linhas {
+  display: grid;
+  flex: 1;
+  gap: var(--esp-2);
+  padding-top: var(--esp-1);
+}
+
+.notificacoes__barra {
+  height: 10px;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-3);
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+
+.notificacoes__barra--curta {
+  width: 40%;
+}
+
+@keyframes pulsar {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notificacoes__barra {
+    animation: none;
+  }
 }

@@ -32,12 +32,6 @@
   min-width: 0;
 }
 
-.cabecalho__aviso {
-  display: flex;
-  align-items: center;
-  gap: var(--esp-1);
-}
-
 .cabecalho__titulo {
   font: var(--fonte-display);
   letter-spacing: var(--tracking-display);

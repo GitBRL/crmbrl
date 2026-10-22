@@ -2,10 +2,12 @@ import { formatNumber } from '@angular/common';
 
 import { ROTULO_PAPEL, type Papel } from '../../nucleo/papeis';
 import type { SerieFunil } from '../../ui/barra-funil/barra-funil';
-import type { PessoaAvatar } from '../../ui/pilha-avatares/pilha-avatares';
 
 /**
- * Dados FICTÍCIOS do painel de exemplo (/inicio). Nada aqui vem da API.
+ * Dados FICTÍCIOS dos blocos da Visão geral (/inicio) que dependem de módulos futuros:
+ * atendimento (Fase 2), ranking com metas (BI), MRR (Financeiro), health score (CS) e a
+ * análise com IA. A jornada e os indicadores de leads e taxa de ganho são reais
+ * (`metricas-jornada.ts`); estes números aparecem sempre com o selo "Dados de exemplo".
  *
  * Os números contam o fluxo que o CRM vai ter: o lead chega por webhook (ou formulário,
  * WhatsApp, indicação) no funil de Marketing; quando é qualificado (MQL), vira sozinho um
@@ -479,28 +481,8 @@ export const DADOS_POR_PERIODO: Readonly<Record<IdPeriodo, DadosPeriodo>> = {
 };
 
 // ---------------------------------------------------------------------------------------
-// Pessoas e eventos
+// Equipe (aba de exemplo)
 // ---------------------------------------------------------------------------------------
-
-/**
- * Equipe que usa o CRM (pilha de avatares do cabeçalho): as personas e os vendedores. As três
- * primeiras aparecem na pilha, que pinta por posição (ciano, menta, lima): são pessoas cuja
- * cor pelo nome (avatar das atividades) é essa mesma, para ninguém mudar de cor entre os dois.
- */
-export const EQUIPE: readonly PessoaAvatar[] = [
-  { nome: 'Ana Ribeiro' },
-  { nome: 'Carla Nogueira' },
-  { nome: 'Lucas Prado' },
-  { nome: 'Beatriz Lima' },
-  { nome: 'Fernanda Rocha' },
-  { nome: 'Marcos Andrade' },
-  { nome: 'João Batista' },
-  { nome: 'Marina Costa' },
-  { nome: 'Diego Fernandes' },
-  { nome: 'Paula Mendes' },
-  { nome: 'Thiago Moreira' },
-  { nome: 'Rafael Souto' },
-];
 
 /** O desligamento do exemplo (regra: as atividades de quem sai vão para o líder). */
 export const DESLIGAMENTO = {
@@ -509,77 +491,6 @@ export const DESLIGAMENTO = {
   destino: 'Carla Nogueira',
   papelDestino: ROTULO_PAPEL.LIDER_COMERCIAL,
 } as const;
-
-export type TipoEvento = 'webhook' | 'movimento' | 'passagem' | 'ganho' | 'desligamento' | 'ia';
-
-/** Evento da auditoria (todas as ações de todos os usuários ficam registradas). */
-export interface EventoAuditoria {
-  readonly id: string;
-  readonly tipo: TipoEvento;
-  /** Pessoa que fez a ação (mostra o avatar); `null` quando foi o sistema. */
-  readonly ator: string | null;
-  readonly titulo: string;
-  readonly detalhe: string;
-  /** Há quantos minutos aconteceu, a partir da abertura da página. */
-  readonly minutosAtras: number;
-  /** Só estes papéis veem o evento; sem a lista, todos veem. */
-  readonly papeis?: readonly Papel[];
-}
-
-export const ATIVIDADES_RECENTES: readonly EventoAuditoria[] = [
-  {
-    id: 'webhook-site',
-    tipo: 'webhook',
-    ator: null,
-    titulo: 'Webhook “Site” criou o lead Maria Souza',
-    detalhe: 'Funil de Marketing · distribuído para Rafael Souto por rodízio',
-    minutosAtras: 4,
-  },
-  {
-    id: 'movimento-horizonte',
-    tipo: 'movimento',
-    ator: 'João Batista',
-    titulo: 'João Batista moveu “Escola Horizonte” para Proposta',
-    detalhe: 'Funil Comercial · ficou 5 dias em Apresentação',
-    minutosAtras: 18,
-  },
-  {
-    id: 'ganho-atlas',
-    tipo: 'ganho',
-    ator: null,
-    titulo: 'Negócio “Colégio Atlas” ganho → enviado ao pipeline de CS',
-    detalhe: 'Passagem automática · Lucas Prado recebeu o cliente em Boas-vindas',
-    minutosAtras: 47,
-  },
-  {
-    id: 'passagem-webinar',
-    tipo: 'passagem',
-    ator: 'Beatriz Lima',
-    titulo: 'Beatriz Lima qualificou 9 leads do webinar “Gestão Escolar”',
-    detalhe: 'Passagem automática · 9 negócios criados no funil Comercial',
-    minutosAtras: 75,
-  },
-  {
-    id: 'desligamento-pedro',
-    tipo: 'desligamento',
-    ator: null,
-    titulo: `Usuário ${DESLIGAMENTO.pessoa} foi desligado — ${DESLIGAMENTO.atividades} atividades encaminhadas para ${DESLIGAMENTO.destino} (${DESLIGAMENTO.papelDestino})`,
-    detalhe: 'Ação de Ana Ribeiro (Admin) · o acesso foi cortado na hora',
-    minutosAtras: 128,
-    // Desligamento e encaminhamento: a direção e a liderança da área.
-    papeis: ['ADMIN', 'C_LEVEL', 'LIDER_COMERCIAL'],
-  },
-  {
-    id: 'tickethub',
-    tipo: 'ia',
-    ator: null,
-    titulo: 'Ticket aberto no TicketHub a partir de uma dúvida não resolvida pela IA',
-    detalhe: 'Pergunta: “Como exporto o funil para uma planilha?” · chamado #1042',
-    minutosAtras: 196,
-    // O histórico das dúvidas feitas à IA é só do Admin (contrato §6.1).
-    papeis: ['ADMIN'],
-  },
-];
 
 // ---------------------------------------------------------------------------------------
 // Análise com IA (simulada)

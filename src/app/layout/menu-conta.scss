@@ -1,7 +1,7 @@
 @use 'mixins' as m;
 @use 'painel-suspenso' as p;
 
-// Menu da conta ("Ver como" do modo demonstração). Só tokens.
+// Menu da conta: quem está logado e as ações da conta. Só tokens.
 
 :host {
   position: relative;
@@ -73,35 +73,21 @@
   font: var(--fonte-h3);
 }
 
-// O papel do cabeçalho fica sobre o painel opaco: o texto fraco passa (5,3:1). Nos itens, o
-// fundo é vidro (marcado, hover, foco), e só o texto suave mantém 4,5:1.
+// Papel e e-mail ficam sobre o painel opaco: o texto fraco passa (5,3:1).
+.conta__papel,
+.conta__email {
+  overflow: hidden;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  text-overflow: ellipsis;
+}
+
 .conta__papel {
-  color: var(--cor-texto-fraco);
-  font: var(--fonte-legenda);
-}
-
-.conta__item-papel {
   color: var(--cor-texto-suave);
-  font: var(--fonte-legenda);
 }
 
-.conta__aviso {
-  display: grid;
-  justify-items: start;
-  gap: var(--esp-2);
-  padding: var(--esp-3);
-  border-radius: var(--raio-lg);
-  background: var(--cor-vidro);
-  color: var(--cor-texto-suave);
-  font: var(--fonte-legenda-lg, 400 0.8125rem/1.35 var(--familia));
-}
-
-.conta__grupo {
-  padding: var(--esp-1) var(--esp-2) 0;
-  color: var(--cor-texto-fraco);
-  font: var(--fonte-legenda);
-  font-weight: 500;
-  letter-spacing: 0.02em;
+.conta__email {
+  white-space: nowrap;
 }
 
 .conta__menu {
@@ -109,6 +95,13 @@
   gap: 2px;
 }
 
+.conta__divisor {
+  height: 1px;
+  margin: var(--esp-1) var(--esp-2);
+  background: var(--cor-borda);
+}
+
+// Item: pílula com o ícone num círculo, como na navegação.
 .conta__item {
   display: flex;
   align-items: center;
@@ -116,10 +109,11 @@
   width: 100%;
   min-height: var(--altura-md);
   margin: 0;
-  padding: 6px var(--esp-3) 6px 6px;
+  padding: 3px var(--esp-3) 3px 3px;
   border: 0;
   border-radius: var(--raio-pilula);
   background: transparent;
+  color: var(--cor-texto);
   text-align: left;
   -webkit-tap-highlight-color: transparent;
   transition: background-color var(--duracao) var(--curva);
@@ -129,25 +123,21 @@
     background: var(--cor-vidro);
   }
 
-  &[aria-checked='true'] {
-    background: var(--cor-vidro-forte);
+  &[aria-disabled='true'] {
+    cursor: progress;
   }
 }
 
-.conta__item-texto {
+.conta__item-circulo {
   display: grid;
-  flex: 1;
-  min-width: 0;
+  flex: none;
+  place-items: center;
+  width: calc(var(--altura-md) - 8px);
+  height: calc(var(--altura-md) - 8px);
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
 }
 
 .conta__item-nome {
   font: var(--fonte-rotulo);
-}
-
-.conta__marca {
-  visibility: hidden;
-
-  [aria-checked='true'] > & {
-    visibility: visible;
-  }
 }

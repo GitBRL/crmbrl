@@ -11,29 +11,48 @@ import {
   viewChild,
   viewChildren,
 } from '@angular/core';
-import { LucideCheck, LucideChevronDown, LucideFlaskConical } from '@lucide/angular';
+import { Router } from '@angular/router';
+import {
+  LucideChevronDown,
+  LucideDynamicIcon,
+  LucideKeyRound,
+  LucideLogOut,
+  LucideUserRound,
+  type LucideIcon,
+} from '@lucide/angular';
 
-import { PerfilDemoService, type PersonaDemo } from '../nucleo/perfil-demo.service';
+import { SessaoService } from '../nucleo/sessao/sessao.service';
 import { Avatar } from '../ui/avatar/avatar';
-import { Selo } from '../ui/selo/selo';
 import { gerarId } from '../ui/tipos';
-import { EstadoCasca } from './estado-casca';
 import { fecharAoTocarFora, focoSaiuDe } from './suspenso';
 
-type FocoInicial = 'atual' | 'ultimo';
+type FocoInicial = 'primeiro' | 'ultimo';
+
+interface ItemConta {
+  readonly id: 'perfil' | 'senha' | 'sair';
+  readonly rotulo: string;
+  readonly icone: LucideIcon;
+  /** Rota do item; sem rota, é uma ação (Sair). */
+  readonly rota: string | null;
+}
+
+export const ITENS_CONTA: readonly ItemConta[] = [
+  { id: 'perfil', rotulo: 'Meu perfil', icone: LucideUserRound, rota: '/configuracoes/perfil' },
+  { id: 'senha', rotulo: 'Trocar senha', icone: LucideKeyRound, rota: '/trocar-senha' },
+  { id: 'sair', rotulo: 'Sair', icone: LucideLogOut, rota: null },
+];
 
 /**
- * Menu da conta (avatar na barra superior). Enquanto não há login, ele é o **"Ver como"** do
- * modo demonstração: escolher uma persona troca o papel e a navegação passa a mostrar só os
- * módulos que esse papel acessa (`PerfilDemoService`).
+ * Menu da conta (avatar na barra superior): quem está logado (nome, papel e e-mail) e as
+ * ações "Meu perfil", "Trocar senha" e "Sair".
  *
- * Segue o padrão de botão de menu do WAI-ARIA: `aria-haspopup="menu"`, itens
- * `menuitemradio` com `aria-checked`, setas/Home/End para navegar, Enter ou Espaço para
- * escolher, Esc para fechar (o foco volta ao botão) e Tab para sair.
+ * Segue o padrão de botão de menu do WAI-ARIA: `aria-haspopup="menu"`, itens `menuitem`,
+ * setas/Home/End para navegar, Enter ou Espaço para escolher, Esc para fechar (o foco volta
+ * ao botão) e Tab para sair.
  */
 @Component({
   selector: 'app-menu-conta',
-  imports: [Avatar, Selo, LucideCheck, LucideChevronDown],
+  imports: [Avatar, LucideChevronDown, LucideDynamicIcon],
   templateUrl: './menu-conta.html',
   styleUrl: './menu-conta.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,14 +62,14 @@ type FocoInicial = 'atual' | 'ultimo';
   },
 })
 export class MenuConta {
-  protected readonly perfil = inject(PerfilDemoService);
-  protected readonly iconeDemo = LucideFlaskConical;
+  protected readonly sessao = inject(SessaoService);
+  protected readonly itensConta = ITENS_CONTA;
   protected readonly aberto = signal(false);
-  /** Mensagem para leitores de tela depois de trocar a persona. */
-  protected readonly anuncio = signal('');
+  protected readonly saindo = signal(false);
   protected readonly idMenu = gerarId('menu-conta');
-  protected readonly idAviso = gerarId('menu-conta-aviso');
+  protected readonly idQuem = gerarId('menu-conta-quem');
 
+  private readonly router = inject(Router);
   private readonly documento = inject(DOCUMENT);
   private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
@@ -59,21 +78,12 @@ export class MenuConta {
   private pararDeOuvir: (() => void) | null = null;
 
   constructor() {
-    const destroyRef = inject(DestroyRef);
-    // "Ver como" em outro ponto da casca (aviso de demonstração) abre este menu.
-    const estado = inject(EstadoCasca, { optional: true });
-    if (estado) {
-      destroyRef.onDestroy(estado.registrarAbrirMenuConta(() => this.abrir()));
-    }
-    destroyRef.onDestroy(() => this.pararDeOuvir?.());
+    inject(DestroyRef).onDestroy(() => this.pararDeOuvir?.());
   }
 
-  /** Abre o menu com o foco na persona atual (ou no último item). */
-  abrir(foco: FocoInicial = 'atual'): void {
-    const focar = () => {
-      const atual = this.perfil.personas.findIndex((p) => p.papel === this.perfil.papel());
-      this.focarItem(foco === 'ultimo' ? this.itens().length - 1 : Math.max(atual, 0));
-    };
+  /** Abre o menu com o foco no primeiro (ou no último) item. */
+  abrir(foco: FocoInicial = 'primeiro'): void {
+    const focar = () => this.focarItem(foco === 'ultimo' ? this.itens().length - 1 : 0);
     if (this.aberto()) {
       focar();
       return;
@@ -103,16 +113,21 @@ export class MenuConta {
     }
   }
 
-  protected escolher(persona: PersonaDemo): void {
-    this.perfil.verComo(persona.papel);
-    this.anuncio.set(`Agora você vê o CRM como ${persona.nome}, ${persona.rotuloPapel}.`);
-    this.fechar();
+  protected async escolher(item: ItemConta): Promise<void> {
+    if (item.rota) {
+      this.fechar(false);
+      await this.router.navigateByUrl(item.rota);
+      return;
+    }
+    // Sair: o botão mostra que está saindo; a página recarrega em /entrar.
+    this.saindo.set(true);
+    await this.sessao.sair();
   }
 
   protected aoTeclarNoBotao(evento: KeyboardEvent): void {
     if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
       evento.preventDefault();
-      this.abrir(evento.key === 'ArrowUp' ? 'ultimo' : 'atual');
+      this.abrir(evento.key === 'ArrowUp' ? 'ultimo' : 'primeiro');
     }
   }
 

@@ -70,6 +70,13 @@ app-cartao {
   font: var(--fonte-legenda);
 }
 
+.status__migracao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--esp-2);
+}
+
 .status__codigo {
   color: var(--cor-texto-suave);
   font-family: var(--familia-mono, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);

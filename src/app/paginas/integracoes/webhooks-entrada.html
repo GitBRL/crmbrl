@@ -1,0 +1,193 @@
+<app-cartao
+  class="lista"
+  titulo="Webhooks de entrada"
+  [complemento]="resposta() ? '· ' + total() : null"
+  dica="Cada webhook de entrada é um endereço que recebe leads de um site, formulário ou sistema (como o Disparos BRL). O CRM cria ou atualiza o contato, abre o negócio no funil escolhido e distribui para o responsável."
+>
+  <div cartao-acoes class="lista__filtros">
+    <app-filtros-pilula
+      rotulo="Mostrar webhooks"
+      [opcoes]="filtros"
+      [selecionado]="filtro()"
+      (selecionadoChange)="escolherFiltro($event)"
+    />
+  </div>
+
+  @if (erro(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos carregar os webhooks"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao type="button" variante="invertido" (click)="carregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <app-tabela
+      rotulo="Webhooks de entrada"
+      clicavel
+      [colunas]="colunas"
+      [linhas]="itens()"
+      [carregando]="carregando() && !resposta()"
+      [linhasEsqueleto]="3"
+      (abrir)="abrir($event)"
+    >
+      <ng-template appCelula="nome" [appCelulaDe]="itens()" let-w>
+        <span class="lista__nome">
+          <span class="lista__titulo">{{ w.nome }}</span>
+          <code class="lista__endereco" [title]="w.enderecoMascarado">{{
+            fimDoEndereco(w.enderecoMascarado)
+          }}</code>
+        </span>
+      </ng-template>
+      <ng-template appCelula="destino" [appCelulaDe]="itens()" let-w>
+        <span class="lista__destino">
+          <span>{{ w.funil.nome }}<span class="visualmente-oculto">, etapa </span></span>
+          <span class="lista__fraco">{{ w.etapa.nome }}</span>
+        </span>
+      </ng-template>
+      <ng-template appCelula="distribuicao" [appCelulaDe]="itens()" let-w>
+        {{ distribuicao(w) }}
+      </ng-template>
+      <ng-template appCelula="ultimo" [appCelulaDe]="itens()" let-w>
+        <span [title]="ultimoCompleto(w) ?? ''">{{ ultimo(w) }}</span>
+      </ng-template>
+      <ng-template appCelula="recebimentos" [appCelulaDe]="itens()" let-w>
+        <span class="lista__volume">
+          <span class="numeros">{{ w.recebimentos24h.total }}</span>
+          @if (w.recebimentos24h.erros) {
+            <app-selo variante="coral" tamanho="sm"
+              >{{ w.recebimentos24h.erros }} com erro</app-selo
+            >
+          }
+        </span>
+      </ng-template>
+      <ng-template appCelula="status" [appCelulaDe]="itens()" let-w>
+        <span class="lista__status">
+          @if (w.ativo) {
+            <app-selo variante="menta" tamanho="sm">Ativo</app-selo>
+          } @else {
+            <app-selo tamanho="sm">Desativado</app-selo>
+          }
+          @if (w.exigeAssinatura) {
+            <app-selo variante="contorno" tamanho="sm">Com assinatura</app-selo>
+          }
+        </span>
+      </ng-template>
+      <ng-template appCelula="acoes" [appCelulaDe]="itens()" let-w>
+        <app-menu-acoes
+          [rotulo]="'Ações de ' + w.nome"
+          [itens]="acoesDe(w)"
+          (escolher)="agir($event.id, w)"
+        />
+      </ng-template>
+
+      @if (filtrado()) {
+        <app-estado-vazio
+          tabela-vazio
+          compacto
+          variante="busca"
+          [titulo]="filtro() === 'ativos' ? 'Nenhum webhook ativo' : 'Nenhum webhook desativado'"
+          texto="Troque o filtro para ver os outros."
+        >
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            tamanho="sm"
+            (click)="escolherFiltro('todos')"
+          >
+            Ver todos
+          </button>
+        </app-estado-vazio>
+      } @else {
+        <app-estado-vazio
+          tabela-vazio
+          compacto
+          titulo="Nenhum webhook de entrada ainda"
+          texto="Crie um para receber leads de um site, formulário ou do sistema de disparos."
+        >
+          <button appBotao type="button" variante="invertido" [icone]="iconeNovo" (click)="novo()">
+            Novo webhook de entrada
+          </button>
+        </app-estado-vazio>
+      }
+    </app-tabela>
+
+    @if (total() > porPagina) {
+      <app-paginacao
+        rotulo="Paginação dos webhooks de entrada"
+        [total]="total()"
+        [porPagina]="porPagina"
+        [pagina]="pagina()"
+        (paginaChange)="pagina.set($event)"
+      />
+    }
+  }
+</app-cartao>
+
+<app-painel-lateral
+  largura="xl"
+  [aberto]="painelAberto()"
+  [titulo]="tituloPainel()"
+  [complemento]="selecionado() && !selecionado()!.ativo ? '· desativado' : null"
+  [descricao]="descricaoPainel()"
+  (fechado)="fecharPainel()"
+>
+  @if (painelAberto() && selecionado(); as w) {
+    <app-menu-acoes
+      painel-acoes
+      [rotulo]="'Ações de ' + w.nome"
+      [itens]="acoesDe(w)"
+      (escolher)="agir($event.id, w)"
+    />
+  }
+  @if (painelAberto()) {
+    @if (selecionado(); as w) {
+      <app-detalhe-entrada
+        [webhook]="w"
+        [(aba)]="abaDoPainel"
+        (editar)="editar(w)"
+        (ativar)="alternarAtivo(w)"
+      />
+    } @else if (erroSelecionado(); as falha) {
+      <app-estado-vazio
+        variante="erro"
+        manterAcoes
+        [falha]="falha"
+        compacto
+        [titulo]="
+          falha.ehNaoEncontrado ? 'Webhook não encontrado' : 'Não conseguimos abrir o webhook'
+        "
+        [texto]="falha.resumo"
+        [codigo]="falha.ehFalhaDoServidor ? falha.requisicaoId : null"
+      >
+        <button appBotao type="button" variante="contorno" (click)="fecharPainel()">
+          Voltar à lista
+        </button>
+      </app-estado-vazio>
+    } @else {
+      <div aria-busy="true" class="lista__carregando-painel">
+        <p class="visualmente-oculto" role="status">Carregando…</p>
+        <app-esqueleto forma="bloco" altura="5rem" />
+        <app-esqueleto forma="pilula" largura="16rem" />
+        <app-esqueleto forma="bloco" altura="14rem" />
+      </div>
+    }
+  }
+</app-painel-lateral>
+
+<app-assistente-entrada
+  [(aberto)]="assistenteAberto"
+  [webhook]="emEdicao()"
+  (criado)="aoCriar($event)"
+  (salvo)="aoSalvar($event)"
+  (verRecebimentos)="verRecebimentos($event)"
+/>
+
+<app-modal-segredo-entrada [(webhook)]="alvoDoSegredo" (definido)="aoDefinirSegredo($event)" />
+
+<app-resultado-unico [(dados)]="resultadoUnico" />

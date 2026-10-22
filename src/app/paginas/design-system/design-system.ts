@@ -33,12 +33,14 @@ import {
 
 import { TemaService, type Tema } from '../../nucleo/tema.service';
 import { Abas, type ItemAba } from '../../ui/abas/abas';
+import { Alternador } from '../../ui/alternador/alternador';
 import { AlternadorTema } from '../../ui/alternador-tema/alternador-tema';
 import { Avatar } from '../../ui/avatar/avatar';
 import { BarraFunil, type SerieFunil } from '../../ui/barra-funil/barra-funil';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
 import { CampoBusca } from '../../ui/campo-busca/campo-busca';
+import { CampoTexto } from '../../ui/campo-texto/campo-texto';
 import { Cartao } from '../../ui/cartao/cartao';
 import { Chip, type TipoChip } from '../../ui/chip/chip';
 import { Dica } from '../../ui/dica/dica';
@@ -50,7 +52,10 @@ import { PilhaAvatares, type PessoaAvatar } from '../../ui/pilha-avatares/pilha-
 import { Selo } from '../../ui/selo/selo';
 import { ZonaSoltar } from '../../ui/zona-soltar/zona-soltar';
 import { Exemplo } from './exemplo';
+import { Formularios } from './formularios';
 import { Fundamentos, lerCorDoToken } from './fundamentos';
+import { Listas } from './listas';
+import { Retorno } from './retorno';
 import { Secao } from './secao';
 
 interface EtapaExemplo {
@@ -82,15 +87,20 @@ function series(...valores: number[]): readonly SerieFunil[] {
   imports: [
     RouterLink,
     Exemplo,
+    Formularios,
     Fundamentos,
+    Listas,
+    Retorno,
     Secao,
     Abas,
+    Alternador,
     AlternadorTema,
     Avatar,
     BarraFunil,
     Botao,
     BotaoIcone,
     CampoBusca,
+    CampoTexto,
     Cartao,
     Chip,
     Dica,
@@ -122,6 +132,9 @@ export class DesignSystem {
     ['pessoas', 'Pessoas'],
     ['campos', 'Campos e arrastar'],
     ['ajuda', 'Dica e modal'],
+    ['formularios', 'Formulários'],
+    ['listas', 'Listas e tabelas'],
+    ['retorno', 'Retorno e painéis'],
     ['marca', 'Tema e marca'],
     ['dois-temas', 'Dois temas'],
   ].map(([id, rotulo], i) => ({ id, rotulo, numero: String(i + 1).padStart(2, '0') }));

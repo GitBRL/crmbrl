@@ -1,0 +1,213 @@
+<div class="lista__barra">
+  <app-campo-busca
+    class="lista__busca"
+    rotulo="Buscar pessoas"
+    placeholder="Nome, e-mail ou telefone"
+    [(valor)]="busca.termo"
+    (buscar)="busca.aplicarAgora($event)"
+  />
+  <button
+    appBotaoIcone
+    type="button"
+    class="lista__mostrar-filtros"
+    variante="contorno"
+    [icone]="icones.filtros"
+    [rotulo]="rotuloFiltros()"
+    [contagem]="quantosFiltros() || null"
+    [attr.aria-expanded]="filtrosAbertos()"
+    [attr.aria-controls]="idFiltros"
+    (click)="alternarFiltros()"
+  ></button>
+</div>
+
+<div class="lista__filtros" [id]="idFiltros" [class.lista__filtros--aberto]="filtrosAbertos()">
+  <app-filtros-pilula
+    rotulo="Marketing"
+    [opcoes]="opcoesMarketing"
+    [selecionado]="marketing()"
+    (selecionadoChange)="escolherMarketing($event)"
+  />
+  <app-seletor
+    class="lista__filtro"
+    rotulo="Responsável"
+    rotuloOculto
+    placeholder="Todos os responsáveis"
+    permitirVazio
+    [opcoes]="opcoesResponsavel()"
+    [valor]="consulta().responsavel"
+    (valorChange)="escolherResponsavel($event)"
+  />
+  <app-seletor
+    class="lista__filtro"
+    rotulo="Primeira origem"
+    rotuloOculto
+    placeholder="Primeira origem: todas"
+    permitirVazio
+    [opcoes]="opcoesOrigem"
+    [valor]="consulta().origem"
+    (valorChange)="escolherOrigem($event)"
+  />
+  <app-seletor
+    class="lista__filtro"
+    rotulo="Etiqueta"
+    rotuloOculto
+    placeholder="Todas as etiquetas"
+    permitirVazio
+    [opcoes]="opcoesEtiqueta()"
+    [valor]="consulta().etiqueta"
+    (valorChange)="escolherEtiqueta($event)"
+  />
+  @if (buscando()) {
+    <button appBotao type="button" variante="contorno" tamanho="sm" (click)="limparFiltros()">
+      Limpar filtros
+    </button>
+  }
+</div>
+
+<p class="lista__resultado" aria-live="polite">{{ resultado() }}</p>
+
+@if (erro(); as falha) {
+  <app-estado-vazio
+    variante="erro"
+    [falha]="falha"
+    titulo="Não conseguimos carregar as pessoas"
+    [texto]="falha.resumo"
+    [codigo]="falha.requisicaoId"
+  >
+    <button
+      appBotao
+      type="button"
+      variante="invertido"
+      [icone]="icones.tentar"
+      (click)="tentarDeNovo()"
+    >
+      Tentar de novo
+    </button>
+  </app-estado-vazio>
+} @else {
+  <app-tabela
+    rotulo="Pessoas"
+    [colunas]="colunas"
+    [linhas]="itens()"
+    [carregando]="dados.isLoading()"
+    [linhasEsqueleto]="8"
+    [ordenacao]="consulta().ordem"
+    (ordenacaoChange)="ordenar($event)"
+    [link]="linkDoContato"
+  >
+    <ng-template appCelula="nome" [appCelulaDe]="itens()" let-contato>
+      <span class="pessoa">
+        <app-avatar [nome]="contato.nome" tamanho="sm" decorativo />
+        <span class="pessoa__texto">
+          <span class="pessoa__nome">{{ contato.nome }}</span>
+          @if (contato.cargo) {
+            <span class="pessoa__sub">{{ contato.cargo }}</span>
+          }
+        </span>
+      </span>
+    </ng-template>
+
+    <ng-template appCelula="empresa" [appCelulaDe]="itens()" let-contato>
+      @if (contato.empresa; as empresa) {
+        {{ empresa.nome }}
+      } @else {
+        <span class="lista__vazio">—</span>
+      }
+    </ng-template>
+
+    <ng-template appCelula="contato" [appCelulaDe]="itens()" let-contato>
+      <span class="lista__meios">
+        @if (contato.email) {
+          <span class="lista__meio">{{ contato.email }}</span>
+        }
+        @if (contato.telefone) {
+          <span class="lista__meio numeros">{{ formatarTelefone(contato.telefone) }}</span>
+        }
+      </span>
+    </ng-template>
+
+    <ng-template appCelula="origem" [appCelulaDe]="itens()" let-contato>
+      <span class="lista__origem" [attr.title]="descreverUtm(contato.ultimaOrigem.utm)">
+        <app-selo tamanho="sm">{{ rotuloOrigem[contato.ultimaOrigem.tipo] }}</app-selo>
+        <span class="lista__quando">
+          {{ formatarTempoRelativo(contato.ultimaOrigem.em) }}
+          @if (contato.conversoes > 1) {
+            · {{ contato.conversoes }} entradas
+          }
+        </span>
+      </span>
+    </ng-template>
+
+    <ng-template appCelula="responsavel" [appCelulaDe]="itens()" let-contato>
+      @if (contato.responsavel; as responsavel) {
+        <span class="pessoa">
+          <app-avatar [nome]="responsavel.nome" tamanho="sm" decorativo />
+          <span class="pessoa__nome">{{ responsavel.nome }}</span>
+        </span>
+      } @else {
+        <span class="lista__vazio">Sem responsável</span>
+      }
+    </ng-template>
+
+    <ng-template appCelula="etiquetas" [appCelulaDe]="itens()" let-contato>
+      <span class="lista__selos">
+        @if (contato.optOutMarketing) {
+          <app-selo tamanho="sm" variante="contorno">Opt-out</app-selo>
+        }
+        @for (etiqueta of contato.etiquetas.slice(0, 3); track etiqueta) {
+          <app-selo tamanho="sm">{{ etiqueta }}</app-selo>
+        }
+        @if (contato.etiquetas.length > 3) {
+          <app-selo tamanho="sm" variante="contorno">+{{ contato.etiquetas.length - 3 }}</app-selo>
+        }
+        @if (!contato.optOutMarketing && !contato.etiquetas.length) {
+          <span class="lista__vazio">—</span>
+        }
+      </span>
+    </ng-template>
+
+    @if (buscando()) {
+      <app-estado-vazio
+        tabela-vazio
+        compacto
+        variante="busca"
+        titulo="Nenhuma pessoa encontrada"
+        texto="Confira a grafia, busque pelo e-mail ou pelo telefone, ou tire algum filtro."
+      >
+        <button appBotao type="button" variante="contorno" tamanho="sm" (click)="limparFiltros()">
+          Limpar filtros
+        </button>
+      </app-estado-vazio>
+    } @else {
+      <app-estado-vazio
+        tabela-vazio
+        compacto
+        titulo="Nenhum contato ainda"
+        texto="Cadastre a primeira pessoa ou receba leads pelos webhooks de entrada."
+      >
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          tamanho="sm"
+          [icone]="icones.novo"
+          (click)="novo.emit()"
+        >
+          Novo contato
+        </button>
+      </app-estado-vazio>
+    }
+  </app-tabela>
+
+  @if (total() > 0) {
+    <app-paginacao
+      rotulo="Paginação das pessoas"
+      [total]="total()"
+      [pagina]="consulta().pagina"
+      (paginaChange)="irParaPagina($event)"
+      [porPagina]="consulta().porPagina"
+      (porPaginaChange)="mudarPorPagina($event)"
+      [opcoesPorPagina]="opcoesPorPagina"
+    />
+  }
+}

@@ -105,18 +105,6 @@ describe('EstadoCasca', () => {
     expect(estado.gavetaAberta()).toBe(false);
   });
 
-  it('pedir o menu da conta chama quem se registrou, até desfazer o registro', () => {
-    const estado = criar();
-    const abrir = vi.fn();
-    estado.pedirMenuConta(); // ninguém registrado: não faz nada
-    const desfazer = estado.registrarAbrirMenuConta(abrir);
-    estado.pedirMenuConta();
-    expect(abrir).toHaveBeenCalledTimes(1);
-    desfazer();
-    estado.pedirMenuConta();
-    expect(abrir).toHaveBeenCalledTimes(1);
-  });
-
   it('tablet: trilho recolhido; o «/» abre por cima do conteúdo, sem salvar, e fecha', () => {
     simularLargura('tablet');
     const estado = criar();

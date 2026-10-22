@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
+  type ActivatedRouteSnapshot,
   NavigationCancel,
   NavigationEnd,
   NavigationError,
@@ -32,17 +33,21 @@ import {
   LucideX,
 } from '@lucide/angular';
 
+import { AvisosService } from '../nucleo/avisos.service';
 import { TemaService } from '../nucleo/tema.service';
+import { Avisos } from '../ui/avisos/avisos';
+import { CamadaModal } from '../ui/camada-modal';
 import { BotaoIcone } from '../ui/botao-icone/botao-icone';
 import { Logo } from '../ui/logo/logo';
-import { AvisoDemo } from './aviso-demo';
 import { BarraSuperior } from './barra-superior';
+import { Confirmacao } from './confirmacao';
 import { EstadoCasca } from './estado-casca';
+import { provideIcones } from './icones';
 import { MenuLateral } from './menu-lateral';
 import { ancestralRolavel, RolagemEsmaecida, trazerParaVista } from './rolagem';
 
 /** Para onde o foco vai quando a gaveta fecha. */
-type FocoAposGaveta = 'anterior' | 'conteudo' | 'nenhum';
+type FocoAposGaveta = 'anterior' | 'conteudo';
 
 /** Navegações mais rápidas que isto não mostram a barra de progresso (sem piscar). */
 export const ATRASO_PROGRESSO_MS = 150;
@@ -56,16 +61,21 @@ const FOCAVEIS =
  * barra superior fixa, navegação lateral em cartão e o conteúdo.
  *
  * - Desktop: a navegação pode ser recolhida para só os círculos (escolha salva). A lista rola
- *   dentro do cartão, com as bordas esmaecidas quando há mais módulos acima ou abaixo; o aviso
- *   do modo demonstração fica fixo no pé.
+ *   dentro do cartão, com as bordas esmaecidas quando há mais módulos acima ou abaixo.
  * - Tablet: o trilho de círculos; o «/» abre a navegação inteira por cima do conteúdo (fecha
  *   com Esc, toque fora ou troca de página).
  * - Mobile: a navegação abre numa gaveta (`<dialog>` modal: foco preso, Esc fecha, o foco volta
  *   para o botão que abriu).
  *
  * A cada troca de página a gaveta fecha e o foco vai para o `<main>`, para o leitor de tela
- * anunciar a página nova (troca só de âncora, `#secao`, não mexe no foco). Navegações que
- * demoram mostram uma barra de progresso no topo e marcam o `<main>` como ocupado.
+ * anunciar a página nova (troca só de âncora, `#secao`, não mexe no foco). Abrir ou fechar um
+ * painel de rota filha (`data: { painel: true }`, como o detalhe do negócio sobre o quadro)
+ * não é trocar de página: o foco fica com o painel e, ao fechar, volta para quem o abriu.
+ * Navegações que demoram mostram uma barra de progresso no topo e marcam o `<main>` como
+ * ocupado.
+ *
+ * Também hospeda os avisos do `AvisosService` (`app-avisos`) e o modal do
+ * `ConfirmacaoService` (`app-confirmacao`).
  */
 @Component({
   selector: 'app-casca',
@@ -74,7 +84,8 @@ const FOCAVEIS =
     RouterLink,
     BarraSuperior,
     MenuLateral,
-    AvisoDemo,
+    Avisos,
+    Confirmacao,
     BotaoIcone,
     Logo,
     LucideDynamicIcon,
@@ -82,12 +93,13 @@ const FOCAVEIS =
   ],
   templateUrl: './casca.html',
   styleUrl: './casca.scss',
-  providers: [EstadoCasca],
+  providers: [EstadoCasca, provideIcones()],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Casca {
   protected readonly estado = inject(EstadoCasca);
   protected readonly tema = inject(TemaService);
+  protected readonly avisos = inject(AvisosService);
   protected readonly icones = { fechar: LucideX, sol: LucideSun, lua: LucideMoon };
   protected readonly alternador = computed(() =>
     this.estado.recolhida()
@@ -98,6 +110,7 @@ export class Casca {
   protected readonly navegando = signal(false);
 
   private readonly documento = inject(DOCUMENT);
+  private readonly camada = inject(CamadaModal);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly gaveta = viewChild<ElementRef<HTMLDialogElement>>('gaveta');
   private readonly conteudo = viewChild<ElementRef<HTMLElement>>('conteudo');
@@ -117,37 +130,40 @@ export class Casca {
 
     // Progresso das navegações e, ao terminar: fecha a gaveta e a navegação sobreposta e leva
     // o foco ao conteúdo.
-    let caminhoAnterior: string | null = null;
-    inject(Router)
-      .events.pipe(takeUntilDestroyed())
-      .subscribe((evento) => {
-        if (evento instanceof NavigationStart) {
-          this.iniciarProgresso();
-          return;
-        }
-        if (
-          evento instanceof NavigationCancel ||
-          evento instanceof NavigationError ||
-          evento instanceof NavigationSkipped
-        ) {
-          this.pararProgresso();
-          return;
-        }
-        if (!(evento instanceof NavigationEnd)) {
-          return;
-        }
+    let paginaAnterior: string | null = null;
+    const router = inject(Router);
+    router.events.pipe(takeUntilDestroyed()).subscribe((evento) => {
+      if (evento instanceof NavigationStart) {
+        this.iniciarProgresso();
+        return;
+      }
+      if (
+        evento instanceof NavigationCancel ||
+        evento instanceof NavigationError ||
+        evento instanceof NavigationSkipped
+      ) {
         this.pararProgresso();
-        this.estado.recolherSobreposta();
-        const caminho = evento.urlAfterRedirects.split(/[?#]/)[0];
-        const trocouDePagina = caminhoAnterior !== null && caminho !== caminhoAnterior;
-        caminhoAnterior = caminho;
-        if (this.estado.gavetaAberta()) {
-          this.focoAposGaveta = trocouDePagina ? 'conteudo' : 'anterior';
-          this.estado.fecharGaveta();
-        } else if (trocouDePagina) {
-          this.focarConteudo();
-        }
-      });
+        return;
+      }
+      if (!(evento instanceof NavigationEnd)) {
+        return;
+      }
+      this.pararProgresso();
+      this.estado.recolherSobreposta();
+      const caminho = evento.urlAfterRedirects.split(/[?#]/)[0];
+      // Num painel de rota filha, a "página" é a de baixo (o quadro).
+      const pagina = ehPainel(router.routerState.snapshot.root)
+        ? caminho.slice(0, caminho.lastIndexOf('/'))
+        : caminho;
+      const trocouDePagina = paginaAnterior !== null && pagina !== paginaAnterior;
+      paginaAnterior = pagina;
+      if (this.estado.gavetaAberta()) {
+        this.focoAposGaveta = trocouDePagina ? 'conteudo' : 'anterior';
+        this.estado.fecharGaveta();
+      } else if (trocouDePagina) {
+        this.focarConteudo();
+      }
+    });
 
     // Tablet: tocar ou clicar fora da navegação aberta por cima do conteúdo a fecha.
     const aoPressionar = (evento: Event) => {
@@ -172,17 +188,6 @@ export class Casca {
     this.focarConteudo();
   }
 
-  /** "Ver como": abre o menu da conta. Na gaveta, fecha-a antes (a barra fica inerte). */
-  protected trocarPersona(daGaveta = false): void {
-    if (daGaveta) {
-      this.focoAposGaveta = 'nenhum';
-      this.esconderGaveta();
-      this.estado.fecharGaveta();
-    }
-    this.estado.recolherSobreposta();
-    this.estado.pedirMenuConta();
-  }
-
   /** Esc dentro da navegação aberta por cima do conteúdo (tablet): fecha e volta ao «/». */
   protected recolherComEsc(): void {
     if (!this.estado.sobreposta()) {
@@ -193,6 +198,10 @@ export class Casca {
   }
 
   protected aoFecharGaveta(): void {
+    const dialogo = this.gaveta()?.nativeElement;
+    if (dialogo) {
+      this.camada.fechou(dialogo);
+    }
     this.estado.fecharGaveta();
     const destino = this.focoAposGaveta;
     this.focoAposGaveta = 'anterior';
@@ -251,6 +260,7 @@ export class Casca {
     this.focoAntesDaGaveta = this.documento.activeElement as HTMLElement | null;
     if (typeof dialogo.showModal === 'function') {
       dialogo.showModal(); // foca o botão com `autofocus` (Fechar)
+      this.camada.abriu(dialogo); // os avisos continuam clicáveis com a gaveta aberta
     } else {
       dialogo.setAttribute('open', '');
       dialogo.querySelector<HTMLElement>('[autofocus]')?.focus();
@@ -295,4 +305,13 @@ export class Casca {
     const topo = this.host.querySelector<HTMLElement>('.topo');
     return topo ? topo.offsetHeight + 16 : 0;
   }
+}
+
+/** A rota mais funda é um painel sobre a página de baixo (`data: { painel: true }`). */
+function ehPainel(raiz: ActivatedRouteSnapshot): boolean {
+  let rota = raiz;
+  while (rota.firstChild) {
+    rota = rota.firstChild;
+  }
+  return rota.data['painel'] === true;
 }

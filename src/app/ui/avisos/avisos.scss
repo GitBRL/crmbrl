@@ -1,0 +1,132 @@
+@use 'mixins' as m;
+
+// Pilha de avisos no canto inferior direito (largura toda no celular). Com a Popover API, só
+// aparece aberta (:popover-open); sem ela, aparece quando há avisos.
+//
+// A pilha rola quando não cabe na altura, e um contêiner com rolagem corta o que passa da
+// borda: por isso há uma folga (`--_folga`) em volta dos avisos, do tamanho da sombra
+// flutuante (0 16px 40px), compensada no `inset` para os avisos ficarem no mesmo lugar. A
+// folga é transparente e não pega cliques (`pointer-events`): só os avisos pegam.
+:host {
+  --_folga: var(--esp-10);
+
+  position: fixed;
+  inset: auto calc(var(--esp-6) - var(--_folga)) calc(var(--esp-6) - var(--_folga)) auto;
+  z-index: var(--z-flutuante);
+  display: none;
+  width: calc(min(420px, 100vw - 2 * var(--esp-4)) + 2 * var(--_folga));
+  height: auto;
+  max-height: calc(100dvh - 2 * var(--esp-6) + 2 * var(--_folga));
+  margin: 0;
+  padding: var(--_folga);
+  overflow: hidden auto;
+  border: 0;
+  background: transparent;
+  color: var(--cor-texto);
+  pointer-events: none;
+}
+
+:host(:popover-open),
+:host(:not([popover]):not(.avisos--vazio)) {
+  display: block;
+}
+
+@include m.abaixo(m.$sm) {
+  :host {
+    inset: auto calc(var(--esp-3) - var(--_folga)) calc(var(--esp-3) - var(--_folga));
+    width: auto;
+  }
+}
+
+.avisos__lista {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.aviso {
+  --_cor: var(--dado-2);
+  --_sobre: var(--cor-sobre-destaque);
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-2) var(--esp-2) var(--esp-2) var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-flutuante);
+  box-shadow: var(--sombra-flutuante);
+  pointer-events: auto;
+  transition:
+    opacity var(--duracao-opacidade) ease-out,
+    transform var(--duracao) var(--curva);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.aviso--erro {
+  --_cor: var(--cor-erro);
+  --_sobre: var(--cor-sobre-erro);
+}
+
+.aviso--info {
+  --_cor: var(--dado-1);
+}
+
+.aviso--atencao {
+  --_cor: var(--dado-3);
+}
+
+// Círculo do tipo, na cor de dado (texto preto; no claro, com o contorno de dado).
+.aviso__icone {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--_cor);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+  color: var(--_sobre);
+}
+
+.aviso__textos {
+  display: grid;
+  gap: 2px;
+  padding-block: var(--esp-1);
+}
+
+.aviso__titulo {
+  font: var(--fonte-rotulo);
+}
+
+.aviso__mensagem {
+  font: var(--fonte-corpo-sm);
+}
+
+.aviso__codigo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  overflow-wrap: anywhere;
+}
+
+// No celular, a ação desce para a linha de baixo, alinhada ao texto.
+@include m.abaixo(m.$sm) {
+  .aviso {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .aviso__acao {
+    grid-row: 2;
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+@media (forced-colors: active) {
+  .aviso {
+    border: 1px solid CanvasText;
+  }
+}

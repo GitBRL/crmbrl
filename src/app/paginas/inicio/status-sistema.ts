@@ -14,7 +14,7 @@ import {
   LucideX,
 } from '@lucide/angular';
 
-import { formatarTempoRelativo } from '../../nucleo/formatos';
+import { formatarData, formatarTempoRelativo } from '../../nucleo/formatos';
 import { SaudeService } from '../../nucleo/saude.service';
 import { Botao } from '../../ui/botao/botao';
 import { Cartao } from '../../ui/cartao/cartao';
@@ -37,6 +37,26 @@ export function formatarDuracao(segundos: number): string {
   }
   const dias = Math.floor(horas / 24);
   return horas % 24 ? `${dias} d ${horas % 24} h` : `${dias} d`;
+}
+
+/**
+ * A última atualização do banco legível: "20261020224552_fase1_nucleo" → nome "fase1_nucleo" e
+ * data "20/10/2026" (o carimbo é UTC). Sem o carimbo no começo, o nome fica como veio.
+ */
+export function partirMigracao(migracao: string): {
+  readonly nome: string;
+  readonly data: string | null;
+} {
+  const partes = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_(.+)$/.exec(migracao);
+  if (!partes) {
+    return { nome: migracao, data: null };
+  }
+  const [ano, mes, dia, hora, minuto, segundo] = partes.slice(1, 7).map(Number);
+  const quando = new Date(Date.UTC(ano, mes - 1, dia, hora, minuto, segundo));
+  return {
+    nome: partes[7],
+    data: Number.isNaN(quando.getTime()) ? null : formatarData(quando),
+  };
 }
 
 /** Ambiente da API em português ("production" → "produção"); outros nomes ficam como vêm. */
@@ -155,10 +175,18 @@ export function formatarLatencia(ms: number): string {
                       {{ migrations.aplicadas }}
                       {{ migrations.aplicadas === 1 ? 'aplicada' : 'aplicadas' }}
                     </span>
-                    @if (migrations.ultima) {
-                      <code class="status__codigo" title="Última atualização aplicada">{{
-                        migrations.ultima
-                      }}</code>
+                    @if (migrations.ultima; as ultima) {
+                      @let partes = migracao(ultima);
+                      <span class="status__migracao">
+                        <code
+                          class="status__codigo"
+                          [title]="'Última atualização aplicada: ' + ultima"
+                          >{{ partes.nome }}</code
+                        >
+                        @if (partes.data) {
+                          <span class="status__extra">&#32;de {{ partes.data }}</span>
+                        }
+                      </span>
                     }
                   } @else {
                     <span class="status__extra">Sem leitura enquanto o banco não responde</span>
@@ -202,6 +230,7 @@ export class StatusSistema {
   protected readonly desenvolvimento = isDevMode();
   protected readonly ambiente = traduzirAmbiente;
   protected readonly latencia = formatarLatencia;
+  protected readonly migracao = partirMigracao;
 
   protected readonly icones = {
     ok: LucideCheck,

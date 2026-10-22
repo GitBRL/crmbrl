@@ -793,7 +793,13 @@
   </div>
 </app-ds-secao>
 
-<app-ds-secao ancora="marca" numero="12" titulo="Tema e marca" complemento="· BRL CRM">
+<app-ds-formularios />
+
+<app-ds-listas />
+
+<app-ds-retorno />
+
+<app-ds-secao ancora="marca" numero="15" titulo="Tema e marca" complemento="· BRL CRM">
   <p frase>
     O tema inicial segue o sistema operacional; a escolha do usuário fica salva. A marca é o símbolo
     da BRL com o nome BRL CRM, sempre numa cor só:
@@ -873,7 +879,7 @@
   </div>
 </app-ds-secao>
 
-<app-ds-secao ancora="dois-temas" numero="13" titulo="Dois temas" complemento="· lado a lado">
+<app-ds-secao ancora="dois-temas" numero="16" titulo="Dois temas" complemento="· lado a lado">
   <p frase>
     Os mesmos componentes, só com os tokens trocados. Qualquer contêiner com
     <code class="ds-token">data-tema</code> muda o tema do que está dentro dele.
@@ -929,6 +935,14 @@
           <app-chip tipo="texto" selecionado>Etapa</app-chip>
           <app-chip tipo="numero">Valor</app-chip>
           <app-selo variante="contorno" ponto>ao vivo</app-selo>
+        </div>
+        <div class="dois-temas__campos">
+          <app-campo-texto
+            rotulo="E-mail"
+            placeholder="nome@empresa.com.br"
+            erro="Digite um e-mail válido."
+          />
+          <app-alternador rotulo="Participa do rodízio" [valor]="true" />
         </div>
       </div>
     }

@@ -1,74 +1,81 @@
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
   DOCUMENT,
+  effect,
   ElementRef,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
+import { Router, RouterLink, type UrlTree } from '@angular/router';
 import {
   LucideBell,
   LucideCalendarCheck,
+  LucideContact,
   LucideDynamicIcon,
   LucideHandshake,
+  LucideRefreshCw,
+  LucideTriangleAlert,
+  LucideUserMinus,
   LucideWebhook,
+  LucideWorkflow,
   type LucideIcon,
 } from '@lucide/angular';
 
+import { AvisosService } from '../nucleo/avisos.service';
 import { formatarTempoRelativo } from '../nucleo/formatos';
+import {
+  type Notificacao,
+  NotificacoesService,
+  rotaDaNotificacao,
+} from '../nucleo/notificacoes.service';
+import { Botao } from '../ui/botao/botao';
 import { BotaoIcone } from '../ui/botao-icone/botao-icone';
-import { Selo } from '../ui/selo/selo';
 import { gerarId } from '../ui/tipos';
 import { fecharAoTocarFora, focoSaiuDe } from './suspenso';
 
-interface NotificacaoExemplo {
-  readonly id: string;
-  readonly icone: LucideIcon;
-  readonly texto: string;
-  /** Minutos antes da abertura do app. */
-  readonly minutos: number;
+/** Ícone de cada tipo de notificação (os mesmos dos módulos, para reconhecer de relance). */
+const ICONE_DO_TIPO: Readonly<Record<string, LucideIcon>> = {
+  'negocio.atribuido': LucideHandshake,
+  'contato.atribuido': LucideContact,
+  'empresa.atribuida': LucideContact,
+  'passagem.recebida': LucideWorkflow,
+  'desligamento.itens_recebidos': LucideUserMinus,
+  'atividade.vencendo': LucideCalendarCheck,
+  'atividade.atrasada': LucideTriangleAlert,
+  'webhook_saida.falhou': LucideWebhook,
+  'webhook_saida.desativado': LucideWebhook,
+  'equipe.sem_lider': LucideUserMinus,
+};
+
+export function iconeDaNotificacao(tipo: string): LucideIcon {
+  return ICONE_DO_TIPO[tipo] ?? LucideBell;
 }
 
-const MINUTO = 60_000;
+interface ItemNotificacao {
+  readonly notificacao: Notificacao;
+  readonly icone: LucideIcon;
+  /** `UrlTree` (e não texto): o `routerLink` com texto codificaria a query (`?` → `%3F`). */
+  readonly rota: UrlTree | null;
+  readonly relativo: string;
+  readonly lida: boolean;
+}
 
 /**
- * Notificações fictícias que ilustram as regras do produto (dados de exemplo). Contam os
- * mesmos fatos das "Atividades recentes" da visão geral, com os mesmos horários.
- */
-const EXEMPLOS: readonly NotificacaoExemplo[] = [
-  {
-    id: 'lead',
-    icone: LucideWebhook,
-    texto: 'O webhook “Site” criou o lead Maria Souza; o rodízio entregou para Rafael Souto.',
-    minutos: 4,
-  },
-  {
-    id: 'ganho',
-    icone: LucideHandshake,
-    texto: 'Negócio “Colégio Atlas” ganho: o cliente entrou no pipeline de CS.',
-    minutos: 47,
-  },
-  {
-    id: 'lembrete',
-    icone: LucideCalendarCheck,
-    texto: 'Lembrete: retornar a ligação para a Escola Horizonte.',
-    minutos: 26 * 60,
-  },
-];
-
-/**
- * Sino da barra superior: botão-ícone com ponto de notificação e um painel suspenso com as
- * notificações. Nesta etapa o conteúdo é de exemplo (as notificações reais chegam na
- * Fase 1): os exemplos aconteceram "N minutos" antes de o app abrir, e os tempos relativos
- * são recalculados a cada abertura do painel. Abrir marca tudo como lido; Esc ou clique fora
- * fecham.
+ * Sino da barra superior (TELAS-FASE1 §2): botão-ícone com a contagem de não lidas e um
+ * painel suspenso com as notificações — não lidas primeiro, ícone por tipo, tempo relativo,
+ * link para o item e "Marcar todas como lidas". Os dados vêm do `NotificacoesService`, que
+ * atualiza a cada 30 s e quando a aba volta a ficar visível; abrir o painel atualiza na hora.
+ * Esc ou clique fora fecham. Notificações novas são anunciadas aos leitores de tela.
  */
 @Component({
   selector: 'app-notificacoes',
-  imports: [BotaoIcone, Selo, LucideDynamicIcon],
+  imports: [RouterLink, BotaoIcone, Botao, LucideDynamicIcon],
   templateUrl: './notificacoes.html',
   styleUrl: './notificacoes.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -78,29 +85,35 @@ const EXEMPLOS: readonly NotificacaoExemplo[] = [
   },
 })
 export class Notificacoes {
-  protected readonly iconeSino = LucideBell;
+  protected readonly servico = inject(NotificacoesService);
+  private readonly avisos = inject(AvisosService);
+  private readonly anunciador = inject(LiveAnnouncer);
+  private readonly router = inject(Router);
+
+  protected readonly icones = { sino: LucideBell, recarregar: LucideRefreshCw };
   protected readonly aberto = signal(false);
-  protected readonly naoLidas = signal(EXEMPLOS.length);
+  protected readonly marcandoTodas = signal(false);
   protected readonly idPainel = gerarId('notificacoes');
   protected readonly idTitulo = gerarId('notificacoes-titulo');
+  protected readonly naoLidas = this.servico.naoLidas;
   protected readonly rotulo = computed(() => {
-    const novas = this.naoLidas();
-    return novas > 0 ? `Notificações, ${novas} novas` : 'Notificações';
+    const total = this.naoLidas();
+    if (total <= 0) {
+      return 'Notificações';
+    }
+    return total === 1 ? 'Notificações, 1 não lida' : `Notificações, ${total} não lidas`;
   });
-  /** Momento em que o app abriu (a casca é criada uma vez): a âncora dos exemplos. */
-  private readonly abertura = Date.now();
-  /** Atualizado a cada abertura do painel. */
-  private readonly agora = signal(new Date(this.abertura));
-  protected readonly itens = computed(() => {
+  /** Recalculado a cada abertura e atualização, para os tempos relativos andarem. */
+  private readonly agora = signal(new Date());
+  protected readonly itens = computed<readonly ItemNotificacao[]>(() => {
     const agora = this.agora();
-    return EXEMPLOS.map((exemplo) => {
-      const quando = new Date(this.abertura - exemplo.minutos * MINUTO);
-      return {
-        ...exemplo,
-        iso: quando.toISOString(),
-        relativo: formatarTempoRelativo(quando, agora),
-      };
-    });
+    return this.servico.itens().map((notificacao) => ({
+      notificacao,
+      icone: iconeDaNotificacao(notificacao.tipo),
+      rota: this.rotaDe(notificacao.link),
+      relativo: formatarTempoRelativo(notificacao.criadoEm, agora),
+      lida: notificacao.lidaEm !== null,
+    }));
   });
 
   private readonly documento = inject(DOCUMENT);
@@ -110,6 +123,24 @@ export class Notificacoes {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.pararDeOuvir?.());
+
+    // Chegaram notificações novas (a contagem subiu numa atualização): avisa o leitor de tela.
+    let anterior: number | null = null;
+    effect(() => {
+      const total = this.naoLidas();
+      const atualizado = this.servico.atualizadoEm();
+      untracked(() => {
+        this.agora.set(new Date());
+        if (atualizado && anterior !== null && total > anterior) {
+          const novas = total - anterior;
+          void this.anunciador.announce(
+            novas === 1 ? 'Você tem 1 notificação nova.' : `Você tem ${novas} notificações novas.`,
+            'polite',
+          );
+        }
+        anterior = atualizado ? total : null;
+      });
+    });
   }
 
   protected alternar(): void {
@@ -119,7 +150,7 @@ export class Notificacoes {
     }
     this.agora.set(new Date());
     this.aberto.set(true);
-    this.naoLidas.set(0);
+    void this.servico.atualizar();
     this.pararDeOuvir = fecharAoTocarFora(this.documento, this.host, () => this.fechar(false));
   }
 
@@ -135,6 +166,40 @@ export class Notificacoes {
     }
   }
 
+  /** Clique no item com link: marca como lida (sem esperar) e o link segue para a tela. */
+  protected abrir(item: ItemNotificacao): void {
+    this.marcar(item);
+    this.fechar(false);
+  }
+
+  protected marcar(item: ItemNotificacao): void {
+    if (item.lida) {
+      return;
+    }
+    this.servico.marcarComoLida(item.notificacao.id).catch((falha: unknown) => {
+      this.avisos.erro(falha);
+    });
+  }
+
+  protected async marcarTodas(): Promise<void> {
+    if (this.marcandoTodas() || this.naoLidas() === 0) {
+      return;
+    }
+    this.marcandoTodas.set(true);
+    try {
+      await this.servico.marcarTodasComoLidas();
+      this.avisos.sucesso('Todas as notificações foram marcadas como lidas.');
+    } catch (falha) {
+      this.avisos.erro(falha);
+    } finally {
+      this.marcandoTodas.set(false);
+    }
+  }
+
+  protected tentarDeNovo(): void {
+    void this.servico.atualizar();
+  }
+
   protected aoTeclar(evento: KeyboardEvent): void {
     if (evento.key === 'Escape' && this.aberto()) {
       evento.stopPropagation();
@@ -145,6 +210,18 @@ export class Notificacoes {
   protected aoPerderFoco(evento: FocusEvent): void {
     if (this.aberto() && focoSaiuDe(this.host, evento)) {
       this.fechar(false);
+    }
+  }
+
+  private rotaDe(link: string | null): UrlTree | null {
+    const rota = rotaDaNotificacao(link);
+    if (!rota) {
+      return null;
+    }
+    try {
+      return this.router.parseUrl(rota);
+    } catch {
+      return null;
     }
   }
 }

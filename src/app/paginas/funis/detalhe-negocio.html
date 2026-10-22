@@ -1,0 +1,364 @@
+<app-painel-lateral
+  [(aberto)]="aberto"
+  [titulo]="negocio()?.titulo ?? 'Negócio'"
+  [complemento]="complemento()"
+  [descricao]="descricao()"
+  largura="lg"
+  (fechado)="voltar()"
+>
+  @if (negocio(); as n) {
+    <app-menu-acoes
+      painel-acoes
+      [rotulo]="'Ações de ' + n.titulo"
+      [itens]="itensMenu()"
+      (escolher)="agir($event)"
+    />
+  }
+
+  @if (!negocio()) {
+    @if (erro(); as falha) {
+      <app-estado-vazio
+        [variante]="falha.ehNaoEncontrado ? 'busca' : 'erro'"
+        [titulo]="
+          falha.ehNaoEncontrado ? 'Não encontramos este negócio' : 'Não conseguimos abrir o negócio'
+        "
+        [texto]="
+          falha.ehNaoEncontrado
+            ? 'Ele pode ter sido excluído ou estar fora do que você pode ver neste funil.'
+            : falha.resumo
+        "
+        [codigo]="falha.ehNaoEncontrado ? null : falha.requisicaoId"
+      >
+        @if (falha.ehNaoEncontrado) {
+          <button appBotao type="button" variante="invertido" (click)="aberto.set(false)">
+            Voltar ao quadro
+          </button>
+        } @else {
+          <button appBotao type="button" variante="invertido" (click)="carregar(negocioId())">
+            Tentar de novo
+          </button>
+        }
+      </app-estado-vazio>
+    } @else {
+      <div class="carregando" aria-busy="true">
+        <p class="visualmente-oculto" role="status">Carregando o negócio…</p>
+        <div class="carregando__linha" aria-hidden="true">
+          <app-esqueleto forma="pilula" />
+          <app-esqueleto forma="pilula" />
+        </div>
+        <app-esqueleto [linhas]="3" aria-hidden="true" />
+        <app-esqueleto forma="bloco" altura="220px" aria-hidden="true" />
+      </div>
+    }
+  } @else {
+    @let n = negocio()!;
+    @let f = fatos()!;
+    <div class="detalhe">
+      <section class="resumo" aria-label="Resumo do negócio">
+        <div class="resumo__acoes">
+          <app-seletor
+            rotulo="Etapa"
+            ajuda="Mudar a etapa move o negócio no quadro. Na etapa de perda o CRM pede o motivo; na de ganho, dispara a passagem para o próximo funil, se houver."
+            [opcoes]="opcoesEtapa()"
+            [valor]="etapaSelecionada()"
+            [desabilitado]="movendo() || !podeMudarEtapa()"
+            [dica]="
+              podeMudarEtapa()
+                ? null
+                : 'Negócio fechado: só a liderança da área, C-level e Admin reabrem.'
+            "
+            (valorChange)="mudarEtapa($event)"
+          />
+          <div class="resumo__responsavel">
+            <app-seletor
+              rotulo="Responsável"
+              placeholder="Sem responsável"
+              permitirVazio
+              ajuda="Quem cuida do negócio. Só aparece quem é desta área, o C-level e o Admin."
+              [opcoes]="opcoesResponsavel()"
+              [valor]="responsavelSelecionado()"
+              [desabilitado]="trocandoResponsavel()"
+              (valorChange)="trocarResponsavel($event)"
+            />
+            @if (!n.responsavel && n.status === 'ABERTO' && podeAssumir()) {
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="invertido"
+                class="resumo__assumir"
+                [carregando]="assumindo()"
+                (click)="assumir()"
+              >
+                Assumir
+              </button>
+            }
+          </div>
+        </div>
+
+        <dl class="fatos">
+          <div class="fato">
+            <dt>Valor</dt>
+            <dd class="fato__numero numeros">
+              {{ f.valor }}
+              @if (f.recorrente) {
+                <span class="fato__extra">+ {{ f.recorrente }}/mês</span>
+              }
+            </dd>
+          </div>
+          <div class="fato">
+            <dt>Previsão</dt>
+            <dd>{{ f.previsao ?? 'Sem data' }}</dd>
+          </div>
+          <div class="fato">
+            <dt>Na etapa</dt>
+            <dd>
+              <app-selo tamanho="sm" [variante]="n.parado ? 'coral' : 'neutro'">
+                {{ n.parado ? 'Parado · ' : '' }}{{ f.dias }}
+              </app-selo>
+              @if (n.etapa.prazoDias) {
+                <span class="fato__extra">prazo-alvo {{ n.etapa.prazoDias }} d</span>
+              }
+            </dd>
+          </div>
+          @if (f.ganhoEm) {
+            <div class="fato">
+              <dt>Ganho em</dt>
+              <dd>{{ f.ganhoEm }}</dd>
+            </div>
+          }
+          @if (f.perdidoEm) {
+            <div class="fato">
+              <dt>Perdido em</dt>
+              <dd>{{ f.perdidoEm }}</dd>
+            </div>
+          }
+        </dl>
+
+        @if (n.status === 'PERDIDO' && n.motivoPerda) {
+          <p class="resumo__motivo"><strong>Motivo da perda:</strong> {{ n.motivoPerda }}</p>
+        }
+
+        <dl class="vinculos">
+          <div class="vinculo">
+            <dt>Contato</dt>
+            <dd>
+              <a class="vinculo__link" [routerLink]="['/contatos', n.contato.id]">{{
+                n.contato.nome
+              }}</a>
+              @if (n.contato.email || f.telefone) {
+                <span class="vinculo__extra">
+                  {{ n.contato.email }}{{ n.contato.email && f.telefone ? ' · ' : ''
+                  }}{{ f.telefone }}
+                </span>
+              }
+            </dd>
+          </div>
+          <div class="vinculo">
+            <dt>Empresa</dt>
+            <dd>
+              @if (n.empresa; as empresa) {
+                <a class="vinculo__link" [routerLink]="['/empresas', empresa.id]">{{
+                  empresa.nome
+                }}</a>
+              } @else {
+                <span class="vinculo__extra">Sem empresa</span>
+              }
+            </dd>
+          </div>
+          @if (n.contato.etiquetas.length) {
+            <div class="vinculo">
+              <dt>Etiquetas</dt>
+              <dd class="vinculo__etiquetas">
+                @for (etiqueta of n.contato.etiquetas; track etiqueta) {
+                  <app-selo tamanho="sm" variante="contorno">{{ etiqueta }}</app-selo>
+                }
+              </dd>
+            </div>
+          }
+        </dl>
+
+        @if (vinculos().length) {
+          <ul class="jornada" aria-label="Jornada do cliente">
+            @for (vinculo of vinculos(); track $index) {
+              <li class="jornada__item">
+                <span class="jornada__circulo" aria-hidden="true"
+                  ><svg lucideWorkflow [size]="16"
+                /></span>
+                <span>
+                  {{ vinculo.rotulo }}: <strong>{{ vinculo.funil }}</strong>
+                  @if (vinculo.titulo && vinculo.link) {
+                    —
+                    <a
+                      class="vinculo__link"
+                      [routerLink]="vinculo.link"
+                      [queryParams]="vinculo.queryParams"
+                      >{{ vinculo.titulo }}</a
+                    >
+                  } @else {
+                    <span class="vinculo__extra">
+                      · por uma passagem; você não tem acesso a esse funil</span
+                    >
+                  }
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <app-abas rotulo="Detalhes do negócio" tamanho="sm" [abas]="abas" [(selecionada)]="aba">
+        @switch (aba()) {
+          @case ('atividades') {
+            <app-atividades-negocio
+              [negocioId]="n.id"
+              (proximaMudou)="aoMudarProxima($event)"
+              (alterou)="versaoLinha.set(versaoLinha() + 1)"
+            />
+          }
+          @case ('dados') {
+            <div class="dados">
+              <form
+                id="form-negocio"
+                class="dados__form"
+                novalidate
+                (submit)="$event.preventDefault(); salvar()"
+              >
+                <app-campo-texto
+                  #campoTitulo
+                  rotulo="Título"
+                  obrigatorio
+                  [maximoCaracteres]="200"
+                  [erro]="erroTitulo()"
+                  [(valor)]="titulo"
+                />
+                <div class="dados__linha">
+                  <app-campo-texto
+                    rotulo="Valor"
+                    tipo="number"
+                    prefixo="R$"
+                    [passo]="0.01"
+                    [minimo]="0"
+                    [erro]="erroValor()"
+                    [(valor)]="valor"
+                  />
+                  @if (mostrarRecorrente()) {
+                    <app-campo-texto
+                      rotulo="Valor recorrente"
+                      tipo="number"
+                      prefixo="R$"
+                      sufixo="/mês"
+                      opcional
+                      [passo]="0.01"
+                      [minimo]="0"
+                      [erro]="erroRecorrente()"
+                      [(valor)]="valorRecorrente"
+                    />
+                  }
+                  <app-campo-data
+                    rotulo="Previsão de fechamento"
+                    tipo="data"
+                    opcional
+                    [(valor)]="previsao"
+                  />
+                </div>
+                @if (n.status === 'PERDIDO') {
+                  <app-area-texto
+                    rotulo="Motivo da perda"
+                    [linhas]="3"
+                    [maximoCaracteres]="maximoMotivo"
+                    [erro]="erroMotivo()"
+                    [(valor)]="motivoPerda"
+                  />
+                }
+                @if (erroSalvar(); as mensagem) {
+                  <p class="dados__erro" role="alert">{{ mensagem }}</p>
+                }
+                <div class="dados__acoes">
+                  <button
+                    appBotao
+                    type="submit"
+                    variante="invertido"
+                    [disabled]="!alterado()"
+                    [carregando]="salvando()"
+                  >
+                    Salvar alterações
+                  </button>
+                  @if (alterado()) {
+                    <button appBotao type="button" variante="contorno" (click)="descartar()">
+                      Descartar
+                    </button>
+                  }
+                </div>
+              </form>
+
+              <dl class="ficha">
+                <div class="ficha__linha">
+                  <dt>Origem</dt>
+                  <dd>
+                    {{ f.origem }}
+                    @if (n.origemDetalhe) {
+                      · {{ n.origemDetalhe }}
+                    }
+                  </dd>
+                </div>
+                @if (f.utm.length) {
+                  <div class="ficha__linha">
+                    <dt>UTM</dt>
+                    <dd class="ficha__utm">
+                      @for (par of f.utm; track par[0]) {
+                        <span
+                          ><span class="tom-fraco">{{ par[0] }}:</span> {{ par[1] }}</span
+                        >
+                      }
+                    </dd>
+                  </div>
+                }
+                @if (n.reconversoes > 0) {
+                  <div class="ficha__linha">
+                    <dt>Reconversões</dt>
+                    <dd>
+                      {{ n.reconversoes }} {{ n.reconversoes === 1 ? 'vez' : 'vezes' }}: o contato
+                      voltou por automação com este negócio aberto.
+                    </dd>
+                  </div>
+                }
+                @for (campo of f.campos; track campo[0]) {
+                  <div class="ficha__linha">
+                    <dt>{{ campo[0] }}</dt>
+                    <dd>{{ campo[1] }}</dd>
+                  </div>
+                }
+                <div class="ficha__linha">
+                  <dt>Na etapa desde</dt>
+                  <dd>{{ f.etapaDesde }}</dd>
+                </div>
+                <div class="ficha__linha">
+                  <dt>Criado em</dt>
+                  <dd>{{ f.criadoEm }}</dd>
+                </div>
+                <div class="ficha__linha">
+                  <dt>Atualizado em</dt>
+                  <dd>{{ f.atualizadoEm }}</dd>
+                </div>
+              </dl>
+            </div>
+          }
+          @default {
+            <app-linha-do-tempo-negocio [negocioId]="n.id" [versao]="versaoLinha()" />
+          }
+        }
+      </app-abas>
+    </div>
+  }
+</app-painel-lateral>
+
+<app-motivo-perda
+  [aberto]="!!aguardandoPerda()"
+  [negocio]="negocio()?.titulo ?? ''"
+  [etapa]="nomeDaEtapaDePerda()"
+  [titulo]="areaAtual() === 'MARKETING' ? 'Por que descartar?' : 'Por que perdemos?'"
+  [rotuloConfirmar]="areaAtual() === 'MARKETING' ? 'Descartar lead' : 'Marcar como perdido'"
+  (confirmado)="confirmarPerda($event)"
+  (cancelado)="cancelarPerda()"
+/>

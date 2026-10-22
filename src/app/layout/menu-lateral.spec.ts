@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 
 import { MODULOS } from '../nucleo/navegacao';
-import { PerfilDemoService } from '../nucleo/perfil-demo.service';
+import { entrarComo } from '../nucleo/sessao/sessao-de-teste';
 import { MenuLateral } from './menu-lateral';
 
 @Component({ template: '' })
@@ -29,11 +29,13 @@ describe('MenuLateral', () => {
     localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
-        provideRouter(
-          MODULOS.map((modulo) => ({ path: modulo.rota.slice(1), component: PaginaFalsa })),
-        ),
+        provideRouter([
+          ...MODULOS.map((modulo) => ({ path: modulo.rota.slice(1), component: PaginaFalsa })),
+          { path: 'empresas/:id', component: PaginaFalsa },
+        ]),
       ],
     });
+    entrarComo('ADMIN');
   });
   afterEach(() => localStorage.clear());
 
@@ -104,17 +106,25 @@ describe('MenuLateral', () => {
     expect(inicio?.getAttribute('aria-label')).toBeNull();
     expect(inicio?.textContent?.trim()).toBe('Visão geral');
     // O selo é visual; o nome acessível já diz "em breve".
-    const marketing = itens().find((item) => item.getAttribute('href') === '/funis/marketing');
-    expect(marketing?.getAttribute('aria-label')).toBe('Marketing (em breve)');
-    expect(marketing?.querySelector('app-selo')?.getAttribute('aria-hidden')).toBe('true');
-    expect(marketing?.querySelector('app-selo')?.getAttribute('tamanho')).toBe('sm');
+    const atendimento = itens().find((item) => item.getAttribute('href') === '/atendimento');
+    expect(atendimento?.getAttribute('aria-label')).toBe('Atendimento (em breve)');
+    expect(atendimento?.querySelector('app-selo')?.getAttribute('aria-hidden')).toBe('true');
+    expect(atendimento?.querySelector('app-selo')?.getAttribute('tamanho')).toBe('sm');
+    // Os módulos da Fase 1 estão prontos.
+    for (const rota of ['/funis/marketing', '/contatos', '/atividades', '/configuracoes']) {
+      const item = itens().find((link) => link.getAttribute('href') === rota);
+      expect(item?.querySelector('app-selo'), rota).toBeNull();
+    }
   });
 
-  it('filtra pelo papel da persona (Marketing não vê Atendimento nem Gestão)', () => {
-    TestBed.inject(PerfilDemoService).verComo('MARKETING');
+  it('filtra pelo papel e pelas permissões reais (Marketing não vê Atendimento nem Gestão)', () => {
+    entrarComo('MARKETING');
     const { raiz, itens } = criar();
     const rotas = itens().map((item) => item.getAttribute('href'));
     expect(rotas).toContain('/funis/marketing');
+    expect(rotas).toContain('/contatos');
+    expect(rotas).toContain('/configuracoes');
+    expect(rotas).not.toContain('/administracao');
     expect(rotas).not.toContain('/atendimento');
     expect(rotas).not.toContain('/funis/comercial');
     expect(rotas).not.toContain('/integracoes');
@@ -132,22 +142,30 @@ describe('MenuLateral', () => {
     expect(atual[0].classList).toContain('menu__item--ativo');
   });
 
+  it('rotas relacionadas marcam o módulo dono (empresa → Contatos e empresas)', async () => {
+    const { fixture, itens } = criar();
+    await TestBed.inject(Router).navigateByUrl('/empresas/123');
+    await fixture.whenStable();
+    const atual = itens().filter((item) => item.getAttribute('aria-current') === 'page');
+    expect(atual.map((item) => item.getAttribute('href'))).toEqual(['/contatos']);
+  });
+
   it('recolhida: rótulos só para leitores de tela e dica ao passar o mouse', async () => {
     const { fixture, raiz, itens } = criar();
     fixture.componentInstance.recolhida.set(true);
     await fixture.whenStable();
 
     expect(raiz.querySelector('nav')?.classList).toContain('menu--recolhido');
-    const marketing = itens().find((item) => item.getAttribute('href') === '/funis/marketing')!;
+    const marketing = itens().find((item) => item.getAttribute('href') === '/atendimento')!;
     expect(marketing.querySelector('.menu__rotulo')?.classList).toContain('visualmente-oculto');
     expect(marketing.querySelector('app-selo')).toBeNull();
-    expect(marketing.getAttribute('aria-label')).toBe('Marketing (em breve)');
+    expect(marketing.getAttribute('aria-label')).toBe('Atendimento (em breve)');
 
     const dica = raiz.querySelector('.menu__dica') as HTMLElement;
     expect(dica.getAttribute('aria-hidden')).toBe('true');
     marketing.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
     await fixture.whenStable();
-    expect(dica.textContent?.trim()).toBe('Marketing · em breve');
+    expect(dica.textContent?.trim()).toBe('Atendimento · em breve');
     expect(dica.classList).toContain('menu__dica--visivel');
 
     marketing.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));

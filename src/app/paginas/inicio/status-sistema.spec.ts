@@ -7,6 +7,7 @@ import { SaudeService, URL_SAUDE } from '../../nucleo/saude.service';
 import {
   formatarDuracao,
   formatarLatencia,
+  partirMigracao,
   StatusSistema,
   traduzirAmbiente,
 } from './status-sistema';
@@ -76,11 +77,11 @@ describe('StatusSistema (dados reais de /api/saude)', () => {
     expect(linhas()).toEqual([
       ['API', 'No ar v0.0.1 · desenvolvimento'],
       ['Banco de dados', 'Conectado 3 ms'],
-      ['Atualizações do banco', '1 aplicada 20261020180000_inicial'],
+      ['Atualizações do banco', '1 aplicada inicial de 20/10/2026'],
       ['No ar há', '1 h 2 min'],
     ]);
     expect(raiz.querySelector('.status__codigo')?.getAttribute('title')).toBe(
-      'Última atualização aplicada',
+      'Última atualização aplicada: 20261020180000_inicial',
     );
     // Respondendo, o "ao vivo" ganha o ponto menta (classe que define --selo-ponto).
     const selo = raiz.querySelector('app-selo');
@@ -175,5 +176,13 @@ describe('StatusSistema (dados reais de /api/saude)', () => {
     expect(formatarDuracao(3720)).toBe('1 h 2 min');
     expect(formatarDuracao(2 * 86400 + 7 * 3600 + 59)).toBe('2 d 7 h');
     expect(formatarDuracao(86400)).toBe('1 d');
+  });
+
+  it('mostra a última atualização do banco pelo nome e pela data, sem o carimbo', () => {
+    expect(partirMigracao('20261020180000_fase1_nucleo')).toEqual({
+      nome: 'fase1_nucleo',
+      data: '20/10/2026',
+    });
+    expect(partirMigracao('inicial')).toEqual({ nome: 'inicial', data: null });
   });
 });

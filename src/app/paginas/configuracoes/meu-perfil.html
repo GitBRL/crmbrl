@@ -1,0 +1,137 @@
+<section class="secao" aria-labelledby="perfil-titulo">
+  <header class="secao__cabecalho">
+    <div class="secao__textos">
+      <h2 class="secao__titulo" id="perfil-titulo">Meu perfil</h2>
+      <p class="secao__frase">Os seus dados no CRM e a troca de senha.</p>
+    </div>
+  </header>
+
+  @if (usuario(); as eu) {
+    <div class="perfil__grade">
+      <app-cartao class="perfil__cartao" regiao [nivel]="3" titulo="Seus dados">
+        <div class="perfil__corpo">
+          <div class="perfil__identidade">
+            <app-avatar [nome]="eu.nome" [foto]="eu.avatarUrl" tamanho="lg" decorativo />
+            <div class="perfil__quem">
+              <strong class="perfil__nome">{{ eu.nome }}</strong>
+              <span class="perfil__email">{{ eu.email }}</span>
+              <app-selo>{{ eu.rotuloPapel }}</app-selo>
+            </div>
+          </div>
+
+          <dl class="perfil__dados">
+            <div>
+              <dt>Área</dt>
+              <dd>
+                {{
+                  area() ??
+                    (eu.papel === 'ADMIN'
+                      ? 'Sistema (todas as áreas)'
+                      : 'Diretoria (todas as áreas)')
+                }}
+              </dd>
+            </div>
+            <div>
+              <dt>Líder</dt>
+              <dd>{{ eu.lider ? eu.lider.nome : 'Você não responde a um líder' }}</dd>
+            </div>
+            @if (telefone()) {
+              <div>
+                <dt>Telefone</dt>
+                <dd>{{ telefone() }}</dd>
+              </div>
+            }
+            @if (sessaoDesde(); as desde) {
+              <div>
+                <dt>Nesta sessão desde</dt>
+                <dd>{{ desde }}</dd>
+              </div>
+            }
+          </dl>
+
+          @if (podeEditarNome()) {
+            <form
+              class="perfil__formulario"
+              novalidate
+              (submit)="$event.preventDefault(); salvarNome()"
+            >
+              <app-campo-texto
+                #campoNome
+                rotulo="Nome"
+                autocomplete="name"
+                [maximoCaracteres]="200"
+                dica="É assim que o seu nome aparece para a equipe."
+                [formControl]="nome"
+              />
+              <div class="perfil__acoes">
+                <button
+                  appBotao
+                  type="submit"
+                  variante="invertido"
+                  [disabled]="!nomeMudou() && !salvandoNome()"
+                  [carregando]="salvandoNome()"
+                >
+                  Salvar nome
+                </button>
+              </div>
+            </form>
+          } @else {
+            <p class="perfil__nota">
+              Nome, e-mail, papel e líder são definidos pelo Admin. Se algo estiver errado, fale com
+              ele.
+            </p>
+          }
+        </div>
+      </app-cartao>
+
+      <app-cartao
+        class="perfil__cartao"
+        regiao
+        [nivel]="3"
+        titulo="Trocar senha"
+        dica="A senha nova vale na hora. As suas sessões em outros aparelhos são encerradas; esta continua aberta."
+      >
+        <form class="perfil__formulario" novalidate [formGroup]="senha" (ngSubmit)="trocarSenha()">
+          <!-- Para o gerenciador de senhas saber de qual conta é a senha. -->
+          <input
+            class="visualmente-oculto"
+            type="email"
+            name="username"
+            autocomplete="username"
+            tabindex="-1"
+            aria-hidden="true"
+            [value]="eu.email"
+            readonly
+          />
+          <app-campo-senha
+            #campoAtual
+            rotulo="Senha atual"
+            autocomplete="current-password"
+            formControlName="atual"
+          />
+          <app-campo-senha
+            #campoNova
+            rotulo="Nova senha"
+            autocomplete="new-password"
+            [dica]="'De ' + senhaMinimo + ' a 128 caracteres, diferente da atual.'"
+            formControlName="nova"
+          />
+          <app-campo-senha
+            #campoConfirmacao
+            rotulo="Confirme a nova senha"
+            autocomplete="new-password"
+            formControlName="confirmacao"
+          />
+          @if (erroSenha(); as erro) {
+            <p class="perfil__erro" role="alert">{{ erro.mensagem }}</p>
+          }
+          <div class="perfil__acoes">
+            <button appBotao type="submit" variante="invertido" [carregando]="trocandoSenha()">
+              Trocar senha
+            </button>
+          </div>
+        </form>
+      </app-cartao>
+    </div>
+  }
+</section>

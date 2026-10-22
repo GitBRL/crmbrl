@@ -1,0 +1,72 @@
+<app-moldura-acesso slogan titulo="Entrar" frase="Use o seu e-mail de trabalho e a sua senha.">
+  <form class="acesso-formulario" novalidate [formGroup]="formulario" (ngSubmit)="entrar()">
+    <app-campo-texto
+      #campoEmail
+      rotulo="E-mail"
+      tipo="email"
+      nome="email"
+      autocomplete="username"
+      placeholder="nome@empresa.com.br"
+      formControlName="email"
+      [mensagens]="{ required: 'Digite o seu e-mail.' }"
+    />
+    <app-campo-senha
+      #campoSenha
+      rotulo="Senha"
+      nome="senha"
+      autocomplete="current-password"
+      formControlName="senha"
+      [mensagens]="{ required: 'Digite a sua senha.' }"
+    />
+
+    @if (bloqueioAtivo()) {
+      <app-aviso-acesso
+        tipo="bloqueio"
+        [titulo]="
+          bloqueioDoEmail() ? 'Muitas tentativas com este e-mail' : 'Muitas tentativas desta rede'
+        "
+      >
+        <p>
+          Por segurança, o acesso
+          {{ bloqueioDoEmail() ? 'a este e-mail' : 'por esta rede' }} está bloqueado. Tente de novo
+          em <strong class="numeros">{{ esperaRestante() }}</strong
+          >, às <span class="numeros">{{ horaDeLiberar() }}</span
+          >. Até lá, nem a senha certa funciona.
+        </p>
+      </app-aviso-acesso>
+    } @else if (falha(); as problema) {
+      <app-aviso-acesso
+        [tipo]="problema.tipo"
+        [titulo]="problema.titulo ?? null"
+        [codigo]="problema.codigo ?? null"
+      >
+        <p>{{ problema.mensagem }}</p>
+        @if (problema.detalhe; as detalhe) {
+          <p class="texto-suave">{{ detalhe }}</p>
+        }
+      </app-aviso-acesso>
+    }
+
+    <div class="acesso-acoes">
+      <button
+        appBotao
+        type="submit"
+        variante="invertido"
+        tamanho="lg"
+        [carregando]="enviando()"
+        [disabled]="!!bloqueioAtivo()"
+      >
+        Entrar
+      </button>
+      <div class="acesso-links">
+        @if (estado.envioPorEmail() === 'indisponivel') {
+          <p class="acesso-nota">Esqueceu a senha? Peça ao administrador uma senha temporária.</p>
+        } @else {
+          <a class="acesso-link" routerLink="/esqueci-senha" (click)="lembrarEmail()">
+            Esqueci minha senha
+          </a>
+        }
+      </div>
+    </div>
+  </form>
+</app-moldura-acesso>

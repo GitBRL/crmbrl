@@ -1,13 +1,5 @@
 <header class="cabecalho">
   <div class="cabecalho__texto">
-    <div class="cabecalho__aviso">
-      <app-selo variante="contorno">Dados de exemplo</app-selo>
-      <app-dica
-        rotulo="Sobre os dados de exemplo"
-        titulo="Dados de exemplo"
-        texto="Os números desta tela são fictícios: mostram como o painel vai acompanhar o cliente do lead ao CS. Só o Status do sistema é real. Os dados de verdade chegam com a Fase 1, junto com os funis."
-      />
-    </div>
     <h1 class="cabecalho__titulo">
       Visão geral&nbsp;<span class="tom-fraco">· </span
       ><span class="tom-fraco sem-quebra">{{ mesAtual }}</span>
@@ -29,7 +21,9 @@
         <span class="cabecalho__intervalo" [id]="idIntervalo">{{ intervalo() }}</span>
       </div>
       <div class="cabecalho__botoes">
-        <app-pilha-avatares rotulo="Quem usa o CRM" [pessoas]="equipe" />
+        @if (equipe().length > 1) {
+          <app-pilha-avatares [rotulo]="rotuloEquipe()" [pessoas]="equipe()" />
+        }
         <!-- A partir de 600px: pílulas com o rótulo. -->
         <button
           appBotao
@@ -102,13 +96,24 @@
           <app-inicio-equipe [dados]="dados().equipe" [periodo]="dados().periodo" />
         }
         @default {
-          <app-inicio-jornada [dados]="dados().jornada" [periodo]="dados().periodo" />
+          <app-inicio-jornada
+            [jornada]="jornada()"
+            [estado]="estadoJornada()"
+            [erro]="erroJornada()"
+            [periodo]="dados().periodo"
+            (recarregar)="carregarJornada()"
+          />
         }
       }
     </div>
   </app-abas>
 
-  <app-inicio-indicadores class="grade__indicadores" [dados]="dados()" />
+  <app-inicio-indicadores
+    class="grade__indicadores"
+    [dados]="dados()"
+    [reais]="indicadoresReais()"
+    [estado]="estadoJornada()"
+  />
 
   <div class="grade__lateral">
     <app-inicio-atividades />

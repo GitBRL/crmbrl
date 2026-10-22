@@ -1,0 +1,212 @@
+@for (destino of desativadosAutomaticamente(); track destino.id) {
+  <section class="alerta" role="alert" [attr.aria-labelledby]="'alerta-' + destino.id">
+    <span class="alerta__icone" aria-hidden="true"><svg lucideTriangleAlert [size]="20" /></span>
+    <div class="alerta__texto">
+      <strong [id]="'alerta-' + destino.id"
+        >“{{ destino.nome }}” foi desativado automaticamente</strong
+      >
+      <span class="alerta__motivo">
+        Em {{ desativadoEm(destino) }}, depois de {{ destino.falhasConsecutivas }} falhas seguidas
+        ao entregar para {{ destino.url }}. Nada é enviado a ele até ser reativado.
+      </span>
+    </div>
+    <div class="alerta__acoes">
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        tamanho="sm"
+        [icone]="icones.ver"
+        (click)="abrir(destino)"
+      >
+        Ver entregas
+      </button>
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        tamanho="sm"
+        [icone]="icones.ativar"
+        (click)="alternarAtivo(destino)"
+      >
+        Reativar
+      </button>
+    </div>
+  </section>
+}
+
+<app-cartao
+  class="lista"
+  titulo="Webhooks de saída"
+  [complemento]="resposta() ? '· ' + total() : null"
+  dica="Cada destino recebe um POST com JSON quando os eventos marcados acontecem no CRM (negócio ganho, contato criado…). Falhas são tentadas de novo por cerca de 32 horas; com 20 falhas seguidas, o destino é desativado e o Admin é avisado."
+>
+  @if (erro(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos carregar os webhooks de saída"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao type="button" variante="invertido" (click)="carregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <app-tabela
+      rotulo="Webhooks de saída"
+      clicavel
+      [colunas]="colunas"
+      [linhas]="itens()"
+      [carregando]="carregando() && !resposta()"
+      [linhasEsqueleto]="3"
+      (abrir)="abrir($event)"
+    >
+      <ng-template appCelula="nome" [appCelulaDe]="itens()" let-w>
+        <span class="lista__nome">
+          <span class="lista__titulo">{{ w.nome }}</span>
+          <code class="lista__endereco">{{ w.url }}</code>
+        </span>
+      </ng-template>
+      <ng-template appCelula="eventos" [appCelulaDe]="itens()" let-w>
+        {{ eventos(w) }}
+      </ng-template>
+      <ng-template appCelula="saude" [appCelulaDe]="itens()" let-w>
+        <span class="lista__status">
+          @for (selo of saude(w); track selo.texto) {
+            <app-selo tamanho="sm" [variante]="selo.variante">{{ selo.texto }}</app-selo>
+          }
+        </span>
+      </ng-template>
+      <ng-template appCelula="status" [appCelulaDe]="itens()" let-w>
+        @if (w.ativo) {
+          <app-selo variante="menta" tamanho="sm">Ativo</app-selo>
+        } @else {
+          <app-selo tamanho="sm">Desativado</app-selo>
+        }
+      </ng-template>
+      <ng-template appCelula="acoes" [appCelulaDe]="itens()" let-w>
+        <app-menu-acoes
+          [rotulo]="'Ações de ' + w.nome"
+          [itens]="acoesDe(w)"
+          (escolher)="agir($event.id, w)"
+        />
+      </ng-template>
+
+      <app-estado-vazio
+        tabela-vazio
+        compacto
+        titulo="Nenhum webhook de saída ainda"
+        texto="Cadastre um destino para avisar outro sistema (TicketHub, ERP, planilha) quando algo acontece no CRM."
+      >
+        <button appBotao type="button" variante="invertido" [icone]="icones.novo" (click)="novo()">
+          Novo webhook de saída
+        </button>
+      </app-estado-vazio>
+    </app-tabela>
+
+    @if (total() > porPagina) {
+      <app-paginacao
+        rotulo="Paginação dos webhooks de saída"
+        [total]="total()"
+        [porPagina]="porPagina"
+        [pagina]="pagina()"
+        (paginaChange)="pagina.set($event)"
+      />
+    }
+  }
+</app-cartao>
+
+<app-cartao
+  titulo="Como validar a assinatura"
+  dica="Toda entrega leva X-CRM-Assinatura: sha256=<HMAC-SHA256 de timestamp + '.' + corpo, com o segredo do destino>. Conferir a assinatura garante que a chamada veio do CRM e não foi alterada no caminho."
+>
+  <app-como-validar-assinatura />
+</app-cartao>
+
+<app-painel-lateral
+  largura="xl"
+  [aberto]="painelAberto()"
+  [titulo]="tituloPainel()"
+  [complemento]="selecionado() && !selecionado()!.ativo ? '· desativado' : null"
+  [descricao]="selecionado() ? eventos(selecionado()!) : null"
+  (fechado)="fecharPainel()"
+>
+  @if (painelAberto() && selecionado(); as w) {
+    <div painel-acoes class="painel__acoes-destino">
+      <button
+        appBotao
+        type="button"
+        class="painel__teste"
+        variante="contorno"
+        tamanho="sm"
+        [icone]="iconeTeste"
+        [carregando]="testando() === w.id"
+        (click)="testar(w)"
+      >
+        Enviar teste
+      </button>
+      <button
+        appBotaoIcone
+        type="button"
+        class="painel__teste-icone"
+        variante="contorno"
+        tamanho="sm"
+        rotulo="Enviar teste"
+        [icone]="iconeTeste"
+        [attr.aria-busy]="testando() === w.id || null"
+        (click)="testar(w)"
+      ></button>
+      <app-menu-acoes
+        [rotulo]="'Ações de ' + w.nome"
+        [itens]="acoesDe(w)"
+        (escolher)="agir($event.id, w)"
+      />
+    </div>
+  }
+  @if (painelAberto()) {
+    @if (selecionado(); as w) {
+      <app-detalhe-saida
+        [webhook]="w"
+        [versaoEntregas]="versaoEntregas()"
+        [(aba)]="abaDoPainel"
+        (editar)="editar(w)"
+        (ativar)="alternarAtivo(w)"
+        (novoSegredo)="gerarNovoSegredo(w)"
+      />
+    } @else if (erroSelecionado(); as falha) {
+      <app-estado-vazio
+        variante="erro"
+        manterAcoes
+        [falha]="falha"
+        compacto
+        [titulo]="
+          falha.ehNaoEncontrado ? 'Destino não encontrado' : 'Não conseguimos abrir o destino'
+        "
+        [texto]="falha.resumo"
+        [codigo]="falha.ehFalhaDoServidor ? falha.requisicaoId : null"
+      >
+        <button appBotao type="button" variante="contorno" (click)="fecharPainel()">
+          Voltar à lista
+        </button>
+      </app-estado-vazio>
+    } @else {
+      <div aria-busy="true" class="lista__carregando-painel">
+        <p class="visualmente-oculto" role="status">Carregando…</p>
+        <app-esqueleto forma="bloco" altura="5rem" />
+        <app-esqueleto forma="pilula" largura="16rem" />
+        <app-esqueleto forma="bloco" altura="14rem" />
+      </div>
+    }
+  }
+</app-painel-lateral>
+
+<app-formulario-saida
+  [(aberto)]="formularioAberto"
+  [webhook]="emEdicao()"
+  (criado)="aoCriar($event)"
+  (salvo)="aoSalvar($event)"
+/>
+
+<app-resultado-unico [(dados)]="resultadoUnico" />

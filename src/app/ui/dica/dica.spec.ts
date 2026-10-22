@@ -71,10 +71,12 @@ describe('Dica', () => {
     expect(balao.classList).not.toContain('dica__balao--aberto');
   });
 
-  it('fecha com clique fora e alterna com novo clique', () => {
+  it('fecha com clique fora e alterna com novo clique', async () => {
     const { fixture, botao } = criar();
     botao.click();
     fixture.detectChanges();
+    // O clique fora conta a partir do próximo clique (o que abriu ainda está subindo).
+    await new Promise((resolver) => setTimeout(resolver));
     document.body.click();
     fixture.detectChanges();
     expect(botao.getAttribute('aria-expanded')).toBe('false');

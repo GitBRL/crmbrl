@@ -319,6 +319,14 @@
   background: var(--cor-fundo);
 }
 
+.dois-temas__campos {
+  display: grid;
+  gap: var(--esp-3);
+  padding: var(--esp-5);
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+}
+
 .dois-temas__rotulo {
   color: var(--cor-texto-fraco);
   font: var(--fonte-legenda);

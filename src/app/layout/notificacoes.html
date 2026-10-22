@@ -3,9 +3,9 @@
     #botao
     appBotaoIcone
     type="button"
-    [icone]="iconeSino"
+    [icone]="icones.sino"
     [rotulo]="rotulo()"
-    [ponto]="naoLidas() > 0"
+    [contagem]="naoLidas()"
     [attr.aria-expanded]="aberto()"
     [attr.aria-controls]="aberto() ? idPainel : null"
     (click)="alternar()"
@@ -15,26 +15,104 @@
     <section class="notificacoes__painel" [id]="idPainel" [attr.aria-labelledby]="idTitulo">
       <header class="notificacoes__cabecalho">
         <h2 class="notificacoes__titulo" [id]="idTitulo">Notificações</h2>
-        <app-selo variante="contorno">Dados de exemplo</app-selo>
-      </header>
-      <ul class="notificacoes__lista" role="list">
-        @for (item of itens(); track item.id) {
-          <li class="notificacoes__item">
-            <span class="notificacoes__icone" aria-hidden="true">
-              <svg [lucideIcon]="item.icone" [size]="18" />
-            </span>
-            <div class="notificacoes__texto">
-              <p>{{ item.texto }}</p>
-              <time class="notificacoes__quando" [attr.datetime]="item.iso">{{
-                item.relativo
-              }}</time>
-            </div>
-          </li>
+        @if (itens().length) {
+          <button
+            appBotao
+            type="button"
+            tamanho="sm"
+            variante="contorno"
+            [carregando]="marcandoTodas()"
+            [disabled]="naoLidas() === 0"
+            (click)="marcarTodas()"
+          >
+            Marcar todas como lidas
+          </button>
         }
-      </ul>
-      <p class="notificacoes__nota">
-        Exemplo ilustrativo: as notificações reais chegam com o núcleo do CRM (Fase 1).
-      </p>
+      </header>
+
+      @if (servico.carregando() && !itens().length) {
+        <ul class="notificacoes__lista" aria-hidden="true">
+          @for (linha of [1, 2, 3]; track linha) {
+            <li class="notificacoes__item notificacoes__item--esqueleto">
+              <span class="notificacoes__icone"></span>
+              <span class="notificacoes__linhas">
+                <span class="notificacoes__barra"></span>
+                <span class="notificacoes__barra notificacoes__barra--curta"></span>
+              </span>
+            </li>
+          }
+        </ul>
+        <p class="visualmente-oculto" role="status">Carregando as notificações…</p>
+      } @else if (servico.erro() && !itens().length) {
+        <div class="notificacoes__estado" role="alert">
+          <p>{{ servico.erro() }}</p>
+          <button
+            appBotao
+            type="button"
+            tamanho="sm"
+            [icone]="icones.recarregar"
+            (click)="tentarDeNovo()"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      } @else if (!itens().length) {
+        <div class="notificacoes__estado">
+          <p class="notificacoes__vazio-titulo">Nenhuma notificação por enquanto.</p>
+          <p>
+            Avisamos aqui quando um lead chegar para você, uma atividade estiver para vencer ou um
+            negócio passar de um funil para outro.
+          </p>
+        </div>
+      } @else {
+        <ul class="notificacoes__lista" role="list">
+          @for (item of itens(); track item.notificacao.id) {
+            <li class="notificacoes__item" [class.notificacoes__item--nova]="!item.lida">
+              <span class="notificacoes__icone" aria-hidden="true">
+                <svg [lucideIcon]="item.icone" [size]="18" />
+              </span>
+              <div class="notificacoes__texto">
+                @if (item.rota) {
+                  <a class="notificacoes__link" [routerLink]="item.rota" (click)="abrir(item)">
+                    @if (!item.lida) {
+                      <span class="visualmente-oculto">Não lida: </span>
+                    }
+                    <span class="notificacoes__item-titulo">{{ item.notificacao.titulo }}</span>
+                  </a>
+                } @else {
+                  <p>
+                    @if (!item.lida) {
+                      <span class="visualmente-oculto">Não lida: </span>
+                    }
+                    <span class="notificacoes__item-titulo">{{ item.notificacao.titulo }}</span>
+                  </p>
+                }
+                @if (item.notificacao.texto) {
+                  <p class="notificacoes__descricao">{{ item.notificacao.texto }}</p>
+                }
+                <span class="notificacoes__rodape">
+                  <time class="notificacoes__quando" [attr.datetime]="item.notificacao.criadoEm">{{
+                    item.relativo
+                  }}</time>
+                  @if (!item.lida && !item.rota) {
+                    <button type="button" class="notificacoes__marcar" (click)="marcar(item)">
+                      Marcar como lida
+                    </button>
+                  }
+                </span>
+              </div>
+              @if (!item.lida) {
+                <span class="notificacoes__ponto" aria-hidden="true"></span>
+              }
+            </li>
+          }
+        </ul>
+        @if (servico.erro(); as erro) {
+          <p class="notificacoes__nota" role="status">
+            Não foi possível atualizar agora. {{ erro }}
+          </p>
+        }
+      }
     </section>
   }
 </div>

@@ -1,0 +1,83 @@
+// Bloco LGPD do contato (R4.6) e os modais de consentimento e anonimização. Só tokens.
+
+:host {
+  display: block;
+}
+
+.lgpd {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.lgpd__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.lgpd__selo {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto-suave);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-controle);
+}
+
+.lgpd__titulo {
+  font: var(--fonte-h3);
+}
+
+.lgpd__parte {
+  display: grid;
+  gap: var(--esp-2);
+  padding-top: var(--esp-4);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.lgpd__subtitulo {
+  font: var(--fonte-rotulo);
+}
+
+.lgpd__texto {
+  font: var(--fonte-corpo-sm);
+}
+
+.lgpd__meta {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.lgpd__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin-top: var(--esp-1);
+}
+
+.lgpd__anonimizar {
+  color: var(--cor-erro);
+}
+
+.lgpd__formulario {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.lgpd__perigo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-erro);
+  font: var(--fonte-rotulo);
+}
+
+.lgpd__lista {
+  display: grid;
+  gap: var(--esp-1);
+  margin: 0;
+  padding-left: var(--esp-5);
+  font: var(--fonte-corpo-sm);
+}

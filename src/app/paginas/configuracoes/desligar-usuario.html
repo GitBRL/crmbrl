@@ -1,0 +1,117 @@
+<app-modal [titulo]="'Desligar ' + nome() + '?'" [aberto]="aberto()" (fechado)="fechar()">
+  <form class="desligar" novalidate [id]="idFormulario" (submit)="desligar($event)">
+    <p class="desligar__perigo">
+      <svg lucideTriangleAlert [size]="18" />
+      <span
+        >Atenção: o que for encaminhado não volta para {{ primeiro() }}, nem se houver uma
+        reativação depois.</span
+      >
+    </p>
+
+    @if (exigeEscolha()) {
+      <app-seletor
+        rotulo="Quem recebe"
+        placeholder="Escolha o C-level"
+        [dica]="
+          primeiro() +
+          ' é C-level: o que está com ' +
+          primeiro() +
+          ' vai para outro C-level ativo, que você escolhe.'
+        "
+        [opcoes]="opcoesCandidatos()"
+        [valor]="escolhido()"
+        (valorChange)="aoEscolher($event)"
+      />
+    }
+
+    @if (previa.erro(); as erro) {
+      <app-estado-vazio
+        compacto
+        variante="erro"
+        [falha]="erro"
+        [titulo]="
+          erro.ehRegraViolada || erro.ehConflito
+            ? 'Não dá para desligar agora'
+            : 'Não conseguimos montar a prévia'
+        "
+        [texto]="erro.resumo"
+        [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+      >
+        @if (!erro.ehRegraViolada) {
+          <button
+            appBotao
+            type="button"
+            tamanho="sm"
+            variante="contorno"
+            [icone]="iconeTentar"
+            (click)="tentarDeNovo()"
+          >
+            Tentar de novo
+          </button>
+        }
+      </app-estado-vazio>
+    } @else if (previa.dados(); as dados) {
+      <div class="desligar__previa" [attr.aria-busy]="previa.carregando() || null">
+        <p class="desligar__frase" aria-live="polite">{{ frase() }}</p>
+
+        @if (!exigeEscolha() && dados.destinatario; as destino) {
+          <div class="desligar__destino">
+            <app-avatar [nome]="destino.nome" decorativo />
+            <div class="desligar__destino-textos">
+              <span class="desligar__rotulo">Quem recebe</span>
+              <strong class="desligar__destino-nome">{{ destino.nome }}</strong>
+              <span class="desligar__destino-papel">{{ destino.rotuloPapel }}</span>
+            </div>
+          </div>
+          <p class="desligar__explicacao">{{ dados.explicacao }}</p>
+        } @else if (exigeEscolha()) {
+          <p class="desligar__explicacao">{{ dados.explicacao }}</p>
+        }
+
+        <ul class="desligar__consequencias">
+          @for (item of consequencias(); track $index) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+
+        @if (dados.destinatario) {
+          <app-campo-texto
+            [rotulo]="rotuloConfirmacao()"
+            autocomplete="off"
+            dica="Sem diferença de maiúsculas e acentos."
+            [valor]="digitado()"
+            (valorChange)="digitado.set($any($event) ?? '')"
+          />
+        }
+      </div>
+    } @else {
+      <div class="desligar__carregando" aria-busy="true">
+        <p class="visualmente-oculto" role="status">Carregando a prévia do desligamento…</p>
+        <app-esqueleto [linhas]="2" />
+        <div class="desligar__destino">
+          <app-esqueleto forma="circulo" />
+          <app-esqueleto [linhas]="2" largura="50%" />
+        </div>
+        <app-esqueleto [linhas]="3" largura="90%" />
+      </div>
+    }
+
+    @if (erroAcao(); as erro) {
+      <p class="desligar__erro" role="alert">{{ erro.mensagem }}</p>
+    }
+  </form>
+
+  <div modal-rodape class="desligar__acoes">
+    <button appBotao type="button" variante="contorno" (click)="fechar()">Cancelar</button>
+    <button
+      appBotao
+      type="submit"
+      variante="invertido"
+      [attr.form]="idFormulario"
+      [disabled]="!podeDesligar() && !enviando()"
+      [carregando]="enviando()"
+    >
+      Desligar {{ primeiro() }}
+    </button>
+  </div>
+</app-modal>

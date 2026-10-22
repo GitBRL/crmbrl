@@ -1,0 +1,133 @@
+<section class="secao" aria-labelledby="distribuicao-titulo">
+  <header class="secao__cabecalho">
+    <div class="secao__textos">
+      <h2 class="secao__titulo" id="distribuicao-titulo">Distribuição de leads</h2>
+      <p class="secao__frase">{{ frase() }}</p>
+    </div>
+  </header>
+
+  <div class="faixa faixa--info">
+    <svg lucideRefreshCw class="faixa__icone" [size]="20" />
+    <p>
+      <strong>Como funciona o rodízio.</strong>
+      {{ dicaRodizio }} Cada alteração vale na hora.
+    </p>
+  </div>
+
+  @if (dados.erro(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar o rodízio"
+      [texto]="erro.resumo"
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeTentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (dados.dados() === null) {
+    <div class="rodizio__grade" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando o rodízio…</p>
+      @for (item of [1, 2, 3]; track item) {
+        <app-cartao>
+          <div class="rodizio__esqueleto">
+            <app-esqueleto largura="40%" />
+            <app-esqueleto forma="bloco" altura="64px" />
+            @for (linha of [1, 2, 3]; track linha) {
+              <div class="rodizio__esqueleto-linha">
+                <app-esqueleto forma="circulo" />
+                <app-esqueleto [linhas]="2" largura="60%" />
+              </div>
+            }
+          </div>
+        </app-cartao>
+      }
+    </div>
+  } @else if (areas().length === 0) {
+    <app-estado-vazio
+      variante="sem-acesso"
+      titulo="Nenhum rodízio para você configurar"
+      texto="O rodízio de cada área é configurado pelo líder dela, pelo C-level e pelo Admin."
+    />
+  } @else {
+    <div class="rodizio__grade">
+      @for (area of areas(); track area.regra.area) {
+        <app-cartao
+          class="rodizio__cartao"
+          regiao
+          [nivel]="3"
+          [titulo]="area.rotulo"
+          [complemento]="'· ' + (area.naFila === 1 ? '1 na fila' : area.naFila + ' na fila')"
+        >
+          <div class="rodizio__corpo">
+            <div class="rodizio__proximo" [class.rodizio__proximo--vazio]="area.naFila === 0">
+              @if (area.naFila > 0 && area.regra.proximo; as proximo) {
+                <app-avatar [nome]="proximo.nome" [foto]="proximo.avatarUrl ?? null" decorativo />
+                <div class="rodizio__proximo-textos">
+                  <span class="rodizio__rotulo">Próximo da vez</span>
+                  <strong class="rodizio__proximo-nome">{{ proximo.nome }}</strong>
+                  @if (area.avisoDoProximo; as aviso) {
+                    <span class="rodizio__proximo-aviso">{{ aviso }}</span>
+                  }
+                </div>
+              } @else {
+                <p class="rodizio__sem-fila">{{ destinoSemFila(area.regra) }}</p>
+              }
+            </div>
+
+            @for (versao of [revisao()]; track versao) {
+              <app-alternador
+                class="rodizio__lider"
+                rotulo="O líder entra no rodízio"
+                [dica]="area.dicaLider"
+                [desabilitado]="emAndamento(area.regra.area + ':lideres')"
+                [valor]="area.regra.incluirLideres"
+                (valorChange)="definirLideres(area, $event)"
+              />
+
+              <ol
+                class="rodizio__pessoas"
+                [attr.aria-label]="'Pessoas de ' + area.rotulo + ' no rodízio'"
+              >
+                @for (pessoa of area.pessoas; track pessoa.id) {
+                  <li
+                    class="rodizio__pessoa"
+                    [class.rodizio__pessoa--fora]="!pessoa.participa"
+                    [class.rodizio__pessoa--proximo]="pessoa.proximo"
+                  >
+                    <span class="rodizio__posicao" aria-hidden="true">{{
+                      pessoa.posicao ?? '–'
+                    }}</span>
+                    <app-avatar
+                      [nome]="pessoa.nome"
+                      [foto]="pessoa.avatarUrl"
+                      tamanho="sm"
+                      decorativo
+                    />
+                    <app-alternador
+                      class="rodizio__alternador"
+                      [rotulo]="pessoa.nome"
+                      [dica]="pessoa.motivo"
+                      [desabilitado]="emAndamento(chaveDa(area.regra.area, pessoa.id))"
+                      [valor]="pessoa.participa"
+                      (valorChange)="definirParticipacao(area, pessoa, $event)"
+                    />
+                  </li>
+                } @empty {
+                  <li class="rodizio__vazio">Ninguém ativo nesta área ainda.</li>
+                }
+              </ol>
+            }
+          </div>
+        </app-cartao>
+      }
+    </div>
+  }
+</section>

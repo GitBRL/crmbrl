@@ -1,10 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { CHAVE_PERFIL_DEMO, PerfilDemoService } from '../../nucleo/perfil-demo.service';
+import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
 import { descreverQuemAcessa, EmBreve } from './em-breve';
 import { termosNoTexto } from './glossario';
-import { FASES_ROADMAP, numeroDaFase } from './roadmap';
+import { FASES_ROADMAP, frasesNoAr, numeroDaFase } from './roadmap';
 
 describe('glossário', () => {
   const termos = (texto: string) => termosNoTexto(texto).map((item) => item.termo);
@@ -65,9 +65,12 @@ describe('roadmap', () => {
     expect(numeroDaFase('Sem fase')).toBeNull();
   });
 
-  it('tem as fases de 0 a 6, só a base concluída', () => {
+  it('tem as fases de 0 a 6, com a base e o núcleo do CRM no ar', () => {
     expect(FASES_ROADMAP.map((fase) => fase.numero)).toEqual([0, 1, 2, 3, 4, 5, 6]);
-    expect(FASES_ROADMAP.filter((fase) => fase.concluida).map((fase) => fase.numero)).toEqual([0]);
+    expect(FASES_ROADMAP.filter((fase) => fase.concluida).map((fase) => fase.numero)).toEqual([
+      0, 1,
+    ]);
+    expect(frasesNoAr()).toBe('as Fases 0 (base) e 1 (núcleo do CRM) já estão no ar');
   });
 });
 
@@ -75,6 +78,7 @@ describe('EmBreve', () => {
   beforeEach(() => {
     localStorage.clear();
     TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    entrarComo('ADMIN');
   });
   afterEach(() => localStorage.clear());
 
@@ -115,6 +119,7 @@ describe('EmBreve', () => {
     expect(atual.textContent).toContain('Fase 3');
     expect(atual.textContent).toContain('BI e relatórios');
     expect(fases[0].textContent).toContain('no ar');
+    expect(fases[1].textContent).toContain('no ar');
   });
 
   it('siglas e termos das funcionalidades ganham uma dica ao lado do chip (Marketing)', () => {
@@ -163,29 +168,18 @@ describe('EmBreve', () => {
     expect(raiz.querySelector('.em-breve__nota')?.textContent).toContain('construído do zero');
   });
 
-  it('sem acesso: explica quem acessa e oferece "Ver como"', async () => {
-    localStorage.setItem(CHAVE_PERFIL_DEMO, 'MARKETING');
-    const { fixture, raiz } = criar('atendimento');
+  it('sem acesso: explica quem acessa (sem modo demonstração)', () => {
+    entrarComo('MARKETING');
+    const { raiz } = criar('atendimento');
     const titulo = raiz.querySelector('h1') as HTMLElement;
     expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Atendimento · sem acesso');
     expect(raiz.textContent).toContain('O papel Marketing não acessa este módulo.');
     expect(raiz.textContent?.replace(/\s+/g, ' ')).toContain(
       'Quem acessa: todos os papéis, menos Marketing.',
     );
-    expect(raiz.querySelector('.em-breve__nota')?.textContent?.replace(/\s+/g, ' ')).toContain(
-      'use “Ver como”, no seu avatar, para trocar de papel.',
-    );
+    expect(raiz.textContent).not.toContain('Ver como');
     expect(raiz.querySelectorAll('app-chip').length).toBe(0);
-
-    const verComo = [...raiz.querySelectorAll('button')].find((botao) =>
-      botao.textContent?.includes('Ver como Admin'),
-    ) as HTMLButtonElement;
-    verComo.click();
-    await fixture.whenStable();
-    expect(TestBed.inject(PerfilDemoService).papel()).toBe('ADMIN');
-    const novoTitulo = raiz.querySelector('h1') as HTMLElement;
-    expect(novoTitulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Atendimento · em breve');
-    expect(document.activeElement).toBe(novoTitulo);
+    expect(raiz.querySelector('a[href="/inicio"]')?.textContent).toContain('Ir para a visão geral');
   });
 
   it('módulo desconhecido mostra o aviso genérico', () => {

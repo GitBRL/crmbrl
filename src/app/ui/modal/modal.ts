@@ -2,8 +2,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
+  inject,
   input,
   model,
   output,
@@ -12,6 +14,8 @@ import {
 import { LucideX } from '@lucide/angular';
 
 import { BotaoIcone } from '../botao-icone/botao-icone';
+import { CamadaModal } from '../camada-modal';
+import { provideOverlayNoDialogo } from '../overlay-no-dialogo';
 import { gerarId, partirTitulo } from '../tipos';
 
 /**
@@ -25,6 +29,8 @@ import { gerarId, partirTitulo } from '../tipos';
 @Component({
   selector: 'app-modal',
   imports: [BotaoIcone],
+  // Menus do CDK no conteúdo abrem dentro do <dialog> (fora dele, tudo fica inerte).
+  providers: [provideOverlayNoDialogo()],
   template: `
     <dialog
       #dialogo
@@ -77,6 +83,8 @@ export class Modal {
   protected readonly idTitulo = gerarId('modal-titulo');
   protected readonly partes = computed(() => partirTitulo(this.titulo(), this.complemento()));
   private readonly dialogo = viewChild.required<ElementRef<HTMLDialogElement>>('dialogo');
+  private readonly camada = inject(CamadaModal);
+  private elementoDialogo: HTMLDialogElement | null = null;
   private pressionouNoVeu = false;
 
   constructor() {
@@ -85,11 +93,20 @@ export class Modal {
       if (this.aberto() && !dialogo.open) {
         if (typeof dialogo.showModal === 'function') {
           dialogo.showModal();
+          // Avisos e anúncios passam a morar aqui dentro (fora, tudo fica inerte).
+          this.camada.abriu(dialogo);
+          this.elementoDialogo = dialogo;
         } else {
           dialogo.setAttribute('open', '');
         }
       } else if (!this.aberto() && dialogo.open) {
         this.fecharDialogo(dialogo);
+      }
+    });
+    // Destruído ainda aberto (troca de página): o diálogo sai do DOM e devolve o que hospedava.
+    inject(DestroyRef).onDestroy(() => {
+      if (this.elementoDialogo) {
+        this.camada.fechou(this.elementoDialogo);
       }
     });
   }
@@ -99,6 +116,7 @@ export class Modal {
   }
 
   protected aoFechar(): void {
+    this.camada.fechou(this.dialogo().nativeElement);
     this.aberto.set(false);
     this.fechado.emit();
   }
@@ -124,6 +142,7 @@ export class Modal {
     }
     if (typeof dialogo.close === 'function') {
       dialogo.close(); // dispara "close" → aoFechar()
+      this.camada.fechou(dialogo); // já, sem esperar o evento
     } else {
       dialogo.removeAttribute('open');
       this.aoFechar();

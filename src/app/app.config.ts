@@ -1,5 +1,5 @@
 import { registerLocaleData } from '@angular/common';
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import localePt from '@angular/common/locales/pt';
 import {
   type ApplicationConfig,
@@ -8,17 +8,18 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import {
-  PreloadAllModules,
   provideRouter,
   TitleStrategy,
   withComponentInputBinding,
   withInMemoryScrolling,
   withNavigationErrorHandler,
   withPreloading,
+  withRouterConfig,
 } from '@angular/router';
-import { provideLucideConfig } from '@lucide/angular';
 
 import { routes } from './app.routes';
+import { interceptarErros } from './nucleo/api/interceptor-erros';
+import { PreloadDoQueAcessa } from './nucleo/preload';
 import { provideLimpezaDaRecarga, recarregarSeFalhouCarregamento } from './nucleo/recarga';
 import { TituloPagina } from './nucleo/titulo-pagina';
 
@@ -31,20 +32,23 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       routes,
       withComponentInputBinding(),
+      // Os parâmetros das rotas pai chegam às filhas (`:area` no detalhe do negócio).
+      withRouterConfig({ paramsInheritanceStrategy: 'always' }),
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' }),
-      // As páginas carregadas sob demanda vêm em segundo plano depois da primeira pintura.
-      withPreloading(PreloadAllModules),
+      // As páginas dos módulos que o papel acessa vêm em segundo plano depois de entrar.
+      withPreloading(PreloadDoQueAcessa),
       // Página que não chegou (aba aberta antes de um deploy): recarrega no destino, uma vez.
       withNavigationErrorHandler((erro) => {
         recarregarSeFalhouCarregamento(erro);
       }),
     ),
     provideLimpezaDaRecarga(),
-    provideHttpClient(withFetch()),
+    // Falhas de /api/v1 viram ErroApi; 401 leva a /entrar e a troca pendente a /trocar-senha.
+    provideHttpClient(withFetch(), withInterceptors([interceptarErros])),
     { provide: LOCALE_ID, useValue: 'pt-BR' },
     { provide: DEFAULT_CURRENCY_CODE, useValue: 'BRL' },
     { provide: TitleStrategy, useClass: TituloPagina },
-    // Ícones: traço 1.75 e 20px por padrão (DESIGN-SYSTEM.md §4).
-    provideLucideConfig({ strokeWidth: 1.75, size: 20 }),
+    // Ícones (traço 1.75, 20px): nos providers das cascas (layout/icones.ts), para o pacote do
+    // Lucide ficar fora do carregamento inicial.
   ],
 };

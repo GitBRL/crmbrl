@@ -1,0 +1,189 @@
+@use 'mixins' as m;
+@use 'contatos-comum' as c;
+
+// Formulários de contato, empresa e atividade (modais). Só tokens.
+
+:host {
+  display: contents;
+}
+
+.formulario {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.formulario__frase {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.formulario__erro {
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-erro);
+  border-radius: var(--raio-md);
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+}
+
+// Dois campos por linha quando cabem; um por linha no celular.
+.formulario__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--esp-4);
+  align-items: start;
+}
+
+.formulario__largo {
+  grid-column: 1 / -1;
+}
+
+.formulario__mais {
+  border-top: 1px solid var(--cor-borda);
+  padding-top: var(--esp-4);
+
+  > summary {
+    width: fit-content;
+    min-height: var(--altura-sm);
+    padding-block: var(--esp-2);
+    color: var(--cor-texto-suave);
+    font: var(--fonte-rotulo);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--cor-texto);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cor-foco);
+      outline-offset: 2px;
+      border-radius: var(--raio-sm);
+    }
+  }
+
+  &[open] > summary {
+    margin-bottom: var(--esp-4);
+    color: var(--cor-texto);
+  }
+}
+
+.formulario__grupo {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--esp-4) 0 0;
+  border: 0;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.formulario__legenda {
+  padding: 0;
+  margin-bottom: var(--esp-2);
+  font: var(--fonte-rotulo);
+}
+
+.formulario__link {
+  color: var(--cor-texto);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    color: var(--cor-destaque-texto);
+  }
+}
+
+// Aviso de contato que já existe (R4.2): cartão em superfície-2 com a ação "Abrir".
+.formulario__duplicados {
+  display: grid;
+  gap: var(--esp-3);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.duplicado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3) var(--esp-4);
+  padding: var(--esp-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-left: 4px solid var(--cor-aviso);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+}
+
+.duplicado__texto {
+  display: grid;
+  flex: 1 1 18rem;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.duplicado__titulo {
+  font: var(--fonte-corpo);
+}
+
+.duplicado__meta {
+  @include c.meta;
+
+  font: var(--fonte-legenda-lg);
+  color: var(--cor-texto-suave);
+}
+
+.parecidos {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+}
+
+.parecidos__titulo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.parecidos__lista {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--esp-1) var(--esp-3);
+  }
+}
+
+// Linha de campo personalizado: nome, valor e remover.
+.campo-livre {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: var(--esp-3);
+  align-items: end;
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    > :nth-child(2) {
+      grid-column: 1;
+      grid-row: 2;
+    }
+  }
+}
+
+.campo-livre__remover {
+  @include m.abaixo(m.$sm) {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: end;
+  }
+}

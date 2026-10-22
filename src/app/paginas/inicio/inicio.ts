@@ -9,26 +9,35 @@ import {
   ElementRef,
   inject,
   LOCALE_ID,
+  effect,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { LucideCheck, LucideShare2, LucideSparkles, LucideX } from '@lucide/angular';
 
-import { PerfilDemoService } from '../../nucleo/perfil-demo.service';
+import { erroDaApi, type ErroApi } from '../../nucleo/api/erro-api';
+import { copiarTexto } from '../../nucleo/copiar';
+import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Abas, type ItemAba } from '../../ui/abas/abas';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
-import { Dica } from '../../ui/dica/dica';
-import { PilhaAvatares } from '../../ui/pilha-avatares/pilha-avatares';
-import { Selo } from '../../ui/selo/selo';
+import { PilhaAvatares, type PessoaAvatar } from '../../ui/pilha-avatares/pilha-avatares';
 import { gerarId } from '../../ui/tipos';
 import { AnaliseIa } from './analise-ia';
 import { InicioAtendimento } from './atendimento';
-import { AtividadesRecentes } from './atividades-recentes';
-import { DADOS_POR_PERIODO, ehIdPeriodo, EQUIPE, PERIODO_PADRAO, PERIODOS } from './dados-exemplo';
+import { DADOS_POR_PERIODO, ehIdPeriodo, PERIODO_PADRAO, PERIODOS } from './dados-exemplo';
 import { InicioEquipe } from './equipe';
 import { InicioIndicadores } from './indicadores';
-import { InicioJornada } from './jornada';
+import { InicioJornada, type EstadoJornada } from './jornada';
+import {
+  MetricasJornadaApi,
+  montarIndicadores,
+  montarJornada,
+  PessoasDoCrmApi,
+  type MedidasDaJornada,
+} from './metricas-jornada';
+import { ProximasAtividades } from './proximas-atividades';
 import { fornecerRelogio, RELOGIO } from './relogio';
 import { StatusSistema } from './status-sistema';
 
@@ -52,29 +61,30 @@ export function formatarIntervalo(fim: Date, dias: number, locale: string): stri
 }
 
 /**
- * Visão geral (`/inicio`): o painel de exemplo do CRM. Todos os números são fictícios
- * (`dados-exemplo.ts`) e trocam com o período; só o "Status do sistema" lê a API de verdade.
+ * Visão geral (`/inicio`, TELAS-FASE1 §9). Real: a aba "Jornada do cliente" (métricas dos
+ * funis, R5.10), os indicadores de leads e taxa de ganho, a pilha de quem usa o CRM, as
+ * próximas atividades e o status do sistema. De exemplo (`dados-exemplo.ts`, com o selo), só
+ * o que depende de módulos futuros: as abas Atendimento e Equipe (metas), o MRR, o health
+ * score e a análise com IA.
  *
  * Estrutura: cabeçalho (título em dois tons à esquerda; à direita o período com as datas, a
  * equipe, compartilhar e a análise com IA, que só o Admin vê) → palco com abas entalhadas
  * (jornada, atendimento — para quem acessa o módulo —, equipe) → indicadores; à direita,
- * atividades recentes e status do sistema. A página fornece um relógio só para os blocos.
+ * próximas atividades e status do sistema. A página fornece um relógio só para os blocos.
  */
 @Component({
   selector: 'app-inicio',
   imports: [
     Abas,
     AnaliseIa,
-    AtividadesRecentes,
     Botao,
     BotaoIcone,
-    Dica,
     InicioAtendimento,
     InicioEquipe,
     InicioIndicadores,
     InicioJornada,
     PilhaAvatares,
-    Selo,
+    ProximasAtividades,
     StatusSistema,
   ],
   templateUrl: './inicio.html',
@@ -83,15 +93,22 @@ export function formatarIntervalo(fim: Date, dias: number, locale: string): stri
   providers: [fornecerRelogio()],
 })
 export class Inicio {
-  protected readonly perfil = inject(PerfilDemoService);
+  protected readonly perfil = inject(SessaoService);
   private readonly documento = inject(DOCUMENT);
   private readonly locale = inject(LOCALE_ID);
   private readonly agora = inject(RELOGIO);
+  private readonly metricasApi = inject(MetricasJornadaApi);
+  private readonly pessoasApi = inject(PessoasDoCrmApi);
 
   /** "outubro de 2026" — o segundo tom do título. */
   protected readonly mesAtual = formatDate(new Date(), "MMMM 'de' y", this.locale);
-  protected readonly equipe = EQUIPE;
   protected readonly icones = { ia: LucideSparkles };
+
+  /** A pilha do cabeçalho: os usuários ativos que a pessoa vê (o membro só vê a si mesmo). */
+  protected readonly equipe = signal<readonly PessoaAvatar[]>([]);
+  protected readonly rotuloEquipe = computed(() =>
+    this.perfil.ehLider() ? 'Sua equipe' : 'Quem usa o CRM',
+  );
 
   protected readonly periodos: readonly ItemAba[] = PERIODOS.map(({ id, rotulo }) => ({
     id,
@@ -102,6 +119,20 @@ export class Inicio {
     const periodo = this.periodo();
     return DADOS_POR_PERIODO[ehIdPeriodo(periodo) ? periodo : PERIODO_PADRAO];
   });
+  /** Métricas reais dos funis no período (R5.10): a jornada e os indicadores reais. */
+  protected readonly estadoJornada = signal<EstadoJornada>('carregando');
+  protected readonly erroJornada = signal<ErroApi | null>(null);
+  private readonly medidas = signal<MedidasDaJornada | null>(null);
+  protected readonly jornada = computed(() => {
+    const medidas = this.medidas();
+    return medidas ? montarJornada(medidas) : null;
+  });
+  protected readonly indicadoresReais = computed(() => {
+    const medidas = this.medidas();
+    return medidas ? montarIndicadores(medidas) : null;
+  });
+  private consultaJornada = 0;
+
   /** As datas que o período cobre ("21/09 a 20/10/2026"), ao lado do seletor. */
   protected readonly intervalo = computed(() =>
     formatarIntervalo(this.agora(), this.dados().periodo.dias, this.locale),
@@ -161,6 +192,17 @@ export class Inicio {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.esperaAviso));
+    // Período novo: as métricas da jornada são buscadas de novo.
+    effect(() => {
+      const dias = this.dados().periodo.dias;
+      untracked(() => void this.carregarJornada(dias));
+    });
+    if (this.perfil.permite((permissoes) => permissoes.verUsuarios !== 'PROPRIOS')) {
+      this.pessoasApi
+        .listar()
+        .then((pessoas) => this.equipe.set(pessoas))
+        .catch(() => this.equipe.set([]));
+    }
     // As datas descrevem o grupo de opções do período (o radiogroup fica dentro do app-abas).
     afterNextRender(() => {
       const grupo = (this.seletorPeriodo().nativeElement as HTMLElement).querySelector(
@@ -168,6 +210,33 @@ export class Inicio {
       );
       grupo?.setAttribute('aria-describedby', this.idIntervalo);
     });
+  }
+
+  /**
+   * Busca as métricas dos funis visíveis do início do primeiro dia do período (meia-noite
+   * local) até agora; o período anterior, de mesmo tamanho, vem junto para as variações.
+   */
+  protected async carregarJornada(dias = this.dados().periodo.dias): Promise<void> {
+    const consulta = ++this.consultaJornada;
+    this.estadoJornada.set('carregando');
+    this.erroJornada.set(null);
+    const ate = new Date();
+    const de = new Date(ate.getFullYear(), ate.getMonth(), ate.getDate() - (dias - 1));
+    try {
+      const medidas = await this.metricasApi.carregar(de, ate);
+      if (consulta !== this.consultaJornada) {
+        return;
+      }
+      this.medidas.set(medidas);
+      this.estadoJornada.set('pronto');
+    } catch (falha) {
+      if (consulta !== this.consultaJornada) {
+        return;
+      }
+      this.medidas.set(null);
+      this.erroJornada.set(erroDaApi(falha));
+      this.estadoJornada.set('erro');
+    }
   }
 
   /** Copia o link da página e mostra o resultado no botão e logo abaixo das ações. */
@@ -180,38 +249,5 @@ export class Inicio {
       () => this.compartilhamento.set(null),
       DURACAO_RETORNO_MS[resultado],
     );
-  }
-}
-
-/**
- * Copia um texto para a área de transferência. Usa a Clipboard API e, onde ela não existe
- * (página servida por http sem TLS, por exemplo), o modo antigo com um campo temporário —
- * devolvendo o foco a quem estava com ele.
- */
-export async function copiarTexto(texto: string, documento: Document): Promise<boolean> {
-  const area = documento.defaultView?.navigator.clipboard;
-  if (area?.writeText) {
-    try {
-      await area.writeText(texto);
-      return true;
-    } catch {
-      // Sem permissão: tenta o modo antigo.
-    }
-  }
-  const focado = documento.activeElement as HTMLElement | null;
-  const campo = documento.createElement('textarea');
-  campo.value = texto;
-  campo.setAttribute('readonly', '');
-  campo.style.position = 'fixed';
-  campo.style.opacity = '0';
-  documento.body.append(campo);
-  campo.select();
-  try {
-    return typeof documento.execCommand === 'function' && documento.execCommand('copy');
-  } catch {
-    return false;
-  } finally {
-    campo.remove();
-    focado?.focus?.();
   }
 }

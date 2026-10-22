@@ -1,4 +1,10 @@
 // Utilitários globais pequenos, usados por páginas e componentes.
+@use '@angular/cdk' as cdk;
+
+// `.cdk-visually-hidden`: a região viva do `LiveAnnouncer` do CDK (avisos, notificações,
+// kanban) usa esta classe. O CDK 22 não a injeta sozinho; sem ela, o texto anunciado aparece
+// no pé da página.
+@include cdk.a11y-visually-hidden();
 
 // Esconde da tela mas mantém para leitores de tela.
 .visualmente-oculto {
@@ -12,6 +18,21 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+// Quantos filtros estão ligados, no botão "Filtros" do celular (quadro, auditoria, logs).
+.contador-filtros {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+  font: var(--fonte-legenda);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 // Escala tipográfica (§2.3) aplicada como classe.

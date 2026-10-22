@@ -8,10 +8,10 @@ export interface FaseRoadmap {
   readonly concluida: boolean;
 }
 
-/** As fases, na ordem de entrega. A Fase 0 (base) é a que está no ar. */
+/** As fases, na ordem de entrega. As Fases 0 (base) e 1 (núcleo do CRM) estão no ar. */
 export const FASES_ROADMAP: readonly FaseRoadmap[] = [
   { numero: 0, nome: 'Base', concluida: true },
-  { numero: 1, nome: 'Núcleo do CRM', concluida: false },
+  { numero: 1, nome: 'Núcleo do CRM', concluida: true },
   { numero: 2, nome: 'Atendimento e comunicação', concluida: false },
   { numero: 3, nome: 'BI', concluida: false },
   { numero: 4, nome: 'Financeiro', concluida: false },
@@ -23,4 +23,22 @@ export const FASES_ROADMAP: readonly FaseRoadmap[] = [
 export function numeroDaFase(fase: string | null | undefined): number | null {
   const encontrado = fase?.match(/\d+/);
   return encontrado ? Number(encontrado[0]) : null;
+}
+
+/**
+ * "a Fase 0 (base) já está no ar", "as Fases 0 (base) e 1 (núcleo do CRM) já estão no ar":
+ * a frase da dica do roadmap, a partir das fases concluídas.
+ */
+export function frasesNoAr(fases: readonly FaseRoadmap[] = FASES_ROADMAP): string {
+  const noAr = fases.filter((fase) => fase.concluida);
+  if (!noAr.length) {
+    return 'nenhuma fase está no ar ainda';
+  }
+  // Só a inicial em minúscula: "Núcleo do CRM" → "núcleo do CRM".
+  const nome = (texto: string) => texto.charAt(0).toLocaleLowerCase('pt-BR') + texto.slice(1);
+  const nomes = noAr.map((fase) => `${fase.numero} (${nome(fase.nome)})`);
+  if (nomes.length === 1) {
+    return `a Fase ${nomes[0]} já está no ar`;
+  }
+  return `as Fases ${nomes.slice(0, -1).join(', ')} e ${nomes.at(-1)} já estão no ar`;
 }

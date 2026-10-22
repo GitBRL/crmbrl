@@ -1,9 +1,11 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 
 import { MODULOS } from '../nucleo/navegacao';
-import { PerfilDemoService } from '../nucleo/perfil-demo.service';
+import { entrarComo } from '../nucleo/sessao/sessao-de-teste';
 import { BarraSuperior, buscarModulo, normalizarBusca } from './barra-superior';
 import { EstadoCasca } from './estado-casca';
 
@@ -34,12 +36,15 @@ describe('BarraSuperior', () => {
     TestBed.configureTestingModule({
       providers: [
         EstadoCasca,
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter([
           ...MODULOS.map((modulo) => ({ path: modulo.rota.slice(1), component: PaginaFalsa })),
           { path: '**', component: PaginaFalsa },
         ]),
       ],
     });
+    entrarComo('ADMIN');
   });
   afterEach(() => localStorage.clear());
 
@@ -67,8 +72,8 @@ describe('BarraSuperior', () => {
     expect(marca.getAttribute('href')).toBe('/inicio');
     expect(marca.getAttribute('aria-label')).toBe('BRL CRM: ir para a visão geral');
     expect(raiz.querySelector(`label[for="${campo.id}"]`)?.textContent).toBe('Buscar no CRM');
-    // O campo diz o que a busca encontra nesta etapa.
-    expect(campo.getAttribute('placeholder')).toBe('Buscar módulo (ex.: Disparos)…');
+    // O campo diz o que a busca encontra.
+    expect(campo.getAttribute('placeholder')).toBe('Buscar contatos ou módulos…');
     expect(raiz.querySelector('app-alternador-tema button')?.getAttribute('aria-label')).toMatch(
       /^Ativar tema (claro|escuro)$/,
     );
@@ -85,15 +90,20 @@ describe('BarraSuperior', () => {
     expect(campo.value).toBe('');
   });
 
-  it('sem resultado, avisa (live region) e o aviso some ao digitar', async () => {
+  it('termo que não é módulo: procura em Contatos e empresas', async () => {
+    const { campo, buscar } = criar();
+    await buscar('Maria Souza');
+    expect(TestBed.inject(Router).url).toBe('/contatos?busca=Maria%20Souza');
+    expect(campo.value).toBe('');
+  });
+
+  it('sem acesso a contatos e sem módulo: avisa (live region) e o aviso some ao digitar', async () => {
+    entrarComo('MARKETING', { permissoes: { verContatos: false } });
     const { fixture, raiz, campo, buscar } = criar();
     const aviso = raiz.querySelector('.topo__aviso') as HTMLElement;
     expect(aviso.getAttribute('role')).toBe('status');
     await buscar('xyz');
     expect(aviso.textContent).toContain('Nenhum módulo encontrado para “xyz”.');
-    expect(aviso.textContent).toContain(
-      'Por enquanto a busca encontra módulos. Pessoas, empresas e negócios entram na Fase 1.',
-    );
     expect(aviso.classList).toContain('topo__aviso--visivel');
     campo.value = 'xy';
     campo.dispatchEvent(new Event('input'));
@@ -101,12 +111,11 @@ describe('BarraSuperior', () => {
     expect(aviso.textContent?.trim()).toBe('');
   });
 
-  it('só encontra módulos que a persona acessa', async () => {
-    TestBed.inject(PerfilDemoService).verComo('MARKETING');
-    const { raiz, buscar } = criar();
+  it('só encontra módulos que o usuário acessa (o resto vira busca de contatos)', async () => {
+    entrarComo('MARKETING');
+    const { buscar } = criar();
     await buscar('integrações');
-    expect(TestBed.inject(Router).url).toBe('/');
-    expect(raiz.querySelector('.topo__aviso')?.textContent).toContain('Nenhum módulo');
+    expect(TestBed.inject(Router).url).toBe('/contatos?busca=integra%C3%A7%C3%B5es');
   });
 
   it('o botão de menu (mobile) abre a gaveta', async () => {
@@ -141,6 +150,12 @@ describe('BarraSuperior', () => {
     await TestBed.inject(Router).navigateByUrl('/funis/cs');
     await fixture.whenStable();
     expect(raiz.querySelector('.topo__secao')?.textContent?.trim()).toBe('Customer Success');
+    await TestBed.inject(Router).navigateByUrl('/empresas/1');
+    await fixture.whenStable();
+    expect(raiz.querySelector('.topo__secao')?.textContent?.trim()).toBe('Contatos e empresas');
+    await TestBed.inject(Router).navigateByUrl('/sem-acesso?pagina=%2Fintegracoes');
+    await fixture.whenStable();
+    expect(raiz.querySelector('.topo__secao')?.textContent?.trim()).toBe('Sem acesso');
     await TestBed.inject(Router).navigateByUrl('/nao-existe');
     await fixture.whenStable();
     expect(raiz.querySelector('.topo__secao')?.textContent?.trim()).toBe('Página não encontrada');

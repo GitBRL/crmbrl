@@ -60,12 +60,7 @@
         </ul>
       </app-cartao>
 
-      <app-cartao
-        titulo="Roadmap"
-        complemento="· em fases"
-        dica="O CRM chega em fases. Cada fase libera um conjunto de módulos; a Fase 0, a base, já está no ar."
-        [nivel]="2"
-      >
+      <app-cartao titulo="Roadmap" complemento="· em fases" [dica]="dicaRoadmap" [nivel]="2">
         <ol class="roadmap" role="list">
           @for (etapa of fases; track etapa.numero) {
             <li
@@ -126,27 +121,8 @@
         O papel <strong>{{ perfil.rotuloPapel() }}</strong> não acessa este módulo. Quem acessa:
         {{ quemAcessa() }}.
       </p>
-      <p class="em-breve__nota">
-        <svg lucideFlaskConical [size]="16" />
-        <span
-          >Você está no modo demonstração: use “Ver como”, no seu avatar, para trocar de
-          papel.</span
-        >
-      </p>
-
       <div class="em-breve__acoes">
-        @if (papelSugerido(); as papel) {
-          <button
-            appBotao
-            type="button"
-            variante="invertido"
-            [icone]="icones.ver"
-            (click)="verComo(papel)"
-          >
-            Ver como {{ rotuloPapel[papel] }}
-          </button>
-        }
-        <a appBotao variante="contorno" routerLink="/inicio" [icone]="icones.voltar"
+        <a appBotao variante="invertido" routerLink="/inicio" [icone]="icones.voltar"
           >Ir para a visão geral</a
         >
       </div>

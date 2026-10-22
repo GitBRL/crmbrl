@@ -1,0 +1,112 @@
+// Peças visuais comuns aos campos de formulário (DESIGN-SYSTEM.md §4.2). Não gera CSS:
+// `@use '../campo/campo' as c;` e `@include c.controle;` na regra do componente.
+//
+// O controle é uma pílula de 44px (raio grande, superfície-2, borda forte), como os chips e
+// as pílulas da referência; o anel de foco fica na pílula inteira (como no campo de busca).
+
+// Recuo do texto dentro da pílula; rótulo, ajuda e erro alinham com ele.
+$recuo: var(--esp-4);
+
+@mixin rotulo {
+  padding-inline-start: $recuo;
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
+}
+
+@mixin opcional {
+  color: var(--cor-texto-suave);
+  font-weight: 400;
+}
+
+// Ajuda e erro: texto suave (vale também sobre vidro, ex. dentro do palco).
+@mixin dica {
+  padding-inline-start: $recuo;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+@mixin erro {
+  padding-inline-start: $recuo;
+  color: var(--cor-erro);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+}
+
+// A pílula. Estados por classe: --invalido, --desabilitado.
+@mixin controle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+  min-height: var(--altura-md);
+  padding: 0 $recuo;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  transition:
+    border-color var(--duracao) var(--curva),
+    background-color var(--duracao) var(--curva);
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--cor-texto) 36%, transparent);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+
+  &.controle--invalido {
+    border-color: var(--cor-erro);
+  }
+
+  &.controle--desabilitado {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    &:hover {
+      border-color: var(--cor-borda-forte);
+    }
+  }
+
+  // Alto contraste: a borda some com as cores do sistema; o erro ganha borda mais grossa.
+  @media (forced-colors: active) {
+    &.controle--invalido {
+      border-width: 2px;
+    }
+  }
+}
+
+// O <input>/<select>/<textarea> dentro da pílula: transparente, sem borda nem anel próprio.
+@mixin nativo {
+  flex: 1;
+  min-width: 0;
+  min-height: calc(var(--altura-md) - 2px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: var(--fonte-corpo);
+  outline: none;
+  appearance: none;
+
+  &::placeholder {
+    color: var(--cor-texto-fraco);
+    opacity: 1;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+// Texto curto ao lado do valor ("R$", "%", "dias").
+@mixin afixo {
+  flex: none;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo);
+  font-variant-numeric: tabular-nums;
+}
