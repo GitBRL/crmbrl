@@ -1,0 +1,131 @@
+<app-ds-secao ancora="conversas" numero="15" titulo="Conversas" complemento="· atendimento e chat">
+  <p frase>
+    Bolhas, lista, compositor e mídia do Atendimento e do Chat da equipe (<code class="ds-token"
+      >ui/mensagens</code
+    >). A conversa de exemplo funciona: envie, anexe um arquivo, grave um áudio, digite “/” para as
+    respostas rápidas ou role até o começo.
+  </p>
+
+  <app-ds-exemplo
+    titulo="Conversa"
+    seletor="app-lista-mensagens · app-compositor"
+    quando="Toda conversa (Atendimento e Chat da equipe). A lista é virtual (só o que está perto da tela fica no DOM), começa na mais recente, carrega as anteriores sem pular e mostra o “↓” com as novas quando a pessoa está lendo mais acima."
+  >
+    <div class="ds-conversa">
+      <div class="ds-conversa__lista">
+        <app-lista-mensagens
+          nomes="saida"
+          rotulo="Mensagens com Maria Souza"
+          [mensagens]="mensagens()"
+          [temAnteriores]="temAnteriores()"
+          [carregandoAnteriores]="carregandoAnteriores()"
+          [digitando]="digitando() ? ['Maria Souza'] : []"
+          (carregarAnteriores)="carregarAnteriores()"
+          (tentarDeNovo)="tentarDeNovo($event)"
+        />
+      </div>
+      <app-compositor
+        permitirNota
+        [respostasRapidas]="respostas"
+        [variaveis]="variaveis"
+        [maximoCaracteres]="4096"
+        (enviar)="enviar($event)"
+      />
+    </div>
+    <div class="ds-linha">
+      <button appBotao type="button" tamanho="sm" (click)="simularRecebida()">
+        Simular mensagem da Maria
+      </button>
+      <app-alternador
+        class="ds-conversa__digitando"
+        rotulo="Maria digitando"
+        [(valor)]="digitando"
+      />
+    </div>
+    <p class="ds-nota" aria-live="polite">{{ ultimoEnvio() }}</p>
+  </app-ds-exemplo>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Bolhas"
+      seletor="app-bolha-mensagem"
+      quando="Cada mensagem. Entrada à esquerda (neutra), saída à direita (tom de menta, com o status de entrega), nota interna no coral listrado, avisos do sistema no meio. A falha diz o motivo e oferece “Tentar de novo”."
+    >
+      <div class="ds-bolhas">
+        @for (item of itensBolhas(); track item.id) {
+          @if (item.tipo === 'mensagem') {
+            <app-bolha-mensagem
+              nomes="todas"
+              [mensagem]="item.mensagem"
+              [continuacao]="item.continuacao"
+              [seguida]="item.seguida"
+              (tentarDeNovo)="ultimoEnvio.set('Tentando de novo: ' + (item.mensagem.texto ?? ''))"
+            />
+          } @else if (item.tipo === 'data') {
+            <app-separador-data [rotulo]="item.rotulo" />
+          }
+        }
+      </div>
+    </app-ds-exemplo>
+
+    <div class="ds-pilha">
+      <app-ds-exemplo
+        titulo="Compositor bloqueado"
+        seletor="app-compositor [desabilitado] [motivo]"
+        quando="Quando não dá para enviar (fora da janela de 24 h da Meta, conversa de outra pessoa): o motivo aparece no lugar do campo."
+      >
+        <app-compositor
+          desabilitado
+          motivo="Passaram 24 h desde a última mensagem do cliente no Instagram: só ele pode retomar a conversa."
+        />
+      </app-ds-exemplo>
+
+      <app-ds-exemplo
+        titulo="Player de áudio"
+        seletor="app-player-audio"
+        quando="Áudios recebidos e gravados. A onda é um controle deslizante (setas, Home, End); um áudio toca de cada vez; 1×, 1,5× e 2×."
+      >
+        @if (audioUrl(); as url) {
+          <app-player-audio rotulo="Áudio de exemplo" [src]="url" [duracao]="6" />
+        }
+      </app-ds-exemplo>
+
+      <app-ds-exemplo
+        titulo="Prévia de anexo"
+        seletor="app-previa-anexo"
+        quando="Arquivos nas mensagens: imagem (clique amplia), vídeo, áudio e documento com tipo, tamanho e baixar."
+      >
+        <div class="ds-previas">
+          @if (imagem(); as foto) {
+            <app-previa-anexo compacta [anexo]="foto" />
+          }
+          <app-previa-anexo [anexo]="documento" />
+        </div>
+      </app-ds-exemplo>
+    </div>
+  </div>
+
+  <app-ds-exemplo
+    titulo="Digitando, data e status"
+    seletor="app-digitando · app-separador-data · app-status-entrega"
+    quando="“Digitando…” embaixo da lista (os pontos ondulam quatro vezes e param); um separador a cada dia; o status de cada mensagem enviada, que muda de forma a cada passo (não só de cor)."
+  >
+    <div class="ds-grade ds-grade--2 ds-miudos">
+      <div class="ds-miudos__coluna">
+        <app-digitando [nomes]="['Maria Souza']" />
+        <app-digitando [nomes]="['Ana Ribeiro', 'João Batista']" />
+        <app-separador-data rotulo="Hoje" />
+        <app-separador-data [data]="ontem" />
+      </div>
+      <ul class="ds-status" role="list">
+        @for (status of statusExemplo; track status) {
+          <li>
+            <app-status-entrega [status]="status" />
+            <span>{{ rotuloStatus[status] }}</span>
+            <code class="ds-token">{{ status }}</code>
+          </li>
+        }
+      </ul>
+    </div>
+  </app-ds-exemplo>
+</app-ds-secao>

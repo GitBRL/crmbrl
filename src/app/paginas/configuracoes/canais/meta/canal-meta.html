@@ -1,0 +1,353 @@
+<section class="tela" aria-labelledby="canal-titulo">
+  @if (canal.erro(); as erro) {
+    <app-cabecalho-canal titulo="Canal da Meta" [tipo]="tipo()" />
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      manterAcoes
+      [titulo]="erro.ehNaoEncontrado ? 'Canal não encontrado' : 'Não conseguimos abrir o canal'"
+      [texto]="
+        erro.ehNaoEncontrado
+          ? 'Ele pode ter sido excluído. Volte para a lista de canais.'
+          : erro.resumo
+      "
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      @if (!erro.ehNaoEncontrado) {
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="icones.tentar"
+          (click)="abrir()"
+        >
+          Tentar de novo
+        </button>
+      }
+      <a appBotao variante="contorno" routerLink="/configuracoes/canais">Voltar aos canais</a>
+    </app-estado-vazio>
+  } @else if (pronto()) {
+    <app-cabecalho-canal
+      [titulo]="
+        canal.dados()?.nome ??
+        (tipo() === 'INSTAGRAM' ? 'Nova conta do Instagram' : 'Nova página do Messenger')
+      "
+      [tipo]="tipo()"
+      [situacao]="situacao()"
+      [frase]="canal.dados() ? null : fraseNovo()"
+    >
+      @if (canal.dados(); as c) {
+        <app-menu-acoes
+          cabecalho-acoes
+          [rotulo]="'Ações de ' + c.nome"
+          variante="contorno"
+          tamanho="md"
+          [itens]="acoes"
+          (escolher)="agir($event.id)"
+        />
+      }
+    </app-cabecalho-canal>
+
+    <div class="faixa faixa--info" role="note">
+      <svg lucideClock class="faixa__icone" [size]="20" />
+      <p>
+        <strong>Regra das 24 horas da Meta.</strong>
+        A empresa só pode responder até 24 horas depois da última mensagem do cliente. Passado esse
+        prazo, o Atendimento avisa e não deixa enviar — a conversa volta quando o cliente escrever
+        de novo.
+      </p>
+    </div>
+
+    <div class="meta">
+      <div class="meta__principal">
+        <app-cartao
+          regiao
+          titulo="Passo a passo"
+          [complemento]="'· ' + (tipo() === 'INSTAGRAM' ? 'Instagram' : 'Messenger')"
+          [nivel]="3"
+        >
+          <details class="passos" [open]="!canal.dados()">
+            <summary class="passos__resumo">
+              Como conseguir esses dados no painel da Meta
+              <svg lucideChevronDown class="passos__seta" [size]="18" />
+            </summary>
+            <ol class="passos__lista">
+              <li>
+                Entre em
+                <a
+                  href="https://developers.facebook.com/apps"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >developers.facebook.com</a
+                >
+                com uma conta que administra a página da empresa e crie um app do tipo
+                <strong>Empresa</strong>.
+              </li>
+              @if (tipo() === 'INSTAGRAM') {
+                <li>
+                  Deixe o Instagram como <strong>conta profissional</strong> (Empresa ou Criador) e
+                  ligue-o à página do Facebook. No app do Instagram, em
+                  <strong>Configurações → Mensagens</strong>, ative
+                  <strong>Permitir acesso às mensagens</strong>.
+                </li>
+                <li>
+                  No painel do app, adicione os produtos <strong>Messenger</strong> e
+                  <strong>Instagram</strong> (API do Instagram com login do Facebook).
+                </li>
+              } @else {
+                <li>No painel do app, adicione o produto <strong>Messenger</strong>.</li>
+              }
+              <li>
+                Em <strong>Configurações do app → Básico</strong>, copie o
+                <strong>ID do app</strong> e a <strong>Chave secreta do app</strong> para os campos
+                abaixo.
+              </li>
+              <li>
+                Em <strong>Messenger → Configurações da API</strong>, conecte a página e gere o
+                <strong>token de acesso da página</strong>. Copie o token e o
+                <strong>ID da página</strong> que aparece ao lado.
+                @if (tipo() === 'INSTAGRAM') {
+                  O <strong>ID da conta do Instagram</strong> aparece em
+                  <strong>Instagram → Configurações da API</strong>, depois de conectar a conta.
+                }
+              </li>
+              <li>Salve aqui. Aparecem o endereço do webhook e o token de verificação.</li>
+              <li>
+                De volta à Meta, em <strong>Webhooks</strong>, cole o endereço e o token, confirme e
+                assine os campos <code>messages</code>, <code>messaging_postbacks</code>,
+                <code>message_deliveries</code> e <code>message_reads</code>.
+              </li>
+              <li>
+                Para receber de qualquer pessoa (e não só de quem administra o app), deixe o app
+                <strong>Ao vivo</strong> com a permissão
+                <code>{{
+                  tipo() === 'INSTAGRAM' ? 'instagram_manage_messages' : 'pages_messaging'
+                }}</code>
+                aprovada na Análise do app.
+              </li>
+            </ol>
+          </details>
+        </app-cartao>
+
+        <form
+          class="meta__formulario"
+          novalidate
+          [formGroup]="formulario"
+          (ngSubmit)="salvar()"
+          aria-labelledby="canal-titulo"
+        >
+          @if (!canal.dados()) {
+            <app-cartao regiao titulo="Tipo" [nivel]="3">
+              <app-grupo-opcoes
+                rotulo="Qual canal da Meta"
+                disposicao="pilulas"
+                [opcoes]="opcoesTipo"
+                [valor]="tipo()"
+                (valorChange)="trocarTipo($event)"
+              />
+            </app-cartao>
+          }
+
+          <app-cartao regiao titulo="Credenciais do app" [nivel]="3">
+            <div class="formulario">
+              <app-campo-texto
+                #campoNome
+                rotulo="Nome do canal"
+                [placeholder]="
+                  tipo() === 'INSTAGRAM' ? 'Ex.: Instagram @brl' : 'Ex.: Página BRL no Facebook'
+                "
+                autocomplete="off"
+                [maximoCaracteres]="120"
+                formControlName="nome"
+              />
+              <div class="formulario__par">
+                <app-campo-texto
+                  rotulo="ID do app"
+                  teclado="numeric"
+                  autocomplete="off"
+                  placeholder="1234567890123456"
+                  [mensagens]="{ pattern: 'Use só os números do ID (de 5 a 30 dígitos).' }"
+                  formControlName="appId"
+                />
+                <app-campo-senha
+                  rotulo="Chave secreta do app"
+                  autocomplete="off"
+                  [opcional]="!!canal.dados()"
+                  [placeholder]="
+                    canal.dados()?.appSecret
+                      ? 'Mantém a gravada (' + canal.dados()!.appSecret + ')'
+                      : null
+                  "
+                  dica="Confere a assinatura das mensagens que a Meta manda."
+                  formControlName="appSecret"
+                />
+              </div>
+              <div class="formulario__par">
+                <app-campo-texto
+                  rotulo="ID da página"
+                  teclado="numeric"
+                  autocomplete="off"
+                  placeholder="109876543210987"
+                  [mensagens]="{ pattern: 'Use só os números do ID (de 5 a 30 dígitos).' }"
+                  formControlName="pageId"
+                />
+                @if (tipo() === 'INSTAGRAM') {
+                  <app-campo-texto
+                    rotulo="ID da conta do Instagram"
+                    teclado="numeric"
+                    autocomplete="off"
+                    placeholder="17841400000000000"
+                    [mensagens]="{ pattern: 'Use só os números do ID (de 5 a 30 dígitos).' }"
+                    formControlName="instagramId"
+                  />
+                }
+              </div>
+              <app-campo-senha
+                rotulo="Token da página"
+                autocomplete="off"
+                [opcional]="!!canal.dados()"
+                [placeholder]="
+                  canal.dados()?.tokenPagina
+                    ? 'Mantém o gravado (' + canal.dados()!.tokenPagina + ')'
+                    : null
+                "
+                dica="É com ele que o CRM envia as respostas. Fica cifrado e nunca é mostrado de novo."
+                formControlName="tokenPagina"
+              />
+            </div>
+          </app-cartao>
+
+          <app-cartao regiao titulo="Atendimento" [nivel]="3">
+            <div class="formulario">
+              <app-seletor
+                rotulo="Fila das conversas novas"
+                placeholder="Sem fila"
+                permitirVazio
+                [ajuda]="ajudaFila"
+                [opcoes]="filas.opcoes()"
+                formControlName="filaPadraoId"
+              />
+              <app-caixa-selecao
+                rotulo="Ligado"
+                dica="Desligado, as mensagens que a Meta mandar são ignoradas e nada sai por este canal."
+                formControlName="ativo"
+              />
+              <p class="formulario__nota">
+                O horário de atendimento, a resposta fora do horário e a pesquisa de satisfação
+                ficam em
+                <a
+                  routerLink="/configuracoes/atendimento/horarios"
+                  [queryParams]="canal.dados() ? { canal: canal.dados()!.id } : {}"
+                  >Configurações → Atendimento</a
+                >.
+              </p>
+            </div>
+          </app-cartao>
+
+          @if (erroGeral(); as erro) {
+            <p class="formulario__erro" role="alert">{{ erro }}</p>
+          }
+          <div class="meta__acoes">
+            <button appBotao type="submit" variante="invertido" [carregando]="salvando()">
+              {{ canal.dados() ? 'Salvar' : 'Criar canal' }}
+            </button>
+            <a appBotao variante="contorno" routerLink="/configuracoes/canais">
+              {{ canal.dados() ? 'Voltar' : 'Cancelar' }}
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <aside class="meta__lado" aria-label="Webhook e teste">
+        <app-cartao
+          regiao
+          id="webhook"
+          titulo="Webhook"
+          [nivel]="3"
+          dica="É por este endereço que a Meta avisa o CRM de cada mensagem nova. O token de verificação prova à Meta que o endereço é seu."
+        >
+          @if (canal.dados(); as c) {
+            <div class="webhook">
+              <div class="webhook__campo">
+                <span class="webhook__rotulo">Endereço (URL de retorno)</span>
+                <code class="webhook__valor">{{ c.webhook.url }}</code>
+                <app-botao-copiar [texto]="c.webhook.url" oQue="Endereço" />
+              </div>
+              <div class="webhook__campo">
+                <span class="webhook__rotulo">Token de verificação</span>
+                <code class="webhook__valor">{{ c.webhook.tokenVerificacao }}</code>
+                <app-botao-copiar [texto]="c.webhook.tokenVerificacao" oQue="Token" />
+              </div>
+              <div class="webhook__campo">
+                <span class="webhook__rotulo">Campos para assinar</span>
+                <ul class="webhook__campos">
+                  @for (campo of c.webhook.campos; track campo) {
+                    <li>
+                      <code>{{ campo }}</code>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </div>
+          } @else {
+            <p class="meta__depois">
+              Depois de criar, aparecem aqui o endereço do webhook e o token de verificação para
+              colar no painel da Meta.
+            </p>
+          }
+        </app-cartao>
+
+        @if (canal.dados(); as c) {
+          <app-cartao
+            regiao
+            titulo="Testar a conexão"
+            [nivel]="3"
+            dica="O CRM pergunta à Meta pela página usando o token gravado. Se funcionar, as respostas vão sair."
+          >
+            <div class="teste">
+              <button
+                appBotao
+                type="button"
+                variante="neutro"
+                [icone]="icones.testar"
+                [carregando]="testando()"
+                (click)="testar()"
+              >
+                Testar conexão
+              </button>
+              <div aria-live="polite">
+                @if (resultado(); as r) {
+                  <p class="teste__resultado" [class.teste__resultado--ok]="r.ok">
+                    <span class="teste__icone" aria-hidden="true">
+                      <svg [lucideIcon]="r.ok ? icones.ok : icones.falha" [size]="16" />
+                    </span>
+                    <span>
+                      <strong>{{ r.ok ? 'Funcionou.' : 'Não funcionou.' }}</strong>
+                      {{ r.mensagem }}
+                    </span>
+                  </p>
+                }
+              </div>
+              @if (c.ultimoErro) {
+                <p class="teste__erro">
+                  <strong
+                    >Último erro{{
+                      c.ultimoErroEm ? ' · ' + relativo(c.ultimoErroEm) : ''
+                    }}:</strong
+                  >
+                  {{ c.ultimoErro }}
+                </p>
+              }
+            </div>
+          </app-cartao>
+        }
+      </aside>
+    </div>
+  } @else {
+    <div class="tela__carregando" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando o canal…</p>
+      <app-esqueleto largura="35%" />
+      <app-cartao><app-esqueleto [linhas]="5" /></app-cartao>
+    </div>
+  }
+</section>

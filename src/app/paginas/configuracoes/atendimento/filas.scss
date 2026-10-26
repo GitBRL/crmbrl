@@ -1,0 +1,208 @@
+@use 'mixins' as m;
+@use '../secao' as s;
+
+:host {
+  display: block;
+}
+
+@include s.faixa;
+@include s.acao-flutuante;
+
+.filas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-5);
+  min-width: 0;
+}
+
+.filas__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-4);
+
+  .faixa {
+    flex: 1 1 28rem;
+  }
+}
+
+.filas__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+  gap: var(--esp-entre-cartoes);
+  align-items: start;
+}
+
+// Duas colunas equilibradas (filas.ts, `colunas`): cada uma empilha os seus cartões.
+.filas__coluna {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+  min-width: 0;
+}
+
+.filas__esqueleto {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.fila--inativa {
+  opacity: 0.72;
+}
+
+.fila__corpo {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.fila__selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin-top: calc(-1 * var(--esp-2));
+}
+
+.fila__descricao {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+// Os prazos e o volume em três números leves.
+.fila__numeros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--esp-2);
+  margin: 0;
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.fila__numero {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-1);
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+
+  dt {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-1);
+    min-height: 28px;
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda);
+  }
+
+  dd {
+    margin: 0;
+    font: var(--fonte-numero-pequeno);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.fila__sem-responsavel {
+  display: block;
+  color: var(--cor-destaque-texto);
+  font: var(--fonte-legenda);
+}
+
+.fila__rotulo {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.fila__canais,
+.fila__pessoas {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.fila__lista-canais {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fila__canal {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 32px;
+  padding: 0 var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  font: var(--fonte-legenda-lg);
+}
+
+.fila__canal--inativo {
+  color: var(--cor-texto-fraco);
+  text-decoration: line-through;
+}
+
+.fila__proximo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: 60px;
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+}
+
+.fila__proximo-textos {
+  display: grid;
+
+  strong {
+    font: var(--fonte-rotulo);
+  }
+}
+
+.fila__lista-pessoas {
+  display: grid;
+  gap: var(--esp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fila__pessoa {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-1) 0;
+}
+
+.fila__pessoa--fora app-avatar {
+  opacity: 0.55;
+}
+
+.fila__pessoa-textos {
+  display: grid;
+
+  strong {
+    font: var(--fonte-rotulo);
+  }
+
+  span {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-legenda-lg);
+  }
+}
+
+.fila__vazio,
+.fila__nota {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.fila__nota {
+  padding-top: var(--esp-3);
+  border-top: 1px solid var(--cor-borda);
+}

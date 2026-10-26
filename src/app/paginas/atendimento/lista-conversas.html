@@ -1,0 +1,258 @@
+<div class="lista__topo">
+  <div class="escopo" role="group" aria-label="Mostrar as conversas">
+    @for (opcao of escopos(); track opcao.id) {
+      <button
+        type="button"
+        class="escopo__opcao"
+        [attr.aria-pressed]="filtros().escopo === opcao.id"
+        [attr.aria-label]="opcao.rotuloFalado"
+        (click)="escolherEscopo(opcao.id)"
+      >
+        <span class="escopo__numero numeros" aria-hidden="true">{{ opcao.contagem ?? '–' }}</span>
+        <span class="escopo__rotulo" aria-hidden="true">{{ opcao.rotulo }}</span>
+      </button>
+    }
+  </div>
+
+  <div class="lista__busca">
+    <app-campo-busca
+      rotulo="Buscar conversas"
+      placeholder="Nome, telefone, e-mail ou assunto"
+      [valor]="termo()"
+      (valorChange)="digitar($event)"
+      (buscar)="aplicarBusca($event)"
+    />
+    <button
+      appBotaoIcone
+      type="button"
+      variante="contorno"
+      [icone]="icones.filtros"
+      [rotulo]="
+        ligados()
+          ? 'Filtros (' + ligados() + (ligados() === 1 ? ' ligado)' : ' ligados)')
+          : 'Filtros'
+      "
+      [contagem]="ligados() || null"
+      [attr.aria-expanded]="filtrosAbertos()"
+      [attr.aria-controls]="idFiltros"
+      (click)="filtrosAbertos.set(!filtrosAbertos())"
+    ></button>
+  </div>
+
+  <div class="lista__filtros" [id]="idFiltros" [hidden]="!filtrosAbertos()">
+    <div class="lista__filtro">
+      <span class="lista__filtro-rotulo" aria-hidden="true">Situação</span>
+      <app-filtros-pilula
+        rotulo="Situação"
+        [opcoes]="opcoesSituacao"
+        [selecionado]="filtros().situacao"
+        (selecionadoChange)="escolherSituacao($event)"
+      />
+    </div>
+    <div class="lista__filtro">
+      <span class="lista__filtro-rotulo" aria-hidden="true">Canal</span>
+      <app-filtros-pilula
+        rotulo="Canal"
+        multipla
+        [opcoes]="opcoesCanal()"
+        [selecionados]="filtros().canais"
+        (selecionadosChange)="escolherCanais($event)"
+      />
+    </div>
+    <div class="lista__filtro">
+      <div class="lista__filtro-cabeca">
+        <span class="lista__filtro-rotulo" aria-hidden="true">Só as que</span>
+        <app-dica
+          rotulo="O que é o prazo estourado"
+          titulo="Prazo (SLA)"
+          texto="Cada fila tem um prazo para a primeira resposta e outro para resolver a conversa (o SLA). Quando passa do prazo, o tempo de espera fica coral e a liderança da área é avisada."
+        />
+      </div>
+      <app-filtros-pilula
+        rotulo="Mostrar só as conversas"
+        multipla
+        [opcoes]="opcoesSomente()"
+        [selecionados]="somente()"
+        (selecionadosChange)="escolherSomente($event)"
+      />
+    </div>
+    <div class="lista__seletores">
+      <app-seletor
+        rotulo="Fila"
+        placeholder="Todas as filas"
+        permitirVazio
+        [opcoes]="opcoesFila()"
+        [valor]="filtros().filaId"
+        (valorChange)="escolherFila($event)"
+      />
+      <app-seletor
+        rotulo="Etiqueta"
+        placeholder="Todas as etiquetas"
+        permitirVazio
+        [opcoes]="opcoesEtiqueta()"
+        [valor]="filtros().etiqueta"
+        (valorChange)="escolherEtiqueta($event)"
+      />
+    </div>
+    @if (ligados()) {
+      <button appBotao type="button" tamanho="sm" variante="contorno" (click)="limparTudo()">
+        Limpar filtros
+      </button>
+    }
+  </div>
+</div>
+
+<nav
+  class="lista__rolagem"
+  aria-label="Conversas"
+  [attr.aria-busy]="estado.situacao() === 'carregando' || null"
+>
+  @switch (estado.situacao()) {
+    @case ('carregando') {
+      <p class="visualmente-oculto" role="status">Carregando as conversas…</p>
+      <ul class="lista__itens" aria-hidden="true">
+        @for (n of [1, 2, 3, 4, 5, 6]; track n) {
+          <li class="item item--esqueleto">
+            <app-esqueleto forma="circulo" largura="44px" altura="44px" />
+            <span class="item__corpo">
+              <app-esqueleto forma="texto" [largura]="n % 2 ? '60%' : '45%'" />
+              <app-esqueleto forma="texto" [largura]="n % 3 ? '90%' : '75%'" />
+            </span>
+          </li>
+        }
+      </ul>
+    }
+    @case ('erro') {
+      <app-estado-vazio
+        compacto
+        variante="erro"
+        titulo="Não deu para carregar as conversas"
+        [falha]="estado.falha()"
+        [texto]="estado.falha()?.mensagem ?? null"
+      >
+        <button appBotao type="button" variante="contorno" (click)="estado.recarregar()">
+          Tentar de novo
+        </button>
+      </app-estado-vazio>
+    }
+    @default {
+      @if (linhas().length) {
+        <ul class="lista__itens" (keydown)="aoTeclar($event)">
+          @for (linha of linhas(); track linha.conversa.id) {
+            @let conversa = linha.conversa;
+            @let selecionada = conversa.id === estado.selecionadaId();
+            <li>
+              <a
+                class="item"
+                [class.item--selecionada]="selecionada"
+                [class.item--nao-lida]="conversa.naoLidas > 0"
+                [class.item--resolvida]="conversa.status === 'RESOLVIDA'"
+                [routerLink]="['/atendimento', conversa.id]"
+                [attr.data-conversa]="conversa.id"
+                [attr.aria-current]="selecionada ? 'page' : null"
+                [attr.aria-label]="linha.rotulo"
+                [tabindex]="focavel() === conversa.id ? 0 : -1"
+                (focus)="aoFocar(conversa.id)"
+              >
+                <span class="item__avatar">
+                  <app-avatar [nome]="linha.nome" decorativo />
+                  <span class="item__canal recorte" [attr.data-canal]="conversa.canal.tipo">
+                    <svg [lucideIcon]="linha.canal.icone" [size]="12" [strokeWidth]="2" />
+                  </span>
+                </span>
+                <span class="item__corpo">
+                  <span class="item__linha">
+                    <span class="item__nome">{{ linha.nome }}</span>
+                    <span class="item__hora numeros">{{ linha.hora }}</span>
+                  </span>
+                  <span class="item__linha">
+                    <span class="item__previa">{{ linha.previa }}</span>
+                    @if (conversa.naoLidas > 0) {
+                      <span class="item__nao-lidas numeros">{{
+                        conversa.naoLidas > 99 ? '99+' : conversa.naoLidas
+                      }}</span>
+                    }
+                  </span>
+                  @if (
+                    linha.espera ||
+                    !conversa.responsavel ||
+                    linha.responsavel ||
+                    linha.prioridade ||
+                    linha.etiquetas.length ||
+                    conversa.status !== 'ABERTA'
+                  ) {
+                    <span class="item__meta">
+                      @if (linha.espera) {
+                        <app-selo
+                          tamanho="sm"
+                          [variante]="linha.espera.estourada ? 'coral' : 'neutro'"
+                          [icone]="icones.relogio"
+                          >{{ linha.espera.curta }}</app-selo
+                        >
+                      }
+                      @if (conversa.status === 'PENDENTE') {
+                        <app-selo tamanho="sm" variante="contorno">Aguardando</app-selo>
+                      } @else if (conversa.status === 'RESOLVIDA') {
+                        <app-selo tamanho="sm" variante="menta">Resolvida</app-selo>
+                      }
+                      @if (linha.prioridade) {
+                        <app-selo tamanho="sm" variante="lima">{{ linha.prioridade }}</app-selo>
+                      }
+                      @if (!conversa.responsavel && conversa.status !== 'RESOLVIDA') {
+                        <app-selo tamanho="sm" variante="contorno">Sem responsável</app-selo>
+                      } @else if (linha.responsavel) {
+                        <span class="item__responsavel">{{ linha.responsavel }}</span>
+                      }
+                      @for (etiqueta of linha.etiquetas; track etiqueta) {
+                        <span class="item__etiqueta">#{{ etiqueta }}</span>
+                      }
+                    </span>
+                  }
+                </span>
+              </a>
+            </li>
+          }
+        </ul>
+        @if (estado.temMais()) {
+          <div class="lista__mais">
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              [carregando]="estado.carregandoMais()"
+              (click)="estado.carregarMais()"
+            >
+              Carregar mais conversas
+            </button>
+          </div>
+        }
+      } @else if (temFiltro()) {
+        <app-estado-vazio
+          compacto
+          variante="busca"
+          titulo="Nenhuma conversa com estes filtros"
+          texto="Tente outra busca ou tire algum filtro."
+        >
+          <button appBotao type="button" variante="contorno" (click)="limparTudo()">
+            Limpar filtros
+          </button>
+        </app-estado-vazio>
+      } @else {
+        <app-estado-vazio
+          compacto
+          [titulo]="
+            filtros().situacao === 'RESOLVIDA'
+              ? 'Nenhuma conversa resolvida'
+              : filtros().escopo === 'MINHAS'
+                ? 'Nenhuma conversa com você'
+                : filtros().escopo === 'SEM_RESPONSAVEL'
+                  ? 'Nenhuma conversa esperando alguém'
+                  : 'Nenhuma conversa em aberto'
+          "
+          texto="As mensagens do WhatsApp, do chat do site, do e-mail, do Instagram e do Messenger aparecem aqui assim que chegam."
+        />
+      }
+    }
+  }
+</nav>

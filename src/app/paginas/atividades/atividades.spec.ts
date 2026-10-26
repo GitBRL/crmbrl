@@ -476,11 +476,18 @@ describe('Atividades', () => {
     const estado = raiz.querySelector('app-estado-vazio');
     expect(texto(estado)).toContain('Não conseguimos carregar as atividades');
     expect(texto(estado)).toContain('req-123');
+    // No topo da coluna, antes da criação rápida; sem a lista, os filtros e as abas saem.
+    const principal = raiz.querySelector('.principal')!;
+    expect(principal.firstElementChild?.tagName.toLowerCase()).toBe('app-estado-vazio');
+    expect(raiz.querySelector('.filtros')).toBeNull();
+    expect(raiz.querySelector('app-abas')).toBeNull();
     botao(raiz, 'Tentar de novo')?.click();
     await estabilizar(fixture);
     http.expectOne(ehAgenda).flush(agenda({ HOJE: [atividade('a1')] }));
     await estabilizar(fixture);
     expect(raiz.querySelectorAll('app-item-atividade').length).toBe(1);
+    expect(raiz.querySelector('.principal > app-estado-vazio')).toBeNull();
+    expect(raiz.querySelector('.filtros')).not.toBeNull();
   });
 
   it('cancelar pelo menu da linha pede confirmação e oferece "Desfazer"', async () => {

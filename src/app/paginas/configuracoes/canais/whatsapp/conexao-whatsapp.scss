@@ -1,0 +1,385 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+  container-type: inline-size;
+}
+
+.conexao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+// QR + passo a passo, lado a lado quando cabem (o cartão é um contêiner).
+.conexao--qr {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+
+  @container (max-width: 40rem) {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+
+.qr {
+  display: grid;
+  gap: var(--esp-3);
+  justify-items: center;
+  margin: 0;
+}
+
+// O QR precisa de fundo claro nos dois temas (a câmera lê módulos escuros sobre claro).
+.qr__moldura {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 272px;
+  height: 272px;
+  padding: var(--esp-4);
+  border-radius: var(--raio-xl);
+  background: var(--pb-branco);
+  box-shadow: 0 0 0 1px var(--cor-borda-forte);
+}
+
+.qr__imagem {
+  display: block;
+  width: 240px;
+  height: 240px;
+  image-rendering: pixelated;
+}
+
+.qr__moldura--vencido .qr__imagem {
+  opacity: 0.12;
+  filter: blur(2px);
+}
+
+.qr__gerando {
+  display: grid;
+  justify-items: center;
+  gap: var(--esp-3);
+  color: var(--pb-preto);
+  font: var(--fonte-corpo-sm);
+}
+
+// Gira por 5 s e para (nenhuma animação automática passa disso); o texto ao lado continua.
+.qr__girando {
+  animation: girar 1s linear 5;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.qr__vencido {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--esp-3);
+  color: var(--pb-preto);
+  font: var(--fonte-rotulo);
+}
+
+.qr__tempo {
+  display: grid;
+  justify-items: center;
+  gap: var(--esp-2);
+  width: 100%;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.qr__barra {
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-vidro-forte);
+}
+
+.qr__barra-cheia {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  // Lima no escuro, preto no claro (o lima sozinho some sobre o branco).
+  background: var(--cor-foco);
+  transition: inline-size 1s linear;
+}
+
+.passos {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.passos__titulo {
+  font: var(--fonte-h3);
+}
+
+// Passos numerados em círculos.
+.passos__lista {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: passo;
+
+  li {
+    position: relative;
+    min-height: 32px;
+    padding: 5px 0 0 calc(32px + var(--esp-3));
+    color: var(--cor-texto-suave);
+    font: var(--fonte-corpo);
+    counter-increment: passo;
+
+    &::before {
+      content: counter(passo);
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--cor-inverso);
+      color: var(--cor-sobre-inverso);
+      font: var(--fonte-rotulo);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  strong {
+    color: var(--cor-texto);
+    font-weight: 600;
+  }
+}
+
+.passos--resumo {
+  padding-top: var(--esp-5);
+  border-top: 1px solid var(--cor-borda);
+
+  .passos__titulo {
+    font: var(--fonte-rotulo);
+    color: var(--cor-texto-suave);
+  }
+
+  li {
+    font: var(--fonte-corpo-sm);
+
+    &::before {
+      background: var(--cor-vidro-forte);
+      color: var(--cor-texto);
+    }
+  }
+}
+
+.passos__dica {
+  display: flex;
+  gap: var(--esp-2);
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: var(--cor-vidro);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  svg {
+    flex: none;
+    margin-top: 3px;
+    color: var(--cor-info);
+  }
+}
+
+.conexao__circulo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--cor-vidro-forte);
+  color: var(--cor-texto);
+}
+
+.conexao__circulo--ok {
+  background: var(--dado-2);
+  color: var(--pb-preto);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.conexao__circulo--erro {
+  background: var(--cor-erro);
+  color: var(--cor-sobre-erro);
+}
+
+.conexao__circulo--vivo {
+  background: var(--dado-1);
+  color: var(--pb-preto);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.conexao__titulo {
+  font: var(--fonte-h3);
+}
+
+.conexao__texto {
+  max-width: 40rem;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo);
+}
+
+.conexao--centro {
+  justify-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-8) 0;
+  text-align: center;
+}
+
+.conexao__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.conectado {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-5);
+}
+
+.conectado__textos {
+  display: grid;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.conectado__rotulo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+// O telefone é o número grande e leve da tela.
+.conectado__telefone {
+  font: var(--fonte-h1);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-titulo);
+  overflow-wrap: anywhere;
+}
+
+.conectado__desde {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda-lg);
+}
+
+.conectado__fatos {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  li {
+    position: relative;
+    padding-left: var(--esp-5);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0.55em;
+      left: 4px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cor-sucesso);
+    }
+  }
+}
+
+.parado {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-5);
+}
+
+.parado__textos {
+  display: grid;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.parado__motivo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  strong {
+    color: var(--cor-texto);
+    font-weight: 600;
+  }
+}
+
+.parado__gateway {
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-erro);
+  border-radius: var(--raio-lg);
+  color: var(--cor-texto);
+  font: var(--fonte-corpo-sm);
+}
+
+@include m.abaixo(m.$sm) {
+  .qr__moldura {
+    width: 248px;
+    height: 248px;
+  }
+
+  .qr__imagem {
+    width: 216px;
+    height: 216px;
+  }
+
+  .conectado,
+  .parado {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--esp-3);
+  }
+
+  .conexao__circulo {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qr__girando {
+    animation: none;
+  }
+}
+
+// Quem abre esta tela no próprio celular não consegue ler o QR com ele.
+.passos__celular {
+  display: none;
+
+  @include m.abaixo(m.$md) {
+    display: flex;
+    gap: var(--esp-2);
+    padding: var(--esp-3) var(--esp-4);
+    border: 1px solid var(--cor-borda-forte);
+    border-radius: var(--raio-lg);
+    color: var(--cor-texto);
+    font: var(--fonte-corpo-sm);
+
+    svg {
+      flex: none;
+      margin-top: 3px;
+      color: var(--cor-aviso);
+    }
+  }
+}

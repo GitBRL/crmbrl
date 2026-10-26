@@ -186,19 +186,26 @@
                   ><svg lucideWorkflow [size]="16"
                 /></span>
                 <span>
-                  {{ vinculo.rotulo }}: <strong>{{ vinculo.funil }}</strong>
-                  @if (vinculo.titulo && vinculo.link) {
-                    —
-                    <a
-                      class="vinculo__link"
-                      [routerLink]="vinculo.link"
-                      [queryParams]="vinculo.queryParams"
-                      >{{ vinculo.titulo }}</a
-                    >
+                  @if (vinculo.semAcesso) {
+                    <!-- O espaço antes de "(sem acesso)" fica dentro do span (o solto some); o
+                         inseparável no meio não deixa o parêntese quebrar em duas linhas. -->
+                    {{ vinculo.rotulo }}: negócio em <strong>{{ vinculo.funil }}</strong
+                    ><span class="vinculo__extra"> (sem&nbsp;acesso)</span>
                   } @else {
-                    <span class="vinculo__extra">
-                      · por uma passagem; você não tem acesso a esse funil</span
-                    >
+                    {{ vinculo.rotulo }}: <strong>{{ vinculo.funil }}</strong>
+                    @if (vinculo.titulo && vinculo.link) {
+                      —
+                      <a
+                        class="vinculo__link"
+                        [routerLink]="vinculo.link"
+                        [queryParams]="vinculo.queryParams"
+                        >{{ vinculo.titulo }}</a
+                      >
+                    } @else if (!vinculo.carregando) {
+                      <span class="vinculo__extra">
+                        · por uma passagem; você não tem acesso a esse funil</span
+                      >
+                    }
                   }
                 </span>
               </li>

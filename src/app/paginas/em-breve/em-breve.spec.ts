@@ -90,19 +90,22 @@ describe('EmBreve', () => {
   }
 
   it('mostra o módulo no palco: título em dois tons, descrição, fase e funcionalidades', () => {
-    const { raiz } = criar('atendimento');
+    // Disparos continua "em breve" (o Atendimento ficou pronto na Onda A).
+    const { raiz } = criar('disparos');
     const titulo = raiz.querySelector('h1') as HTMLElement;
-    expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Atendimento · em breve');
+    expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Disparos · em breve');
     // O "·" fica no fim da primeira linha; o complemento desce inteiro.
     expect(titulo.querySelector('.tom-fraco')?.textContent?.trim()).toBe('·');
     expect(titulo.querySelector('.tom-fraco.sem-quebra')?.textContent?.trim()).toBe('em breve');
     expect(raiz.querySelector('app-cartao.em-breve__palco')?.classList).toContain('cartao--palco');
-    expect(raiz.textContent).toContain('Converse com clientes de todos os canais sem sair do CRM.');
+    expect(raiz.textContent).toContain(
+      'Envie campanhas de WhatsApp para listas de contatos, sem ferramenta externa.',
+    );
     expect(raiz.querySelector('app-selo')?.textContent?.trim()).toBe('Fase 2');
 
     const chips = [...raiz.querySelectorAll('app-chip')].map((chip) => chip.textContent?.trim());
     expect(chips.length).toBe(6);
-    expect(chips[0]).toBe('WhatsApp integrado por conexão própria (sem serviços de terceiros)');
+    expect(chips[0]).toBe('Listas e segmentos a partir dos contatos do CRM');
 
     const [fase, total] = [...raiz.querySelectorAll('app-indicador')];
     expect(fase.querySelector('.indicador__unidade--antes')?.textContent).toBe('Fase');

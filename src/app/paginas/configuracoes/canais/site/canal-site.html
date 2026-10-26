@@ -1,0 +1,344 @@
+<section class="tela" aria-labelledby="canal-titulo">
+  @if (canal.erro(); as erro) {
+    <app-cabecalho-canal titulo="Chat do site" tipo="WEBCHAT" />
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      manterAcoes
+      [titulo]="
+        erro.ehNaoEncontrado
+          ? 'Chat do site não encontrado'
+          : 'Não conseguimos abrir o chat do site'
+      "
+      [texto]="
+        erro.ehNaoEncontrado
+          ? 'Ele pode ter sido excluído. Volte para a lista de canais.'
+          : erro.resumo
+      "
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      @if (!erro.ehNaoEncontrado) {
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="icones.tentar"
+          (click)="abrir()"
+        >
+          Tentar de novo
+        </button>
+      }
+      <a appBotao variante="contorno" routerLink="/configuracoes/canais">Voltar aos canais</a>
+    </app-estado-vazio>
+  } @else if (pronto()) {
+    <app-cabecalho-canal
+      [titulo]="canal.dados()?.nome ?? 'Novo chat do site'"
+      tipo="WEBCHAT"
+      [situacao]="situacao()"
+      [frase]="
+        canal.dados()
+          ? null
+          : 'Um botão de conversa no seu site. Escolha as cores e os textos, salve e cole o trecho de instalação nas páginas.'
+      "
+    >
+      @if (canal.dados(); as c) {
+        <app-menu-acoes
+          cabecalho-acoes
+          [rotulo]="'Ações de ' + c.nome"
+          variante="contorno"
+          tamanho="md"
+          [itens]="acoes"
+          (escolher)="excluir()"
+        />
+      }
+    </app-cabecalho-canal>
+
+    @if (canal.dados()?.ultimoErro; as ultimoErro) {
+      <div class="faixa" role="note">
+        <svg lucideTriangleAlert class="faixa__icone" [size]="20" />
+        <p><strong>Último erro do canal.</strong> {{ ultimoErro }}</p>
+      </div>
+    }
+
+    <div class="site">
+      <form
+        class="site__formulario"
+        novalidate
+        id="formulario-site"
+        [formGroup]="formulario"
+        (ngSubmit)="salvar()"
+        aria-labelledby="canal-titulo"
+      >
+        <app-cartao regiao titulo="Canal" [nivel]="3">
+          <div class="formulario">
+            <app-campo-texto
+              #campoNome
+              rotulo="Nome"
+              placeholder="Ex.: Site institucional"
+              dica="Aparece no Atendimento junto de cada conversa que vier do site."
+              autocomplete="off"
+              [maximoCaracteres]="120"
+              formControlName="nome"
+            />
+            <app-seletor
+              rotulo="Fila das conversas novas"
+              placeholder="Sem fila"
+              permitirVazio
+              [ajuda]="ajudaFila"
+              [opcoes]="filas.opcoes()"
+              formControlName="filaPadraoId"
+            />
+            <app-caixa-selecao
+              rotulo="Ligado"
+              dica="Desligado, o botão do chat some do site e nada chega por ele."
+              formControlName="ativo"
+            />
+          </div>
+        </app-cartao>
+
+        <app-cartao
+          regiao
+          titulo="Sites autorizados"
+          [nivel]="3"
+          dica="Por segurança, o chat só abre nos endereços desta lista: se alguém copiar o trecho para outro site, ele não funciona lá. O próprio CRM sempre pode, para a prévia."
+        >
+          <div class="formulario">
+            <app-campo-dominios
+              rotulo="Endereços do site"
+              dica="Sem http, vale https://. Use *.seusite.com.br para todos os subdomínios (loja., blog.…)."
+              formControlName="dominios"
+            />
+          </div>
+        </app-cartao>
+
+        <app-cartao regiao titulo="Aparência" [nivel]="3">
+          <div class="formulario">
+            <app-campo-texto
+              rotulo="Título"
+              placeholder="Fale com a gente"
+              autocomplete="off"
+              [maximoCaracteres]="60"
+              formControlName="titulo"
+            />
+            <app-campo-texto
+              rotulo="Linha abaixo do título"
+              opcional
+              placeholder="Respondemos em poucos minutos."
+              autocomplete="off"
+              [maximoCaracteres]="120"
+              formControlName="subtitulo"
+            />
+            <app-area-texto
+              rotulo="Saudação"
+              opcional
+              dica="A primeira mensagem que o visitante vê, antes de escrever."
+              [linhas]="2"
+              [maximoCaracteres]="500"
+              formControlName="saudacao"
+            />
+            <div class="formulario__par formulario__par--largo">
+              <app-campo-cor
+                rotulo="Cor principal"
+                dica="Botão, cabeçalho e as mensagens do visitante."
+                [mensagens]="{ cor: 'Use o formato #RRGGBB, como #2563EB.' }"
+                formControlName="corPrimaria"
+              />
+              <app-grupo-opcoes
+                rotulo="Cor do texto sobre ela"
+                disposicao="pilulas"
+                [opcoes]="opcoesCorTexto()"
+                formControlName="corTexto"
+              />
+            </div>
+            @if (contrasteBaixo()) {
+              <p class="site__aviso" role="note">
+                <svg lucideTriangleAlert [size]="16" />
+                O texto fica difícil de ler sobre esta cor. Prefira “Automática”.
+              </p>
+            }
+            <div class="formulario__par">
+              <app-grupo-opcoes
+                rotulo="Tema"
+                disposicao="pilulas"
+                ajuda="Automático segue o tema (claro ou escuro) do aparelho de quem visita o site."
+                [opcoes]="opcoesTema"
+                formControlName="tema"
+              />
+              <app-grupo-opcoes
+                rotulo="Canto da página"
+                disposicao="pilulas"
+                [opcoes]="opcoesPosicao"
+                formControlName="posicao"
+              />
+            </div>
+          </div>
+        </app-cartao>
+
+        <app-cartao
+          regiao
+          titulo="Antes de conversar"
+          [nivel]="3"
+          dica="O visitante preenche o nome e um contato e concorda com o uso dos dados (LGPD) antes da primeira mensagem. Com isso, a conversa já chega ligada a um contato do CRM."
+        >
+          <div class="formulario">
+            <app-grupo-opcoes
+              rotulo="O que pedir além do nome"
+              [opcoes]="opcoesContato"
+              formControlName="contato"
+            />
+            <app-area-texto
+              rotulo="Texto do consentimento"
+              opcional
+              [placeholder]="consentimentoPadrao"
+              dica="Vazio, vale o texto padrão (o que aparece no campo)."
+              [linhas]="3"
+              [maximoCaracteres]="500"
+              formControlName="textoConsentimento"
+            />
+            <app-campo-texto
+              rotulo="Link da política de privacidade"
+              opcional
+              tipo="url"
+              placeholder="https://www.seusite.com.br/privacidade"
+              autocomplete="off"
+              [mensagens]="{ url: 'Use um endereço que comece com https://.' }"
+              formControlName="urlPrivacidade"
+            />
+            <app-caixa-selecao
+              rotulo="O visitante pode mandar arquivos"
+              dica="Imagens, PDF e documentos, até 25 MB."
+              formControlName="permitirAnexos"
+            />
+            <p class="formulario__nota">
+              O horário de atendimento, a mensagem fora do horário e a pesquisa de satisfação ficam
+              em
+              <a
+                routerLink="/configuracoes/atendimento/horarios"
+                [queryParams]="canal.dados() ? { canal: canal.dados()!.id } : {}"
+                >Configurações → Atendimento</a
+              >.
+            </p>
+          </div>
+        </app-cartao>
+
+        @if (erroGeral(); as erro) {
+          <p class="formulario__erro" role="alert">{{ erro }}</p>
+        }
+        <div class="site__acoes">
+          <button appBotao type="submit" variante="invertido" [carregando]="salvando()">
+            {{ canal.dados() ? 'Salvar' : 'Criar chat do site' }}
+          </button>
+          <a appBotao variante="contorno" routerLink="/configuracoes/canais">
+            {{ canal.dados() ? 'Voltar' : 'Cancelar' }}
+          </a>
+          @if (alterado()) {
+            <span class="formulario__acoes-nota">Há alterações não salvas.</span>
+          }
+        </div>
+      </form>
+
+      <aside class="site__lado" aria-label="Prévia e instalação">
+        <app-cartao regiao titulo="Prévia" [nivel]="3">
+          <app-previa-widget
+            [aparencia]="aparencia()"
+            [corTextoAutomatica]="formulario.controls.corTexto.value === 'auto'"
+            [contato]="formulario.controls.contato.value"
+            [textoConsentimento]="formulario.controls.textoConsentimento.value"
+            [consentimentoPadrao]="consentimentoPadrao"
+            [permitirAnexos]="formulario.controls.permitirAnexos.value"
+          />
+        </app-cartao>
+
+        <app-cartao
+          regiao
+          id="instalacao"
+          titulo="Instalação"
+          [nivel]="3"
+          [variante]="recemCriado() ? 'destaque' : 'padrao'"
+          [class.site__instalacao--vazia]="!canal.dados()"
+        >
+          @if (canal.dados(); as c) {
+            <div class="instalacao">
+              @if (c.dominios.length === 0) {
+                <p class="site__aviso" role="note">
+                  <svg lucideTriangleAlert [size]="16" />
+                  Inclua o endereço do site em “Sites autorizados”: sem ele, o chat não aparece.
+                </p>
+              }
+              <ol class="instalacao__passos">
+                <li>Copie o trecho abaixo.</li>
+                <li>
+                  Cole no código de <strong>todas as páginas</strong> do site, logo antes de
+                  <code>&lt;/body&gt;</code>. No WordPress, Wix ou Shopify, use o campo de “scripts
+                  do rodapé” (ou peça a quem cuida do site).
+                </li>
+                <li>Abra o site: o botão do chat aparece no canto escolhido.</li>
+              </ol>
+              <app-bloco-codigo
+                rotulo="Trecho de instalação"
+                oQue="Trecho"
+                compacto
+                [codigo]="c.instalacao.trecho"
+                alturaMaxima="10rem"
+              />
+              <div class="instalacao__acoes">
+                <button
+                  appBotao
+                  type="button"
+                  variante="neutro"
+                  [icone]="icones.testar"
+                  [disabled]="!c.ativo"
+                  [attr.title]="c.ativo ? null : 'Ligue o canal para testar.'"
+                  (click)="testando.set(true)"
+                >
+                  Testar o chat aqui
+                </button>
+              </div>
+            </div>
+          } @else {
+            <p class="instalacao__depois">
+              Depois de criar, aparece aqui o trecho de código para colar no site.
+            </p>
+          }
+        </app-cartao>
+      </aside>
+    </div>
+  } @else {
+    <div class="tela__carregando" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando o chat do site…</p>
+      <app-esqueleto largura="35%" />
+      <div class="site">
+        <div class="site__formulario">
+          <app-cartao><app-esqueleto [linhas]="4" /></app-cartao>
+          <app-cartao><app-esqueleto [linhas]="3" /></app-cartao>
+        </div>
+        <app-cartao><app-esqueleto forma="bloco" altura="420px" /></app-cartao>
+      </div>
+    </div>
+  }
+</section>
+
+@if (canal.dados(); as c) {
+  <app-modal
+    titulo="Testar o chat"
+    [complemento]="'· ' + c.nome"
+    largura="md"
+    [aberto]="testando()"
+    (fechado)="testando.set(false)"
+  >
+    <div class="teste">
+      <p class="teste__aviso">
+        <svg lucideInfo [size]="16" />
+        É o chat de verdade, com o que está salvo: uma mensagem enviada aqui vira uma conversa no
+        Atendimento (e um contato no CRM).
+      </p>
+      @if (testando()) {
+        <iframe
+          class="teste__quadro"
+          title="Chat do site em funcionamento"
+          [srcdoc]="paginaDeTeste()"
+        ></iframe>
+      }
+    </div>
+  </app-modal>
+}

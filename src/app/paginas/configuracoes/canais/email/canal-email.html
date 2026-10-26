@@ -1,0 +1,378 @@
+<section class="tela" aria-labelledby="canal-titulo">
+  @if (canal.erro(); as erro) {
+    <app-cabecalho-canal titulo="Caixa de e-mail" tipo="EMAIL" />
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      manterAcoes
+      [titulo]="
+        erro.ehNaoEncontrado
+          ? 'Caixa de e-mail não encontrada'
+          : 'Não conseguimos abrir a caixa de e-mail'
+      "
+      [texto]="
+        erro.ehNaoEncontrado
+          ? 'Ela pode ter sido excluída. Volte para a lista de canais.'
+          : erro.resumo
+      "
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      @if (!erro.ehNaoEncontrado) {
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="icones.tentar"
+          (click)="abrir()"
+        >
+          Tentar de novo
+        </button>
+      }
+      <a appBotao variante="contorno" routerLink="/configuracoes/canais">Voltar aos canais</a>
+    </app-estado-vazio>
+  } @else if (pronto()) {
+    <app-cabecalho-canal
+      [titulo]="canal.dados()?.nome ?? 'Nova caixa de e-mail'"
+      tipo="EMAIL"
+      [situacao]="situacao()"
+      [frase]="
+        canal.dados()
+          ? null
+          : 'Ligue uma caixa como atendimento@suaempresa.com.br: os e-mails que chegarem viram conversas e as respostas saem dela, no mesmo assunto.'
+      "
+    >
+      @if (canal.dados(); as c) {
+        <app-menu-acoes
+          cabecalho-acoes
+          [rotulo]="'Ações de ' + c.nome"
+          variante="contorno"
+          tamanho="md"
+          [itens]="acoes"
+          (escolher)="excluir()"
+        />
+      }
+    </app-cabecalho-canal>
+
+    <div class="email">
+      <form
+        class="email__formulario"
+        novalidate
+        [formGroup]="formulario"
+        (ngSubmit)="salvar()"
+        aria-labelledby="canal-titulo"
+      >
+        <app-cartao regiao titulo="Caixa" [nivel]="3">
+          <div class="formulario">
+            <app-grupo-opcoes
+              rotulo="Onde fica o e-mail"
+              disposicao="pilulas"
+              [opcoes]="opcoesProvedor"
+              [valor]="provedor()"
+              (valorChange)="escolherProvedor($event)"
+            />
+            <p class="email__dica" role="note">
+              <svg lucideInfo [size]="16" />
+              {{ dicaDoProvedor() }}
+            </p>
+            <div class="formulario__par">
+              <app-campo-texto
+                #campoEndereco
+                rotulo="Endereço"
+                tipo="email"
+                placeholder="atendimento@suaempresa.com.br"
+                autocomplete="off"
+                dica="As respostas saem deste endereço."
+                formControlName="endereco"
+              />
+              <app-campo-senha
+                #campoSenha
+                rotulo="Senha da caixa"
+                autocomplete="new-password"
+                [opcional]="!!canal.dados()"
+                [placeholder]="
+                  canal.dados()?.senha ? 'Mantém a gravada (' + canal.dados()!.senha + ')' : null
+                "
+                [dica]="
+                  canal.dados()
+                    ? 'Vazio mantém a senha gravada. Ela fica cifrada e nunca é mostrada.'
+                    : 'Fica cifrada no CRM e nunca é mostrada de novo.'
+                "
+                formControlName="senha"
+              />
+            </div>
+            <div class="formulario__par">
+              <app-campo-texto
+                #campoNome
+                rotulo="Nome do canal"
+                opcional
+                autocomplete="off"
+                [placeholder]="formulario.controls.endereco.value || 'Ex.: E-mail do atendimento'"
+                dica="Vazio, vale o endereço."
+                [maximoCaracteres]="120"
+                formControlName="nome"
+              />
+              <app-campo-texto
+                rotulo="Nome de quem envia"
+                opcional
+                placeholder="Ex.: Atendimento BRL"
+                autocomplete="off"
+                dica="Aparece como remetente nas respostas."
+                [maximoCaracteres]="120"
+                formControlName="nomeRemetente"
+              />
+            </div>
+            <app-seletor
+              rotulo="Fila das conversas novas"
+              placeholder="Sem fila"
+              permitirVazio
+              [ajuda]="ajudaFila"
+              [opcoes]="filas.opcoes()"
+              formControlName="filaPadraoId"
+            />
+            <app-caixa-selecao
+              rotulo="Ligado"
+              dica="Desligado, o CRM para de ler a caixa e não responde por ela."
+              formControlName="ativo"
+            />
+          </div>
+        </app-cartao>
+
+        <app-cartao
+          regiao
+          titulo="Recebimento"
+          complemento="· IMAP"
+          [nivel]="3"
+          dica="IMAP é como o CRM lê a caixa. Ele confere a cada minuto e só traz o que chegar depois de a caixa ser ligada — os e-mails antigos ficam onde estão."
+        >
+          <div class="formulario" formGroupName="imap">
+            <div class="formulario__par formulario__par--servidor">
+              <app-campo-texto
+                rotulo="Servidor"
+                placeholder="imap.suaempresa.com.br"
+                autocomplete="off"
+                formControlName="host"
+              />
+              <app-campo-texto
+                rotulo="Porta"
+                tipo="number"
+                [minimo]="1"
+                [maximo]="65535"
+                [passo]="1"
+                formControlName="porta"
+              />
+            </div>
+            <app-caixa-selecao
+              rotulo="Conexão segura (SSL/TLS)"
+              dica="Quase todo provedor usa (porta 993). Desmarque só se o seu pedir a porta 143."
+              formControlName="tls"
+            />
+            <div class="formulario__par">
+              <app-campo-texto
+                rotulo="Usuário"
+                opcional
+                autocomplete="off"
+                [placeholder]="formulario.controls.endereco.value || 'O próprio endereço'"
+                dica="Vazio, vale o endereço da caixa."
+                formControlName="usuario"
+              />
+              <app-campo-texto
+                rotulo="Pasta"
+                autocomplete="off"
+                dica="INBOX é a caixa de entrada."
+                formControlName="pasta"
+              />
+            </div>
+          </div>
+        </app-cartao>
+
+        <app-cartao
+          regiao
+          titulo="Envio"
+          complemento="· SMTP"
+          [nivel]="3"
+          dica="SMTP é como o CRM manda as respostas. As respostas saem no mesmo assunto, encadeadas no e-mail do cliente."
+        >
+          <div class="formulario" formGroupName="smtp">
+            <div class="formulario__par formulario__par--servidor">
+              <app-campo-texto
+                rotulo="Servidor"
+                opcional
+                autocomplete="off"
+                [placeholder]="
+                  formulario.controls.imap.controls.host.value || 'smtp.suaempresa.com.br'
+                "
+                dica="Vazio, usa o mesmo do recebimento."
+                formControlName="host"
+              />
+              <app-campo-texto
+                rotulo="Porta"
+                tipo="number"
+                [minimo]="1"
+                [maximo]="65535"
+                [passo]="1"
+                formControlName="porta"
+              />
+            </div>
+            <app-grupo-opcoes
+              rotulo="Segurança"
+              disposicao="pilulas"
+              [opcoes]="opcoesSeguranca"
+              formControlName="seguranca"
+            />
+            <app-campo-texto
+              rotulo="Usuário"
+              opcional
+              autocomplete="off"
+              [placeholder]="
+                formulario.controls.imap.controls.usuario.value ||
+                formulario.controls.endereco.value ||
+                'O mesmo do recebimento'
+              "
+              dica="Vazio, vale o mesmo do recebimento."
+              formControlName="usuario"
+            />
+          </div>
+          <div class="formulario email__senha-smtp">
+            <app-caixa-selecao
+              rotulo="O envio usa outra senha"
+              dica="Raro: só quando o provedor tem uma senha própria para o SMTP."
+              formControlName="outraSenhaSmtp"
+            />
+            @if (formulario.controls.outraSenhaSmtp.value) {
+              <app-campo-senha
+                class="formulario__recuo"
+                rotulo="Senha do envio"
+                autocomplete="new-password"
+                [opcional]="!!canal.dados()?.senhaSmtp"
+                [placeholder]="
+                  canal.dados()?.senhaSmtp
+                    ? 'Mantém a gravada (' + canal.dados()!.senhaSmtp + ')'
+                    : null
+                "
+                formControlName="senhaSmtp"
+              />
+            }
+          </div>
+        </app-cartao>
+
+        <app-cartao regiao titulo="Respostas" [nivel]="3">
+          <div class="formulario">
+            <app-area-texto
+              rotulo="Assinatura"
+              opcional
+              placeholder="Equipe BRL&#10;(11) 4000-0000 · brl.com.br"
+              dica="Vai no fim de cada resposta, em texto simples."
+              [linhas]="3"
+              [maximoCaracteres]="1000"
+              formControlName="assinatura"
+            />
+            <app-caixa-selecao
+              rotulo="Aceitar certificado não verificado"
+              dica="Só para servidores internos com certificado próprio. Deixe desmarcado em provedores comuns."
+              formControlName="ignorarCertificado"
+            />
+            <p class="formulario__nota">
+              O horário de atendimento, a resposta fora do horário e a pesquisa de satisfação ficam
+              em
+              <a
+                routerLink="/configuracoes/atendimento/horarios"
+                [queryParams]="canal.dados() ? { canal: canal.dados()!.id } : {}"
+                >Configurações → Atendimento</a
+              >.
+            </p>
+          </div>
+        </app-cartao>
+
+        @if (erroGeral(); as erro) {
+          <p class="formulario__erro" role="alert">{{ erro }}</p>
+        }
+        <div class="email__acoes">
+          <button appBotao type="submit" variante="invertido" [carregando]="salvando()">
+            {{ canal.dados() ? 'Salvar' : 'Criar caixa de e-mail' }}
+          </button>
+          <a appBotao variante="contorno" routerLink="/configuracoes/canais">
+            {{ canal.dados() ? 'Voltar' : 'Cancelar' }}
+          </a>
+        </div>
+      </form>
+
+      <aside class="email__lado" aria-label="Teste de conexão">
+        <app-cartao
+          regiao
+          titulo="Testar a conexão"
+          [nivel]="3"
+          dica="O CRM entra na caixa (IMAP) e no servidor de envio (SMTP) com os dados do formulário, sem salvar nada. Bom para conferir a senha antes de criar."
+        >
+          <div class="teste">
+            <p class="teste__frase">
+              Confira se o CRM consegue ler e enviar com os dados acima{{
+                canal.dados() ? ' (as mudanças ainda não salvas entram no teste)' : ''
+              }}.
+            </p>
+            <button
+              appBotao
+              type="button"
+              variante="neutro"
+              [icone]="icones.testar"
+              [carregando]="testando()"
+              (click)="testar()"
+            >
+              Testar conexão
+            </button>
+            <div aria-live="polite">
+              @if (resultado(); as r) {
+                <ul class="teste__resultados">
+                  <li class="teste__item" [class.teste__item--ok]="r.imap.ok">
+                    <span class="teste__icone" aria-hidden="true">
+                      <svg [lucideIcon]="r.imap.ok ? icones.ok : icones.falha" [size]="16" />
+                    </span>
+                    <span class="teste__textos">
+                      <strong
+                        >Recebimento (IMAP): {{ r.imap.ok ? 'funcionou' : 'não funcionou' }}</strong
+                      >
+                      <span>{{ r.imap.mensagem }}</span>
+                    </span>
+                  </li>
+                  <li class="teste__item" [class.teste__item--ok]="r.smtp.ok">
+                    <span class="teste__icone" aria-hidden="true">
+                      <svg [lucideIcon]="r.smtp.ok ? icones.ok : icones.falha" [size]="16" />
+                    </span>
+                    <span class="teste__textos">
+                      <strong>Envio (SMTP): {{ r.smtp.ok ? 'funcionou' : 'não funcionou' }}</strong>
+                      <span>{{ r.smtp.mensagem }}</span>
+                    </span>
+                  </li>
+                </ul>
+              } @else if (erroTeste(); as erro) {
+                <p class="formulario__erro" role="alert">{{ erro }}</p>
+              }
+            </div>
+          </div>
+        </app-cartao>
+
+        @if (canal.dados(); as c) {
+          <app-cartao regiao titulo="Leitura da caixa" [nivel]="3">
+            <dl class="leitura">
+              <div>
+                <dt>Última leitura com sucesso</dt>
+                <dd>{{ c.ultimaVarreduraEm ? relativo(c.ultimaVarreduraEm) : 'Ainda não leu' }}</dd>
+              </div>
+              @if (c.ultimoErro) {
+                <div class="leitura__erro">
+                  <dt>Último erro{{ c.ultimoErroEm ? ' · ' + relativo(c.ultimoErroEm) : '' }}</dt>
+                  <dd>{{ c.ultimoErro }}</dd>
+                </div>
+              }
+            </dl>
+          </app-cartao>
+        }
+      </aside>
+    </div>
+  } @else {
+    <div class="tela__carregando" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando a caixa de e-mail…</p>
+      <app-esqueleto largura="35%" />
+      <app-cartao><app-esqueleto [linhas]="5" /></app-cartao>
+    </div>
+  }
+</section>

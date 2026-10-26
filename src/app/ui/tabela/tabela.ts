@@ -36,7 +36,8 @@ export interface ColunaTabela {
   readonly rotuloOculto?: boolean;
   /**
    * Fica presa na borda direita quando a tabela rola na horizontal (a coluna de ações "⋯",
-   * para nunca sumir em telas de notebook).
+   * para nunca sumir em telas de notebook). O fundo dela é o de onde a tabela está: o da página
+   * ou, dentro de um `app-cartao`, a superfície do cartão (`--tabela-fundo` define à mão).
    */
   readonly fixa?: boolean;
 }

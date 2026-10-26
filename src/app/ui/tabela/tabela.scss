@@ -2,10 +2,20 @@
 // pontas arredondadas. Em contêiner estreito, vira lista de cartões (container query).
 
 :host {
+  // Fundo da coluna fixa ("⋯"): o de onde a tabela está. `--tabela-fundo` define à mão; sem
+  // ele, o da página — e, dentro de um cartão, a superfície do cartão (abaixo).
+  --_tabela-fundo: var(--tabela-fundo, var(--cor-fundo));
+
   container: tabela / inline-size;
 
   display: block;
   min-width: 0;
+}
+
+// A tabela num `app-cartao` (webhooks de entrada e de saída): a coluna fixa usa a superfície
+// do cartão nos dois temas, e não o fundo da página.
+:host-context(app-cartao) {
+  --_tabela-fundo: var(--tabela-fundo, var(--cor-superficie));
 }
 
 // `position: relative` prende aqui dentro o que é posicionado na tabela (o texto oculto do
@@ -97,18 +107,17 @@
 }
 
 // Coluna fixa na borda direita (ações "⋯"): continua à vista quando a tabela rola na
-// horizontal. O fundo cobre o que passa por baixo (`--tabela-fundo`: o fundo de onde a tabela
-// está; padrão, o da página).
+// horizontal. O fundo cobre o que passa por baixo (`--_tabela-fundo`: o fundo de onde a tabela
+// está — a página ou a superfície do cartão).
 .tabela__celula--fixa {
   position: sticky;
   inset-inline-end: 0;
   z-index: 2;
-  background-color: var(--tabela-fundo, var(--cor-fundo));
+  background-color: var(--_tabela-fundo);
 }
 
 .tabela__linha--clicavel:hover .tabela__celula--fixa {
-  background: linear-gradient(var(--cor-vidro), var(--cor-vidro))
-    var(--tabela-fundo, var(--cor-fundo));
+  background: linear-gradient(var(--cor-vidro), var(--cor-vidro)) var(--_tabela-fundo);
 }
 
 // Linha que abre: faixa de vidro com as pontas arredondadas sob o mouse.

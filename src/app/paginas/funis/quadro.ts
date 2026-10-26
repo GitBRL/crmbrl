@@ -45,6 +45,7 @@ import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { FiltrosPilula, type OpcaoFiltro } from '../../ui/filtros-pilula/filtros-pilula';
 import { type OpcaoSeletor, Seletor } from '../../ui/seletor/seletor';
 import { Selo } from '../../ui/selo/selo';
+import { partirTitulo } from '../../ui/tipos';
 import { type AcaoCartao, CartaoNegocio } from './cartao-negocio';
 import { ConfigurarEtapas } from './configurar-etapas';
 import { EstadoQuadro, type Movimento } from './estado-quadro';
@@ -151,6 +152,11 @@ export class QuadroFunil {
   protected readonly complemento = computed(() =>
     this.estado.situacao() === 'pronto' ? `${this.estado.totalAbertos()} em aberto` : null,
   );
+  /** "Customer Success&nbsp;· 9 em aberto": no celular o "·" fica no fim da 1ª linha. */
+  protected readonly tituloEmDoisTons = computed(() => {
+    const resto = this.complemento();
+    return partirTitulo(this.titulo(), resto ? `· ${resto}` : null);
+  });
   protected readonly podeConfigurar = computed(() =>
     podeConfigurarFunil(this.sessao.perfil(), this.areaAtual()),
   );

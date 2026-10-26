@@ -8,7 +8,7 @@ import type { Papel } from '../../nucleo/papeis';
 import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
 import { DetalheNegocio } from './detalhe-negocio';
 import { ETAPAS, FUNIL_ID, funilDeTeste, negocioDeTeste } from './funis-de-teste';
-import type { Negocio } from './funis.tipos';
+import type { JornadaDoNegocio, Negocio } from './funis.tipos';
 
 const [NOVO, PROPOSTA, GANHO, PERDIDO] = ETAPAS;
 
@@ -38,6 +38,7 @@ describe('DetalheNegocio', () => {
     negocio: Negocio,
     papel: Papel = 'LIDER_COMERCIAL',
     relacionados: Negocio[] = [],
+    jornada?: JornadaDoNegocio,
   ) {
     entrarComo(papel);
     fixture = TestBed.createComponent(DetalheNegocio);
@@ -45,7 +46,9 @@ describe('DetalheNegocio', () => {
     fixture.componentRef.setInput('negocioId', negocio.id);
     raiz = fixture.nativeElement as HTMLElement;
     fixture.detectChanges();
-    http.expectOne(`/api/v1/negocios/${negocio.id}`).flush(negocio);
+    http
+      .expectOne(`/api/v1/negocios/${negocio.id}`)
+      .flush(jornada ? { ...negocio, jornada } : negocio);
     await microtarefas();
     http.expectOne(`/api/v1/funis/${FUNIL_ID}`).flush(funilDeTeste());
     http
@@ -197,6 +200,47 @@ describe('DetalheNegocio', () => {
     expect(jornada.textContent).toContain('Veio de');
     expect(jornada.textContent).toContain('você não tem acesso');
     expect(jornada.querySelector('a')).toBeNull();
+  });
+
+  it('jornada: sem acesso aos funis vizinhos, "Veio de" e "Gerou" mostram só a área, sem link', async () => {
+    await abrir(negocioDeTeste('n1', GANHO, { negocioOrigemId: 'mkt-1' }), 'LIDER_COMERCIAL', [], {
+      origem: { id: 'mkt-1', area: 'MARKETING', visivel: false },
+      gerados: [{ id: 'cs1', area: 'CS', visivel: false }],
+    });
+    const itens = [...raiz.querySelectorAll('.jornada__item')].map((li) =>
+      li.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+    expect(itens).toEqual([
+      'Veio de: negócio em Marketing (sem acesso)',
+      'Gerou: negócio em Customer Success (sem acesso)',
+    ]);
+    expect(raiz.querySelector('.jornada a')).toBeNull();
+  });
+
+  it('jornada: origem visível que ainda não chegou na lista do contato não diz "sem acesso"', async () => {
+    await abrir(negocioDeTeste('n1', NOVO, { negocioOrigemId: 'mkt-1' }), 'C_LEVEL', [], {
+      origem: { id: 'mkt-1', area: 'MARKETING', visivel: true },
+      gerados: [],
+    });
+    const itens = [...raiz.querySelectorAll('.jornada__item')].map((li) =>
+      li.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+    expect(itens).toEqual(['Veio de: Marketing']);
+  });
+
+  it('jornada: o gerado que a pessoa vê continua com link (e não se repete)', async () => {
+    const gerado = negocioDeTeste('cs1', NOVO, {
+      titulo: 'Padaria — boas-vindas',
+      negocioOrigemId: 'n1',
+      funil: { id: 'f-cs', nome: 'Customer Success', area: 'CS' },
+    });
+    await abrir(negocioDeTeste('n1', GANHO), 'C_LEVEL', [gerado], {
+      origem: null,
+      gerados: [{ id: 'cs1', area: 'CS', visivel: true }],
+    });
+    const itens = [...raiz.querySelectorAll('.jornada__item')];
+    expect(itens).toHaveLength(1);
+    expect(itens[0].querySelector('a')?.getAttribute('href')).toBe('/funis/cs/cs1?funil=f-cs');
   });
 
   it('aba Dados salva só o que mudou', async () => {

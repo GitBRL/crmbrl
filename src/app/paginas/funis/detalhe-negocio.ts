@@ -42,6 +42,7 @@ import type {
   AlteracaoNegocio,
   Atividade,
   Funil,
+  JornadaDoNegocio,
   Negocio,
   OrigemContato,
   ResultadoMovimentacao,
@@ -78,7 +79,10 @@ export const ROTULO_ORIGEM: Readonly<Record<OrigemContato, string>> = {
   OUTRO: 'Outro',
 };
 
-/** Um negócio ligado pela jornada (veio de / gerou), com o link quando a pessoa o vê. */
+/**
+ * Um negócio ligado pela jornada (veio de / gerou), com o link quando a pessoa o vê. Sem acesso
+ * ao outro funil, só a área: "Gerou: negócio em Customer Success (sem acesso)".
+ */
 interface Vinculo {
   readonly rotulo: 'Veio de' | 'Gerou';
   readonly funil: string;
@@ -86,6 +90,10 @@ interface Vinculo {
   readonly link: readonly unknown[] | null;
   /** O funil do negócio ligado (a área pode ter mais de um): o quadro por trás é o dele. */
   readonly queryParams?: Record<string, string>;
+  /** Negócio num funil que a pessoa não vê, com a área conhecida (a API diz qual é). */
+  readonly semAcesso?: boolean;
+  /** A pessoa vê o negócio ligado, mas os dados dele ainda não chegaram (só a área). */
+  readonly carregando?: boolean;
 }
 
 /**
@@ -138,6 +146,8 @@ export class DetalheNegocio {
   protected readonly erro = signal<ErroApi | null>(null);
   protected readonly funil = signal<Funil | null>(null);
   protected readonly relacionados = signal<readonly Negocio[]>([]);
+  /** A jornada que o detalhe da API traz: a área (e a visibilidade) de cada lado. */
+  private readonly jornada = signal<JornadaDoNegocio | null>(null);
   private readonly usuariosLocais = signal<readonly Usuario[]>([]);
   protected readonly aba = signal<string | null>('linha');
   protected readonly versaoLinha = signal(0);
@@ -225,18 +235,36 @@ export class DetalheNegocio {
       return [];
     }
     const lista: Vinculo[] = [];
+    const jornada = this.jornada();
     if (negocio.negocioOrigemId) {
       const origem = this.relacionados().find((item) => item.id === negocio.negocioOrigemId);
+      const daJornada = jornada?.origem;
       lista.push(
         origem
           ? this.vinculo('Veio de', origem)
-          : { rotulo: 'Veio de', funil: 'outro funil', titulo: null, link: null },
+          : daJornada && !daJornada.visivel
+            ? semAcesso('Veio de', daJornada.area)
+            : daJornada
+              ? // Visível, mas a lista do contato ainda não chegou: só a área, por enquanto.
+                {
+                  rotulo: 'Veio de',
+                  funil: ROTULO_AREA[daJornada.area],
+                  titulo: null,
+                  link: null,
+                  carregando: true,
+                }
+              : { rotulo: 'Veio de', funil: 'outro funil', titulo: null, link: null },
       );
     }
-    for (const gerado of this.relacionados().filter(
-      (item) => item.negocioOrigemId === negocio.id,
-    )) {
+    const gerados = this.relacionados().filter((item) => item.negocioOrigemId === negocio.id);
+    for (const gerado of gerados) {
       lista.push(this.vinculo('Gerou', gerado));
+    }
+    // Os gerados em funis que a pessoa não vê (a lista do contato não os traz).
+    for (const gerado of jornada?.gerados ?? []) {
+      if (!gerado.visivel && !gerados.some((item) => item.id === gerado.id)) {
+        lista.push(semAcesso('Gerou', gerado.area));
+      }
     }
     return lista;
   });
@@ -570,6 +598,7 @@ export class DetalheNegocio {
     const doQuadro = this.estado?.negocio(id) ?? null;
     this.erro.set(null);
     this.relacionados.set([]);
+    this.jornada.set(null);
     this.aba.set('linha');
     if (doQuadro) {
       this.atualizar(doQuadro, true);
@@ -578,10 +607,11 @@ export class DetalheNegocio {
     }
     this.carregando.set(true);
     try {
-      const negocio = await this.api.negocio(id);
+      const { jornada, ...negocio } = await this.api.negocio(id);
       if (id !== this.negocioId()) {
         return;
       }
+      this.jornada.set(jornada ?? null);
       this.atualizar(negocio, !this.alterado());
       void this.carregarFunil(negocio);
       void this.carregarRelacionados(negocio);
@@ -689,4 +719,9 @@ export class DetalheNegocio {
       // O seletor fica com você e o responsável atual.
     }
   }
+}
+
+/** "Gerou: negócio em Customer Success (sem acesso)": o outro funil existe, mas a pessoa não o vê. */
+function semAcesso(rotulo: Vinculo['rotulo'], area: Area): Vinculo {
+  return { rotulo, funil: ROTULO_AREA[area], titulo: null, link: null, semAcesso: true };
 }

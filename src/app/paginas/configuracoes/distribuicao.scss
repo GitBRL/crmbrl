@@ -62,10 +62,10 @@
   font-size: 1rem;
 }
 
-// O próximo da vez ainda não entrou no CRM: aviso em tom de atenção.
-.rodizio__proximo-aviso {
-  margin-top: var(--esp-1);
-  color: var(--cor-aviso);
+// Quem a regra põe no rodízio mas ainda não ativou o acesso (fica fora da fila até ativar).
+.rodizio__aguardando {
+  margin-top: calc(-1 * var(--esp-2));
+  color: var(--cor-texto-suave);
   font: var(--fonte-legenda-lg);
 }
 

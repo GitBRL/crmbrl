@@ -19,7 +19,7 @@ import {
 
 import { type Pagina, POR_PAGINA_PADRAO, totalDePaginas } from '../../nucleo/api/api';
 import { AvisosService } from '../../nucleo/avisos.service';
-import { formatarDataHora, formatarTempoRelativo } from '../../nucleo/formatos';
+import { formatarDataHora, formatarTempoRelativo, semCodigoDeRegra } from '../../nucleo/formatos';
 import type { Papel } from '../../nucleo/papeis';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Avatar } from '../../ui/avatar/avatar';
@@ -271,7 +271,7 @@ export class Usuarios {
     try {
       const resposta = await this.api.reenviarConvite(usuario.id);
       this.avisos.sucesso(
-        `${resposta.mensagem} O link vale até ${formatarDataHora(resposta.expiraEm)}.`,
+        `${semCodigoDeRegra(resposta.mensagem)} O link vale até ${formatarDataHora(resposta.expiraEm)}.`,
       );
     } catch (falha) {
       this.avisos.erro(falha);

@@ -22,194 +22,91 @@
 
 <div class="grade">
   <div class="principal">
+    <!-- A agenda não carregou: o erro vem primeiro, à vista sem rolar (no celular a criação
+         rápida e os filtros o empurravam para fora da tela). Sem a lista, filtros e abas saem. -->
+    @if (falhaDaAgenda(); as falha) {
+      <app-estado-vazio
+        class="principal__erro"
+        variante="erro"
+        [falha]="falha"
+        titulo="Não conseguimos carregar as atividades"
+        [texto]="falha.resumo"
+        [codigo]="falha.requisicaoId"
+      >
+        <button appBotao variante="invertido" type="button" (click)="tentarDeNovo()">
+          Tentar de novo
+        </button>
+      </app-estado-vazio>
+    }
+
     <app-criacao-rapida (criada)="aoCriar($event)" />
 
-    <div class="filtros">
-      <app-filtros-pilula
-        rotulo="Mostrar atividades"
-        [opcoes]="opcoesEscopo()"
-        [selecionado]="escopo()"
-        (selecionadoChange)="escolherEscopo($event)"
-      />
-      <app-filtros-pilula
-        rotulo="Tipos de atividade"
-        multipla
-        [opcoes]="opcoesTipo"
-        [selecionados]="tipos()"
-        (selecionadosChange)="escolherTipos($event)"
-      />
-    </div>
+    @if (!falhaDaAgenda()) {
+      <div class="filtros">
+        <app-filtros-pilula
+          rotulo="Mostrar atividades"
+          [opcoes]="opcoesEscopo()"
+          [selecionado]="escopo()"
+          (selecionadoChange)="escolherEscopo($event)"
+        />
+        <app-filtros-pilula
+          rotulo="Tipos de atividade"
+          multipla
+          [opcoes]="opcoesTipo"
+          [selecionados]="tipos()"
+          (selecionadosChange)="escolherTipos($event)"
+        />
+      </div>
 
-    <app-abas
-      class="lista"
-      rotulo="Situação das atividades"
-      [abas]="abas"
-      [selecionada]="aba()"
-      (selecionadaChange)="escolherAba($event)"
-    >
-      <span class="lista__ancora visualmente-oculto" tabindex="-1">Lista de atividades</span>
-      @if (aba() === 'pendentes') {
-        @switch (estado()) {
-          @case ('carregando') {
-            <div class="lista__carregando" aria-busy="true">
-              <span class="visualmente-oculto" role="status">Carregando as atividades…</span>
-              @for (bloco of esqueleto; track $index) {
-                <div class="grupo grupo--esqueleto">
-                  <app-esqueleto forma="pilula" largura="10rem" />
-                  @for (linha of bloco; track linha) {
-                    <div class="esqueleto-linha">
-                      <app-esqueleto forma="circulo" largura="28px" altura="28px" />
-                      <app-esqueleto [linhas]="2" [largura]="$index % 2 ? '55%' : '72%'" />
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
-          @case ('erro') {
-            <app-estado-vazio
-              variante="erro"
-              [falha]="erro()"
-              titulo="Não conseguimos carregar as atividades"
-              [texto]="erro()?.resumo ?? null"
-              [codigo]="erro()?.requisicaoId ?? null"
-            >
-              <button appBotao variante="invertido" type="button" (click)="tentarDeNovo()">
-                Tentar de novo
-              </button>
-            </app-estado-vazio>
-          }
-          @default {
-            @for (grupo of gruposPendentes(); track grupo.grupo) {
-              <section
-                class="grupo"
-                [class.grupo--atrasadas]="grupo.grupo === 'ATRASADAS'"
-                [attr.data-grupo]="grupo.grupo"
-                [attr.aria-labelledby]="'titulo-grupo-' + grupo.grupo"
-              >
-                <h2 class="grupo__titulo" tabindex="-1" [id]="'titulo-grupo-' + grupo.grupo">
-                  <span class="grupo__ponto" aria-hidden="true"></span>
-                  {{ rotuloGrupo[grupo.grupo] }}
-                  <app-selo [variante]="grupo.grupo === 'ATRASADAS' ? 'coral' : 'neutro'">
-                    {{ grupo.total }}
-                    <span class="visualmente-oculto">
-                      {{ grupo.total === 1 ? 'atividade' : 'atividades' }}</span
-                    >
-                  </app-selo>
-                </h2>
-                <ul class="grupo__lista" role="list">
-                  @for (atividade of grupo.itens; track atividade.id) {
-                    <li>
-                      <app-item-atividade
-                        [atividade]="atividade"
-                        [agora]="agora()"
-                        [mostrarResponsavel]="mostrarResponsavel(atividade)"
-                        [marcada]="marcadas().get(atividade.id) ?? null"
-                        [ocupada]="marcadas().has(atividade.id)"
-                        [destacada]="destacada() === atividade.id"
-                        (alternar)="alternar(atividade, $event)"
-                        (agir)="agir(atividade, $event)"
-                      />
-                    </li>
-                  }
-                </ul>
-                @if (grupo.itens.length < grupo.total) {
-                  <button
-                    appBotao
-                    type="button"
-                    variante="contorno"
-                    tamanho="sm"
-                    class="grupo__mais"
-                    [carregando]="carregandoMais() === grupo.grupo"
-                    (click)="mostrarMais(grupo)"
-                  >
-                    Mostrar mais · faltam {{ grupo.total - grupo.itens.length }}
-                  </button>
-                }
-              </section>
-            } @empty {
-              @if (comFiltroDeTipo()) {
-                <app-estado-vazio
-                  variante="busca"
-                  titulo="Nenhuma pendente desses tipos"
-                  texto="Tire o filtro de tipo para ver todas as atividades pendentes."
-                >
-                  <button appBotao variante="contorno" type="button" (click)="limparFiltros()">
-                    Limpar filtros
-                  </button>
-                </app-estado-vazio>
-              } @else {
-                <app-estado-vazio
-                  titulo="Tudo em dia"
-                  [texto]="
-                    escopo() === 'MINHAS'
-                      ? 'Nenhuma atividade pendente com você. Registre a próxima no campo acima.'
-                      : 'Nenhuma atividade pendente nesta visão.'
-                  "
-                >
-                  <button appBotao variante="invertido" type="button" (click)="focarCriacao()">
-                    Nova atividade
-                  </button>
-                </app-estado-vazio>
-              }
-            }
-          }
-        }
-      } @else {
-        @switch (estadoConcluidas()) {
-          @case ('carregando') {
-            <div class="lista__carregando" aria-busy="true">
-              <span class="visualmente-oculto" role="status">Carregando as concluídas…</span>
-              <div class="grupo grupo--esqueleto">
-                @for (linha of [1, 2, 3, 4]; track linha) {
-                  <div class="esqueleto-linha">
-                    <app-esqueleto forma="circulo" largura="28px" altura="28px" />
-                    <app-esqueleto [linhas]="2" [largura]="linha % 2 ? '65%' : '48%'" />
+      <app-abas
+        class="lista"
+        rotulo="Situação das atividades"
+        [abas]="abas"
+        [selecionada]="aba()"
+        (selecionadaChange)="escolherAba($event)"
+      >
+        <span class="lista__ancora visualmente-oculto" tabindex="-1">Lista de atividades</span>
+        @if (aba() === 'pendentes') {
+          @switch (estado()) {
+            @case ('carregando') {
+              <div class="lista__carregando" aria-busy="true">
+                <span class="visualmente-oculto" role="status">Carregando as atividades…</span>
+                @for (bloco of esqueleto; track $index) {
+                  <div class="grupo grupo--esqueleto">
+                    <app-esqueleto forma="pilula" largura="10rem" />
+                    @for (linha of bloco; track linha) {
+                      <div class="esqueleto-linha">
+                        <app-esqueleto forma="circulo" largura="28px" altura="28px" />
+                        <app-esqueleto [linhas]="2" [largura]="$index % 2 ? '55%' : '72%'" />
+                      </div>
+                    }
                   </div>
                 }
               </div>
-            </div>
-          }
-          @case ('erro') {
-            <app-estado-vazio
-              variante="erro"
-              [falha]="erroConcluidas()"
-              titulo="Não conseguimos carregar as concluídas"
-              [texto]="erroConcluidas()?.resumo ?? null"
-              [codigo]="erroConcluidas()?.requisicaoId ?? null"
-            >
-              <button
-                appBotao
-                variante="invertido"
-                type="button"
-                (click)="irParaPaginaConcluidas(paginaConcluidas())"
-              >
-                Tentar de novo
-              </button>
-            </app-estado-vazio>
-          }
-          @default {
-            @if (concluidas(); as pagina) {
-              @if (pagina.total === 0) {
-                <app-estado-vazio
-                  [variante]="comFiltroDeTipo() ? 'busca' : 'vazio'"
-                  titulo="Nenhuma atividade concluída"
-                  texto="Quando uma atividade for concluída, ela aparece aqui, da mais recente para a mais antiga."
-                />
-              } @else {
-                <section class="grupo" data-grupo="CONCLUIDAS" aria-labelledby="titulo-concluidas">
-                  <h2 class="grupo__titulo" id="titulo-concluidas">
+            }
+            @case ('erro') {
+              <!-- O erro da agenda aparece no topo da coluna (falhaDaAgenda). -->
+            }
+            @default {
+              @for (grupo of gruposPendentes(); track grupo.grupo) {
+                <section
+                  class="grupo"
+                  [class.grupo--atrasadas]="grupo.grupo === 'ATRASADAS'"
+                  [attr.data-grupo]="grupo.grupo"
+                  [attr.aria-labelledby]="'titulo-grupo-' + grupo.grupo"
+                >
+                  <h2 class="grupo__titulo" tabindex="-1" [id]="'titulo-grupo-' + grupo.grupo">
                     <span class="grupo__ponto" aria-hidden="true"></span>
-                    Concluídas
-                    <app-selo>
-                      {{ pagina.total }}
+                    {{ rotuloGrupo[grupo.grupo] }}
+                    <app-selo [variante]="grupo.grupo === 'ATRASADAS' ? 'coral' : 'neutro'">
+                      {{ grupo.total }}
                       <span class="visualmente-oculto">
-                        {{ pagina.total === 1 ? 'atividade' : 'atividades' }}</span
+                        {{ grupo.total === 1 ? 'atividade' : 'atividades' }}</span
                       >
                     </app-selo>
                   </h2>
                   <ul class="grupo__lista" role="list">
-                    @for (atividade of pagina.itens; track atividade.id) {
+                    @for (atividade of grupo.itens; track atividade.id) {
                       <li>
                         <app-item-atividade
                           [atividade]="atividade"
@@ -217,28 +114,144 @@
                           [mostrarResponsavel]="mostrarResponsavel(atividade)"
                           [marcada]="marcadas().get(atividade.id) ?? null"
                           [ocupada]="marcadas().has(atividade.id)"
+                          [destacada]="destacada() === atividade.id"
                           (alternar)="alternar(atividade, $event)"
                           (agir)="agir(atividade, $event)"
                         />
                       </li>
                     }
                   </ul>
-                  @if (pagina.total > porPaginaConcluidas) {
-                    <app-paginacao
-                      rotulo="Paginação das concluídas"
-                      [total]="pagina.total"
-                      [porPagina]="porPaginaConcluidas"
-                      [pagina]="paginaConcluidas()"
-                      (paginaChange)="irParaPaginaConcluidas($event)"
-                    />
+                  @if (grupo.itens.length < grupo.total) {
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      class="grupo__mais"
+                      [carregando]="carregandoMais() === grupo.grupo"
+                      (click)="mostrarMais(grupo)"
+                    >
+                      Mostrar mais · faltam {{ grupo.total - grupo.itens.length }}
+                    </button>
                   }
                 </section>
+              } @empty {
+                @if (comFiltroDeTipo()) {
+                  <app-estado-vazio
+                    variante="busca"
+                    titulo="Nenhuma pendente desses tipos"
+                    texto="Tire o filtro de tipo para ver todas as atividades pendentes."
+                  >
+                    <button appBotao variante="contorno" type="button" (click)="limparFiltros()">
+                      Limpar filtros
+                    </button>
+                  </app-estado-vazio>
+                } @else {
+                  <app-estado-vazio
+                    titulo="Tudo em dia"
+                    [texto]="
+                      escopo() === 'MINHAS'
+                        ? 'Nenhuma atividade pendente com você. Registre a próxima no campo acima.'
+                        : 'Nenhuma atividade pendente nesta visão.'
+                    "
+                  >
+                    <button appBotao variante="invertido" type="button" (click)="focarCriacao()">
+                      Nova atividade
+                    </button>
+                  </app-estado-vazio>
+                }
+              }
+            }
+          }
+        } @else {
+          @switch (estadoConcluidas()) {
+            @case ('carregando') {
+              <div class="lista__carregando" aria-busy="true">
+                <span class="visualmente-oculto" role="status">Carregando as concluídas…</span>
+                <div class="grupo grupo--esqueleto">
+                  @for (linha of [1, 2, 3, 4]; track linha) {
+                    <div class="esqueleto-linha">
+                      <app-esqueleto forma="circulo" largura="28px" altura="28px" />
+                      <app-esqueleto [linhas]="2" [largura]="linha % 2 ? '65%' : '48%'" />
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+            @case ('erro') {
+              <app-estado-vazio
+                variante="erro"
+                [falha]="erroConcluidas()"
+                titulo="Não conseguimos carregar as concluídas"
+                [texto]="erroConcluidas()?.resumo ?? null"
+                [codigo]="erroConcluidas()?.requisicaoId ?? null"
+              >
+                <button
+                  appBotao
+                  variante="invertido"
+                  type="button"
+                  (click)="irParaPaginaConcluidas(paginaConcluidas())"
+                >
+                  Tentar de novo
+                </button>
+              </app-estado-vazio>
+            }
+            @default {
+              @if (concluidas(); as pagina) {
+                @if (pagina.total === 0) {
+                  <app-estado-vazio
+                    [variante]="comFiltroDeTipo() ? 'busca' : 'vazio'"
+                    titulo="Nenhuma atividade concluída"
+                    texto="Quando uma atividade for concluída, ela aparece aqui, da mais recente para a mais antiga."
+                  />
+                } @else {
+                  <section
+                    class="grupo"
+                    data-grupo="CONCLUIDAS"
+                    aria-labelledby="titulo-concluidas"
+                  >
+                    <h2 class="grupo__titulo" id="titulo-concluidas">
+                      <span class="grupo__ponto" aria-hidden="true"></span>
+                      Concluídas
+                      <app-selo>
+                        {{ pagina.total }}
+                        <span class="visualmente-oculto">
+                          {{ pagina.total === 1 ? 'atividade' : 'atividades' }}</span
+                        >
+                      </app-selo>
+                    </h2>
+                    <ul class="grupo__lista" role="list">
+                      @for (atividade of pagina.itens; track atividade.id) {
+                        <li>
+                          <app-item-atividade
+                            [atividade]="atividade"
+                            [agora]="agora()"
+                            [mostrarResponsavel]="mostrarResponsavel(atividade)"
+                            [marcada]="marcadas().get(atividade.id) ?? null"
+                            [ocupada]="marcadas().has(atividade.id)"
+                            (alternar)="alternar(atividade, $event)"
+                            (agir)="agir(atividade, $event)"
+                          />
+                        </li>
+                      }
+                    </ul>
+                    @if (pagina.total > porPaginaConcluidas) {
+                      <app-paginacao
+                        rotulo="Paginação das concluídas"
+                        [total]="pagina.total"
+                        [porPagina]="porPaginaConcluidas"
+                        [pagina]="paginaConcluidas()"
+                        (paginaChange)="irParaPaginaConcluidas($event)"
+                      />
+                    }
+                  </section>
+                }
               }
             }
           }
         }
-      }
-    </app-abas>
+      </app-abas>
+    }
   </div>
 
   <aside class="lateral" aria-label="Resumo das atividades">

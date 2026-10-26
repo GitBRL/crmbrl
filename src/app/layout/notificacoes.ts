@@ -19,6 +19,8 @@ import {
   LucideContact,
   LucideDynamicIcon,
   LucideHandshake,
+  LucideMessageCircle,
+  LucideMessagesSquare,
   LucideRefreshCw,
   LucideTriangleAlert,
   LucideUserMinus,
@@ -53,8 +55,24 @@ const ICONE_DO_TIPO: Readonly<Record<string, LucideIcon>> = {
   'equipe.sem_lider': LucideUserMinus,
 };
 
+/**
+ * Tipos novos pelo começo do nome (Onda A: conversas do Atendimento, menções no Chat da equipe,
+ * avisos dos canais), para um tipo que a API acrescentar já ter o ícone do módulo.
+ */
+const ICONE_DO_PREFIXO: readonly (readonly [string, LucideIcon])[] = [
+  ['conversa.', LucideMessagesSquare],
+  ['atendimento.', LucideMessagesSquare],
+  ['chat.', LucideMessageCircle],
+  ['whatsapp.', LucideWebhook],
+  ['canal.', LucideWebhook],
+];
+
 export function iconeDaNotificacao(tipo: string): LucideIcon {
-  return ICONE_DO_TIPO[tipo] ?? LucideBell;
+  return (
+    ICONE_DO_TIPO[tipo] ??
+    ICONE_DO_PREFIXO.find(([prefixo]) => tipo.startsWith(prefixo))?.[1] ??
+    LucideBell
+  );
 }
 
 interface ItemNotificacao {
@@ -69,8 +87,9 @@ interface ItemNotificacao {
 /**
  * Sino da barra superior (TELAS-FASE1 §2): botão-ícone com a contagem de não lidas e um
  * painel suspenso com as notificações — não lidas primeiro, ícone por tipo, tempo relativo,
- * link para o item e "Marcar todas como lidas". Os dados vêm do `NotificacoesService`, que
- * atualiza a cada 30 s e quando a aba volta a ficar visível; abrir o painel atualiza na hora.
+ * link para o item e "Marcar todas como lidas". Os dados vêm do `NotificacoesService`: as novas
+ * chegam ao vivo (tempo real), com uma busca de reserva a cada 60 s e quando a aba volta a ficar
+ * visível; abrir o painel atualiza na hora.
  * Esc ou clique fora fecham. Notificações novas são anunciadas aos leitores de tela.
  */
 @Component({

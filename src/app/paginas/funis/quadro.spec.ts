@@ -111,6 +111,9 @@ describe('QuadroFunil', () => {
     await abrir();
     expect(raiz.querySelector('h1')?.textContent).toContain('Comercial');
     expect(raiz.querySelector('h1')?.textContent).toContain('3 em aberto');
+    // O "·" fica preso ao título (espaço inseparável) e só depois dele a linha pode quebrar.
+    expect(raiz.querySelector('h1')?.textContent?.trim()).toBe('Comercial\u00a0· 3 em aberto');
+    expect(raiz.querySelector('h1 .sem-quebra')?.textContent).toBe('3 em aberto');
     const nomes = [...raiz.querySelectorAll('.coluna__titulo')].map((el) =>
       el.childNodes[0].textContent!.trim(),
     );

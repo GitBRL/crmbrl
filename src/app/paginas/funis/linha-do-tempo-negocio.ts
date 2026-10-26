@@ -23,7 +23,7 @@ import {
 } from '@lucide/angular';
 
 import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
-import { formatarDataHora, formatarTempoRelativo } from '../../nucleo/formatos';
+import { formatarDataHora, formatarTempoRelativo, semCodigoDeRegra } from '../../nucleo/formatos';
 import { Botao } from '../../ui/botao/botao';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
@@ -123,6 +123,8 @@ function paraItem(registro: RegistroLinhaDoTempo): ItemLinha {
   const quandoCompleto = formatarDataHora(registro.ocorridoEm);
   if (registro.evento) {
     const evento = registro.evento;
+    // Eventos antigos guardavam o código da regra no resumo ("(LGPD, R4.6)"): fora da tela.
+    const resumo = semCodigoDeRegra(evento.resumo);
     const verbo = evento.acao.split('.')[1];
     const motivo =
       evento.acao === 'negocio.perdido' && typeof evento.dados?.['motivoPerda'] === 'string'
@@ -131,11 +133,11 @@ function paraItem(registro: RegistroLinhaDoTempo): ItemLinha {
     return {
       id: `evento-${evento.id}`,
       icone: iconeDaAcao(evento.acao),
-      titulo: evento.resumo,
+      titulo: resumo,
       // "por Fulano" — a não ser que o resumo já diga quem fez (as passagens dizem).
       detalhe:
         [
-          evento.atorDescricao && !evento.resumo.includes(evento.atorDescricao)
+          evento.atorDescricao && !resumo.includes(evento.atorDescricao)
             ? `por ${evento.atorDescricao}`
             : null,
           motivo,

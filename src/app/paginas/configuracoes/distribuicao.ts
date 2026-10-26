@@ -18,13 +18,14 @@ import { ConfiguracoesApi } from './configuracoes.api';
 import type { RegraDistribuicao } from './configuracoes.modelos';
 import { juntarNomes, LIDER_DA_AREA } from './hierarquia';
 import {
+  ACESSO_PENDENTE,
   destinoSemFila,
   DICA_RODIZIO,
   operacaoDeParticipacao,
   type PessoaDaArea,
   type PessoaDoRodizio,
   pessoasDoRodizio,
-  TEXTO_ACESSO_PENDENTE,
+  QUANDO_ENTRA,
 } from './rodizio';
 
 /** O que a tela carrega: as regras que o usuário configura e as pessoas ativas de cada área. */
@@ -41,8 +42,8 @@ interface AreaVisual {
   readonly lideres: readonly PessoaDoRodizio[];
   readonly naFila: number;
   readonly dicaLider: string;
-  /** O próximo da vez nunca entrou no CRM: o lead vai para ele mesmo assim. */
-  readonly avisoDoProximo: string | null;
+  /** Quem vai para a fila quando ativar o acesso (R5.8): "Rodrigo Nunes ainda não ativou…". */
+  readonly avisoAguardando: string | null;
 }
 
 /**
@@ -95,7 +96,7 @@ export class Distribuicao {
         lideres,
         naFila: regra.participantes.length,
         dicaLider: this.dicaDoLider(regra.area, lideres, regra.incluirLideres),
-        avisoDoProximo: avisoDoProximo(pessoas.find((pessoa) => pessoa.proximo)),
+        avisoAguardando: avisoAguardando(pessoas),
       };
     });
   });
@@ -173,9 +174,13 @@ export class Distribuicao {
           ? await this.api.removerAjuste(area.regra.area, pessoa.id)
           : await this.api.definirParticipacao(area.regra.area, pessoa.id, participa);
       this.substituir(regra);
-      const mensagem = participa
-        ? `${pessoa.nome} entrou no rodízio de ${area.rotulo}.`
-        : `${pessoa.nome} saiu do rodízio de ${area.rotulo}.`;
+      // Quem ainda não ativou o acesso só entra na fila quando ativar (R5.8).
+      const espera = regra.aguardandoAcesso?.find((item) => item.id === pessoa.id);
+      const mensagem = !participa
+        ? `${pessoa.nome} saiu do rodízio de ${area.rotulo}.`
+        : espera
+          ? `${pessoa.nome} vai para o rodízio de ${area.rotulo}: ${QUANDO_ENTRA[ACESSO_PENDENTE[espera.motivo]]}.`
+          : `${pessoa.nome} entrou no rodízio de ${area.rotulo}.`;
       this.avisos.sucesso(mensagem, {
         chave: `rodizio-${chave}`,
         acao: desfazendo
@@ -261,10 +266,18 @@ export class Distribuicao {
   }
 }
 
-/** "Ainda não entrou no CRM: o próximo lead vai para essa pessoa mesmo assim…" */
-function avisoDoProximo(proximo: PessoaDoRodizio | undefined): string | null {
-  if (!proximo?.acessoPendente) {
+/**
+ * "Rodrigo Nunes ainda não ativou o acesso: entra na fila quando ativar." — quem a regra (ou
+ * um ajuste) põe no rodízio mas ainda está fora da fila (R5.8).
+ */
+function avisoAguardando(pessoas: readonly PessoaDoRodizio[]): string | null {
+  const nomes = pessoas
+    .filter((pessoa) => pessoa.acessoPendente && pessoa.participa)
+    .map((pessoa) => pessoa.nome);
+  if (nomes.length === 0) {
     return null;
   }
-  return `${TEXTO_ACESSO_PENDENTE[proximo.acessoPendente]}. O próximo lead vai para essa pessoa mesmo assim; se preferir, tire do rodízio até ela começar.`;
+  return nomes.length === 1
+    ? `${nomes[0]} ainda não ativou o acesso: entra na fila quando ativar.`
+    : `${juntarNomes(nomes)} ainda não ativaram o acesso: entram na fila quando ativarem.`;
 }

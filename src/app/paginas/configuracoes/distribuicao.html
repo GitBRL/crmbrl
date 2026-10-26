@@ -73,14 +73,14 @@
                 <div class="rodizio__proximo-textos">
                   <span class="rodizio__rotulo">Próximo da vez</span>
                   <strong class="rodizio__proximo-nome">{{ proximo.nome }}</strong>
-                  @if (area.avisoDoProximo; as aviso) {
-                    <span class="rodizio__proximo-aviso">{{ aviso }}</span>
-                  }
                 </div>
               } @else {
                 <p class="rodizio__sem-fila">{{ destinoSemFila(area.regra) }}</p>
               }
             </div>
+            @if (area.avisoAguardando; as aviso) {
+              <p class="rodizio__aguardando">{{ aviso }}</p>
+            }
 
             @for (versao of [revisao()]; track versao) {
               <app-alternador
@@ -99,7 +99,7 @@
                 @for (pessoa of area.pessoas; track pessoa.id) {
                   <li
                     class="rodizio__pessoa"
-                    [class.rodizio__pessoa--fora]="!pessoa.participa"
+                    [class.rodizio__pessoa--fora]="pessoa.posicao === null"
                     [class.rodizio__pessoa--proximo]="pessoa.proximo"
                   >
                     <span class="rodizio__posicao" aria-hidden="true">{{

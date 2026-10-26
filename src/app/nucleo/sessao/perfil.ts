@@ -69,6 +69,16 @@ export interface Permissoes {
   readonly verDocumentacaoApi: boolean;
   /** Áreas cujos funis o usuário vê (Admin e C-level: todas). */
   readonly areasVisiveis: readonly Area[];
+  /**
+   * Onda A — configurar os canais de atendimento (WhatsApp, chat do site, e-mail, Instagram,
+   * Messenger). Opcional até a API mandar; sem ele vale `podeGerenciarCanais()`.
+   */
+  readonly gerenciarCanais?: boolean;
+  /**
+   * Onda A — filas, SLA, horário, satisfação e respostas rápidas do Atendimento. Opcional até
+   * a API mandar; sem ele vale `podeConfigurarAtendimento()`.
+   */
+  readonly configurarAtendimento?: Escopo;
 }
 
 export type NivelUsuario = 'ADMINISTRADOR' | 'DIRETORIA' | 'LIDER' | 'MEMBRO';
@@ -115,3 +125,23 @@ export interface ConsultaToken {
 /** Senha: de 8 a 128 caracteres (R2.1). */
 export const SENHA_MINIMO = 8;
 export const SENHA_MAXIMO = 128;
+
+/**
+ * Configurações → Canais: a permissão `gerenciarCanais` quando a API a manda; sem ela, só o
+ * Admin (como as Integrações). A API continua conferindo cada operação.
+ */
+export function podeGerenciarCanais(permissoes: Permissoes, perfil: Perfil): boolean {
+  return permissoes.gerenciarCanais ?? perfil.usuario.papel === 'ADMIN';
+}
+
+/**
+ * Configurações → Atendimento: a permissão `configurarAtendimento` quando a API a manda; sem
+ * ela, Admin, C-level e os líderes das áreas que atendem (Comercial e CS — o Marketing não
+ * acessa o Atendimento, R12).
+ */
+export function podeConfigurarAtendimento(permissoes: Permissoes, perfil: Perfil): boolean {
+  if (permissoes.configurarAtendimento !== undefined) {
+    return permissoes.configurarAtendimento !== 'NENHUM';
+  }
+  return ['ADMIN', 'C_LEVEL', 'LIDER_COMERCIAL', 'LIDER_CS'].includes(perfil.usuario.papel);
+}

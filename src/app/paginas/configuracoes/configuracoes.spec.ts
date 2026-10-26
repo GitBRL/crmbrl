@@ -13,7 +13,7 @@ import {
 
 import type { Papel } from '../../nucleo/papeis';
 import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
-import { Configuracoes } from './configuracoes';
+import { Configuracoes, trazerPilulaParaVista } from './configuracoes';
 import { ROTAS_CONFIGURACOES } from './configuracoes.routes';
 import { formatarTelefone, gerarSenha } from './textos';
 
@@ -93,6 +93,43 @@ describe('Configuracoes (moldura e seções por papel)', () => {
       '/sem-acesso?pagina=%2Fconfiguracoes%2Fusuarios',
     );
     expect(guarda('perfil', '/configuracoes/perfil')).toBe(true);
+  });
+
+  describe('pílula da seção aberta no celular (a linha rola na horizontal)', () => {
+    function linhaDePilulas(pilula: { left: number; right: number }, scrollLeft = 0) {
+      const linha = document.createElement('nav');
+      const link = document.createElement('a');
+      linha.append(link);
+      Object.defineProperties(linha, {
+        scrollWidth: { configurable: true, value: 640 },
+        clientWidth: { configurable: true, value: 390 },
+        scrollLeft: { configurable: true, writable: true, value: scrollLeft },
+      });
+      const scrollTo = vi.fn((opcoes: ScrollToOptions) => {
+        linha.scrollLeft = opcoes.left ?? 0;
+      });
+      linha.scrollTo = scrollTo as unknown as HTMLElement['scrollTo'];
+      linha.getBoundingClientRect = () => ({ left: 0, right: 390 }) as DOMRect;
+      link.getBoundingClientRect = () => pilula as DOMRect;
+      return { linha, link, scrollTo };
+    }
+
+    it('"Meu perfil", fora da tela à direita, vem para a vista com 16px de folga', () => {
+      const { linha, link, scrollTo } = linhaDePilulas({ left: 511, right: 615 });
+      trazerPilulaParaVista(link, true);
+      expect(scrollTo).toHaveBeenCalledWith({ left: 241, behavior: 'instant' });
+      expect(linha.scrollLeft).toBe(241);
+    });
+
+    it('cortada à esquerda volta; inteira na vista, a linha não mexe', () => {
+      const cortada = linhaDePilulas({ left: -40, right: 80 }, 200);
+      trazerPilulaParaVista(cortada.link);
+      expect(cortada.scrollTo).toHaveBeenCalledWith({ left: 144, behavior: 'auto' });
+
+      const inteira = linhaDePilulas({ left: 120, right: 300 });
+      trazerPilulaParaVista(inteira.link);
+      expect(inteira.scrollTo).not.toHaveBeenCalled();
+    });
   });
 
   it('telefone em E.164 vira o formato brasileiro e a senha gerada é forte', () => {

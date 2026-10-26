@@ -1,0 +1,395 @@
+@switch (situacao()) {
+  @case ('erro') {
+    <section class="conversa__principal conversa__principal--estado">
+      <app-estado-vazio
+        [variante]="falha()?.ehNaoEncontrado ? 'busca' : 'erro'"
+        [titulo]="
+          falha()?.ehNaoEncontrado ? 'Conversa não encontrada' : 'Não deu para abrir a conversa'
+        "
+        [texto]="
+          falha()?.ehNaoEncontrado
+            ? 'Ela pode ter sido transferida para alguém de outra fila ou você não tem acesso a ela.'
+            : (falha()?.mensagem ?? null)
+        "
+        [falha]="falha()?.ehNaoEncontrado ? null : falha()"
+        manterAcoes
+      >
+        <a appBotao variante="contorno" routerLink="/atendimento" [icone]="icones.voltar"
+          >Voltar para a lista</a
+        >
+        @if (!falha()?.ehNaoEncontrado && !falha()?.ehSemPermissao) {
+          <button appBotao type="button" variante="invertido" (click)="tentarAbrirDeNovo()">
+            Tentar de novo
+          </button>
+        }
+      </app-estado-vazio>
+    </section>
+  }
+  @default {
+    @let conversa = detalhe();
+    <section
+      class="conversa__principal"
+      aria-labelledby="conversa-titulo"
+      [attr.aria-busy]="!conversa || null"
+    >
+      <header class="cabeca">
+        <a
+          appBotaoIcone
+          class="cabeca__voltar"
+          routerLink="/atendimento"
+          variante="contorno"
+          rotulo="Voltar para a lista de conversas"
+          [icone]="icones.voltar"
+        ></a>
+
+        @if (conversa) {
+          <button
+            type="button"
+            class="cabeca__contato"
+            [attr.aria-label]="'Dados de ' + nome()"
+            (click)="mostrarContato()"
+          >
+            <app-avatar [nome]="nome()" decorativo />
+          </button>
+          <div class="cabeca__textos">
+            <h2 #titulo id="conversa-titulo" class="cabeca__nome" tabindex="-1">{{ nome() }}</h2>
+            <p class="cabeca__detalhe">
+              <span class="cabeca__canal" [title]="canal()!.rotulo + ': ' + conversa.canal.nome">
+                <svg [lucideIcon]="canal()!.icone" [size]="14" aria-hidden="true" />
+                <span class="cabeca__nome-canal">{{ conversa.canal.nome }}</span>
+                <span class="visualmente-oculto">({{ canal()!.rotulo }})</span>
+              </span>
+              @if (conversa.fila) {
+                <span class="cabeca__separador cabeca__fila-separador" aria-hidden="true">·</span>
+                <span class="cabeca__fila">{{ conversa.fila.nome }}</span>
+              }
+              <span class="cabeca__separador cabeca__separador--responsavel" aria-hidden="true"
+                >·</span
+              >
+              @if (conversa.responsavel) {
+                <span
+                  >Com <strong>{{ responsavelRotulo() }}</strong></span
+                >
+              } @else {
+                <span class="cabeca__sem-responsavel">Sem responsável</span>
+              }
+            </p>
+          </div>
+
+          <div class="cabeca__acoes">
+            @switch (acaoPrincipal()) {
+              @case ('assumir') {
+                <button
+                  appBotao
+                  class="cabeca__principal-texto"
+                  type="button"
+                  variante="invertido"
+                  tamanho="sm"
+                  [icone]="icones.assumir"
+                  [carregando]="acao() === 'assumir'"
+                  (click)="agirPrincipal()"
+                >
+                  Assumir
+                </button>
+                <button
+                  appBotaoIcone
+                  type="button"
+                  class="cabeca__principal-icone"
+                  variante="invertido"
+                  tamanho="sm"
+                  rotulo="Assumir a conversa"
+                  [icone]="icones.assumir"
+                  [disabled]="acao() === 'assumir'"
+                  (click)="agirPrincipal()"
+                ></button>
+              }
+              @case ('resolver') {
+                <button
+                  appBotao
+                  class="cabeca__principal-texto"
+                  type="button"
+                  variante="invertido"
+                  tamanho="sm"
+                  [icone]="icones.resolver"
+                  [carregando]="acao() === 'resolver'"
+                  (click)="agirPrincipal()"
+                >
+                  Resolver
+                </button>
+                <button
+                  appBotaoIcone
+                  type="button"
+                  class="cabeca__principal-icone"
+                  variante="invertido"
+                  tamanho="sm"
+                  rotulo="Resolver a conversa"
+                  [icone]="icones.resolver"
+                  [disabled]="acao() === 'resolver'"
+                  (click)="agirPrincipal()"
+                ></button>
+              }
+              @case ('reabrir') {
+                <button
+                  appBotao
+                  class="cabeca__principal-texto"
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  [icone]="icones.reabrir"
+                  [carregando]="acao() === 'reabrir'"
+                  (click)="agirPrincipal()"
+                >
+                  Reabrir
+                </button>
+                <button
+                  appBotaoIcone
+                  type="button"
+                  class="cabeca__principal-icone"
+                  variante="contorno"
+                  tamanho="sm"
+                  rotulo="Reabrir a conversa"
+                  [icone]="icones.reabrir"
+                  [disabled]="acao() === 'reabrir'"
+                  (click)="agirPrincipal()"
+                ></button>
+              }
+            }
+            @if (conversa.acoes.transferir) {
+              <button
+                appBotaoIcone
+                type="button"
+                class="cabeca__transferir"
+                variante="contorno"
+                tamanho="sm"
+                rotulo="Transferir a conversa"
+                [icone]="icones.transferir"
+                (click)="transferirAberto.set(true)"
+              ></button>
+            }
+            <app-menu-acoes
+              [rotulo]="'Mais ações da conversa com ' + nome()"
+              [itens]="itensMenu()"
+              (escolher)="escolher($event)"
+            />
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              [variante]="painelAoLado() ? 'invertido' : 'contorno'"
+              [rotulo]="painelAoLado() ? 'Esconder os dados do contato' : 'Dados do contato'"
+              [icone]="icones.painel"
+              [attr.aria-pressed]="painelAoLado()"
+              (click)="alternarContato()"
+            ></button>
+          </div>
+        } @else {
+          <app-esqueleto forma="circulo" largura="44px" altura="44px" />
+          <div class="cabeca__textos">
+            <app-esqueleto forma="texto" largura="12rem" />
+            <app-esqueleto forma="texto" largura="16rem" />
+          </div>
+        }
+      </header>
+
+      @if (conversa) {
+        @let j = janela();
+        @if (
+          conversa.assunto ||
+          conversa.status !== 'ABERTA' ||
+          conversa.prioridade === 'ALTA' ||
+          conversa.prioridade === 'URGENTE' ||
+          conversa.etiquetas.length ||
+          j ||
+          estourada() ||
+          conversa.negocio ||
+          conversa.satisfacao.nota !== null ||
+          conversa.satisfacao.aguardando
+        ) {
+          <div class="faixa" role="group" aria-label="Situação da conversa">
+            @if (conversa.assunto) {
+              <span class="faixa__assunto" [title]="conversa.assunto"
+                ><span class="faixa__assunto-rotulo">Assunto:</span> {{ conversa.assunto }}</span
+              >
+            }
+            @if (conversa.status === 'RESOLVIDA') {
+              <app-selo variante="menta" [icone]="icones.resolver">Resolvida</app-selo>
+            } @else if (conversa.status === 'PENDENTE') {
+              <app-selo variante="contorno" [icone]="icones.espera">Aguardando o contato</app-selo>
+            }
+            @if (estourada()) {
+              <span class="faixa__item">
+                <app-selo variante="coral">Prazo estourado</app-selo>
+                <app-dica
+                  rotulo="O que é o prazo"
+                  titulo="Prazo da fila (SLA)"
+                  texto="A fila desta conversa tem um prazo para a primeira resposta e outro para resolver. Este já passou: responda ou transfira assim que puder. A liderança da área foi avisada."
+                />
+              </span>
+            }
+            @if (conversa.prioridade === 'ALTA' || conversa.prioridade === 'URGENTE') {
+              <app-selo variante="lima"
+                >Prioridade {{ ROTULO_PRIORIDADE[conversa.prioridade].toLowerCase() }}</app-selo
+              >
+            }
+            @if (j) {
+              <span class="faixa__item">
+                <app-selo [variante]="j.aberta ? 'neutro' : 'coral'" [icone]="icones.espera"
+                  >Janela de 24 h {{ j.frase }}</app-selo
+                >
+                <app-dica
+                  rotulo="O que é a janela de 24 horas"
+                  titulo="Janela de 24 horas"
+                  texto="No Instagram e no Messenger, a Meta só deixa a empresa responder até 24 horas depois da última mensagem do cliente. Passado esse prazo, a conversa só continua quando o cliente escrever de novo. Notas internas continuam liberadas."
+                />
+              </span>
+            }
+            @if (conversa.satisfacao.nota !== null) {
+              <app-selo variante="ciano">Satisfação {{ conversa.satisfacao.nota }} de 5</app-selo>
+            } @else if (conversa.satisfacao.aguardando) {
+              <app-selo variante="contorno">Pesquisa de satisfação enviada</app-selo>
+            }
+            @if (conversa.negocio) {
+              <a class="faixa__negocio" [routerLink]="rotaNegocio(conversa)">
+                <svg [lucideIcon]="icones.negocio" [size]="14" aria-hidden="true" />
+                {{ conversa.negocio.titulo }}
+              </a>
+            }
+            @for (etiqueta of conversa.etiquetas; track etiqueta) {
+              <span class="faixa__etiqueta">#{{ etiqueta }}</span>
+            }
+          </div>
+        }
+      }
+
+      <app-lista-mensagens
+        class="conversa__mensagens"
+        nomes="saida"
+        [rotulo]="'Mensagens com ' + (nome() || 'o contato')"
+        [mensagens]="mensagens()"
+        [carregando]="carregandoMensagens()"
+        [temAnteriores]="temAnteriores()"
+        [carregandoAnteriores]="carregandoAnteriores()"
+        [digitando]="nomesDigitando()"
+        textoVazio="Nenhuma mensagem nesta conversa ainda."
+        (carregarAnteriores)="carregarAnteriores()"
+        (tentarDeNovo)="tentarDeNovo($event)"
+      />
+
+      @if (conversa) {
+        <div class="conversa__escrever">
+          @if (compositorBloqueado()) {
+            <div class="conversa__bloqueio-acoes">
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                [icone]="icones.nota"
+                (click)="escreverNota()"
+              >
+                Escrever nota interna
+              </button>
+              @if (conversa.acoes.reabrir) {
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  variante="contorno"
+                  [icone]="icones.reabrir"
+                  [carregando]="acao() === 'reabrir'"
+                  (click)="reabrir()"
+                >
+                  Reabrir
+                </button>
+              } @else if (conversa.acoes.assumir) {
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  variante="contorno"
+                  [icone]="icones.assumir"
+                  [carregando]="acao() === 'assumir'"
+                  (click)="assumir()"
+                >
+                  Assumir
+                </button>
+              }
+            </div>
+          }
+          <app-compositor
+            permitirNota
+            [modo]="modo()"
+            (modoChange)="modo.set($event)"
+            [texto]="rascunho()"
+            (textoChange)="aoMudarRascunho($event)"
+            [rotulo]="modo() === 'nota' ? 'Nota interna' : 'Mensagem para ' + nome()"
+            [placeholder]="
+              modo() === 'nota'
+                ? 'Só a equipe vê esta nota…'
+                : conversa.canal.tipo === 'EMAIL'
+                  ? 'Escreva a resposta do e-mail…'
+                  : null
+            "
+            [respostasRapidas]="respostas()"
+            [variaveis]="variaveis()"
+            [permitirAnexos]="modo() === 'mensagem'"
+            [permitirAudio]="modo() === 'mensagem' && conversa.canal.tipo !== 'EMAIL'"
+            [desabilitado]="compositorBloqueado()"
+            [motivo]="bloqueio()"
+            [maximoCaracteres]="4096"
+            (enviar)="enviar($event)"
+            (digitando)="tempoReal.digitando({ conversaId: conversa.id }, $event)"
+          />
+        </div>
+      }
+    </section>
+
+    @if (conversa && painelAoLado()) {
+      <app-painel-contato
+        class="conversa__painel"
+        [conversa]="conversa"
+        (empresa)="empresa.set($event)"
+        (criarNegocio)="negocioAberto.set(true)"
+        (fechar)="estado.painelContato.set(false)"
+      />
+    }
+
+    @if (conversa) {
+      <app-painel-lateral
+        [aberto]="painelSobreposto() && !painelAoLado()"
+        (abertoChange)="painelSobreposto.set($event)"
+        titulo="Dados do contato"
+        [complemento]="'· ' + nome()"
+      >
+        @if (painelSobreposto() && !painelAoLado()) {
+          <app-painel-contato
+            sobreposto
+            [conversa]="conversa"
+            (empresa)="empresa.set($event)"
+            (criarNegocio)="painelSobreposto.set(false); negocioAberto.set(true)"
+          />
+        }
+      </app-painel-lateral>
+
+      <app-transferir-conversa
+        [(aberto)]="transferirAberto"
+        [conversa]="conversa"
+        [enviando]="acao() === 'transferir'"
+        (transferir)="transferir($event)"
+      />
+      <app-editar-etiquetas
+        [(aberto)]="etiquetasAberto"
+        [etiquetas]="conversa.etiquetas"
+        [sugestoes]="estado.etiquetasEmUso()"
+        [salvando]="acao() === 'alterar'"
+        (salvar)="salvarEtiquetas($event)"
+      />
+      <app-criar-negocio
+        [(aberto)]="negocioAberto"
+        [conversa]="conversa"
+        (criado)="aoCriarNegocio($event)"
+      />
+      <app-historico-conversa [(aberto)]="historicoAberto" [conversa]="conversa" />
+    }
+  }
+}

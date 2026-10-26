@@ -76,6 +76,7 @@
 }
 
 .menu__circulo {
+  position: relative;
   display: grid;
   flex: none;
   place-items: center;
@@ -102,6 +103,33 @@
 // O selo "em breve" (tamanho sm) chega um pouco mais perto do nome.
 .menu__item app-selo {
   margin-left: calc(var(--esp-1) * -1);
+}
+
+// Não lidas (Atendimento, Chat): a contagem do sino (§4, botão-ícone), ao lado do nome; com a
+// navegação recolhida, no canto do círculo, recortada com a cor do cartão.
+.menu__contagem {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-erro);
+  color: var(--cor-sobre-erro);
+  font: var(--fonte-micro);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.menu__contagem--canto {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-shadow: 0 0 0 2px var(--cor-superficie);
 }
 
 // Recolhida: só os círculos; os grupos viram um fio.
@@ -180,5 +208,9 @@
     forced-color-adjust: none;
     background: Highlight;
     color: HighlightText;
+  }
+
+  .menu__contagem {
+    border: 1px solid CanvasText;
   }
 }

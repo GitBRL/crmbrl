@@ -12,15 +12,14 @@
         [attr.aria-labelledby]="secao.grupo ? idGrupo(secao.grupo.id) : null"
       >
         @for (modulo of secao.modulos; track modulo.id) {
+          @let contagem = contagens()[modulo.id] ?? 0;
           <li>
             <a
               class="menu__item"
               [class.menu__item--ativo]="modulo.id === ativo()"
               [attr.aria-current]="modulo.id === ativo() ? 'page' : null"
               [routerLink]="modulo.rota"
-              [attr.aria-label]="
-                modulo.status === 'em-breve' ? modulo.rotulo + ' (em breve)' : null
-              "
+              [attr.aria-label]="rotuloAcessivel(modulo, contagem)"
               (pointerenter)="mostrarDica($event, modulo)"
               (pointerleave)="aoSairDoItem($event)"
               (focus)="mostrarDica($event, modulo)"
@@ -29,12 +28,19 @@
             >
               <span class="menu__circulo" aria-hidden="true">
                 <svg [lucideIcon]="modulo.icone" [size]="20" />
+                @if (contagem > 0 && recolhida()) {
+                  <span class="menu__contagem menu__contagem--canto">{{
+                    textoContagem(contagem)
+                  }}</span>
+                }
               </span>
               <span class="menu__rotulo" [class.visualmente-oculto]="recolhida()">{{
                 modulo.rotulo
               }}</span>
               @if (modulo.status === 'em-breve' && !recolhida()) {
                 <app-selo tamanho="sm" aria-hidden="true">em breve</app-selo>
+              } @else if (contagem > 0 && !recolhida()) {
+                <span class="menu__contagem" aria-hidden="true">{{ textoContagem(contagem) }}</span>
               }
             </a>
           </li>

@@ -23,6 +23,7 @@ import { BotaoIcone } from '../ui/botao-icone/botao-icone';
 import { CampoBusca } from '../ui/campo-busca/campo-busca';
 import { Logo } from '../ui/logo/logo';
 import { EstadoCasca } from './estado-casca';
+import { IndicadorConexao } from './indicador-conexao';
 import { MenuConta } from './menu-conta';
 import { Notificacoes } from './notificacoes';
 
@@ -67,13 +68,25 @@ export function buscarModulo<T extends ModuloBase>(
  * Desktop: logo, busca, alternador de tema, sino e menu da conta. Mobile: botão da gaveta,
  * símbolo, título da seção, busca num círculo (abre o campo numa linha própria), sino e conta.
  *
+ * Antes dos botões da direita fica o indicador discreto do tempo real (`app-indicador-conexao`:
+ * "Reconectando…" quando a conexão ao vivo cai; no mobile, ele flutua logo abaixo da barra).
+ *
  * A busca leva ao módulo procurado ("disparos" → Disparos). Quando o termo não é nome de
  * módulo, procura em Contatos e empresas (`/contatos?busca=<termo>`), onde a tela de contatos
  * filtra pessoas por nome, e-mail ou telefone.
  */
 @Component({
   selector: 'app-barra-superior',
-  imports: [RouterLink, Logo, CampoBusca, BotaoIcone, AlternadorTema, Notificacoes, MenuConta],
+  imports: [
+    RouterLink,
+    Logo,
+    CampoBusca,
+    BotaoIcone,
+    AlternadorTema,
+    IndicadorConexao,
+    Notificacoes,
+    MenuConta,
+  ],
   templateUrl: './barra-superior.html',
   styleUrl: './barra-superior.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

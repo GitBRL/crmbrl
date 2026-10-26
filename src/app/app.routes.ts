@@ -20,9 +20,13 @@ import {
  * - **Casca** (`layout/casca.ts`): exige sessão e a troca de senha feita (`exigirSessao`) e
  *   confere, a cada página, o acesso ao módulo dono da URL (`acessoAoModulo`, pelo papel e
  *   pelas permissões do `auth/eu`; negado → `/sem-acesso?pagina=<rota>`).
- * - Cada módulo pronto da Fase 1 tem as suas rotas no arquivo `*.routes.ts` da própria pasta
+ * - Cada módulo pronto tem as suas rotas no arquivo `*.routes.ts` da própria pasta
  *   (`paginas/<modulo>/`), com as guardas de cada seção. Os módulos "em breve" saem de
  *   `nucleo/modulos.ts` e levam o id em `data.modulo` (input `modulo` da página).
+ * - Onda A: Atendimento (`/atendimento`, `/atendimento/:conversaId`) e Chat da equipe
+ *   (`/chat`, `/chat/:canalId`); em Configurações, as seções Canais (`/configuracoes/canais…`)
+ *   e Atendimento (`/configuracoes/atendimento…`), que moram em subpastas próprias e entram
+ *   como filhas da página de Configurações (`rotasDeConfiguracoes`).
  *
  * O `title` de cada rota vira "<título> · BRL CRM" (nucleo/titulo-pagina.ts).
  */
@@ -39,6 +43,37 @@ const rotasEmBreve: Routes = MODULOS_BASE.filter((modulo) => modulo.status === '
 );
 
 const titulo = (id: string) => moduloBasePorId(id)?.rotulo;
+
+/**
+ * Configurações: as seções da Fase 1 (`paginas/configuracoes/configuracoes.routes.ts`) mais as
+ * da Onda A, Canais e Atendimento (`configuracoes/canais/`, `configuracoes/atendimento/`), como
+ * filhas da mesma página — o título, as seções em pílula e o `<router-outlet>` são os dela.
+ */
+const rotasDeConfiguracoes = (): Promise<Routes> =>
+  Promise.all([
+    import('./paginas/configuracoes/configuracoes.routes'),
+    import('./paginas/configuracoes/canais/canais.routes'),
+    import('./paginas/configuracoes/atendimento/atendimento.routes'),
+  ]).then(([base, canais, atendimento]) =>
+    acrescentarSecoes(base.ROTAS_CONFIGURACOES, [
+      ...canais.ROTAS_CONFIG_CANAIS,
+      ...atendimento.ROTAS_CONFIG_ATENDIMENTO,
+    ]),
+  );
+
+/**
+ * Acrescenta seções às filhas da página de Configurações (a primeira rota da lista), sem
+ * repetir um caminho que ela já declare.
+ */
+export function acrescentarSecoes(rotas: Routes, secoes: Routes): Routes {
+  const [pagina, ...resto] = rotas;
+  if (!pagina) {
+    return secoes;
+  }
+  const filhas = pagina.children ?? [];
+  const novas = secoes.filter((secao) => !filhas.some((filha) => filha.path === secao.path));
+  return [{ ...pagina, children: [...filhas, ...novas] }, ...resto];
+}
 
 /** "Comercial", "Marketing", "Customer Success" pelo `:area` da URL. */
 const tituloDoFunil: ResolveFn<string> = (rota) =>
@@ -112,6 +147,17 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'atendimento',
+        title: titulo('atendimento'),
+        loadChildren: () =>
+          import('./paginas/atendimento/atendimento.routes').then((m) => m.ROTAS_ATENDIMENTO),
+      },
+      {
+        path: 'chat',
+        title: titulo('chat'),
+        loadChildren: () => import('./paginas/chat/chat.routes').then((m) => m.ROTAS_CHAT),
+      },
+      {
         path: 'contatos',
         title: titulo('contatos'),
         loadChildren: () =>
@@ -132,8 +178,7 @@ export const routes: Routes = [
       {
         path: 'configuracoes',
         title: titulo('configuracoes'),
-        loadChildren: () =>
-          import('./paginas/configuracoes/configuracoes.routes').then((m) => m.ROTAS_CONFIGURACOES),
+        loadChildren: rotasDeConfiguracoes,
       },
       {
         path: 'integracoes',

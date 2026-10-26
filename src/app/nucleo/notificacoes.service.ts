@@ -14,6 +14,8 @@ import { firstValueFrom } from 'rxjs';
 import { parametros, urlApi, type Pagina } from './api/api';
 import { erroDaApi } from './api/erro-api';
 import { SessaoService } from './sessao/sessao.service';
+import type { EventoNaoLidas, EventoNotificacaoNova } from './tempo-real/eventos';
+import { TempoRealService } from './tempo-real/tempo-real.service';
 
 /** Notificação interna (R10.2): crmbrl-api, notificacoes/notificacoes.dto.ts. */
 export interface Notificacao {
@@ -47,8 +49,11 @@ export type TipoNotificacao =
   | 'webhook_saida.desativado'
   | 'equipe.sem_lider';
 
-/** Intervalo da atualização (o tempo real chega na Fase 2). */
-export const INTERVALO_NOTIFICACOES_MS = 30_000;
+/**
+ * Intervalo da busca de reserva: as notificações chegam ao vivo (`notificacao.nova`); a busca
+ * periódica só cobre o que o tempo real não entregou (conexão caída, evento perdido).
+ */
+export const INTERVALO_NOTIFICACOES_MS = 60_000;
 /** Quantas notificações o painel mostra. */
 export const NOTIFICACOES_POR_PAGINA = 20;
 
@@ -77,14 +82,17 @@ export function ordenarNotificacoes(itens: readonly Notificacao[]): readonly Not
 
 /**
  * Notificações do usuário logado, para o sino da barra superior. Começa sozinho quando há
- * sessão (sem troca de senha pendente), atualiza a cada 30 s e quando a aba volta a ficar
- * visível, e para quando a sessão acaba. Com a aba escondida, não consulta.
+ * sessão (sem troca de senha pendente) e para quando a sessão acaba. As novas chegam ao vivo
+ * pelo tempo real (`notificacao.nova`); a lista é buscada de novo quando a conexão volta,
+ * quando a aba volta a ficar visível e, como reserva, a cada 60 s (com a aba escondida, não
+ * consulta).
  */
 @Injectable({ providedIn: 'root' })
 export class NotificacoesService {
   private readonly http = inject(HttpClient);
   private readonly sessao = inject(SessaoService);
   private readonly documento = inject(DOCUMENT);
+  private readonly tempoReal = inject(TempoRealService);
 
   private readonly _itens = signal<readonly Notificacao[]>([]);
   private readonly _naoLidas = signal(0);
@@ -122,8 +130,17 @@ export class NotificacoesService {
       }
     };
     this.documento.addEventListener('visibilitychange', aoMudarVisibilidade);
+    const pararDeOuvir = this.tempoReal.ouvir('notificacao.nova', (nova) => this.receber(nova));
+    const pararContagem = this.tempoReal.ouvir('nao-lidas', (contagens) =>
+      this.receberContagem(contagens),
+    );
+    // Enquanto a conexão esteve fora, notificações podem ter chegado sem evento.
+    const pararReconexao = this.tempoReal.aoReconectar(() => void this.atualizar());
     inject(DestroyRef).onDestroy(() => {
       this.documento.removeEventListener('visibilitychange', aoMudarVisibilidade);
+      pararDeOuvir();
+      pararContagem();
+      pararReconexao();
       this.parar();
     });
   }
@@ -158,6 +175,43 @@ export class NotificacoesService {
     } finally {
       this._carregando.set(false);
       this.agendar();
+    }
+  }
+
+  /**
+   * Notificação que chegou ao vivo: entra no topo da lista (ou substitui a de mesmo id) e soma
+   * nas não lidas — ou usa o total que a API mandou junto. Com a lista já carregada, uma busca
+   * em andamento é descartada (a resposta seria mais velha que o evento); na primeira carga, a
+   * resposta é que vale. Aceita o evento da API (`{ notificacao, naoLidas? }`) ou a notificação
+   * solta.
+   */
+  receber(nova: EventoNotificacaoNova | Notificacao): void {
+    const notificacao = nova && 'notificacao' in nova ? nova.notificacao : (nova as Notificacao);
+    const naoLidas = nova && 'naoLidas' in nova ? nova.naoLidas : undefined;
+    if (!this.ativo || !notificacao?.id) {
+      return;
+    }
+    const existia = this._itens().some((item) => item.id === notificacao.id);
+    if (this._atualizadoEm()) {
+      this.consulta++;
+    }
+    this._itens.update((itens) =>
+      existia
+        ? itens.map((item) => (item.id === notificacao.id ? notificacao : item))
+        : [notificacao, ...itens].slice(0, NOTIFICACOES_POR_PAGINA),
+    );
+    if (typeof naoLidas === 'number') {
+      this._naoLidas.set(Math.max(0, naoLidas));
+    } else if (!existia && !notificacao.lidaEm) {
+      this._naoLidas.update((total) => total + 1);
+    }
+  }
+
+  /** `nao-lidas` com o total do sino (`notificacoes`): vale o número da API. */
+  private receberContagem(contagens: EventoNaoLidas): void {
+    const total = contagens?.notificacoes;
+    if (this.ativo && typeof total === 'number' && Number.isFinite(total)) {
+      this._naoLidas.set(Math.max(0, Math.floor(total)));
     }
   }
 

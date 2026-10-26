@@ -1,0 +1,102 @@
+// Prévia de anexo (DESIGN-SYSTEM.md §4.6). Só tokens.
+
+// `--previa-maximo` (público): o lado maior da miniatura (padrão 280px; 200px compacta).
+:host {
+  --_maximo: var(--previa-maximo, 280px);
+
+  display: block;
+  max-width: 100%;
+}
+
+:host(.previa-anexo--compacta) {
+  --_maximo: var(--previa-maximo, 200px);
+}
+
+// Miniatura: o botão inteiro amplia; sem dimensões conhecidas, a imagem dita a altura. A
+// largura é fixa (limitada ao espaço disponível): dentro de uma bolha ou de um contêiner que
+// se ajusta ao conteúdo, a miniatura não encolhe até sumir enquanto a imagem não carregou.
+.previa__imagem {
+  display: block;
+  width: var(--_maximo);
+  max-width: 100%;
+  max-height: var(--_maximo);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--raio-md);
+  background: var(--cor-vidro);
+  cursor: zoom-in;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: var(--_maximo);
+    object-fit: cover;
+    transition: transform var(--duracao) var(--curva);
+  }
+
+  &:hover img {
+    transform: scale(1.02);
+  }
+}
+
+.previa__ampliada {
+  display: block;
+  max-width: 100%;
+  max-height: 70dvh;
+  margin-inline: auto;
+  border-radius: var(--raio-md);
+}
+
+.previa__video {
+  display: block;
+  width: calc(var(--_maximo) + 40px);
+  max-width: 100%;
+  max-height: 360px;
+  border-radius: var(--raio-md);
+  background: var(--pb-preto);
+}
+
+// Documento: pílula de vidro com o círculo do ícone, nome, "PDF · 1,2 MB" e baixar.
+.previa__documento {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  width: min(100%, 320px);
+  padding: 4px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-vidro-forte);
+}
+
+.previa__icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+}
+
+.previa__textos {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.previa__nome {
+  overflow: hidden;
+  font: var(--fonte-rotulo);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previa__detalhe {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+}

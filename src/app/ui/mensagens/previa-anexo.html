@@ -1,0 +1,79 @@
+@switch (tipo()) {
+  @case ('imagem') {
+    <button
+      type="button"
+      class="previa__imagem"
+      [style.aspect-ratio]="proporcao()"
+      [attr.aria-label]="'Ampliar a imagem ' + anexo().nome"
+      (click)="ampliada.set(true)"
+    >
+      <img
+        [src]="anexo().url"
+        [alt]="nomeFalado()"
+        [attr.width]="anexo().largura || null"
+        [attr.height]="anexo().altura || null"
+        loading="lazy"
+        decoding="async"
+        (error)="falhou.set(true)"
+      />
+    </button>
+    @if (ampliada()) {
+      <app-modal [(aberto)]="ampliada" [titulo]="anexo().nome" largura="lg">
+        <img class="previa__ampliada" [src]="anexo().url" [alt]="nomeFalado()" />
+        <div modal-rodape>
+          <a
+            appBotao
+            variante="contorno"
+            [icone]="icones.baixar"
+            [href]="anexo().url"
+            target="_blank"
+            rel="noopener"
+            download
+            >Baixar</a
+          >
+        </div>
+      </app-modal>
+    }
+  }
+  @case ('video') {
+    <video
+      class="previa__video"
+      controls
+      playsinline
+      preload="metadata"
+      [src]="anexo().url"
+      [style.aspect-ratio]="proporcao()"
+      [attr.aria-label]="nomeFalado()"
+      (error)="falhou.set(true)"
+    ></video>
+  }
+  @case ('audio') {
+    <app-player-audio
+      [src]="anexo().url"
+      [duracao]="anexo().duracao ?? null"
+      [rotulo]="rotulo() ?? 'Áudio'"
+    />
+  }
+  @default {
+    <div class="previa__documento">
+      <span class="previa__icone" aria-hidden="true">
+        <svg [lucideIcon]="icones.documento" [size]="20" />
+      </span>
+      <span class="previa__textos">
+        <span class="previa__nome" [title]="anexo().nome">{{ anexo().nome }}</span>
+        <span class="previa__detalhe">{{ detalhe() }}</span>
+      </span>
+      <a
+        appBotaoIcone
+        tamanho="sm"
+        variante="contorno"
+        [icone]="icones.baixar"
+        [rotulo]="'Baixar ' + anexo().nome"
+        [href]="anexo().url"
+        target="_blank"
+        rel="noopener"
+        download
+      ></a>
+    </div>
+  }
+}

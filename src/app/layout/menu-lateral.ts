@@ -28,6 +28,7 @@ import {
   type Modulo,
 } from '../nucleo/navegacao';
 import { SessaoService } from '../nucleo/sessao/sessao.service';
+import { TempoRealService } from '../nucleo/tempo-real/tempo-real.service';
 import { Selo } from '../ui/selo/selo';
 import { gerarId } from '../ui/tipos';
 import { trazerParaVista } from './rolagem';
@@ -47,6 +48,10 @@ interface DicaMenu {
  * como `/empresas/:id` em Contatos e empresas) tem o círculo invertido e
  * `aria-current="page"`. Módulos "em breve" levam um selo.
  *
+ * Atendimento e Chat da equipe mostram as não lidas (evento `nao-lidas` do tempo real) num
+ * contador ao lado do nome, ou no canto do círculo com a navegação recolhida; o nome acessível
+ * do item diz quantas ("Atendimento, 3 não lidas").
+ *
  * `recolhida` mostra só os círculos: os rótulos continuam para leitores de tela e aparecem
  * numa dica ao passar o mouse ou focar pelo teclado. A dica segue a WCAG 1.4.13: fecha com
  * Esc e continua aberta enquanto o ponteiro vai do item até ela. A mesma navegação é usada na
@@ -61,6 +66,7 @@ interface DicaMenu {
 })
 export class MenuLateral {
   private readonly sessao = inject(SessaoService);
+  private readonly tempoReal = inject(TempoRealService);
   private readonly documento = inject(DOCUMENT);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly injector = inject(Injector);
@@ -82,6 +88,11 @@ export class MenuLateral {
   );
   /** Id do módulo da página atual. */
   protected readonly ativo = computed(() => moduloPorRota(this.url())?.id ?? null);
+  /** Não lidas por módulo (só Atendimento e Chat da equipe têm contador). */
+  protected readonly contagens = computed<Readonly<Record<string, number>>>(() => {
+    const naoLidas = this.tempoReal.naoLidas();
+    return { atendimento: naoLidas.atendimento, chat: naoLidas.chat };
+  });
   /** A dica só existe com a navegação recolhida: expandir ou recolher a descarta. */
   protected readonly dica = linkedSignal<boolean, DicaMenu | null>({
     source: this.recolhida,
@@ -123,6 +134,19 @@ export class MenuLateral {
     return `${this.prefixo}-${grupo}`;
   }
 
+  /** "9", "99+". */
+  protected textoContagem(contagem: number): string {
+    return contagem > 99 ? '99+' : String(contagem);
+  }
+
+  /** Nome acessível do item quando o nome visível não basta (em breve, não lidas). */
+  protected rotuloAcessivel(modulo: Modulo, contagem: number): string | null {
+    if (modulo.status === 'em-breve') {
+      return `${modulo.rotulo} (em breve)`;
+    }
+    return contagem > 0 ? `${modulo.rotulo}, ${descreverNaoLidas(contagem)}` : null;
+  }
+
   /** Dica do item recolhido: ao lado do círculo, fora do cartão (não é cortada pela rolagem). */
   protected mostrarDica(evento: Event, modulo: Modulo): void {
     if (!this.recolhida() || (evento as PointerEvent).pointerType === 'touch') {
@@ -130,7 +154,13 @@ export class MenuLateral {
     }
     const link = evento.currentTarget as HTMLElement;
     const caixa = link.getBoundingClientRect();
-    const sufixo = modulo.status === 'em-breve' ? ' · em breve' : '';
+    const contagem = this.contagens()[modulo.id] ?? 0;
+    const sufixo =
+      modulo.status === 'em-breve'
+        ? ' · em breve'
+        : contagem > 0
+          ? ` · ${descreverNaoLidas(contagem)}`
+          : '';
     this.dica.set({
       texto: `${modulo.rotulo}${sufixo}`,
       topo: caixa.top + caixa.height / 2,
@@ -165,4 +195,9 @@ export class MenuLateral {
   private dentroDoBalao(alvo: EventTarget | null): boolean {
     return alvo instanceof Node && this.balao().nativeElement.contains(alvo);
   }
+}
+
+/** "1 não lida", "3 não lidas". */
+export function descreverNaoLidas(contagem: number): string {
+  return contagem === 1 ? '1 não lida' : `${contagem} não lidas`;
 }

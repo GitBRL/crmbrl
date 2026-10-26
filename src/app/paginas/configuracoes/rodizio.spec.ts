@@ -138,22 +138,57 @@ describe('rodízio (R5.8)', () => {
     ).toBe('Ninguém na fila: os leads vão para Camila Rocha até alguém entrar.');
   });
 
-  it('quem nunca entrou no CRM (convite pendente) aparece assim na dica', () => {
-    const pessoas = pessoasDoRodizio(regra(), [
-      {
-        ...resumo('u-mariana', 'Mariana Costa', 'MARKETING'),
-        ultimoAcessoEm: '2026-10-21T12:00:00Z',
-      },
-      {
-        ...resumo('u-thiago', 'Thiago Lima', 'MARKETING'),
-        senhaDefinida: false,
-        ultimoAcessoEm: null,
-      },
+  it('quem ainda não ativou o acesso fica fora da fila, com o alternador no que vale quando ativar', () => {
+    const pessoas = pessoasDoRodizio(
+      regra({
+        aguardandoAcesso: [
+          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MARKETING', motivo: 'CONVITE_PENDENTE' },
+          {
+            id: 'u-rui',
+            nome: 'Rui Prado',
+            papel: 'MARKETING',
+            motivo: 'PRIMEIRO_ACESSO_PENDENTE',
+          },
+          // De outra área: ignorado.
+          { id: 'u-lucas', nome: 'Lucas Pereira', papel: 'COMERCIAL', motivo: 'CONVITE_PENDENTE' },
+        ],
+      }),
+      PESSOAS,
+    );
+    expect(pessoas.map((p) => [p.nome, p.posicao, p.participa, p.acessoPendente])).toEqual([
+      ['Mariana Costa', 1, true, null],
+      ['Thiago Lima', 2, true, null],
+      ['Beatriz Souza', null, true, 'convite'],
+      ['Camila Rocha', null, false, null],
+      ['Rui Prado', null, true, 'primeiro-acesso'],
     ]);
-    expect(pessoas[0].acessoPendente).toBeNull();
-    expect(pessoas[1].acessoPendente).toBe('convite');
-    expect(pessoas[1].motivo).toBe(
-      'Recebe o próximo lead · Convite pendente: ainda não entrou no CRM · Marketing · membro da área',
+    expect(pessoas[2].proximo).toBe(false);
+    expect(pessoas[2].motivo).toBe(
+      'Convite pendente: entra na fila quando definir a senha do convite · Marketing · membro da área',
+    );
+    expect(pessoas[4].motivo).toBe(
+      'Primeiro acesso pendente: entra na fila quando entrar e trocar a senha temporária · Marketing · membro da área',
+    );
+  });
+
+  it('quem aguarda o acesso e foi tirado à mão aparece desligado', () => {
+    const [, , bia] = pessoasDoRodizio(
+      regra({
+        aguardandoAcesso: [
+          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MARKETING', motivo: 'CONVITE_PENDENTE' },
+        ],
+        ajustes: [
+          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MARKETING', ativo: true, participa: false },
+        ],
+      }),
+      PESSOAS,
+    );
+    expect(bia).toEqual(
+      expect.objectContaining({
+        participa: false,
+        ajuste: 'tirado',
+        motivo: 'Convite pendente · Marketing · tirado(a) do rodízio à mão',
+      }),
     );
   });
 });

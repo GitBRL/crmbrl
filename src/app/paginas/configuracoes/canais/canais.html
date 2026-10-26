@@ -1,0 +1,201 @@
+<section class="secao" aria-labelledby="canais-titulo">
+  <header class="secao__cabecalho">
+    <div class="secao__textos">
+      <h2 class="secao__titulo" id="canais-titulo">Canais</h2>
+      <p class="secao__frase">
+        Por onde os clientes falam com a BRL. Cada mensagem que chega por um canal vira uma conversa
+        no Atendimento, e a resposta sai pelo mesmo canal.
+      </p>
+    </div>
+    <button
+      appBotao
+      type="button"
+      variante="invertido"
+      class="secao__acao"
+      [icone]="iconeNovo"
+      (click)="abrirEscolha()"
+    >
+      <span class="secao__acao-texto">Novo canal</span>
+    </button>
+  </header>
+
+  @if (dados.erro() ?? tudoFalhou(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar os canais"
+      [texto]="erro.resumo"
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeTentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (dados.dados() === null) {
+    <div class="canais__grade" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando os canais…</p>
+      @for (item of [1, 2, 3, 4]; track item) {
+        <app-cartao>
+          <div class="canais__esqueleto">
+            <app-esqueleto largura="45%" />
+            <app-esqueleto [linhas]="2" />
+            <app-esqueleto forma="bloco" altura="72px" />
+          </div>
+        </app-cartao>
+      }
+    </div>
+  } @else {
+    @if (nenhumCanal()) {
+      <div class="faixa faixa--info" role="note">
+        <svg [lucideIcon]="icones.WHATSAPP" class="faixa__icone" [size]="20" />
+        <p>
+          <strong>Comece pelo WhatsApp.</strong>
+          É onde a maioria dos clientes fala com a BRL. Leva dois minutos: crie o número, leia o QR
+          com o celular e as conversas passam a chegar ao Atendimento.
+        </p>
+      </div>
+    }
+
+    <div class="canais__grade">
+      @for (grupo of grupos(); track grupo.tipo) {
+        <app-cartao
+          class="canais__grupo"
+          [class.canais__grupo--largo]="grupo.tipo === 'WHATSAPP'"
+          regiao
+          [nivel]="3"
+          [titulo]="grupo.rotulo"
+          [complemento]="grupo.complemento || null"
+          [dica]="grupo.descricao"
+        >
+          <button
+            cartao-acoes
+            appBotao
+            type="button"
+            tamanho="sm"
+            variante="contorno"
+            [icone]="iconeNovo"
+            [attr.aria-label]="grupo.textoNovo"
+            (click)="novo(grupo.tipo)"
+          >
+            Novo
+          </button>
+
+          @if (grupo.erro; as erro) {
+            <app-estado-vazio
+              compacto
+              variante="erro"
+              [falha]="erro"
+              [titulo]="'Não conseguimos carregar ' + grupo.rotulo"
+              [texto]="erro.resumo"
+            >
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                [icone]="iconeTentar"
+                (click)="carregar()"
+              >
+                Tentar de novo
+              </button>
+            </app-estado-vazio>
+          } @else if (grupo.itens.length === 0) {
+            <div class="canais__vazio">
+              <span class="canal__icone canal__icone--vazio" aria-hidden="true">
+                <svg [lucideIcon]="icones[grupo.tipo]" [size]="20" />
+              </span>
+              <p class="canais__vazio-texto">{{ grupo.descricao }}</p>
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="neutro"
+                [icone]="iconeSeguir"
+                (click)="novo(grupo.tipo)"
+              >
+                {{ grupo.textoNovo }}
+              </button>
+            </div>
+          } @else {
+            <ul class="canais__lista" [attr.aria-label]="grupo.rotulo">
+              @for (item of grupo.itens; track item.id) {
+                <li>
+                  <a class="canal" [routerLink]="item.link">
+                    <span class="canal__icone" aria-hidden="true">
+                      <svg [lucideIcon]="icones[grupo.tipo]" [size]="20" />
+                    </span>
+                    <span class="canal__textos">
+                      <span class="canal__linha">
+                        <strong class="canal__nome">{{ item.nome }}</strong>
+                        <app-selo
+                          tamanho="sm"
+                          [variante]="item.situacao.variante"
+                          [ponto]="item.situacao.ponto"
+                          >{{ item.situacao.rotulo }}</app-selo
+                        >
+                        @if (item.aviso) {
+                          <app-selo tamanho="sm" variante="contorno">{{ item.aviso }}</app-selo>
+                        }
+                      </span>
+                      <span class="canal__detalhe">{{ item.detalhe }}</span>
+                      <span class="canal__meta">
+                        @for (texto of item.meta; track texto) {
+                          <span>{{ texto }}</span>
+                        }
+                      </span>
+                    </span>
+                    <svg lucideChevronRight class="canal__seta" [size]="20" />
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </app-cartao>
+      }
+    </div>
+  }
+</section>
+
+<app-modal
+  titulo="Novo canal"
+  complemento="· escolha o tipo"
+  [aberto]="escolhendo()"
+  (fechado)="escolhendo.set(false)"
+>
+  <form
+    class="escolha"
+    novalidate
+    id="escolha-de-canal"
+    (submit)="$event.preventDefault(); seguirComEscolha()"
+  >
+    <app-grupo-opcoes
+      rotulo="Por onde os clientes vão falar com a BRL?"
+      [opcoes]="opcoesTipo"
+      [valor]="tipoEscolhido()"
+      (valorChange)="tipoEscolhido.set($event)"
+    />
+  </form>
+  <ng-container modal-rodape>
+    <button
+      appBotao
+      type="submit"
+      form="escolha-de-canal"
+      variante="invertido"
+      [icone]="iconeSeguir"
+      [disabled]="!tipoEscolhido()"
+    >
+      Continuar
+    </button>
+    <button appBotao type="button" variante="contorno" (click)="escolhendo.set(false)">
+      Cancelar
+    </button>
+  </ng-container>
+</app-modal>
+
+<app-novo-numero [(aberto)]="novoNumeroAberto" (criado)="numeroCriado($event)" />

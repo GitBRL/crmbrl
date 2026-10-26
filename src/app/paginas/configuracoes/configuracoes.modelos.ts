@@ -176,6 +176,18 @@ export interface ParticipanteDoRodizio extends ResumoPessoa {
   readonly motivo: MotivoNoRodizio;
 }
 
+/**
+ * Por que alguém que a regra (ou um ajuste) poria no rodízio ainda está fora dele: o rodízio
+ * só inclui quem já ativou o acesso (R5.8).
+ */
+export type MotivoAguardandoAcesso = 'CONVITE_PENDENTE' | 'PRIMEIRO_ACESSO_PENDENTE';
+
+/** `AguardandoAcessoDto`: fora da fila até ativar o acesso; entra sozinho quando ativar. */
+export interface AguardandoAcesso extends ResumoPessoa {
+  readonly papel: Papel;
+  readonly motivo: MotivoAguardandoAcesso;
+}
+
 /** Ajuste manual: alguém incluído (`participa`) ou tirado do rodízio. */
 export interface AjusteDoRodizio extends ResumoPessoa {
   readonly papel: Papel;
@@ -196,6 +208,8 @@ export interface RegraDistribuicao {
   /** Quem está no rodízio agora, na ordem em que recebe. */
   readonly participantes: readonly ParticipanteDoRodizio[];
   readonly ajustes: readonly AjusteDoRodizio[];
+  /** Quem ainda não ativou o acesso e por isso está fora da fila (opcional: API anterior). */
+  readonly aguardandoAcesso?: readonly AguardandoAcesso[];
   readonly atualizadoEm: string;
 }
 

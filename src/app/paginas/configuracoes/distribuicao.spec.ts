@@ -182,6 +182,35 @@ describe('Distribuicao (rodízio por área, R5.8)', () => {
     expect(alternador('Mariana Costa').checked).toBe(true);
   });
 
+  it('quem ainda não ativou o acesso fica fora da fila, com o aviso de quando entra', async () => {
+    await criar([
+      regraMarketing({
+        aguardandoAcesso: [
+          {
+            id: 'u-rodrigo',
+            nome: 'Rodrigo Nunes',
+            papel: 'MARKETING',
+            motivo: 'CONVITE_PENDENTE',
+          },
+        ],
+      }),
+    ]);
+    const cartao = raiz().querySelector('.rodizio__cartao')!;
+    expect(cartao.textContent).toContain('2 na fila');
+    expect(cartao.querySelector('.rodizio__aguardando')?.textContent?.trim()).toBe(
+      'Rodrigo Nunes ainda não ativou o acesso: entra na fila quando ativar.',
+    );
+    const linha = Array.from(cartao.querySelectorAll('.rodizio__pessoa')).find((li) =>
+      li.textContent?.includes('Rodrigo Nunes'),
+    )!;
+    expect(linha.classList).toContain('rodizio__pessoa--fora');
+    expect(linha.querySelector('.rodizio__posicao')?.textContent?.trim()).toBe('–');
+    expect(alternador('Rodrigo Nunes').checked).toBe(true);
+    expect(raiz().querySelector('.faixa--info')?.textContent).toContain(
+      'Só fica na fila quem já ativou o acesso',
+    );
+  });
+
   it('fila vazia diz para quem os leads vão', async () => {
     await criar([
       regraMarketing({ participantes: [], proximo: { id: 'u-camila', nome: 'Camila Rocha' } }),

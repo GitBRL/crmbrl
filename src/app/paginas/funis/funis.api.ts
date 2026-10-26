@@ -16,6 +16,7 @@ import type {
   FiltrosQuadro,
   Funil,
   Negocio,
+  NegocioDetalhe,
   NovaAtividade,
   NovaEtapa,
   NovoContato,
@@ -123,8 +124,9 @@ export class FunisApi {
 
   // Negócios ------------------------------------------------------------------------------
 
-  negocio(id: string): Promise<Negocio> {
-    return firstValueFrom(this.http.get<Negocio>(urlApi('negocios', id)));
+  /** O negócio com a jornada (de onde veio e o que gerou, com a área de cada lado). */
+  negocio(id: string): Promise<NegocioDetalhe> {
+    return firstValueFrom(this.http.get<NegocioDetalhe>(urlApi('negocios', id)));
   }
 
   /** Negócios de um contato em todos os funis visíveis (para a jornada: veio de / gerou). */

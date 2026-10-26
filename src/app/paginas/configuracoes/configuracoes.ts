@@ -1,12 +1,24 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  Injector,
+} from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { SECOES_CONFIGURACOES } from './secoes';
 
+/** Folga entre a pílula da seção aberta e a borda da linha quando a linha rola até ela. */
+const FOLGA_ROLAGEM = 16;
+
 /**
  * Configurações (`/configuracoes`) — TELAS-FASE1 §6: o título, as seções que o usuário acessa
  * (links em pílula; a aberta fica invertida, com `aria-current`) e a seção no `<router-outlet>`.
+ * No celular a linha de pílulas rola na horizontal: a da seção aberta é trazida para a área
+ * visível ao abrir a tela e a cada troca de seção.
  */
 @Component({
   selector: 'app-configuracoes',
@@ -21,10 +33,12 @@ import { SECOES_CONFIGURACOES } from './secoes';
       <nav class="configuracoes__secoes rolagem-horizontal" aria-label="Seções de configurações">
         @for (secao of secoes(); track secao.caminho) {
           <a
+            #pilula
             class="configuracoes__secao"
             routerLinkActive="configuracoes__secao--ativa"
             ariaCurrentWhenActive="page"
             [routerLink]="secao.caminho"
+            (isActiveChange)="$event && mostrarSecao(pilula)"
             >{{ secao.rotulo }}</a
           >
         }
@@ -108,6 +122,9 @@ import { SECOES_CONFIGURACOES } from './secoes';
 })
 export class Configuracoes {
   private readonly sessao = inject(SessaoService);
+  private readonly injector = inject(Injector);
+  /** A primeira vez (ao abrir a tela) a linha vai direto, sem animar. */
+  private primeiraRolagem = true;
 
   protected readonly secoes = computed(() =>
     SECOES_CONFIGURACOES.filter((secao) => this.sessao.permite(secao.permite)),
@@ -126,4 +143,41 @@ export class Configuracoes {
     }
     return 'O seu acesso ao CRM.';
   });
+
+  /** A seção aberta mudou: a pílula dela vai para a área visível da linha (celular). */
+  protected mostrarSecao(pilula: HTMLElement): void {
+    const instantaneo = this.primeiraRolagem;
+    this.primeiraRolagem = false;
+    afterNextRender(() => trazerPilulaParaVista(pilula, instantaneo), { injector: this.injector });
+  }
+}
+
+/**
+ * Traz a pílula para dentro da área visível da linha que rola, com uma folga de 16px. Mexe só
+ * no `scrollLeft` da linha (como `app-abas`): `scrollIntoView` também rolaria a página e mudaria
+ * o ponto de partida do Tab no Chrome.
+ */
+export function trazerPilulaParaVista(pilula: HTMLElement, instantaneo = false): void {
+  const linha = pilula.parentElement;
+  if (!linha || linha.scrollWidth <= linha.clientWidth) {
+    return;
+  }
+  const caixaLinha = linha.getBoundingClientRect();
+  const caixa = pilula.getBoundingClientRect();
+  let deslocamento = 0;
+  if (caixa.left < caixaLinha.left + FOLGA_ROLAGEM) {
+    deslocamento = caixa.left - caixaLinha.left - FOLGA_ROLAGEM;
+  } else if (caixa.right > caixaLinha.right - FOLGA_ROLAGEM) {
+    deslocamento = caixa.right - caixaLinha.right + FOLGA_ROLAGEM;
+  }
+  if (deslocamento === 0) {
+    return;
+  }
+  const destino = linha.scrollLeft + deslocamento;
+  if (typeof linha.scrollTo === 'function') {
+    // 'auto' segue o `scroll-behavior` do CSS (instantâneo com movimento reduzido).
+    linha.scrollTo({ left: destino, behavior: instantaneo ? 'instant' : 'auto' });
+  } else {
+    linha.scrollLeft = destino;
+  }
 }

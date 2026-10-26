@@ -1,6 +1,10 @@
 import { ROTULO_PAPEL, type Papel } from '../../nucleo/papeis';
 import type { Area } from '../../nucleo/sessao/perfil';
-import type { RegraDistribuicao, Usuario, UsuarioResumo } from './configuracoes.modelos';
+import type {
+  MotivoAguardandoAcesso,
+  RegraDistribuicao,
+  UsuarioResumo,
+} from './configuracoes.modelos';
 import { AREA_DO_PAPEL, ehLiderDeArea } from './hierarquia';
 
 /**
@@ -9,10 +13,17 @@ import { AREA_DO_PAPEL, ehLiderDeArea } from './hierarquia';
  */
 
 /**
- * Quem está no rodízio sem nunca ter entrado no CRM: com o convite pendente (ainda não definiu
- * a senha) ou que nunca entrou. Recebe leads mesmo assim.
+ * Quem a regra poria no rodízio, mas ainda não ativou o acesso (R5.8): com o convite pendente
+ * (ainda não definiu a senha) ou com a senha temporária ainda não trocada no primeiro login.
+ * Fica fora da fila e entra sozinho quando ativar.
  */
-export type AcessoPendente = 'convite' | 'nunca-entrou';
+export type AcessoPendente = 'convite' | 'primeiro-acesso';
+
+/** O motivo da API (`aguardandoAcesso[].motivo`) como a tela o trata. */
+export const ACESSO_PENDENTE: Readonly<Record<MotivoAguardandoAcesso, AcessoPendente>> = {
+  CONVITE_PENDENTE: 'convite',
+  PRIMEIRO_ACESSO_PENDENTE: 'primeiro-acesso',
+};
 
 /** Uma pessoa da área no rodízio. */
 export interface PessoaDoRodizio {
@@ -21,8 +32,12 @@ export interface PessoaDoRodizio {
   readonly avatarUrl: string | null;
   readonly papel: Papel;
   readonly ehLider: boolean;
+  /**
+   * O alternador: a pessoa participa do rodízio. Para quem ainda não ativou o acesso, é o que
+   * vale quando ativar (a regra ou o ajuste) — ela ainda não está na fila.
+   */
   readonly participa: boolean;
-  /** Posição na fila (1, 2, 3…), só para quem participa. */
+  /** Posição na fila (1, 2, 3…), só para quem está na fila agora. */
   readonly posicao: number | null;
   readonly proximo: boolean;
   /** Ajuste manual em vigor, se houver. */
@@ -34,21 +49,19 @@ export interface PessoaDoRodizio {
   readonly acessoPendente: AcessoPendente | null;
 }
 
-/** Pessoa da área como `GET /usuarios` devolve (a situação de acesso é opcional). */
-export type PessoaDaArea = Pick<UsuarioResumo, 'id' | 'nome' | 'papel' | 'ativo'> &
-  Partial<Pick<Usuario, 'senhaDefinida' | 'ultimoAcessoEm'>>;
+/** Pessoa da área como `GET /usuarios` devolve. */
+export type PessoaDaArea = Pick<UsuarioResumo, 'id' | 'nome' | 'papel' | 'ativo'>;
 
-function acessoPendente(pessoa: PessoaDaArea): AcessoPendente | null {
-  if (pessoa.senhaDefinida === false) {
-    return 'convite';
-  }
-  return pessoa.ultimoAcessoEm === null ? 'nunca-entrou' : null;
-}
-
-/** "Convite pendente: ainda não entrou no CRM", para a dica e o "Próximo da vez". */
+/** "Convite pendente", "Primeiro acesso pendente": o começo da dica de quem está aguardando. */
 export const TEXTO_ACESSO_PENDENTE: Readonly<Record<AcessoPendente, string>> = {
-  convite: 'Convite pendente: ainda não entrou no CRM',
-  'nunca-entrou': 'Ainda não entrou no CRM',
+  convite: 'Convite pendente',
+  'primeiro-acesso': 'Primeiro acesso pendente',
+};
+
+/** O que falta para entrar na fila. */
+export const QUANDO_ENTRA: Readonly<Record<AcessoPendente, string>> = {
+  convite: 'entra na fila quando definir a senha do convite',
+  'primeiro-acesso': 'entra na fila quando entrar e trocar a senha temporária',
 };
 
 const PAPEL_DA_AREA = (papel: Papel, area: Area): boolean => AREA_DO_PAPEL[papel] === area;
@@ -61,9 +74,13 @@ export function pessoasDoRodizio(
   regra: RegraDistribuicao,
   pessoasDaArea: readonly PessoaDaArea[],
 ): PessoaDoRodizio[] {
-  const acessos = new Map(pessoasDaArea.map((pessoa) => [pessoa.id, acessoPendente(pessoa)]));
   const area = regra.area;
   const participantes = new Map(regra.participantes.map((p, indice) => [p.id, { p, indice }]));
+  const aguardando = new Map(
+    (regra.aguardandoAcesso ?? [])
+      .filter((a) => PAPEL_DA_AREA(a.papel, area))
+      .map((a) => [a.id, a]),
+  );
   const ajustes = new Map(
     regra.ajustes.filter((a) => a.ativo && PAPEL_DA_AREA(a.papel, area)).map((a) => [a.id, a]),
   );
@@ -91,6 +108,14 @@ export function pessoasDoRodizio(
       avatarUrl: p.avatarUrl ?? null,
     });
   }
+  for (const pessoa of aguardando.values()) {
+    candidatos.set(pessoa.id, {
+      id: pessoa.id,
+      nome: pessoa.nome,
+      papel: pessoa.papel,
+      avatarUrl: pessoa.avatarUrl ?? null,
+    });
+  }
   for (const ajuste of ajustes.values()) {
     if (!candidatos.has(ajuste.id)) {
       candidatos.set(ajuste.id, {
@@ -106,10 +131,13 @@ export function pessoasDoRodizio(
     const naFila = participantes.get(pessoa.id);
     const ajuste = ajustes.get(pessoa.id);
     const ehLider = ehLiderDeArea(pessoa.papel);
-    const participa = naFila !== undefined;
     const padrao = ehLider ? regra.incluirLideres : true;
-    const proximo = participa && regra.proximo?.id === pessoa.id;
-    const pendente = acessos.get(pessoa.id) ?? null;
+    const espera = aguardando.get(pessoa.id);
+    const pendente = espera ? ACESSO_PENDENTE[espera.motivo] : null;
+    // Quem aguarda o acesso não está na fila: o alternador mostra o que vale quando ativar.
+    const participa =
+      naFila !== undefined || (pendente !== null && (ajuste ? ajuste.participa : padrao));
+    const proximo = naFila !== undefined && regra.proximo?.id === pessoa.id;
     return {
       ...pessoa,
       avatarUrl: naFila?.p.avatarUrl ?? pessoa.avatarUrl,
@@ -166,7 +194,10 @@ function motivo(dados: {
         : `${papel} · fica fora pela regra (o líder não entra)`;
   }
   if (dados.pendente) {
-    texto = `${TEXTO_ACESSO_PENDENTE[dados.pendente]} · ${texto}`;
+    // "Convite pendente: entra na fila quando definir a senha do convite · Marketing · …"
+    texto = dados.participa
+      ? `${TEXTO_ACESSO_PENDENTE[dados.pendente]}: ${QUANDO_ENTRA[dados.pendente]} · ${texto}`
+      : `${TEXTO_ACESSO_PENDENTE[dados.pendente]} · ${texto}`;
   }
   return dados.proximo ? `Recebe o próximo lead · ${texto}` : texto;
 }
@@ -184,7 +215,7 @@ export function operacaoDeParticipacao(
 
 /** Texto do balão de ajuda (R5.8). */
 export const DICA_RODIZIO =
-  'Cada lead novo (de um webhook ou de uma passagem entre funis) vai para a próxima pessoa da fila, em ordem, e a vez passa para a seguinte. Quem é desligado sai sozinho. Sem ninguém na fila, o lead vai para o líder da área; sem líder, para um C-level.';
+  'Cada lead novo (de um webhook ou de uma passagem entre funis) vai para a próxima pessoa da fila, em ordem, e a vez passa para a seguinte. Só fica na fila quem já ativou o acesso: quem tem o convite pendente ou ainda não trocou a senha temporária entra sozinho quando ativar. Quem é desligado sai sozinho. Sem ninguém na fila, o lead vai para o líder da área; sem líder, para um C-level.';
 
 /** Para a frase quando a fila está vazia. */
 export function destinoSemFila(regra: RegraDistribuicao): string {

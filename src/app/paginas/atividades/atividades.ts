@@ -168,6 +168,13 @@ export class Atividades {
   protected readonly estado = signal<Estado>('carregando');
   protected readonly erro = signal<ErroApi | null>(null);
   protected readonly agenda = signal<AtividadesAgrupadas | null>(null);
+  /**
+   * A agenda não carregou (na aba Pendentes): o estado de erro sobe para o topo da coluna, antes
+   * da criação rápida, e os filtros e as abas saem até "Tentar de novo" dar certo.
+   */
+  protected readonly falhaDaAgenda = computed(() =>
+    this.aba() === 'pendentes' && this.estado() === 'erro' ? this.erro() : null,
+  );
   /** Grupos com "Mostrar mais": quantas atividades cada um mostra. */
   private readonly limites = signal<Partial<Record<GrupoAtividade, number>>>({});
   protected readonly carregandoMais = signal<GrupoAtividade | null>(null);

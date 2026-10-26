@@ -1,0 +1,117 @@
+@use 'mixins' as m;
+
+// Player de áudio (DESIGN-SYSTEM.md §4.6): círculo · onda em barras-pílula · tempo · velocidade.
+// Funciona dentro das bolhas (entrada, saída) e solto num cartão. Só tokens.
+
+:host {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  width: min(100%, 320px);
+  min-width: 220px;
+}
+
+audio {
+  display: none;
+}
+
+.player__onda {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border-radius: var(--raio-sm);
+
+  // O anel de foco do range fica na onda inteira.
+  &:has(:focus-visible) {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.player__barras {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  height: 100%;
+
+  i {
+    flex: 1;
+    max-width: 4px;
+    min-height: 4px;
+    border-radius: var(--raio-pilula);
+    background: var(--cor-borda-forte);
+    transition: background-color var(--duracao-rapida) linear;
+  }
+
+  i.tocada {
+    background: var(--cor-info);
+  }
+}
+
+// O range cobre a onda inteira e é invisível: o desenho são as barras.
+.player__posicao {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.player__tempo {
+  min-width: 3.2em;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+// Velocidade: pílula pequena de vidro (28px de desenho, 44px de alvo no toque).
+.player__velocidade {
+  position: relative;
+  flex: none;
+  min-width: 36px;
+  height: 24px;
+  padding: 0 var(--esp-2);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-vidro-forte);
+  color: var(--cor-texto);
+  font: var(--fonte-micro);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+
+  @include m.area-toque(10px, 4px);
+
+  &:hover {
+    background: var(--cor-borda-forte);
+  }
+}
+
+.player__erro {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+
+  a {
+    color: inherit;
+    font-weight: 600;
+  }
+}
+
+@media (forced-colors: active) {
+  .player__barras i {
+    forced-color-adjust: none;
+    background: GrayText;
+  }
+
+  .player__barras i.tocada {
+    background: Highlight;
+  }
+}

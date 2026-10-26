@@ -1,10 +1,11 @@
 <header class="cabecalho">
   <div class="cabecalho__texto">
+    <!-- Título em dois tons (DESIGN-SYSTEM §2.3): o espaço inseparável prende o "·" ao título e
+         a quebra só acontece depois dele; os elementos ficam colados (sem espaço solto). -->
+    @let partes = tituloEmDoisTons();
     <h1 class="cabecalho__titulo">
-      {{ titulo() }}
-      @if (complemento(); as resto) {
-        <span class="tom-fraco">· </span><span class="tom-fraco sem-quebra">{{ resto }}</span>
-      }
+      {{ partes.principal }}<span class="tom-fraco">{{ partes.ponto }}</span
+      ><span class="tom-fraco sem-quebra">{{ partes.complemento }}</span>
     </h1>
     <p class="cabecalho__frase">{{ frase() }}</p>
     <app-regras-funil [area]="areaAtual()" [funilId]="estado.funil()?.id ?? null" />

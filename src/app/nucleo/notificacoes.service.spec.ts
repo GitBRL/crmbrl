@@ -11,6 +11,7 @@ import {
 } from './notificacoes.service';
 import { SessaoService } from './sessao/sessao.service';
 import { perfilDeTeste } from './sessao/sessao-de-teste';
+import { provideSocketFalso } from './tempo-real/tempo-real-de-teste';
 
 function notificacao(id: string, criadoEm: string, lida = false): Notificacao {
   return {
@@ -36,11 +37,18 @@ async function microtarefas(): Promise<void> {
 
 describe('NotificacoesService', () => {
   let http: HttpTestingController;
+  let falso: ReturnType<typeof provideSocketFalso>;
 
   beforeEach(() => {
     vi.useFakeTimers();
+    falso = provideSocketFalso();
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        falso.providers,
+      ],
     });
     http = TestBed.inject(HttpTestingController);
   });
@@ -84,7 +92,8 @@ describe('NotificacoesService', () => {
     expect(servico.carregando()).toBe(false);
   });
 
-  it('atualiza a cada 30 s; com a troca de senha pendente não consulta', async () => {
+  it('busca de reserva a cada 60 s; com a troca de senha pendente não consulta', async () => {
+    expect(INTERVALO_NOTIFICACOES_MS).toBe(60_000);
     const servico = iniciar();
     responder([], 0);
     await microtarefas();
@@ -100,6 +109,55 @@ describe('NotificacoesService', () => {
     expect(servico.naoLidas()).toBe(0);
     await vi.advanceTimersByTimeAsync(INTERVALO_NOTIFICACOES_MS * 2);
     http.expectNone(URL_LISTA);
+  });
+
+  it('notificacao.nova entra no topo e soma nas não lidas; repetida substitui', async () => {
+    const servico = iniciar();
+    responder([notificacao('a', '2026-10-21T10:00:00Z')], 1);
+    await microtarefas();
+    const socket = falso.ultimo();
+    socket.simularConexao();
+
+    socket.receber('notificacao.nova', { notificacao: notificacao('b', '2026-10-21T12:00:00Z') });
+    expect(servico.itens().map((item) => item.id)).toEqual(['b', 'a']);
+    expect(servico.naoLidas()).toBe(2);
+
+    socket.receber('notificacao.nova', {
+      notificacao: { ...notificacao('b', '2026-10-21T12:00:00Z'), titulo: 'Novo' },
+    });
+    expect(servico.itens()).toHaveLength(2);
+    expect(servico.itens()[0].titulo).toBe('Novo');
+    expect(servico.naoLidas()).toBe(2);
+
+    // O total que a API manda (junto ou no `nao-lidas` que vem logo depois) vale mais que a conta
+    // local.
+    socket.receber('notificacao.nova', {
+      notificacao: notificacao('c', '2026-10-21T13:00:00Z'),
+      naoLidas: 7,
+    });
+    expect(servico.naoLidas()).toBe(7);
+    socket.receber('notificacao.nova', { notificacao: notificacao('d', '2026-10-21T14:00:00Z') });
+    expect(servico.naoLidas()).toBe(8);
+    socket.receber('nao-lidas', { notificacoes: 5 });
+    expect(servico.naoLidas()).toBe(5);
+    socket.receber('nao-lidas', { chat: 2 });
+    expect(servico.naoLidas()).toBe(5);
+  });
+
+  it('ao reconectar busca de novo; uma busca em andamento não desfaz o que chegou ao vivo', async () => {
+    const servico = iniciar();
+    responder([], 0);
+    await microtarefas();
+    const socket = falso.ultimo();
+    socket.simularConexao();
+    socket.simularQueda();
+    socket.simularConexao();
+    const velha = http.expectOne(URL_LISTA);
+    socket.receber('notificacao.nova', { notificacao: notificacao('n', '2026-10-21T12:00:00Z') });
+    velha.flush({ itens: [], total: 0, pagina: 1, porPagina: 20, naoLidas: 0 });
+    await microtarefas();
+    expect(servico.itens().map((item) => item.id)).toEqual(['n']);
+    expect(servico.naoLidas()).toBe(1);
   });
 
   it('falha vira erro() sem lançar', async () => {

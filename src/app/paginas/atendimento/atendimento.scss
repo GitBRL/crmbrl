@@ -1,0 +1,140 @@
+@use 'mixins' as m;
+
+// A página ocupa a altura da janela (a lista e a conversa rolam por dentro). A margem negativa
+// embaixo devolve parte do respiro da casca (64px), para a página não rolar à toa.
+
+:host {
+  --_altura: max(34rem, calc(100dvh - var(--casca-altura-topo) - var(--esp-4) - var(--esp-6)));
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+  height: var(--_altura);
+  min-width: 0;
+  margin-bottom: calc(var(--esp-6) - var(--esp-16));
+}
+
+router-outlet {
+  display: none;
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-2) var(--esp-6);
+}
+
+.cabecalho__texto {
+  display: grid;
+  flex: 1 1 0;
+  gap: var(--esp-2);
+  min-width: 12rem;
+}
+
+.cabecalho__titulo {
+  margin: 0;
+  font: var(--fonte-h1);
+  letter-spacing: var(--tracking-display);
+}
+
+.cabecalho__frase {
+  max-width: 64ch;
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo);
+}
+
+.cabecalho__dicas {
+  display: flex;
+  gap: var(--esp-1);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// Duas colunas (lista | conversa); a conversa divide o próprio espaço com o painel do contato.
+.caixa {
+  display: grid;
+  flex: 1;
+  grid-template-columns: clamp(18rem, 24%, 22rem) minmax(0, 1fr);
+  gap: var(--esp-entre-cartoes);
+  min-height: 0;
+}
+
+.caixa[hidden] {
+  display: none;
+}
+
+.sem-acesso {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: var(--esp-cartao);
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.caixa__lista,
+.caixa__conversa {
+  min-height: 0;
+}
+
+.caixa__conversa {
+  display: grid;
+  min-width: 0;
+  // A conversa (rota filha) ocupa a coluna inteira.
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.caixa__vazio {
+  align-self: center;
+  justify-self: center;
+  max-width: 28rem;
+}
+
+// Celular: uma coluna por vez. Sem conversa aberta, a lista; com conversa, só ela (sem o
+// cabeçalho da página, para sobrar altura).
+@include m.abaixo(m.$md) {
+  :host {
+    --_altura: max(30rem, calc(100dvh - var(--casca-altura-topo) - var(--esp-2) - var(--esp-3)));
+
+    gap: var(--esp-3);
+    margin-bottom: calc(var(--esp-3) - var(--esp-16));
+  }
+
+  .cabecalho {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .cabecalho__titulo {
+    font: var(--fonte-h2);
+  }
+
+  .cabecalho__frase {
+    display: none;
+  }
+
+  .caixa {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .caixa__conversa {
+    display: none;
+  }
+
+  :host(.atendimento--aberta) {
+    .cabecalho,
+    .caixa__lista {
+      display: none;
+    }
+
+    .caixa__conversa {
+      display: grid;
+    }
+  }
+}

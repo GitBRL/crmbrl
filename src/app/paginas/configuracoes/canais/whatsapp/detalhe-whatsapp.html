@@ -1,0 +1,420 @@
+<section class="tela" aria-labelledby="canal-titulo">
+  @if (numero.erro(); as erro) {
+    <app-cabecalho-canal titulo="Número de WhatsApp" tipo="WHATSAPP" />
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      manterAcoes
+      [titulo]="erro.ehNaoEncontrado ? 'Número não encontrado' : 'Não conseguimos abrir o número'"
+      [texto]="
+        erro.ehNaoEncontrado
+          ? 'Ele pode ter sido excluído. Volte para a lista de canais.'
+          : erro.resumo
+      "
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      @if (!erro.ehNaoEncontrado) {
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="icones.tentar"
+          (click)="recarregar()"
+        >
+          Tentar de novo
+        </button>
+      }
+      <a appBotao variante="contorno" routerLink="/configuracoes/canais">Voltar aos canais</a>
+    </app-estado-vazio>
+  } @else if (numero.dados(); as n) {
+    <app-cabecalho-canal [titulo]="n.nome" tipo="WHATSAPP" [situacao]="situacao()">
+      <app-menu-acoes
+        cabecalho-acoes
+        [rotulo]="'Ações de ' + n.nome"
+        variante="contorno"
+        tamanho="md"
+        [itens]="acoes()"
+        (escolher)="agir($event.id)"
+      />
+    </app-cabecalho-canal>
+
+    @if (n.pausa) {
+      <div class="faixa" role="note">
+        <svg lucidePause class="faixa__icone" [size]="20" />
+        <p>
+          <strong>Envios pausados.</strong>
+          {{ pausa() }}. As mensagens ficam esperando e saem quando você retomar; o número continua
+          recebendo.
+        </p>
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="invertido"
+          class="faixa__acao"
+          [icone]="icones.retomar"
+          [carregando]="emAndamento() === 'retomar'"
+          (click)="retomar()"
+        >
+          Retomar envios
+        </button>
+      </div>
+    }
+    @if (!n.ativo) {
+      <div class="faixa faixa--info" role="note">
+        <svg lucideInfo class="faixa__icone" [size]="20" />
+        <p>
+          <strong>Este número não recebe conversas novas.</strong>
+          Mesmo com o WhatsApp conectado, o Atendimento não abre conversas para quem escrever por
+          ele. Para voltar, marque “Recebe conversas novas” em Atendimento, logo abaixo.
+        </p>
+      </div>
+    }
+
+    <div class="tela__grade">
+      <app-cartao
+        class="tela__conexao"
+        variante="palco"
+        regiao
+        titulo="Conexão"
+        [nivel]="3"
+        [dica]="explicacaoStatus()"
+      >
+        <app-conexao-whatsapp
+          [status]="status()"
+          [qr]="qr()"
+          [qrExpiraEm]="qrExpiraEm()"
+          [telefone]="telefone()"
+          [motivo]="motivo()"
+          [desde]="desde()"
+          [conectando]="emAndamento() === 'conectar'"
+          [erroGateway]="erroGateway()"
+          (conectar)="conectar()"
+          (desconectar)="agir('desconectar')"
+        />
+      </app-cartao>
+
+      <div class="tela__lado">
+        <app-cartao
+          regiao
+          titulo="Envios de hoje"
+          [nivel]="3"
+          dica="Mensagens que o CRM mandou por este número hoje (fuso de São Paulo). O limite vale para as mensagens ativas — as que a equipe começa, como um disparo; respostas a quem escreveu primeiro só contam se você ligar essa opção em Limites e proteções."
+        >
+          <div class="hoje">
+            <app-indicador
+              disposicao="lado"
+              [valor]="n.hoje.enviados"
+              [legenda]="'de ' + formatar(n.hoje.limite) + ' permitidos hoje'"
+            />
+            <div
+              class="hoje__barra"
+              role="img"
+              [attr.aria-label]="usoDeHoje() + '% do limite de hoje usado'"
+            >
+              <span class="hoje__barra-cheia" [style.inline-size.%]="usoDeHoje()"></span>
+            </div>
+            <dl class="hoje__fatos">
+              <div>
+                <dt>Falhas hoje</dt>
+                <dd>{{ formatar(n.hoje.falhas) }}</dd>
+              </div>
+              <div>
+                <dt>Ritmo</dt>
+                <dd>{{ ritmo() }}</dd>
+              </div>
+            </dl>
+          </div>
+        </app-cartao>
+
+        <app-cartao
+          regiao
+          titulo="Aquecimento"
+          [complemento]="
+            n.aquecimento.ativo ? '· dia ' + n.aquecimento.dia + ' de ' + n.aquecimento.dias : null
+          "
+          [nivel]="3"
+          [dica]="explicacaoAquecimento()"
+        >
+          <div class="aquecimento">
+            <p class="aquecimento__resumo">
+              {{
+                n.aquecimento.ativo
+                  ? 'Hoje o limite é de ' + formatar(n.hoje.limite) + ' envios.'
+                  : aquecimento()
+              }}
+            </p>
+            @if (n.aquecimento.dias > 0) {
+              <ol class="aquecimento__dias" [attr.aria-label]="aquecimento()">
+                @for (dia of diasDoAquecimento(); track dia.numero) {
+                  <li
+                    class="aquecimento__dia"
+                    [class.aquecimento__dia--feito]="dia.feito"
+                    [class.aquecimento__dia--hoje]="dia.hoje"
+                    [title]="'Dia ' + dia.numero"
+                  ></li>
+                }
+              </ol>
+            }
+            @if (n.aquecimento.ativo && n.aquecimento.terminaEm) {
+              <p class="aquecimento__fim">
+                Limite cheio ({{ formatar(n.limiteDiario) }} por dia) a partir de
+                {{ dataCurta(n.aquecimento.terminaEm) }}.
+              </p>
+            }
+          </div>
+        </app-cartao>
+      </div>
+    </div>
+
+    <app-cartao
+      regiao
+      titulo="Últimos 14 dias"
+      [nivel]="3"
+      dica="Quantas mensagens saíram por dia e o limite de cada dia. Durante o aquecimento, o limite sobe aos poucos."
+    >
+      @if (envios.erro(); as erro) {
+        <p class="tela__erro-curto" role="alert">
+          Não conseguimos carregar os envios: {{ erro.resumo }}
+          <button
+            appBotao
+            type="button"
+            tamanho="sm"
+            variante="contorno"
+            (click)="carregarEnvios()"
+          >
+            Tentar de novo
+          </button>
+        </p>
+      } @else if (envios.dados(); as dias) {
+        <app-grafico-envios [envios]="dias" [hoje]="n.hoje.dia" />
+      } @else {
+        <app-esqueleto forma="bloco" altura="148px" />
+      }
+    </app-cartao>
+
+    <div class="tela__formularios">
+      <app-cartao regiao titulo="Atendimento" [nivel]="3">
+        <form
+          class="formulario"
+          novalidate
+          [formGroup]="dadosForm"
+          (ngSubmit)="salvarDados()"
+          aria-label="Atendimento do número"
+        >
+          <app-campo-texto
+            #campoNome
+            rotulo="Nome"
+            autocomplete="off"
+            dica="Como o número aparece no Atendimento."
+            [maximoCaracteres]="tamanhoNome"
+            formControlName="nome"
+          />
+          <app-seletor
+            rotulo="Fila das conversas novas"
+            placeholder="Sem fila"
+            permitirVazio
+            [ajuda]="ajudaFila"
+            [opcoes]="filas.opcoes()"
+            formControlName="filaPadraoId"
+          />
+          <app-caixa-selecao
+            rotulo="Recebe conversas novas"
+            dica="Desmarcado, o número continua conectado, mas quem escrever não vira conversa no Atendimento."
+            formControlName="ativo"
+          />
+          <p class="formulario__nota">
+            O horário de atendimento, a resposta fora do horário e a pesquisa de satisfação deste
+            número ficam em
+            <a routerLink="/configuracoes/atendimento/horarios" [queryParams]="{ canal: n.canalId }"
+              >Configurações → Atendimento</a
+            >.
+          </p>
+          <div class="formulario__acoes">
+            <button
+              appBotao
+              type="submit"
+              variante="invertido"
+              [carregando]="emAndamento() === 'dados'"
+            >
+              Salvar
+            </button>
+          </div>
+        </form>
+      </app-cartao>
+
+      <app-cartao
+        regiao
+        titulo="Limites e proteções"
+        [nivel]="3"
+        dica="Cuidados para o WhatsApp não bloquear o número: limite de mensagens por dia, uma pausa entre um envio e outro, aquecimento de número novo e “digitando…” antes de enviar. Os padrões já são seguros; mude só se souber o que está fazendo."
+      >
+        <form
+          class="formulario"
+          novalidate
+          [formGroup]="limitesForm"
+          (ngSubmit)="salvarLimites()"
+          aria-label="Limites e proteções do número"
+        >
+          <div class="formulario__par">
+            <app-campo-texto
+              rotulo="Limite por dia"
+              tipo="number"
+              sufixo="envios"
+              [minimo]="faixas.limiteDiario.minimo"
+              [maximo]="faixas.limiteDiario.maximo"
+              [passo]="1"
+              dica="Depois do aquecimento."
+              formControlName="limiteDiario"
+            />
+            <app-campo-texto
+              rotulo="Aquecimento"
+              tipo="number"
+              sufixo="dias"
+              [minimo]="faixas.aquecimentoDias.minimo"
+              [maximo]="faixas.aquecimentoDias.maximo"
+              [passo]="1"
+              dica="0 = sem aquecimento."
+              formControlName="aquecimentoDias"
+            />
+          </div>
+          <div class="formulario__par">
+            <app-campo-texto
+              rotulo="Espera mínima entre envios"
+              tipo="number"
+              sufixo="s"
+              [minimo]="faixas.intervaloSegundos.minimo"
+              [maximo]="faixas.intervaloSegundos.maximo"
+              [passo]="1"
+              formControlName="intervaloMinimoSegundos"
+            />
+            <app-campo-texto
+              rotulo="Espera máxima entre envios"
+              tipo="number"
+              sufixo="s"
+              [minimo]="faixas.intervaloSegundos.minimo"
+              [maximo]="faixas.intervaloSegundos.maximo"
+              [passo]="1"
+              [mensagens]="{ intervalo: 'Use um valor maior ou igual à espera mínima.' }"
+              dica="A espera é sorteada entre a mínima e a máxima."
+              formControlName="intervaloMaximoSegundos"
+            />
+          </div>
+
+          <fieldset class="formulario__grupo" formGroupName="protecoes">
+            <legend class="formulario__legenda">Proteções</legend>
+            <app-caixa-selecao
+              rotulo="Mostrar “digitando…” antes de enviar"
+              dica="O contato vê que alguém está escrevendo, como numa conversa normal."
+              formControlName="digitando"
+            />
+            @if (limitesForm.controls.protecoes.controls.digitando.value) {
+              <app-campo-texto
+                class="formulario__recuo"
+                rotulo="“Digitando…” por até"
+                tipo="number"
+                sufixo="s"
+                [minimo]="faixas.digitandoMaximoSegundos.minimo"
+                [maximo]="faixas.digitandoMaximoSegundos.maximo"
+                [passo]="1"
+                dica="O tempo acompanha o tamanho do texto, sem passar deste."
+                formControlName="digitandoMaximoSegundos"
+              />
+            }
+            <app-caixa-selecao
+              rotulo="Conferir se o telefone tem WhatsApp"
+              dica="Antes de uma mensagem ativa. Evita mandar para números que não existem, o que também chama a atenção do WhatsApp."
+              formControlName="verificarNumero"
+            />
+            <app-caixa-selecao
+              rotulo="Limite vale também para as respostas"
+              dica="Normalmente só as mensagens ativas contam. Marque para contar também as respostas a quem escreveu primeiro."
+              formControlName="limitarRespostas"
+            />
+            <app-campo-texto
+              rotulo="Pausar sozinho depois de"
+              tipo="number"
+              sufixo="falhas seguidas"
+              [minimo]="faixas.pausarAposFalhasSeguidas.minimo"
+              [maximo]="faixas.pausarAposFalhasSeguidas.maximo"
+              [passo]="1"
+              dica="0 = nunca pausa sozinho."
+              formControlName="pausarAposFalhasSeguidas"
+            />
+          </fieldset>
+
+          <div class="formulario__acoes">
+            <button
+              appBotao
+              type="submit"
+              variante="invertido"
+              [carregando]="emAndamento() === 'limites'"
+            >
+              Salvar limites
+            </button>
+            <button appBotao type="button" variante="contorno" (click)="restaurarPadroes()">
+              Usar os padrões
+            </button>
+          </div>
+        </form>
+      </app-cartao>
+    </div>
+  } @else {
+    <div class="tela__carregando" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando o número…</p>
+      <app-esqueleto largura="30%" />
+      <div class="tela__grade">
+        <app-cartao variante="palco">
+          <app-esqueleto forma="bloco" altura="272px" />
+        </app-cartao>
+        <div class="tela__lado">
+          <app-cartao><app-esqueleto [linhas]="3" /></app-cartao>
+          <app-cartao><app-esqueleto [linhas]="3" /></app-cartao>
+        </div>
+      </div>
+    </div>
+  }
+</section>
+
+<app-modal
+  titulo="Pausar os envios"
+  [complemento]="numero.dados() ? '· ' + numero.dados()!.nome : null"
+  largura="sm"
+  [aberto]="pausando()"
+  (fechado)="pausando.set(false)"
+>
+  <form
+    class="formulario"
+    novalidate
+    id="pausar-numero"
+    (submit)="$event.preventDefault(); pausar()"
+  >
+    <p class="formulario__frase">
+      Nada sai por este número até você retomar: as mensagens ficam esperando na fila. Ele continua
+      recebendo normalmente.
+    </p>
+    <app-area-texto
+      rotulo="Motivo"
+      opcional
+      placeholder="Ex.: troca de chip"
+      [linhas]="2"
+      [maximoCaracteres]="tamanhoMotivo"
+      [(valor)]="motivoPausa"
+    />
+  </form>
+  <ng-container modal-rodape>
+    <button
+      appBotao
+      type="submit"
+      form="pausar-numero"
+      variante="invertido"
+      [icone]="icones.pausar"
+      [carregando]="emAndamento() === 'pausar'"
+    >
+      Pausar envios
+    </button>
+    <button appBotao type="button" variante="contorno" (click)="pausando.set(false)">
+      Cancelar
+    </button>
+  </ng-container>
+</app-modal>

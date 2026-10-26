@@ -1,0 +1,310 @@
+@use 'mixins' as m;
+
+// Conversa aberta: o cartão principal (palco) com cabeçalho, faixa de situação, mensagens e o
+// compositor; o painel do contato ao lado quando cabe. A altura vem da grade da página.
+
+:host {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  gap: var(--esp-entre-cartoes);
+  min-width: 0;
+  min-height: 0;
+}
+
+// Os modais e o painel lateral abrem na camada superior (<dialog>): os hosts não ocupam a grade.
+app-painel-lateral,
+app-transferir-conversa,
+app-editar-etiquetas,
+app-criar-negocio,
+app-historico-conversa {
+  display: contents;
+}
+
+:host(.conversa--com-painel) {
+  grid-template-columns: minmax(0, 1fr) clamp(16rem, 30%, 20rem);
+}
+
+.conversa__principal {
+  container: conversa / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--raio-cartao);
+  background: var(--gradiente-palco);
+  box-shadow: var(--sombra-cartao);
+}
+
+.conversa__principal--estado {
+  justify-content: center;
+  padding: var(--esp-6);
+}
+
+// Cabeçalho ----------------------------------------------------------------------------------
+
+.cabeca {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-width: 0;
+  padding: var(--esp-4) var(--esp-4) var(--esp-3) var(--esp-5);
+}
+
+.cabeca__voltar {
+  display: none;
+  flex: none;
+}
+
+.cabeca__contato {
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.cabeca__textos {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cabeca__nome {
+  margin: 0;
+  overflow: hidden;
+  font: var(--fonte-h3);
+  letter-spacing: var(--tracking-titulo);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.cabeca__detalhe {
+  display: flex;
+  align-items: center;
+  gap: 0 var(--esp-2);
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  white-space: nowrap;
+
+  > span {
+    flex: none;
+  }
+
+  > .cabeca__canal {
+    flex: 0 1 auto;
+  }
+
+  > .cabeca__fila {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  strong {
+    color: var(--cor-texto);
+    font-weight: 500;
+  }
+}
+
+.cabeca__canal {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--esp-1);
+  min-width: 14px;
+
+  svg {
+    flex: none;
+  }
+}
+
+.cabeca__nome-canal {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cabeca__principal-icone {
+  display: none;
+}
+
+.cabeca__separador {
+  color: var(--cor-texto-fraco);
+}
+
+.cabeca__sem-responsavel {
+  color: var(--cor-destaque-texto);
+  font-weight: 500;
+}
+
+.cabeca__acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+// Faixa de situação --------------------------------------------------------------------------
+
+.faixa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  padding: 0 var(--esp-5) var(--esp-3);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.faixa__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.faixa__assunto {
+  flex-basis: 100%;
+  min-width: 0;
+  overflow: hidden;
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.faixa__assunto-rotulo {
+  color: var(--cor-texto-suave);
+  font-weight: 400;
+}
+
+.faixa__etiqueta {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.faixa__negocio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  max-width: 18rem;
+  overflow: hidden;
+  color: var(--cor-texto);
+  font: var(--fonte-legenda-lg);
+  text-decoration: underline;
+  text-decoration-color: var(--cor-borda-forte);
+  text-overflow: ellipsis;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+.cabeca + .conversa__mensagens {
+  border-top: 1px solid var(--cor-borda);
+}
+
+// Mensagens e compositor ---------------------------------------------------------------------
+
+.conversa__mensagens {
+  flex: 1;
+  min-height: 0;
+  padding: var(--esp-2) var(--esp-2) 0;
+}
+
+.conversa__escrever {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-4) var(--esp-4);
+}
+
+.conversa__bloqueio-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.conversa__painel {
+  min-height: 0;
+}
+
+// Tablet e celular: a conversa ocupa a coluna; o "voltar" aparece no celular.
+@include m.abaixo(m.$md) {
+  .conversa__principal {
+    border-radius: var(--raio-lg);
+  }
+
+  .cabeca {
+    gap: var(--esp-2);
+    padding: var(--esp-3) var(--esp-3) var(--esp-2);
+  }
+
+  .cabeca__voltar {
+    display: inline-flex;
+  }
+
+  .cabeca__nome {
+    font: var(--fonte-rotulo);
+    font-size: 17px;
+  }
+
+  .cabeca__transferir {
+    display: none;
+  }
+
+  .faixa {
+    padding-inline: var(--esp-3);
+  }
+
+  .conversa__escrever {
+    padding: var(--esp-2) var(--esp-3) var(--esp-3);
+  }
+}
+
+@include m.abaixo(m.$sm) {
+  .cabeca__contato {
+    display: none;
+  }
+}
+
+// Conversa estreita (três colunas num notebook, celular): a fila sai do cabeçalho (ela está
+// no painel do contato) e o nome do canal vira só o ícone.
+@container conversa (max-width: 600px) {
+  .cabeca__fila,
+  .cabeca__fila-separador,
+  .cabeca__principal-texto {
+    display: none;
+  }
+
+  .cabeca__principal-icone {
+    display: inline-flex;
+  }
+}
+
+@container conversa (max-width: 420px) {
+  .cabeca__nome-canal,
+  .cabeca__separador--responsavel {
+    display: none;
+  }
+}

@@ -3,8 +3,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 
 import { MODULOS } from '../nucleo/navegacao';
+import { SessaoService } from '../nucleo/sessao/sessao.service';
 import { entrarComo } from '../nucleo/sessao/sessao-de-teste';
-import { MenuLateral } from './menu-lateral';
+import { TempoRealService } from '../nucleo/tempo-real/tempo-real.service';
+import { provideSocketFalso } from '../nucleo/tempo-real/tempo-real-de-teste';
+import { descreverNaoLidas, MenuLateral } from './menu-lateral';
 
 @Component({ template: '' })
 class PaginaFalsa {}
@@ -75,7 +78,13 @@ describe('MenuLateral', () => {
       Object.defineProperties(area, {
         scrollHeight: { configurable: true, value: 1000 },
         clientHeight: { configurable: true, value: 300 },
-        scrollTop: { configurable: true, get: () => rolagem, set: (valor) => (rolagem = valor) },
+        scrollTop: {
+          configurable: true,
+          get: () => rolagem,
+          set: (valor: number) => {
+            rolagem = valor;
+          },
+        },
       });
       area.getBoundingClientRect = () => retangulo(100, 400);
       const administracao = itens().find((item) => item.getAttribute('href') === '/administracao')!;
@@ -106,12 +115,19 @@ describe('MenuLateral', () => {
     expect(inicio?.getAttribute('aria-label')).toBeNull();
     expect(inicio?.textContent?.trim()).toBe('Visão geral');
     // O selo é visual; o nome acessível já diz "em breve".
-    const atendimento = itens().find((item) => item.getAttribute('href') === '/atendimento');
-    expect(atendimento?.getAttribute('aria-label')).toBe('Atendimento (em breve)');
-    expect(atendimento?.querySelector('app-selo')?.getAttribute('aria-hidden')).toBe('true');
-    expect(atendimento?.querySelector('app-selo')?.getAttribute('tamanho')).toBe('sm');
-    // Os módulos da Fase 1 estão prontos.
-    for (const rota of ['/funis/marketing', '/contatos', '/atividades', '/configuracoes']) {
+    const disparos = itens().find((item) => item.getAttribute('href') === '/disparos');
+    expect(disparos?.getAttribute('aria-label')).toBe('Disparos (em breve)');
+    expect(disparos?.querySelector('app-selo')?.getAttribute('aria-hidden')).toBe('true');
+    expect(disparos?.querySelector('app-selo')?.getAttribute('tamanho')).toBe('sm');
+    // Os módulos da Fase 1 e os da Onda A (Atendimento, Chat da equipe) estão prontos.
+    for (const rota of [
+      '/funis/marketing',
+      '/contatos',
+      '/atividades',
+      '/configuracoes',
+      '/atendimento',
+      '/chat',
+    ]) {
       const item = itens().find((link) => link.getAttribute('href') === rota);
       expect(item?.querySelector('app-selo'), rota).toBeNull();
     }
@@ -156,16 +172,16 @@ describe('MenuLateral', () => {
     await fixture.whenStable();
 
     expect(raiz.querySelector('nav')?.classList).toContain('menu--recolhido');
-    const marketing = itens().find((item) => item.getAttribute('href') === '/atendimento')!;
+    const marketing = itens().find((item) => item.getAttribute('href') === '/disparos')!;
     expect(marketing.querySelector('.menu__rotulo')?.classList).toContain('visualmente-oculto');
     expect(marketing.querySelector('app-selo')).toBeNull();
-    expect(marketing.getAttribute('aria-label')).toBe('Atendimento (em breve)');
+    expect(marketing.getAttribute('aria-label')).toBe('Disparos (em breve)');
 
     const dica = raiz.querySelector('.menu__dica') as HTMLElement;
     expect(dica.getAttribute('aria-hidden')).toBe('true');
     marketing.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
     await fixture.whenStable();
-    expect(dica.textContent?.trim()).toBe('Atendimento · em breve');
+    expect(dica.textContent?.trim()).toBe('Disparos · em breve');
     expect(dica.classList).toContain('menu__dica--visivel');
 
     marketing.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
@@ -238,5 +254,97 @@ describe('MenuLateral', () => {
     itens()[1].dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
     await fixture.whenStable();
     expect(raiz.querySelector('.menu__dica')?.classList).not.toContain('menu__dica--visivel');
+  });
+});
+
+describe('MenuLateral — não lidas do tempo real', () => {
+  let falso: ReturnType<typeof provideSocketFalso>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    falso = provideSocketFalso();
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter(
+          MODULOS.map((modulo) => ({ path: modulo.rota.slice(1), component: PaginaFalsa })),
+        ),
+        falso.providers,
+      ],
+    });
+    entrarComo('ADMIN');
+  });
+  afterEach(() => localStorage.clear());
+
+  /** Cria a navegação e conecta o socket falso do tempo real. */
+  async function criarConectado() {
+    const fixture = TestBed.createComponent(Hospedeiro);
+    fixture.detectChanges();
+    TestBed.tick();
+    for (let i = 0; i < 6; i++) {
+      await Promise.resolve();
+    }
+    falso.ultimo().simularConexao();
+    const raiz = fixture.nativeElement as HTMLElement;
+    const item = (rota: string) =>
+      raiz.querySelector<HTMLAnchorElement>(`a.menu__item[href="${rota}"]`)!;
+    return { fixture, raiz, item, socket: falso.ultimo() };
+  }
+
+  it('Atendimento e Chat da equipe mostram as contagens do evento "nao-lidas" (99+ acima de 99)', async () => {
+    const { fixture, item, socket } = await criarConectado();
+    expect(item('/atendimento').querySelector('.menu__contagem')).toBeNull();
+
+    socket.receber('nao-lidas', { atendimento: 3, chat: 120, notificacoes: 7 });
+    await fixture.whenStable();
+    expect(item('/atendimento').querySelector('.menu__contagem')?.textContent?.trim()).toBe('3');
+    expect(item('/chat').querySelector('.menu__contagem')?.textContent?.trim()).toBe('99+');
+    // O número é visual; o nome acessível do item diz quantas.
+    expect(item('/atendimento').querySelector('.menu__contagem')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+    expect(item('/atendimento').getAttribute('aria-label')).toBe('Atendimento, 3 não lidas');
+    expect(item('/chat').getAttribute('aria-label')).toBe('Chat da equipe, 120 não lidas');
+    // Os outros módulos não têm contador.
+    expect(item('/contatos').querySelector('.menu__contagem')).toBeNull();
+
+    // Cada evento traz só o que mudou: zerar o chat não mexe no Atendimento.
+    socket.receber('nao-lidas', { chat: 0 });
+    await fixture.whenStable();
+    expect(item('/chat').querySelector('.menu__contagem')).toBeNull();
+    expect(item('/chat').getAttribute('aria-label')).toBeNull();
+    expect(item('/atendimento').querySelector('.menu__contagem')?.textContent?.trim()).toBe('3');
+  });
+
+  it('recolhida: a contagem vai para o canto do círculo e entra na dica', async () => {
+    const { fixture, raiz, item, socket } = await criarConectado();
+    fixture.componentInstance.recolhida.set(true);
+    socket.receber('nao-lidas', { atendimento: 1 });
+    await fixture.whenStable();
+
+    const atendimento = item('/atendimento');
+    expect(
+      atendimento.querySelector('.menu__circulo .menu__contagem--canto')?.textContent?.trim(),
+    ).toBe('1');
+    expect(atendimento.getAttribute('aria-label')).toBe('Atendimento, 1 não lida');
+    atendimento.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+    await fixture.whenStable();
+    expect(raiz.querySelector('.menu__dica')?.textContent?.trim()).toBe('Atendimento · 1 não lida');
+  });
+
+  it('a sessão acaba: as contagens zeram', async () => {
+    const { fixture, item, socket } = await criarConectado();
+    socket.receber('nao-lidas', { atendimento: 5, chat: 2 });
+    await fixture.whenStable();
+    expect(item('/chat').querySelector('.menu__contagem')).not.toBeNull();
+    TestBed.inject(SessaoService).encerrarLocalmente();
+    TestBed.tick();
+    await fixture.whenStable();
+    expect(socket.desconectado).toBe(true);
+    expect(TestBed.inject(TempoRealService).naoLidas()).toEqual({ atendimento: 0, chat: 0 });
+  });
+
+  it('descreverNaoLidas: singular e plural', () => {
+    expect(descreverNaoLidas(1)).toBe('1 não lida');
+    expect(descreverNaoLidas(12)).toBe('12 não lidas');
   });
 });

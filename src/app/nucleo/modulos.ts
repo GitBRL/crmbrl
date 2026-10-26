@@ -78,9 +78,10 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rotulo: 'Atendimento',
     rota: '/atendimento',
     grupo: null,
+    // R12: Marketing não acessa o Atendimento.
     papeis: TODOS.filter((papel) => papel !== 'MARKETING'),
-    status: 'em-breve',
-    fase: 'Fase 2',
+    status: 'pronto',
+    fase: null,
     descricao: 'Converse com clientes de todos os canais sem sair do CRM.',
     funcionalidades: [
       'WhatsApp integrado por conexão própria (sem serviços de terceiros)',
@@ -184,8 +185,8 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rota: '/chat',
     grupo: 'relacionamento',
     papeis: TODOS,
-    status: 'em-breve',
-    fase: 'Fase 2',
+    status: 'pronto',
+    fase: null,
     descricao: 'Converse com o time em tempo real, dentro do CRM.',
     funcionalidades: ['Canais por área', 'Mensagens diretas', 'Menções a contatos e negócios'],
   },

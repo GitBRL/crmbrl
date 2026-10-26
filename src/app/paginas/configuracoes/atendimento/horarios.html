@@ -1,0 +1,213 @@
+<div class="horarios">
+  <div class="faixa faixa--info" role="note">
+    <svg lucideClock class="faixa__icone" [size]="20" />
+    <p>
+      <strong>Para cada canal:</strong> quando ele atende, o que responder sozinho fora desse
+      horário (uma vez por conversa) e se pede a nota de satisfação, de 1 a 5, quando a conversa é
+      resolvida.
+      @if (!podeEditarAlgum()) {
+        Só Admin e C-level alteram; você vê como está.
+      }
+    </p>
+  </div>
+
+  @if (dados.erro(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar os canais"
+      [texto]="erro.resumo"
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="icones.tentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (dados.dados() === null) {
+    <div class="horarios__lista" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando os canais…</p>
+      @for (item of [1, 2, 3]; track item) {
+        <app-esqueleto forma="bloco" altura="96px" />
+      }
+    </div>
+  } @else if (canais().length === 0) {
+    <app-estado-vazio
+      titulo="Nenhum canal ainda"
+      texto="Quando um canal (WhatsApp, chat do site, e-mail…) for conectado, o horário e a pesquisa de satisfação dele aparecem aqui."
+    >
+      @if (podeCriarCanais()) {
+        <a appBotao variante="invertido" routerLink="/configuracoes/canais">Ir para Canais</a>
+      }
+    </app-estado-vazio>
+  } @else {
+    <ul class="horarios__lista" aria-label="Canais">
+      @for (item of canais(); track item.canal.id) {
+        <li class="canal" [class.canal--inativo]="!item.canal.ativo">
+          <span class="canal__icone" aria-hidden="true">
+            <svg [lucideIcon]="iconeDoCanal[item.canal.tipo]" [size]="20" />
+          </span>
+          <div class="canal__textos">
+            <div class="canal__linha">
+              <strong class="canal__nome">{{ item.canal.nome }}</strong>
+              <span class="canal__tipo">{{ item.tipo }}</span>
+              <app-selo
+                tamanho="sm"
+                [variante]="item.selo"
+                [ponto]="item.canal.situacaoHorario.aberto"
+                >{{ item.situacao }}</app-selo
+              >
+              @if (!item.canal.ativo) {
+                <app-selo tamanho="sm" variante="contorno">Canal desligado</app-selo>
+              }
+            </div>
+            <p class="canal__horario">
+              <svg lucideCalendarClock [size]="14" />
+              {{ item.horario }}
+            </p>
+            <ul class="canal__fatos">
+              <li [class.canal__fato--sim]="!!item.canal.mensagemForaHorario">
+                {{
+                  item.canal.mensagemForaHorario
+                    ? 'Responde fora do horário'
+                    : 'Não responde fora do horário'
+                }}
+              </li>
+              <li [class.canal__fato--sim]="item.canal.pesquisaSatisfacao">
+                {{
+                  item.canal.pesquisaSatisfacao
+                    ? 'Pesquisa de satisfação ligada'
+                    : 'Sem pesquisa de satisfação'
+                }}
+              </li>
+              <li>
+                {{ item.canal.filaPadrao ? 'Fila: ' + item.canal.filaPadrao.nome : 'Sem fila' }}
+              </li>
+            </ul>
+          </div>
+          <button
+            appBotao
+            type="button"
+            tamanho="sm"
+            [variante]="item.canal.podeEditar ? 'neutro' : 'contorno'"
+            [icone]="item.canal.podeEditar ? icones.editar : icones.ver"
+            [attr.aria-label]="(item.canal.podeEditar ? 'Editar ' : 'Ver ') + item.canal.nome"
+            (click)="abrir(item.canal)"
+          >
+            {{ item.canal.podeEditar ? 'Editar' : 'Ver' }}
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+<app-painel-lateral
+  [titulo]="aberto()?.nome ?? 'Canal'"
+  [complemento]="aberto() ? '· ' + rotuloDoTipo(aberto()!.tipo) : null"
+  [descricao]="aberto()?.podeEditar ? null : 'Só Admin e C-level alteram. Você vê como está.'"
+  largura="lg"
+  [aberto]="aberto() !== null"
+  (fechado)="fechar()"
+>
+  @if (aberto(); as canal) {
+    <form
+      class="formulario"
+      novalidate
+      id="formulario-horario"
+      (ngSubmit)="salvar()"
+      [formGroup]="formulario"
+    >
+      <app-seletor
+        rotulo="Fila das conversas novas"
+        placeholder="Sem fila"
+        permitirVazio
+        [ajuda]="ajudaFila"
+        [opcoes]="filas.opcoes()"
+        formControlName="filaPadraoId"
+      />
+
+      <fieldset class="formulario__grupo">
+        <legend class="formulario__legenda">Horário de atendimento</legend>
+        <app-grupo-opcoes
+          rotulo="Quando o canal atende"
+          rotuloOculto
+          disposicao="pilulas"
+          [opcoes]="opcoesModo"
+          formControlName="modo"
+        />
+        @if (formulario.controls.modo.value === 'definido') {
+          <app-editor-horario #editor [desabilitado]="!canal.podeEditar" [(horario)]="horario" />
+        } @else {
+          <p class="formulario__nota">
+            As conversas chegam e são distribuídas a qualquer hora, todos os dias.
+          </p>
+        }
+      </fieldset>
+
+      <fieldset class="formulario__grupo">
+        <legend class="formulario__legenda">Fora do horário</legend>
+        <app-caixa-selecao
+          rotulo="Responder sozinho fora do horário"
+          dica="Uma vez por conversa em cada período fechado. A conversa entra no Atendimento do mesmo jeito."
+          formControlName="responderFora"
+        />
+        @if (formulario.controls.responderFora.value) {
+          <app-area-texto
+            class="formulario__recuo"
+            rotulo="Mensagem automática"
+            [linhas]="3"
+            [maximoCaracteres]="tamanhoAutomatica"
+            formControlName="mensagemForaHorario"
+          />
+        }
+      </fieldset>
+
+      <fieldset class="formulario__grupo">
+        <legend class="formulario__legenda">Pesquisa de satisfação</legend>
+        <app-caixa-selecao
+          rotulo="Pedir uma nota de 1 a 5 ao resolver"
+          dica="A pergunta vai ao cliente quando a conversa é resolvida; a resposta vale por 24 horas. Notas 1 e 2 avisam o líder da área."
+          formControlName="pesquisaSatisfacao"
+        />
+        @if (formulario.controls.pesquisaSatisfacao.value) {
+          <app-area-texto
+            class="formulario__recuo"
+            rotulo="Pergunta"
+            opcional
+            [placeholder]="canal.perguntaPadrao"
+            dica="Vazio, vale a pergunta padrão (a que aparece no campo)."
+            [linhas]="3"
+            [maximoCaracteres]="tamanhoAutomatica"
+            formControlName="mensagemSatisfacao"
+          />
+        }
+      </fieldset>
+
+      @if (erro(); as erro) {
+        <p class="formulario__erro" role="alert">{{ erro }}</p>
+      }
+    </form>
+  }
+  <ng-container painel-rodape>
+    @if (aberto()?.podeEditar) {
+      <button
+        appBotao
+        type="submit"
+        form="formulario-horario"
+        variante="invertido"
+        [carregando]="salvando()"
+      >
+        Salvar
+      </button>
+    }
+    <button appBotao type="button" variante="contorno" (click)="fechar()">
+      {{ aberto()?.podeEditar ? 'Cancelar' : 'Fechar' }}
+    </button>
+  </ng-container>
+</app-painel-lateral>

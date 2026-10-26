@@ -313,10 +313,12 @@ componente do Lucide (`[icone]="LucideShare2"`); tamanho e traço o componente r
 
 A tabela abaixo traz os componentes de base (os do painel da referência). Os de formulário
 estão em §4.2, os de dados e listas em §4.3 e os de retorno e painéis em §4.4; todos têm a
-linha de entradas e saídas em §4.1. Campos de formulário funcionam com os formulários reativos
-do Angular (o próprio componente é o `ControlValueAccessor`: `formControlName`,
-`[formControl]`, `ngModel`) ou soltos, com `[(valor)]`. A única dependência além do Angular é o
-`@angular/cdk` (menu de ações e `LiveAnnouncer`); diálogos usam o `<dialog>` nativo.
+linha de entradas e saídas em §4.1. Os de conversa (Atendimento e Chat da equipe, com o tempo
+real nas telas) estão em §4.6, com a própria referência de entradas. Campos de formulário
+funcionam com os formulários reativos do Angular (o próprio componente é o
+`ControlValueAccessor`: `formControlName`, `[formControl]`, `ngModel`) ou soltos, com
+`[(valor)]`. A única dependência além do Angular é o `@angular/cdk` (menu de ações,
+`LiveAnnouncer` e a rolagem virtual da lista de mensagens); diálogos usam o `<dialog>` nativo.
 
 | Componente                                   | Anatomia e variantes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Referência                                               |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
@@ -522,6 +524,129 @@ em http fora do `localhost` —, o modo antigo com um campo temporário).
 | **Valor único** `app-valor-unico`            | `paginas/integracoes/comum/valor-unico.ts`                | Um valor que a API mostra uma única vez (endereço de webhook, segredo): pílula monoespaçada selecionável, "Copiar" e o aviso de que depois só aparece mascarado. Se o navegador não deixar copiar, o valor fica selecionado, pronto para o Ctrl+C.                                                                                           |
 | **Sem acesso** `app-sem-acesso`              | `layout/sem-acesso.ts` (rota `/sem-acesso?pagina=`)       | Num cartão palco: o que foi negado e quem acessa (pelos papéis do módulo), com "Ir para a visão geral".                                                                                                                                                                                                                                      |
 
+### 4.6 Conversas (`ui/mensagens/`)
+
+Os componentes de conversa do Atendimento e do Chat da equipe (Onda A). Trabalham sobre um
+modelo próprio, `MensagemConversa` (`ui/mensagens/mensagens.ts`), com os nomes de enum da API:
+a tela converte o DTO dela e passa a lista pronta. No Chat da equipe, as mensagens do próprio
+usuário são `SAIDA` e as dos outros, `ENTRADA`.
+
+```ts
+interface MensagemConversa {
+  id: string;
+  direcao: 'ENTRADA' | 'SAIDA' | 'INTERNA' | 'SISTEMA'; // contato · equipe · nota · aviso
+  tipo:
+    | 'TEXTO'
+    | 'IMAGEM'
+    | 'AUDIO'
+    | 'VIDEO'
+    | 'DOCUMENTO'
+    | 'LOCALIZACAO'
+    | 'CONTATO'
+    | 'FIGURINHA'
+    | 'REACAO';
+  texto?: string | null;
+  trechos?: {
+    texto: string;
+    link?: string | unknown[];
+    externo?: boolean;
+    tipo?: 'mencao' | 'referencia' | 'link';
+  }[];
+  anexo?: {
+    nome: string;
+    mime: string;
+    url: string;
+    tamanho?: number;
+    duracao?: number;
+    largura?: number;
+    altura?: number;
+  };
+  status?: 'PENDENTE' | 'ENVIADA' | 'ENTREGUE' | 'LIDA' | 'FALHOU'; // só SAIDA
+  erro?: string | null; // motivo da falha, em português
+  criadaEm: string | Date;
+  autor?: { id?: string; nome: string; foto?: string | null };
+  respondeA?: { autor?: string; texto?: string; tipo?: TipoMensagem };
+  editada?: boolean;
+  excluida?: boolean;
+}
+```
+
+| Componente                                 | Anatomia e variantes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Bolha** `app-bolha-mensagem`             | Raio 20px, com o canto do lado de quem fala em 6px no começo de cada grupo; até 78% da largura (86% abaixo de 600px). **Entrada**: à esquerda, `--cor-superficie-2` com borda, avatar de 32px na última do grupo. **Saída**: à direita, a superfície tingida de menta (`--dado-2` a 14%), com a hora e o status de entrega no canto. **Nota interna**: à direita, no coral listrado do cartão destaque (mesmos tons de preto por dentro), com o cadeado e "Nota interna · Ana". **Sistema**: uma pílula de vidro centralizada com a hora. Mensagens seguidas do mesmo autor e direção, no mesmo dia e com até 5 min entre elas, formam um grupo: o nome só na primeira, o avatar só na última. A falha mostra o motivo em `--cor-erro` e "Tentar de novo". Imagem/vídeo sem texto: a hora vai por cima da mídia. Também: resposta citada (barra `--cor-info`), "editada", "Mensagem apagada", figurinha sem fundo. |
+| **Status de entrega** `app-status-entrega` | Relógio (enviando), um visto (enviada), dois vistos (entregue), dois vistos em `--cor-info` (lida), alerta em `--cor-erro` (não enviada): a forma muda a cada passo, não só a cor. `role="img"` com o nome ("Lida"), que também aparece ao passar o mouse.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Separador de data** `app-separador-data` | Fio de cada lado e, no meio, uma pílula neutra com "Hoje", "Ontem", o dia da semana nos últimos 7 dias ou a data ("20 de outubro", com o ano se for de outro ano).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Digitando** `app-digitando`              | Três pontos numa pílula com a cor da bolha de entrada e a frase ("Maria está digitando…", "Maria e Ana estão digitando…", "3 pessoas estão digitando…"). Os pontos ondulam quatro vezes (< 5 s) e param; cada mudança recomeça. A região viva fica sempre no lugar (vazia quando ninguém digita).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Lista** `app-lista-mensagens`            | Rolagem **virtual** do `@angular/cdk/scrolling` com a estratégia própria `EstrategiaAlturaVariavel` (alturas reais medidas por `ResizeObserver`, guardadas pela chave de cada item). Começa na mais recente e acompanha o fim enquanto a pessoa estiver nele; rolando para cima, o círculo invertido "↓" aparece com a contagem das que chegaram. Perto do topo (ou pelo botão "Carregar mensagens anteriores") pede as anteriores, e a mensagem que estava na tela **não sai do lugar** quando elas entram. "Início da conversa" quando não há mais. Carregando: bolhas-esqueleto; vazia: `textoVazio`. "Digitando" embaixo. A altura vem do pai (flex/grid com altura definida).                                                                                                                                                                                                                                 |
+| **Compositor** `app-compositor`            | A pílula de escrever (raio 28px, `--cor-superficie-2`, borda forte): clipe, campo que cresce até 6 linhas e, à direita, enviar (círculo invertido) ou gravar áudio (quando o campo está vazio). Anexos em pílulas acima (miniatura ou ícone, nome, "PDF · 1,2 MB", remover), também colando ou soltando arquivos. "/" no começo de uma palavra abre as respostas rápidas (cartão flutuante acima, até 8, filtradas por atalho, título e texto sem diferenciar acentos). Gravando: lixeira, ponto vermelho, tempo, nível do microfone em barras `--cor-info`, ■ (para e deixa ouvir) e ➤. "Mensagem \| Nota interna" em pílulas (`permitirNota`); na nota, a pílula fica coral listrada. Bloqueado: o motivo, numa pílula tracejada com cadeado, no lugar do campo. Linha de ajuda embaixo (atalhos de teclado; no toque, só o "/"), erro em `--cor-erro` e o contador perto do limite.                             |
+| **Player de áudio** `app-player-audio`     | Círculo invertido de tocar/pausar, a onda em 32 barras-pílula (as já tocadas em `--cor-info`; desenho estável por endereço), o tempo (a duração parado; a posição tocando) e a velocidade 1× · 1,5× · 2×. A onda é um `<input type="range">` por cima das barras. Um áudio de cada vez na tela. Arquivo que não abre: aviso e "Baixar".                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Prévia de anexo** `app-previa-anexo`     | Imagem: miniatura com `--raio-md`, largura fixa de 280px (200px `compacta`; `--previa-maximo`) limitada ao espaço, espaço reservado com `largura`/`altura`, clique amplia num modal com "Baixar". Vídeo: o `<video>` nativo. Áudio: o player. Documento (e imagem/vídeo que não abriu): pílula de vidro com o círculo do ícone, nome, tipo e tamanho e o botão de baixar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+
+| Componente            | Entradas e saídas                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Exemplo                                                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app-lista-mensagens` | `mensagens` (da mais antiga para a mais nova) · `carregando` · `temAnteriores` · `carregandoAnteriores` · `digitando` (nomes) · `nomes` (`entrada` \| `saida` \| `todas` \| `nenhuma`) · `avatares` (true) · `rotulo` (`Mensagens`) · `textoVazio` · `anunciar` (true); `(carregarAnteriores)` · `(tentarDeNovo)`; métodos `rolarParaOFim(comportamento?)`, `rolarAte(id)`                                                                                                                                                                       | `<app-lista-mensagens [mensagens]="m()" [temAnteriores]="mais()" [digitando]="nomes()" nomes="saida" (carregarAnteriores)="carregar()" />`                       |
+| `app-bolha-mensagem`  | `mensagem`* · `continuacao` · `seguida` · `nomes` (`entrada`) · `avatares` (true); `(tentarDeNovo)`                                                                                                                                                                                                                                                                                                                                                                                                                                              | `<app-bolha-mensagem [mensagem]="m" nomes="saida" (tentarDeNovo)="reenviar($event)" />`                                                                          |
+| `app-compositor`      | `[(texto)]` (rascunho) · `[(modo)]` (`mensagem` \| `nota`) · `rotulo` (`Mensagem`) · `placeholder` · `respostasRapidas` (`{ id, atalho, titulo, texto }[]`) · `variaveis` (`{ 'contato.nome': … }`) · `permitirAnexos` (true) · `permitirAudio` (true) · `permitirNota` · `desabilitado` · `motivo` · `enviando` · `limites` (25/100 MB) · `maximoAnexos` (10) · `maximoCaracteres`; `(enviar)` → `{ texto, anexos: File[], nota, audio }` · `(digitando)` → `boolean`; métodos `focar()`, `limpar()`, `restaurar(envio)`, `inserirTexto(texto)` | `<app-compositor permitirNota [respostasRapidas]="r()" [variaveis]="v()" (enviar)="enviar($event)" (digitando)="tempoReal.digitando({ conversaId }, $event)" />` |
+| `app-player-audio`    | `src`* · `duracao` (segundos) · `rotulo` (`Áudio`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `<app-player-audio [src]="a.url" [duracao]="a.duracao" rotulo="Áudio de Maria" />`                                                                               |
+| `app-previa-anexo`    | `anexo`* · `compacta` · `rotulo` (nome falado; padrão o nome do arquivo)                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | `<app-previa-anexo [anexo]="m.anexo" />`                                                                                                                         |
+| `app-digitando`       | `nomes` (`[]`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | `<app-digitando [nomes]="['Maria']" />`                                                                                                                          |
+| `app-separador-data`  | `data` · `rotulo` (vence a data)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | `<app-separador-data [data]="m.criadaEm" />`                                                                                                                     |
+| `app-status-entrega`  | `status`* · `tamanho` (16)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `<app-status-entrega status="LIDA" />`                                                                                                                           |
+
+Regras dos componentes de conversa:
+
+- **Texto é só texto.** Nada de HTML vindo da API (o e-mail chega como texto, §2.5 do contrato
+  da Onda A). Endereços `http(s)://` e `www.` viram links que abrem em outra aba
+  (`rel="noopener noreferrer"`); um link externo só tem destino com `http(s)`, `mailto` ou
+  `tel`. Menções e referências a negócio/contato vêm em `trechos`, com rota interna
+  (`routerLink`).
+- **Anexos (R11):** o seletor oferece imagens, áudio, vídeo, PDF, Office, texto e zip; SVG e
+  HTML são recusados, e o limite é 25 MB (documentos 100 MB) — `motivoDeRecusa()` dá a frase.
+  A API confere de novo. A `url` do anexo é sempre a da API (`/api/v1/arquivos/<id>`).
+- **Áudio gravado** sai em webm/opus quando o navegador permite (`GravadorAudio`, uso interno do
+  compositor); o gateway converte para ogg/opus. Sem microfone ou sem permissão, o erro diz o
+  que fazer ("Libere o acesso nas configurações do site…"). Gravações param sozinhas em 10 min.
+- **Envio:** ao enviar, o compositor emite `(enviar)` e se limpa; se a API falhar, a tela chama
+  `restaurar(envio)`. A bolha nova entra como `PENDENTE` e avança pelo evento
+  `mensagem.status`; `FALHOU` mostra o motivo e "Tentar de novo".
+- **Teclado:** Enter envia, Shift+Enter quebra a linha (no toque, Enter quebra e o botão envia),
+  Ctrl/Cmd+Enter sempre envia. Nas respostas rápidas, setas, Enter/Tab escolhem e Esc fecha (o
+  foco fica no campo: listbox com `aria-activedescendant`). A lista rola pelo teclado (é
+  focável, com nome) e a onda do player aceita setas, Home e End.
+- **Leitor de tela:** cada bolha começa com quem falou ("Maria Souza:", "Nota interna de Ana:")
+  e termina com a hora e o status; as mensagens que chegam de outra pessoa são anunciadas
+  ("Nova mensagem de Maria: …"); anexar, remover, gravar e descartar também.
+- **Rolagem virtual:** cada item tem `data-chave` (a mensagem é `m:<id>`); as chaves que não
+  são mensagem (topo, separadores) nunca servem de âncora. O espaço entre as bolhas é padding
+  do próprio item (a estratégia mede a altura do item inteiro). Não ponha margem externa nas
+  bolhas.
+
+**Tempo real nas telas** (`nucleo/tempo-real/`). Um socket só (`TempoRealService`, namespace
+`/tempo-real` em `/api/socket.io`, autenticado pelo cookie da sessão), conectado enquanto há
+sessão. Nos componentes, use os atalhos de `auxiliares.ts` no construtor (param sozinhos quando
+o componente é destruído):
+
+```ts
+acompanharSala(() => (this.conversaId() ? { tipo: 'conversa', id: this.conversaId()! } : null));
+aoReceber('mensagem.nova', ({ conversaId, mensagem }) => this.acrescentar(conversaId, mensagem));
+aoReceber('mensagem.status', (evento) => this.atualizarStatus(evento));
+aoReconectar(() => this.recarregar()); // o que chegou enquanto a conexão esteve fora
+protected readonly digitando = digitandoEm(() => ({ conversaId: this.conversaId() }), {
+  nomeDoContato: () => this.conversa()?.contato.nome,
+});
+// <app-lista-mensagens [digitando]="digitando().map((p) => p.nome)" />
+// <app-compositor (digitando)="tempoReal.digitando({ conversaId: id }, $event)" />
+```
+
+Os eventos e os formatos estão em `nucleo/tempo-real/eventos.ts` (os mesmos do catálogo da API,
+`crmbrl-api/src/tempo-real/catalogo.ts`). A casca já cuida do resto: o indicador
+"Reconectando…" (`app-indicador-conexao`, na barra superior; no celular, flutuando logo abaixo
+dela) só aparece quando a conexão está fora há mais de 2,5 s, e o menu mostra as não lidas do
+Atendimento e do Chat da equipe (evento `nao-lidas`). As notificações do sino chegam ao vivo
+(`notificacao.nova`), com uma busca de reserva a cada 60 s. Nos testes, todo socket é falso e
+inerte (`src/provedores-teste.ts`); para simular eventos, `provideSocketFalso()` de
+`nucleo/tempo-real/tempo-real-de-teste.ts`.
+
 ---
 
 ## 5. Layout
@@ -551,6 +676,14 @@ em http fora do `localhost` —, o modo antigo com um campo temporário).
   nas bordas que escondem itens. O menu mostra só os módulos que o papel e as permissões de
   quem entrou acessam (os das próximas fases com o selo "em breve").
 - A navegação pode ser recolhida para só os círculos (com tooltip) — a escolha fica salva.
+- Atendimento e Chat da equipe mostram as não lidas (evento `nao-lidas` do tempo real) num
+  contador em `--cor-erro` (o mesmo da contagem do sino) ao lado do nome ("99+" acima de 99),
+  ou no canto do círculo com a navegação recolhida; o nome acessível do item diz quantas
+  ("Atendimento, 3 não lidas").
+- Na barra superior, antes do alternador de tema, o indicador discreto do tempo real
+  ("Conectando…" / "Reconectando…" com um ponto lima que pulsa três vezes; "Conectado de novo"
+  em menta por 2,5 s) só aparece quando a conexão ao vivo está fora há mais de 2,5 s. Não pega
+  cliques e não ocupa espaço quando oculto.
 - O conteúdo tem no máximo `--largura-pagina` (1600px). As duas colunas (palco 2/3, lateral
   1/3) aparecem quando o conteúdo tem ≥ 60rem; abaixo disso, o palco ocupa a largura toda e a
   coluna lateral desce para baixo dele. Os quatro KPIs ficam numa linha só, abaixo do palco.
@@ -566,7 +699,8 @@ coluna lateral desce para baixo dele em duas colunas.
 ### Mobile (< 900px)
 
 - Barra superior: logo (só o símbolo), título da seção, busca, sino e avatar. O menu abre
-  uma gaveta lateral com a mesma navegação.
+  uma gaveta lateral com a mesma navegação. O indicador do tempo real flutua no meio, logo
+  abaixo da barra (com a sombra flutuante).
 - Título em display de 36px, com o complemento em dois tons descendo inteiro (§2.3). Abas e
   filtros em pílulas com rolagem horizontal até a borda da tela: a borda que esconde abas
   esmaece e a aba selecionada fica sempre à vista. Abaixo de 600px as abas entalhadas do palco
@@ -730,11 +864,15 @@ reais. Ela segue o tema da página e termina com uma composição nos dois temas
 (`data-tema` num contêiner). Organização:
 
 - `design-system.ts|html|scss` — topo, índice com âncoras (`/design-system#botoes`) e as
-  seções de componentes 05–11, 15 (tema e marca) e 16 (dois temas);
+  seções de componentes 05–11, 16 (tema e marca) e 17 (dois temas);
 - `formularios.ts|html|scss` (12, campos ligados a um formulário reativo de verdade, com o erro
   da API simulado), `listas.ts|html|scss` (13, filtros + tabela + paginação com os estados
   dados/carregando/vazio/erro e a linha que abre o painel lateral) e `retorno.ts|html|scss` (14,
   avisos com host próprio, menu de ações e painel lateral);
+- `conversas.ts|html|scss` (15, os componentes de `ui/mensagens/` com uma conversa que funciona:
+  180 mensagens virtuais com "carregar anteriores", envio que passa por enviando → enviada →
+  entregue → lida, anexos, nota interna, respostas rápidas por "/", áudio gravado de verdade e
+  um áudio e uma imagem gerados no navegador, sem arquivos de exemplo);
 - `fundamentos.ts|html|scss` — seções 01–04 (cores, tipografia, espaço e forma, ícones);
 - `secao.ts` (`app-ds-secao`: número, título em dois tons, frase) e `exemplo.ts`
   (`app-ds-exemplo`: cartão com nome, seletor e "quando usar");
@@ -742,7 +880,7 @@ reais. Ela segue o tema da página e termina com uma composição nos dois temas
   raios, alturas, movimento, camadas e pontos de quebra); os **valores** das cores não ficam ali:
   depois de renderizar, `fundamentos.ts` lê cada token no CSS (`getComputedStyle`, função
   `lerCorDoToken`) dentro de duas sondas escondidas, uma com `data-tema="escuro"` e outra com
-  `data-tema="claro"`, e mostra o hex (ou "branco 7%", "transparente"). A seção 15 usa a mesma
+  `data-tema="claro"`, e mostra o hex (ou "branco 7%", "transparente"). A seção 16 usa a mesma
   função nos painéis do logo. Ao criar um token de cor ou de fonte, inclua-o em `dados.ts`.
 
 Grades do catálogo: cartões lado a lado têm alturas parecidas (`.ds-grade--2`); um cartão bem

@@ -1,0 +1,60 @@
+<header class="chat__cabecalho">
+  <div class="chat__titulos">
+    <h1 class="texto-display">Chat da equipe</h1>
+    <p class="chat__frase">
+      Converse com o time sem sair do CRM: o canal Geral, o da sua área, grupos e conversas diretas.
+      <span class="chat__frase-dica"
+        >Digite <kbd>&#64;</kbd> para chamar alguém e <kbd>#</kbd> para citar um negócio, contato ou
+        empresa.</span
+      >
+    </p>
+  </div>
+  <div class="chat__acoes">
+    <button
+      appBotao
+      type="button"
+      variante="contorno"
+      [icone]="icones.direta"
+      (click)="novaDiretaAberta.set(true)"
+    >
+      Conversa direta
+    </button>
+    <button
+      appBotao
+      type="button"
+      variante="invertido"
+      [icone]="icones.grupo"
+      (click)="novoGrupoAberto.set(true)"
+    >
+      Novo grupo
+    </button>
+  </div>
+</header>
+
+<div class="chat__colunas">
+  <app-chat-lista-canais
+    class="chat__lista"
+    [canais]="estado.canais()"
+    [carregando]="estado.carregando()"
+    [falha]="estado.falha()"
+    [ativo]="estado.aberto()"
+    [eu]="estado.eu()"
+    (novaDireta)="novaDiretaAberta.set(true)"
+    (novoGrupo)="novoGrupoAberto.set(true)"
+    (tentarDeNovo)="estado.carregar()"
+  />
+
+  <section class="chat__canal" aria-label="Conversa aberta">
+    <router-outlet (activate)="aoAbrirCanal()" (deactivate)="aoFecharCanal()" />
+    @if (!aberto()) {
+      <app-estado-vazio
+        class="chat__convite"
+        titulo="Escolha uma conversa"
+        texto="Abra um canal, um grupo ou uma conversa direta na lista para ler e responder. As mensagens chegam na hora, sem recarregar a página."
+      />
+    }
+  </section>
+</div>
+
+<app-chat-novo-grupo [(aberto)]="novoGrupoAberto" (criado)="irPara($event)" />
+<app-chat-nova-direta [(aberto)]="novaDiretaAberta" (aberta)="irPara($event)" />

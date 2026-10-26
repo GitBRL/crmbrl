@@ -101,4 +101,30 @@ describe('LinhaDoTempoNegocio', () => {
     fixture.detectChanges();
     expect(raiz.querySelectorAll('.item')).toHaveLength(1);
   });
+
+  it('resumos antigos com o código da regra aparecem sem ele', async () => {
+    const fixture = TestBed.createComponent(LinhaDoTempoNegocio);
+    fixture.componentRef.setInput('negocioId', 'n1');
+    fixture.detectChanges();
+    http
+      .expectOne((req) => req.url === '/api/v1/negocios/n1/linha-do-tempo')
+      .flush({
+        itens: [
+          evento(
+            'e9',
+            'negocio.reconvertido',
+            'n1',
+            'Contato voltou com o negócio "ACME" aberto em Comercial: reconversão registrada (R5.6)',
+          ),
+        ],
+        total: 1,
+        pagina: 1,
+        porPagina: 20,
+      });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const texto = (fixture.nativeElement as HTMLElement).querySelector('.item')?.textContent ?? '';
+    expect(texto).toContain('reconversão registrada');
+    expect(texto).not.toMatch(/R5\.6/);
+  });
 });

@@ -119,6 +119,25 @@ export interface Negocio {
   readonly atualizadoEm: string;
 }
 
+/** Um negócio do outro lado da jornada (passagem entre funis, R5.7). */
+export interface NegocioDaJornada {
+  readonly id: string;
+  readonly area: Area;
+  /** Quem consulta vê esse negócio (R5.9); sem acesso, a tela mostra só a área. */
+  readonly visivel: boolean;
+}
+
+/** De onde o negócio veio e o que gerou nos outros funis (`NegocioDetalheDto.jornada`). */
+export interface JornadaDoNegocio {
+  readonly origem: NegocioDaJornada | null;
+  readonly gerados: readonly NegocioDaJornada[];
+}
+
+/** `GET /negocios/:id`: o negócio e a jornada (opcional: a API anterior não a trazia). */
+export interface NegocioDetalhe extends Negocio {
+  readonly jornada?: JornadaDoNegocio;
+}
+
 export interface ColunaQuadro {
   readonly etapa: Etapa;
   /** Negócios na etapa (com os filtros), não só os trazidos. */

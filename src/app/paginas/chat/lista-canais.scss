@@ -1,0 +1,397 @@
+@use 'mixins' as m;
+
+// Lista de canais do Chat da equipe: um cartão da altura da área, com o topo fixo (título e
+// busca) e a lista que rola por dentro, com as bordas esmaecidas como a navegação (§5). Os
+// itens seguem a pílula da navegação: círculo do ícone (ou avatar) + nome + prévia. Só tokens.
+
+:host {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.lista__topo {
+  display: grid;
+  gap: var(--esp-3);
+  padding: var(--esp-5) var(--esp-4) var(--esp-2);
+}
+
+.lista__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  min-height: var(--altura-md);
+  padding-left: var(--esp-2);
+}
+
+.lista__titulo {
+  font: var(--fonte-h3);
+  outline: none;
+}
+
+// As ações ficam no cabeçalho da página no desktop; no celular, aqui.
+.lista__acoes-celular {
+  display: none;
+  gap: var(--esp-2);
+
+  @include m.abaixo(m.$md) {
+    display: flex;
+  }
+}
+
+.lista__rolagem {
+  --_respiro-fim: var(--esp-3);
+
+  flex: 1;
+  min-height: 0;
+  padding-inline: var(--esp-3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.lista__conteudo {
+  display: grid;
+  gap: var(--esp-4);
+  padding-block: var(--esp-2) var(--esp-4);
+}
+
+.lista__secao {
+  display: grid;
+  gap: var(--esp-1);
+}
+
+.lista__secao-titulo {
+  padding: 0 var(--esp-3);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.lista__secao-total {
+  font-weight: 400;
+}
+
+.lista__itens {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista__aviso {
+  padding: var(--esp-2) var(--esp-3);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.lista__esqueletos {
+  display: grid;
+  gap: var(--esp-4);
+  padding: var(--esp-2) var(--esp-3);
+}
+
+.lista__esqueletos--busca {
+  padding-block: var(--esp-1);
+}
+
+.lista__esqueleto {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+// Item (canal) -------------------------------------------------------------------------------
+
+.item {
+  --_circulo: var(--cor-superficie-3);
+  --_circulo-icone: var(--cor-texto-suave);
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: 56px;
+  padding: var(--esp-2) var(--esp-3) var(--esp-2) var(--esp-2);
+  border: 1px solid transparent;
+  border-radius: var(--raio-lg);
+  color: var(--cor-texto);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duracao) var(--curva),
+    border-color var(--duracao) var(--curva);
+
+  &:hover {
+    --_circulo-icone: var(--cor-texto);
+
+    background: var(--cor-vidro);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: -2px;
+  }
+}
+
+// Canal aberto: círculo invertido, como o item ativo da navegação.
+.item--ativo,
+.item--ativo:hover {
+  --_circulo: var(--cor-inverso);
+  --_circulo-icone: var(--cor-sobre-inverso);
+
+  border-color: var(--cor-borda);
+  background: var(--cor-superficie-2);
+}
+
+.item__circulo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--_circulo);
+  color: var(--_circulo-icone);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-controle);
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+}
+
+.item--ativo .item__circulo {
+  box-shadow: none;
+}
+
+.item__avatar {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+}
+
+// Online: bolinha menta recortada com a cor do cartão (o nome acessível diz "online").
+.item__online {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--dado-2);
+  box-shadow:
+    0 0 0 2px var(--cor-superficie),
+    inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.item--ativo .item__online {
+  box-shadow:
+    0 0 0 2px var(--cor-superficie-2),
+    inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.item__textos {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.item__linha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.item__nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font: var(--fonte-rotulo);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item__silenciado {
+  flex: none;
+  color: var(--cor-texto-fraco);
+}
+
+.item__quando {
+  flex: none;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+}
+
+.item__previa {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda-lg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Não lido: nome mais forte e prévia mais clara (não só a cor muda: o contador aparece).
+.item--nao-lido {
+  .item__nome {
+    font-weight: 700;
+  }
+
+  .item__previa,
+  .item__quando {
+    color: var(--cor-texto-suave);
+  }
+}
+
+// Silenciado: as não lidas contam em tom neutro (menções continuam na cor do sino).
+.item--silenciado .item__contagem {
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto-suave);
+}
+
+.item__contagem,
+.item__mencao {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-erro);
+  color: var(--cor-sobre-erro);
+  font: var(--fonte-micro);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.item__mencao {
+  padding: 0;
+  background: var(--cor-destaque);
+  color: var(--cor-sobre-destaque);
+  font-size: 12px;
+}
+
+// Resultado da busca nas mensagens -----------------------------------------------------------
+
+.resultado {
+  display: grid;
+  gap: 2px;
+  min-height: var(--altura-md);
+  padding: var(--esp-2) var(--esp-3);
+  border-radius: var(--raio-lg);
+  color: var(--cor-texto);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--cor-vidro);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: -2px;
+  }
+}
+
+.resultado__linha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.resultado__canal {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font: var(--fonte-rotulo);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultado__texto {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.resultado__autor {
+  color: var(--cor-texto);
+}
+
+.resultado__destaque {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--cor-marca) 32%, transparent);
+  color: inherit;
+}
+
+// Bordas esmaecidas (diretiva RolagemEsmaecida): degradês da cor do cartão no topo e no pé,
+// só quando há conteúdo escondido daquele lado.
+.rolagem-esmaecida {
+  --_degrade: var(--esp-8);
+
+  scroll-padding-block: var(--_degrade);
+
+  &::before,
+  &::after {
+    content: '';
+    position: sticky;
+    z-index: 1;
+    display: block;
+    height: var(--_degrade);
+    margin-inline: calc(-1 * var(--esp-3)) calc(-1 * var(--_respiro-fim));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--duracao) var(--curva);
+  }
+
+  &::before {
+    top: 0;
+    margin-bottom: calc(-1 * var(--_degrade));
+    background: linear-gradient(var(--cor-superficie), transparent);
+  }
+
+  &::after {
+    bottom: 0;
+    margin-top: calc(-1 * var(--_degrade));
+    background: linear-gradient(transparent, var(--cor-superficie));
+  }
+}
+
+.rolagem-esmaecida--acima::before,
+.rolagem-esmaecida--abaixo::after {
+  opacity: 1;
+}
+
+@media (forced-colors: active) {
+  .item--ativo {
+    border: 2px solid Highlight;
+  }
+
+  .item__contagem,
+  .item__mencao,
+  .item__online {
+    border: 1px solid CanvasText;
+  }
+}
