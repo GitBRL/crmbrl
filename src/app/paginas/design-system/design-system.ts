@@ -51,6 +51,7 @@ import { Modal } from '../../ui/modal/modal';
 import { PilhaAvatares, type PessoaAvatar } from '../../ui/pilha-avatares/pilha-avatares';
 import { Selo } from '../../ui/selo/selo';
 import { ZonaSoltar } from '../../ui/zona-soltar/zona-soltar';
+import { Automacao } from './automacao';
 import { Conversas } from './conversas';
 import { Exemplo } from './exemplo';
 import { Formularios } from './formularios';
@@ -87,6 +88,7 @@ function series(...valores: number[]): readonly SerieFunil[] {
   selector: 'app-design-system',
   imports: [
     RouterLink,
+    Automacao,
     Conversas,
     Exemplo,
     Formularios,
@@ -138,6 +140,7 @@ export class DesignSystem {
     ['listas', 'Listas e tabelas'],
     ['retorno', 'Retorno e painéis'],
     ['conversas', 'Conversas'],
+    ['automacao', 'Campanhas e automações'],
     ['marca', 'Tema e marca'],
     ['dois-temas', 'Dois temas'],
   ].map(([id, rotulo], i) => ({ id, rotulo, numero: String(i + 1).padStart(2, '0') }));

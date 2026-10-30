@@ -90,27 +90,27 @@ describe('EmBreve', () => {
   }
 
   it('mostra o módulo no palco: título em dois tons, descrição, fase e funcionalidades', () => {
-    // Disparos continua "em breve" (o Atendimento ficou pronto na Onda A).
-    const { raiz } = criar('disparos');
+    // BI continua "em breve" (Atendimento, Disparos, Chatbot e Automações já estão prontos).
+    const { raiz } = criar('bi');
     const titulo = raiz.querySelector('h1') as HTMLElement;
-    expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Disparos · em breve');
+    expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('BI e relatórios · em breve');
     // O "·" fica no fim da primeira linha; o complemento desce inteiro.
     expect(titulo.querySelector('.tom-fraco')?.textContent?.trim()).toBe('·');
     expect(titulo.querySelector('.tom-fraco.sem-quebra')?.textContent?.trim()).toBe('em breve');
     expect(raiz.querySelector('app-cartao.em-breve__palco')?.classList).toContain('cartao--palco');
     expect(raiz.textContent).toContain(
-      'Envie campanhas de WhatsApp para listas de contatos, sem ferramenta externa.',
+      'Métricas de Marketing, Comercial, CS e Atendimento num só painel.',
     );
-    expect(raiz.querySelector('app-selo')?.textContent?.trim()).toBe('Fase 2');
+    expect(raiz.querySelector('app-selo')?.textContent?.trim()).toBe('Fase 3');
 
     const chips = [...raiz.querySelectorAll('app-chip')].map((chip) => chip.textContent?.trim());
-    expect(chips.length).toBe(6);
-    expect(chips[0]).toBe('Listas e segmentos a partir dos contatos do CRM');
+    expect(chips.length).toBe(4);
+    expect(chips[0]).toBe('Painéis por área');
 
     const [fase, total] = [...raiz.querySelectorAll('app-indicador')];
     expect(fase.querySelector('.indicador__unidade--antes')?.textContent).toBe('Fase');
-    expect(fase.querySelector('.indicador__valor')?.textContent).toBe('2');
-    expect(total.querySelector('.indicador__valor')?.textContent).toBe('6');
+    expect(fase.querySelector('.indicador__valor')?.textContent).toBe('3');
+    expect(total.querySelector('.indicador__valor')?.textContent).toBe('4');
     expect(total.textContent).toContain('Funcionalidades planejadas');
   });
 
@@ -164,11 +164,6 @@ describe('EmBreve', () => {
     const pwa = raiz.querySelector('.roadmap app-dica button');
     expect(pwa?.getAttribute('aria-label')).toBe('O que é PWA?');
     expect(pwa?.closest('.roadmap__fase')?.textContent).toContain('App mobile (PWA)');
-  });
-
-  it('mostra a nota do módulo quando existe (Disparos)', () => {
-    const { raiz } = criar('disparos');
-    expect(raiz.querySelector('.em-breve__nota')?.textContent).toContain('construído do zero');
   });
 
   it('sem acesso: explica quem acessa (sem modo demonstração)', () => {

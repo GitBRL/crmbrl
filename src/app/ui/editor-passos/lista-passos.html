@@ -1,0 +1,214 @@
+<ol
+  class="lista"
+  cdkDropList
+  cdkDropListLockAxis="y"
+  [attr.aria-label]="nome()"
+  [cdkDropListData]="passos()"
+  [cdkDropListDisabled]="fixo() || somenteLeitura()"
+  (cdkDropListDropped)="aoSoltar($event)"
+>
+  @for (
+    linha of linhas();
+    track linha.passo.id;
+    let i = $index, primeiro = $first, ultimo = $last
+  ) {
+    <li
+      class="passo"
+      [class]="'passo--' + linha.fase"
+      cdkDrag
+      cdkDragPreviewContainer="parent"
+      [cdkDragDisabled]="fixo() || somenteLeitura()"
+      [attr.data-passo]="linha.passo.id"
+    >
+      <div class="passo__cabeca">
+        @if (!fixo() && !somenteLeitura()) {
+          <span
+            class="passo__alca"
+            cdkDragHandle
+            aria-hidden="true"
+            title="Arraste para mudar a ordem"
+          >
+            <svg lucideGripVertical [size]="18" />
+          </span>
+        }
+        <app-selo class="passo__fase" [variante]="linha.variante" tamanho="sm">{{
+          linha.rotuloFase
+        }}</app-selo>
+        <button
+          type="button"
+          class="passo__resumo"
+          [attr.aria-expanded]="linha.aberto"
+          [attr.aria-controls]="idCorpo(linha.passo)"
+          (click)="alternar(linha.passo.id)"
+        >
+          <span class="passo__titulo">
+            @if (linha.definicao?.icone; as icone) {
+              <svg [lucideIcon]="icone" [size]="16" aria-hidden="true" />
+            }
+            {{ linha.definicao?.rotulo ?? 'Passo desconhecido' }}
+          </span>
+          @if (linha.resumo) {
+            <span class="passo__detalhe">{{ linha.resumo }}</span>
+          }
+          <svg
+            class="passo__seta"
+            [class.passo__seta--aberta]="linha.aberto"
+            [lucideIcon]="icones.abrir"
+            [size]="16"
+            aria-hidden="true"
+          />
+        </button>
+        @if (linha.faltando.length) {
+          <app-selo variante="coral" tamanho="sm" class="passo__alerta">Falta preencher</app-selo>
+        }
+        @if (!fixo() && !somenteLeitura()) {
+          <div class="passo__acoes">
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              data-acao="subir"
+              [icone]="icones.subir"
+              [rotulo]="'Subir o passo ' + (i + 1)"
+              [attr.aria-disabled]="primeiro || null"
+              (click)="mover(i, -1)"
+            ></button>
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              data-acao="descer"
+              [icone]="icones.descer"
+              [rotulo]="'Descer o passo ' + (i + 1)"
+              [attr.aria-disabled]="ultimo || null"
+              (click)="mover(i, 1)"
+            ></button>
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              [icone]="icones.remover"
+              [rotulo]="'Remover o passo ' + (i + 1)"
+              (click)="remover(linha.passo, linha.definicao)"
+            ></button>
+          </div>
+        }
+      </div>
+
+      @if (linha.aberto) {
+        <div class="passo__corpo" [id]="idCorpo(linha.passo)">
+          @if (linha.definicao?.descricao; as descricao) {
+            <p class="passo__descricao">{{ descricao }}</p>
+          }
+          @if (linha.trocas.length > 1) {
+            <app-seletor
+              rotulo="Tipo"
+              [opcoes]="linha.trocas"
+              [desabilitado]="somenteLeitura()"
+              [valor]="linha.passo.tipo"
+              (valorChange)="trocarTipo(linha.passo, $event)"
+            />
+          }
+          @for (campo of linha.definicao?.campos ?? []; track campo.id) {
+            @switch (campo.tipo) {
+              @case ('texto-longo') {
+                <app-area-texto
+                  [rotulo]="campo.rotulo"
+                  [dica]="campo.dica ?? null"
+                  [placeholder]="campo.placeholder ?? null"
+                  [obrigatorio]="!!campo.obrigatorio"
+                  [desabilitado]="somenteLeitura()"
+                  [linhas]="3"
+                  [valor]="textoDe(linha.passo, campo) ?? ''"
+                  (valorChange)="mudarCampo(linha.passo, campo, $event)"
+                />
+              }
+              @case ('opcao') {
+                <app-seletor
+                  [rotulo]="campo.rotulo"
+                  [dica]="campo.dica ?? null"
+                  [opcoes]="campo.opcoes ?? []"
+                  [obrigatorio]="!!campo.obrigatorio"
+                  [desabilitado]="somenteLeitura()"
+                  [placeholder]="campo.placeholder ?? 'Escolha uma opção'"
+                  [valor]="textoDe(linha.passo, campo)"
+                  (valorChange)="mudarCampo(linha.passo, campo, $event)"
+                />
+              }
+              @default {
+                <app-campo-texto
+                  [rotulo]="campo.rotulo"
+                  [tipo]="campo.tipo === 'numero' ? 'number' : 'text'"
+                  [dica]="campo.dica ?? null"
+                  [placeholder]="campo.placeholder ?? null"
+                  [obrigatorio]="!!campo.obrigatorio"
+                  [desabilitado]="somenteLeitura()"
+                  [valor]="linha.passo.config[campo.id] ?? ''"
+                  (valorChange)="mudarCampo(linha.passo, campo, $event)"
+                />
+              }
+            }
+          }
+        </div>
+      }
+
+      @if (linha.passo.ramos?.length) {
+        <div class="passo__ramos">
+          @for (ramo of linha.passo.ramos; track $index; let r = $index) {
+            <section class="ramo">
+              <h4 class="ramo__titulo">{{ ramo.rotulo }}</h4>
+              <app-lista-passos
+                [nome]="ramo.rotulo + ', passos'"
+                [passos]="ramo.passos"
+                [definicoes]="definicoes()"
+                [somenteLeitura]="somenteLeitura()"
+                [niveisRestantes]="niveisRestantes() - 1"
+                rotuloAdicionar="Adicionar passo aqui"
+                (passosChange)="mudarRamo(linha.passo, r, $event)"
+              />
+            </section>
+          }
+        </div>
+      }
+    </li>
+  }
+</ol>
+
+@if (!fixo() && !somenteLeitura()) {
+  <div class="adicionar">
+    <button
+      appBotao
+      type="button"
+      variante="contorno"
+      tamanho="sm"
+      class="lista__adicionar"
+      [icone]="icones.mais"
+      [attr.aria-expanded]="adicionando()"
+      (click)="adicionando.set(!adicionando())"
+    >
+      {{ rotuloAdicionar() }}
+    </button>
+    @if (adicionando()) {
+      <div class="adicionar__menu" role="group" aria-label="Escolha o passo">
+        @for (grupo of grupos(); track grupo.fase) {
+          <div class="adicionar__grupo">
+            <p class="adicionar__titulo">{{ grupo.rotulo }}…</p>
+            <div class="adicionar__itens">
+              @for (item of grupo.itens; track item.tipo) {
+                <button type="button" class="adicionar__item" (click)="adicionar(item)">
+                  <span class="adicionar__nome">
+                    @if (item.icone; as icone) {
+                      <svg [lucideIcon]="icone" [size]="16" aria-hidden="true" />
+                    }
+                    {{ item.rotulo }}
+                  </span>
+                  <span class="adicionar__descricao">{{ item.descricao }}</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

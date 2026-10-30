@@ -115,8 +115,8 @@ describe('MenuLateral', () => {
     expect(inicio?.getAttribute('aria-label')).toBeNull();
     expect(inicio?.textContent?.trim()).toBe('Visão geral');
     // O selo é visual; o nome acessível já diz "em breve".
-    const disparos = itens().find((item) => item.getAttribute('href') === '/disparos');
-    expect(disparos?.getAttribute('aria-label')).toBe('Disparos (em breve)');
+    const disparos = itens().find((item) => item.getAttribute('href') === '/financeiro');
+    expect(disparos?.getAttribute('aria-label')).toBe('Financeiro (em breve)');
     expect(disparos?.querySelector('app-selo')?.getAttribute('aria-hidden')).toBe('true');
     expect(disparos?.querySelector('app-selo')?.getAttribute('tamanho')).toBe('sm');
     // Os módulos da Fase 1 e os da Onda A (Atendimento, Chat da equipe) estão prontos.
@@ -172,16 +172,16 @@ describe('MenuLateral', () => {
     await fixture.whenStable();
 
     expect(raiz.querySelector('nav')?.classList).toContain('menu--recolhido');
-    const marketing = itens().find((item) => item.getAttribute('href') === '/disparos')!;
+    const marketing = itens().find((item) => item.getAttribute('href') === '/financeiro')!;
     expect(marketing.querySelector('.menu__rotulo')?.classList).toContain('visualmente-oculto');
     expect(marketing.querySelector('app-selo')).toBeNull();
-    expect(marketing.getAttribute('aria-label')).toBe('Disparos (em breve)');
+    expect(marketing.getAttribute('aria-label')).toBe('Financeiro (em breve)');
 
     const dica = raiz.querySelector('.menu__dica') as HTMLElement;
     expect(dica.getAttribute('aria-hidden')).toBe('true');
     marketing.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
     await fixture.whenStable();
-    expect(dica.textContent?.trim()).toBe('Disparos · em breve');
+    expect(dica.textContent?.trim()).toBe('Financeiro · em breve');
     expect(dica.classList).toContain('menu__dica--visivel');
 
     marketing.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));

@@ -23,6 +23,8 @@ import {
  * - Cada módulo pronto tem as suas rotas no arquivo `*.routes.ts` da própria pasta
  *   (`paginas/<modulo>/`), com as guardas de cada seção. Os módulos "em breve" saem de
  *   `nucleo/modulos.ts` e levam o id em `data.modulo` (input `modulo` da página).
+ * - Onda B: Disparos, Chatbot e Automações (esqueletos em `paginas/{disparos,chatbot,automacoes}`) e
+ *   a importação (`/contatos/importar`).
  * - Onda A: Atendimento (`/atendimento`, `/atendimento/:conversaId`) e Chat da equipe
  *   (`/chat`, `/chat/:canalId`); em Configurações, as seções Canais (`/configuracoes/canais…`)
  *   e Atendimento (`/configuracoes/atendimento…`), que moram em subpastas próprias e entram
@@ -156,6 +158,23 @@ export const routes: Routes = [
         path: 'chat',
         title: titulo('chat'),
         loadChildren: () => import('./paginas/chat/chat.routes').then((m) => m.ROTAS_CHAT),
+      },
+      {
+        path: 'disparos',
+        title: titulo('disparos'),
+        loadChildren: () =>
+          import('./paginas/disparos/disparos.routes').then((m) => m.ROTAS_DISPAROS),
+      },
+      {
+        path: 'chatbot',
+        title: titulo('chatbot'),
+        loadChildren: () => import('./paginas/chatbot/chatbot.routes').then((m) => m.ROTAS_CHATBOT),
+      },
+      {
+        path: 'automacoes',
+        title: titulo('automacoes'),
+        loadChildren: () =>
+          import('./paginas/automacoes/automacoes.routes').then((m) => m.ROTAS_AUTOMACOES),
       },
       {
         path: 'contatos',

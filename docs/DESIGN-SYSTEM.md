@@ -661,6 +661,42 @@ inerte (`src/provedores-teste.ts`); para simular eventos, `provideSocketFalso()`
 
 ---
 
+### 4.7 Campanhas e automações (`ui/construtor-segmento`, `editor-modelo`, `editor-passos`, `seletor-janela-envio`, `seletor-agenda`)
+
+Os blocos que Disparos, Chatbot e Automações (Onda B) compartilham. Nenhum fala com a API: a tela
+entrega os dados (campos, definições de passo, contagem) e lê o valor para montar o JSON. Todos
+usam `[(valor)]` (o editor de passos, `[(gatilho)]` e `[(passos)]`), sem formulário reativo.
+
+- **Construtor de segmento** (`app-construtor-segmento`): linhas "campo · operador · valor" em
+  linguagem simples ("Etiqueta é Lead quente", "Última interação há mais de 30 dias"); com duas ou
+  mais, "todas" ou "qualquer uma". Os operadores e a entrada do valor (texto, número, data,
+  opções) vêm do tipo do campo (`CampoSegmento`). A **contagem ao vivo** usa a função injetável
+  `contagem` (ou o token `CONTAGEM_SEGMENTO`): `(segmento) => Promise<number>`, chamada depois de
+  `atrasoMs` (400 ms) só com as condições completas; respostas atrasadas são ignoradas; mostra
+  "Contando…", o total ou o erro com "Tentar de novo". Sem a função, não mostra contagem.
+- **Editor de modelo** (`app-editor-modelo`): a área de texto da mensagem com botões que inserem
+  `{{contato.primeiro_nome}}` e variações `{olá|oi}` no cursor, aviso (`role="alert"`) de variável
+  desconhecida, variação vazia ou chave sem par, e a prévia numa bolha por contato (`contatos`),
+  com "Outra variação". A sintaxe é a do renderizador da API; `{{contato.campos.x}}` é sempre aceito.
+- **Editor de passos** (`app-editor-passos`): "Quando… / Se… / Então… / Aguardar…". O gatilho é
+  fixo no topo; cada passo é um cartão (selo da fase, título, resumo de uma linha, "Falta preencher")
+  que abre para os campos; "Se" tem um bloco de passos por ramo, até `nivelMaximo` (2) níveis.
+  Reordenar: arrastar pela alça (CDK, só dentro da mesma lista) **e** as setas Subir/Descer, que
+  anunciam a nova posição e mantêm o foco. "Adicionar passo" abre um menu agrupado por fase com a
+  descrição de cada um. O editor não conhece passos: a tela passa `DefinicaoPasso[]` (tipo, fase,
+  campos, ramos); `validarPassos` devolve o que falta preencher. `DEFINICAO_AGUARDAR` é a espera pronta.
+- **Janela de envio** (`app-seletor-janela-envio`): sete pílulas de dia (`aria-pressed`, nome
+  completo como nome acessível), hora inicial e final, atalhos "Horário comercial" e "Todos os
+  dias" e a frase da regra ("Envia de segunda a sexta, das 8h às 18h (horário de Brasília)."), que
+  vira erro quando não serve. Fuso fixo `America/Sao_Paulo`.
+- **Agenda** (`app-seletor-agenda`): escolha do modo em pílulas — `agora`, `data`, `recorrente`
+  (diária, semanal, mensal) e `relativa` ("N dias antes/depois de" um campo de data) — e só os
+  campos do modo; `modos` limita o que aparece (campanha: agora e data; automação: repetir e perto
+  de uma data). Uma frase resume e vira erro quando incompleta.
+
+Estados e regras comuns: tudo funciona por teclado e em 390 px (linhas do segmento e dos ramos
+empilham); mudanças de ordem e erros vão para `aria-live`/`role="alert"`; nada usa `innerHTML`.
+
 ## 5. Layout
 
 ### Desktop (≥ 1200px)
@@ -863,7 +899,7 @@ em texto vivo; `tamanho` é a altura do símbolo (padrão 28px) e tudo escala co
 visível e o símbolo são decorativos; um texto "BRL CRM" fica só para leitores de tela.
 `public/favicon.svg` repete o símbolo e troca preto/branco com `prefers-color-scheme` dentro
 do próprio SVG (numa `<img>`, a consulta segue o `color-scheme` do contêiner: dentro de um
-`data-tema` ele acompanha o tema). A seção 15 do catálogo mostra o logo completo, só o símbolo e
+`data-tema` ele acompanha o tema). A seção 17 do catálogo mostra o logo completo, só o símbolo e
 o favicon nos dois temas, lado a lado, com o valor de `--cor-logo` lido do CSS de cada painel.
 
 ---
@@ -876,7 +912,7 @@ reais. Ela segue o tema da página e termina com uma composição nos dois temas
 (`data-tema` num contêiner). Organização:
 
 - `design-system.ts|html|scss` — topo, índice com âncoras (`/design-system#botoes`) e as
-  seções de componentes 05–11, 16 (tema e marca) e 17 (dois temas);
+  seções de componentes 05–11, 17 (tema e marca) e 18 (dois temas);
 - `formularios.ts|html|scss` (12, campos ligados a um formulário reativo de verdade, com o erro
   da API simulado), `listas.ts|html|scss` (13, filtros + tabela + paginação com os estados
   dados/carregando/vazio/erro e a linha que abre o painel lateral) e `retorno.ts|html|scss` (14,
@@ -885,6 +921,8 @@ reais. Ela segue o tema da página e termina com uma composição nos dois temas
   180 mensagens virtuais com "carregar anteriores", envio que passa por enviando → enviada →
   entregue → lida, anexos, nota interna, respostas rápidas por "/", áudio gravado de verdade e
   um áudio e uma imagem gerados no navegador, sem arquivos de exemplo);
+- `automacao.ts|html|scss` (16, os componentes do §4.7: segmento com contagem simulada, modelo de
+  mensagem com prévia, editor de passos com um fluxo de exemplo, janela de envio e as duas agendas);
 - `fundamentos.ts|html|scss` — seções 01–04 (cores, tipografia, espaço e forma, ícones);
 - `secao.ts` (`app-ds-secao`: número, título em dois tons, frase) e `exemplo.ts`
   (`app-ds-exemplo`: cartão com nome, seletor e "quando usar");
@@ -892,7 +930,7 @@ reais. Ela segue o tema da página e termina com uma composição nos dois temas
   raios, alturas, movimento, camadas e pontos de quebra); os **valores** das cores não ficam ali:
   depois de renderizar, `fundamentos.ts` lê cada token no CSS (`getComputedStyle`, função
   `lerCorDoToken`) dentro de duas sondas escondidas, uma com `data-tema="escuro"` e outra com
-  `data-tema="claro"`, e mostra o hex (ou "branco 7%", "transparente"). A seção 16 usa a mesma
+  `data-tema="claro"`, e mostra o hex (ou "branco 7%", "transparente"). A seção 17 usa a mesma
   função nos painéis do logo. Ao criar um token de cor ou de fonte, inclua-o em `dados.ts`.
 
 Grades do catálogo: cartões lado a lado têm alturas parecidas (`.ds-grade--2`); um cartão bem

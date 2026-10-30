@@ -196,17 +196,35 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rota: '/disparos',
     grupo: 'relacionamento',
     papeis: TODOS,
-    status: 'em-breve',
-    fase: 'Fase 2',
-    descricao: 'Envie campanhas de WhatsApp para listas de contatos, sem ferramenta externa.',
-    nota: 'Módulo novo, construído do zero no CRM; o sistema de disparos atual da BRL serve só de base.',
+    status: 'pronto',
+    fase: null,
+    descricao:
+      'Envie campanhas de WhatsApp e e-mail para segmentos de contatos, sem ferramenta externa.',
     funcionalidades: [
-      'Listas e segmentos a partir dos contatos do CRM',
-      'Modelos de mensagem com variáveis',
-      'Agendamento e intervalo entre envios',
+      'Segmentos a partir dos contatos do CRM',
+      'Modelos de mensagem com variáveis e variações',
+      'Janela de envio e intervalo entre envios',
       'Vários números conectados',
       'Relatório de entrega, leitura e resposta',
       'Respostas caem no Atendimento',
+    ],
+  },
+  {
+    id: 'chatbot',
+    rotulo: 'Chatbot',
+    rota: '/chatbot',
+    grupo: 'relacionamento',
+    // Fluxos de atendimento automático: a configuração é de quem lidera (como as automações).
+    papeis: [...DIRECAO, ...LIDERES],
+    status: 'pronto',
+    fase: null,
+    descricao:
+      'Fluxos que recebem o cliente, fazem as primeiras perguntas e passam para uma pessoa.',
+    funcionalidades: [
+      'Fluxos em passos, com perguntas e respostas',
+      'Gatilhos por palavra, horário ou nova conversa',
+      'Transferência para o atendimento com resumo',
+      'Simulador para testar antes de publicar',
     ],
   },
   {
@@ -231,8 +249,8 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rota: '/automacoes',
     grupo: 'gestao',
     papeis: [...DIRECAO, ...LIDERES],
-    status: 'em-breve',
-    fase: 'Fase 2',
+    status: 'pronto',
+    fase: null,
     descricao: 'Regras que trabalham por você.',
     funcionalidades: [
       'Gatilhos (lead criado, etapa alterada, mensagem recebida, negócio ganho)',

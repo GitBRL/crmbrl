@@ -1,0 +1,61 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+}
+
+.dias__rotulo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.dias {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.dias__pilulas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.dias__dia {
+  min-width: 52px;
+  min-height: var(--altura-sm);
+  padding: 0 var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
+  cursor: pointer;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva),
+    border-color var(--duracao) var(--curva);
+
+  &:hover {
+    border-color: var(--cor-borda-forte);
+  }
+
+  &[aria-pressed='true'] {
+    border-color: var(--cor-inverso);
+    background: var(--cor-inverso);
+    color: var(--cor-sobre-inverso);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  @include m.toque {
+    min-height: var(--altura-md);
+  }
+}

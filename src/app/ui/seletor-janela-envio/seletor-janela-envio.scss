@@ -1,0 +1,44 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+}
+
+.janela {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.janela__rotulo {
+  padding: 0;
+  font: var(--fonte-rotulo);
+}
+
+.janela__horas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 200px));
+  gap: var(--esp-4);
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.janela__atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.janela__resumo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  &--erro {
+    color: var(--cor-erro);
+  }
+}

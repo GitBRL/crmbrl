@@ -9,6 +9,12 @@ export const ROTAS_CONTATOS: Routes = [
     loadComponent: () => import('./contatos').then((m) => m.Contatos),
   },
   {
+    // Esqueleto da Onda B; o agente `importacao-front` troca o conteúdo.
+    path: 'importar',
+    title: 'Importar contatos',
+    loadComponent: () => import('./importar/importar').then((m) => m.Importar),
+  },
+  {
     path: ':id',
     title: 'Contato',
     canMatch: [ehUuid],
