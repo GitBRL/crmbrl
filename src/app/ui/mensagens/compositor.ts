@@ -204,7 +204,7 @@ export class Compositor {
   /** Linha de ajuda sob a pílula: quem vê a nota, o teclado e o "/" das respostas rápidas. */
   protected readonly dica = computed(() => {
     const atalhos: string[] = [];
-    if (!this.toqueAtivo) {
+    if (!this.toqueAtivo && !this.telaEstreita) {
       atalhos.push('Enter envia, Shift+Enter quebra a linha');
     }
     if (this.respostasRapidas().length) {
@@ -227,6 +227,9 @@ export class Compositor {
   /** Tela de toque: Enter quebra a linha e o botão envia. */
   protected readonly toqueAtivo =
     inject(DOCUMENT).defaultView?.matchMedia?.('(pointer: coarse)').matches ?? false;
+  /** Celular (mesmo sem toque detectado, como em emuladores): a dica de Shift+Enter não cabe nem serve. */
+  private readonly telaEstreita =
+    inject(DOCUMENT).defaultView?.matchMedia?.('(max-width: 600px)').matches ?? false;
   private avisouDigitandoEm = 0;
   private pausaDigitando: ReturnType<typeof setTimeout> | undefined;
 

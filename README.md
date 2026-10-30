@@ -46,7 +46,9 @@ origem do front: o cookie de sessão e a verificação de origem da API (R2.9) f
 CORS. Para isso a API precisa ter `http://localhost:4200` em `ORIGENS_PERMITIDAS` e, em
 http, `COOKIE_SEGURO=false` (os dois já vêm assim no `.env.example` da API). Para apontar
 para outra API, copie o `proxy.conf.json`, troque o `target` e rode
-`npx ng serve --proxy-config <arquivo>`.
+`npx ng serve --proxy-config <arquivo>`. O proxy tem `"ws": true`: o tempo real (Socket.IO) e o
+widget do chat do site usam WebSocket; sem isso eles caem para a consulta periódica ou não
+atualizam ao vivo.
 
 ### Como entrar
 
@@ -129,8 +131,9 @@ docker run --rm -p 8080:8080 --add-host=host.docker.internal:host-gateway \
 ```
 docs/DESIGN-SYSTEM.md      especificação visual (tokens, componentes, layout)
 docs/TELAS-FASE1.md        o que cada tela da Fase 1 faz (e o que ficou diferente do plano)
+docs/TELAS-ONDA-A.md       as telas da Onda A: Atendimento, Chat da equipe, Canais e filas
 public/                    favicon e fonte Urbanist auto-hospedada (OFL)
-proxy.conf.json            proxy do ng serve: /api → localhost:3000
+proxy.conf.json            proxy do ng serve: /api → localhost:3000 (com WebSocket, para o tempo real)
 src/
   index.html               lang pt-BR e script que aplica o tema antes da 1ª pintura
   styles.scss, styles/     fontes, tokens, base, utilitários e mixins
@@ -158,8 +161,12 @@ src/
       inicio/              visão geral (jornada do cliente com métricas reais)
       funis/               kanban, detalhe do negócio, novo negócio, configurar etapas
       contatos/            pessoas e empresas, detalhes, linha do tempo, LGPD
+      atendimento/         caixa de entrada omnichannel: lista, conversa, painel do contato
+      chat/                chat da equipe: canais, grupos, diretas, menções
       atividades/          lista por prazo, criação rápida, detalhe
-      configuracoes/       usuários, minha equipe, distribuição, passagens, meu perfil
+      configuracoes/       usuários, minha equipe, distribuição, passagens, meu perfil;
+                           canais/ (WhatsApp com QR, chat do site, e-mail, Instagram e
+                           Messenger) e atendimento/ (filas e SLA, horários, respostas rápidas)
       integracoes/         webhooks de entrada e de saída
       administracao/       auditoria, logs técnicos, dúvidas à IA (em breve)
       design-system/       catálogo vivo dos componentes
@@ -172,24 +179,28 @@ usando os helpers do `nucleo`.
 
 ## Telas e quem acessa
 
-| Rota                                                                  | Tela                                       | Quem acessa                                                 |
-| --------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------- |
-| `/entrar`, `/esqueci-senha`, `/redefinir-senha`, `/definir-senha`     | acesso                                     | sem sessão                                                  |
-| `/trocar-senha`                                                       | troca de senha (obrigatória ou voluntária) | quem entrou                                                 |
-| `/inicio`                                                             | visão geral                                | todos                                                       |
-| `/funis/marketing`, `/funis/comercial`, `/funis/cs` (+ `/:negocioId`) | kanban e detalhe                           | Admin e C-level veem os três; líder e membro, o da sua área |
-| `/contatos`, `/contatos/:id`, `/empresas/:id`                         | contatos e empresas                        | todos                                                       |
-| `/atividades`                                                         | atividades                                 | todos (cada um vê as suas; o líder, as da equipe)           |
-| `/configuracoes/usuarios`                                             | usuários                                   | Admin                                                       |
-| `/configuracoes/equipe`                                               | minha equipe                               | C-level e líderes                                           |
-| `/configuracoes/distribuicao`                                         | distribuição de leads                      | Admin, C-level e líderes                                    |
-| `/configuracoes/passagens`                                            | passagens entre funis                      | Admin e C-level                                             |
-| `/configuracoes/perfil`                                               | meu perfil                                 | todos                                                       |
-| `/integracoes/entrada`, `/integracoes/saida`                          | webhooks                                   | Admin                                                       |
-| `/administracao/auditoria`                                            | auditoria                                  | Admin e C-level                                             |
-| `/administracao/logs`                                                 | logs técnicos                              | Admin                                                       |
-| `/sem-acesso`                                                         | o que foi negado e quem acessa             | —                                                           |
-| `/design-system`                                                      | catálogo do design system                  | no menu, só o Admin (a rota abre pelo link para todos)      |
+| Rota                                                                          | Tela                                       | Quem acessa                                                 |
+| ----------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| `/entrar`, `/esqueci-senha`, `/redefinir-senha`, `/definir-senha`             | acesso                                     | sem sessão                                                  |
+| `/trocar-senha`                                                               | troca de senha (obrigatória ou voluntária) | quem entrou                                                 |
+| `/inicio`                                                                     | visão geral                                | todos                                                       |
+| `/funis/marketing`, `/funis/comercial`, `/funis/cs` (+ `/:negocioId`)         | kanban e detalhe                           | Admin e C-level veem os três; líder e membro, o da sua área |
+| `/contatos`, `/contatos/:id`, `/empresas/:id`                                 | contatos e empresas                        | todos                                                       |
+| `/atividades`                                                                 | atividades                                 | todos (cada um vê as suas; o líder, as da equipe)           |
+| `/atendimento`, `/atendimento/:conversaId`                                    | caixa de entrada omnichannel               | todos, menos Marketing; cada papel vê o que a R12.5 permite |
+| `/chat`, `/chat/:canalId`                                                     | chat da equipe                             | todos                                                       |
+| `/configuracoes/canais` (+ `/whatsapp/:id`, `/site/…`, `/email/…`, `/meta/…`) | canais de atendimento                      | Admin                                                       |
+| `/configuracoes/atendimento/filas`, `/horarios`, `/respostas`                 | filas e SLA, horários, respostas rápidas   | Admin, C-level e líderes do Comercial e do CS               |
+| `/configuracoes/usuarios`                                                     | usuários                                   | Admin                                                       |
+| `/configuracoes/equipe`                                                       | minha equipe                               | C-level e líderes                                           |
+| `/configuracoes/distribuicao`                                                 | distribuição de leads                      | Admin, C-level e líderes                                    |
+| `/configuracoes/passagens`                                                    | passagens entre funis                      | Admin e C-level                                             |
+| `/configuracoes/perfil`                                                       | meu perfil                                 | todos                                                       |
+| `/integracoes/entrada`, `/integracoes/saida`                                  | webhooks                                   | Admin                                                       |
+| `/administracao/auditoria`                                                    | auditoria                                  | Admin e C-level                                             |
+| `/administracao/logs`                                                         | logs técnicos                              | Admin                                                       |
+| `/sem-acesso`                                                                 | o que foi negado e quem acessa             | —                                                           |
+| `/design-system`                                                              | catálogo do design system                  | no menu, só o Admin (a rota abre pelo link para todos)      |
 
 A matriz completa está na §12 das regras de negócio. A tela esconde ou desabilita (com a dica
 do motivo) o que o papel não pode fazer; a API continua sendo a autoridade.

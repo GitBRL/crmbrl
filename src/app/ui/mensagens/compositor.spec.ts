@@ -240,6 +240,24 @@ describe('Compositor', () => {
     ]);
   });
 
+  it('tela estreita: a dica de Shift+Enter some e fica só a das respostas rápidas', async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((q: string) => ({
+      matches: q.includes('max-width'),
+      media: q,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      const { raiz } = await criar();
+      const dica = raiz.querySelector('.compositor__dica')?.textContent ?? '';
+      expect(dica).not.toContain('Shift+Enter');
+      expect(dica).toContain('respostas rápidas');
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
   it('bloqueado: o motivo no lugar do campo, sem dica de teclado', async () => {
     const { raiz } = await criar((h) => {
       h.desabilitado.set(true);

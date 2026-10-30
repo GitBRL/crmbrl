@@ -524,6 +524,18 @@ em http fora do `localhost` —, o modo antigo com um campo temporário).
 | **Valor único** `app-valor-unico`            | `paginas/integracoes/comum/valor-unico.ts`                | Um valor que a API mostra uma única vez (endereço de webhook, segredo): pílula monoespaçada selecionável, "Copiar" e o aviso de que depois só aparece mascarado. Se o navegador não deixar copiar, o valor fica selecionado, pronto para o Ctrl+C.                                                                                           |
 | **Sem acesso** `app-sem-acesso`              | `layout/sem-acesso.ts` (rota `/sem-acesso?pagina=`)       | Num cartão palco: o que foi negado e quem acessa (pelos papéis do módulo), com "Ir para a visão geral".                                                                                                                                                                                                                                      |
 
+Padrões da Onda A (telas em `docs/TELAS-ONDA-A.md`), também na pasta da tela:
+
+- **QR do WhatsApp** (`paginas/configuracoes/canais/whatsapp/conexao-whatsapp`): o QR numa
+  moldura branca arredondada sobre o palco, com uma barra de contagem ("O código muda em 59 s"),
+  o passo a passo logo abaixo e, depois de conectar, o visto verde com o número.
+- **Prévia do widget** (`canais/site/previa-widget`): o chat do site desenhado com as cores,
+  o tema e a posição escolhidos, atualizado ao digitar.
+- **Selo de SLA** (lista do Atendimento): neutro dentro do prazo e coral ("3 h") quando passa;
+  nunca só a cor, sempre o tempo escrito.
+- **Faixa da janela de 24 h** (conversa do Instagram e do Messenger): pílula coral com a hora em
+  que a janela fechou e uma dica; o compositor some e a nota interna continua.
+
 ### 4.6 Conversas (`ui/mensagens/`)
 
 Os componentes de conversa do Atendimento e do Chat da equipe (Onda A). Trabalham sobre um
