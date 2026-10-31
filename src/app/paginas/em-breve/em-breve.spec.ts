@@ -171,7 +171,7 @@ describe('EmBreve', () => {
     expect(sla.chip).toBe('Métricas de atendimento (tempo de resposta, SLA, satisfação)');
     expect(sla.balao).toContain('Prazo máximo combinado para responder o cliente.');
     const mrr = dicaDoChip('financeiro', 'MRR');
-    expect(mrr.chip).toBe('Receita recorrente (MRR)');
+    expect(mrr.chip).toBe('Receita recorrente (MRR) e inadimplência');
     expect(mrr.balao).toContain('Receita recorrente mensal');
   });
 

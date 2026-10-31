@@ -17,6 +17,14 @@
     (valorChange)="mudarOptOut($event)"
   />
 
+  <app-alternador
+    rotulo="Não contatar por WhatsApp"
+    [dica]="dicaWhatsapp()"
+    [valor]="naoContatar()"
+    [desabilitado]="!podeEditar() || salvandoWhatsapp()"
+    (valorChange)="mudarWhatsapp($event)"
+  />
+
   <div class="lgpd__parte">
     <h3 class="lgpd__subtitulo">Consentimento</h3>
     @if (contato().consentimento; as consentimento) {

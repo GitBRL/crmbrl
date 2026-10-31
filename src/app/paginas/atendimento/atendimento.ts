@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Dica } from '../../ui/dica/dica';
@@ -41,6 +42,7 @@ export const TEXTO_ATALHOS =
 export class Atendimento {
   protected readonly estado = inject(EstadoAtendimento);
   private readonly router = inject(Router);
+  private readonly rota = inject(ActivatedRoute);
   private readonly sessao = inject(SessaoService);
 
   /** Há uma conversa aberta na rota filha (`/atendimento/:conversaId`). */
@@ -69,6 +71,23 @@ export class Atendimento {
     const quantas = contadores.todas === 1 ? '1 em aberto' : `${contadores.todas} em aberto`;
     return { principal: 'Atendimento', ponto: '\u00a0· ', complemento: quantas };
   });
+
+  constructor() {
+    // Links com filtro (`?canalId=` e `?filaId=`, os cliques do BI): aplica e limpa o endereço.
+    this.rota.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const canalId = params.get('canalId');
+      const filaId = params.get('filaId');
+      if (!canalId && !filaId) {
+        return;
+      }
+      this.estado.aplicarDoLink({ canalId, filaId });
+      void this.router.navigate([], {
+        queryParams: { canalId: null, filaId: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
+  }
 
   protected aoAtivar(): void {
     this.aberta.set(true);

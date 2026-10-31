@@ -94,6 +94,18 @@ describe('EstadoAtendimento', () => {
     });
   });
 
+  it('cenário 79 — link com ?canalId/?filaId (clique do BI) filtra a lista pela conta e pela fila', async () => {
+    const { estado } = await criar();
+    estado.aplicarDoLink({ canalId: 'canal-1', filaId: 'fila-1' });
+    TestBed.tick();
+    const pedido = http.expectOne((r) => r.url === CONVERSAS);
+    expect(pedido.request.params.get('canalId')).toBe('canal-1');
+    expect(pedido.request.params.get('filaId')).toBe('fila-1');
+    pedido.flush(paginaConversas([]));
+    expect(estado.abrirFiltros()).toBe(true);
+    expect(filtrosLigados(estado.filtros())).toBe(2);
+  });
+
   it('falha ao carregar: estado de erro com a falha', async () => {
     const estado = TestBed.inject(EstadoAtendimento);
     TestBed.tick();

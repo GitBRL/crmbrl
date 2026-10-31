@@ -34,6 +34,7 @@ export interface FiltrosLista {
   readonly situacao: SituacaoLista;
   readonly canais: readonly TipoCanal[];
   readonly filaId: string | null;
+  readonly canalId: string | null;
   readonly etiqueta: string | null;
   readonly naoLidas: boolean;
   readonly slaEstourado: boolean;
@@ -45,6 +46,7 @@ export const FILTROS_PADRAO: FiltrosLista = {
   situacao: 'EM_ABERTO',
   canais: [],
   filaId: null,
+  canalId: null,
   etiqueta: null,
   naoLidas: false,
   slaEstourado: false,
@@ -77,6 +79,7 @@ export function paraFiltrosDaApi(
     slaEstourado: filtros.slaEstourado || undefined,
     busca: filtros.busca.trim() || undefined,
     ...(filtros.filaId ? { filaId: filtros.filaId } : {}),
+    ...(filtros.canalId ? { canalId: filtros.canalId } : {}),
     pagina,
     porPagina,
   };
@@ -88,6 +91,7 @@ export function filtrosLigados(filtros: FiltrosLista): number {
     (filtros.situacao !== 'EM_ABERTO' ? 1 : 0) +
     (filtros.canais.length ? 1 : 0) +
     (filtros.filaId ? 1 : 0) +
+    (filtros.canalId ? 1 : 0) +
     (filtros.etiqueta ? 1 : 0) +
     (filtros.naoLidas ? 1 : 0) +
     (filtros.slaEstourado ? 1 : 0)
@@ -214,6 +218,29 @@ export class EstadoAtendimento {
 
   mudarFiltros(mudanca: Partial<FiltrosLista>): void {
     this.filtros.update((atuais) => ({ ...atuais, ...mudanca }));
+  }
+
+  /** Pedido de abrir o painel de filtros da lista (quando o link já chega filtrado). */
+  readonly abrirFiltros = signal(false);
+
+  /**
+   * Aplica os filtros de um link de fora (`/atendimento?canalId=…&filaId=…`, os cliques do BI):
+   * a lista começa pelo escopo "Todas" e abre o painel para a pessoa ver o que está filtrado.
+   */
+  aplicarDoLink(link: { readonly canalId?: string | null; readonly filaId?: string | null }): void {
+    const canalId = link.canalId || null;
+    const filaId = link.filaId || null;
+    if (!canalId && !filaId) {
+      return;
+    }
+    this.filtros.update(() => ({
+      ...FILTROS_PADRAO,
+      escopo: 'TODAS',
+      situacao: 'EM_ABERTO',
+      canalId,
+      filaId,
+    }));
+    this.abrirFiltros.set(true);
   }
 
   limparFiltros(): void {

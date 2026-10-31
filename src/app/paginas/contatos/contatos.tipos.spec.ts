@@ -1,9 +1,11 @@
 import {
+  alteracaoNaoContatarWhatsapp,
   alteracoesDoEvento,
   cnpjValido,
   descreverOrigem,
   descreverUtm,
   formatarTelefone,
+  marcadoNaoContatarWhatsapp,
   montarJornada,
   type NegocioRelacionado,
   normalizarTelefone,
@@ -137,5 +139,39 @@ describe('contatos.tipos', () => {
 
   it('pega o primeiro nome', () => {
     expect(primeiroNome('  Ana Beatriz Lopes ')).toBe('Ana');
+  });
+});
+
+describe('marca "não contatar por WhatsApp"', () => {
+  it('vale pela etiqueta ou pelo campo personalizado', () => {
+    expect(marcadoNaoContatarWhatsapp({ etiquetas: [], camposPersonalizados: {} })).toBe(false);
+    expect(
+      marcadoNaoContatarWhatsapp({
+        etiquetas: ['nao-contatar-whatsapp'],
+        camposPersonalizados: {},
+      }),
+    ).toBe(true);
+    expect(
+      marcadoNaoContatarWhatsapp({
+        etiquetas: [],
+        camposPersonalizados: { nao_contatar_whatsapp: 'Sim' },
+      }),
+    ).toBe(true);
+  });
+
+  it('cenário 114 — ligar põe a etiqueta; desligar tira a etiqueta e o campo', () => {
+    const contato = {
+      etiquetas: ['vip', 'nao-contatar-whatsapp'],
+      camposPersonalizados: { nao_contatar_whatsapp: true, plano: 'ouro' },
+    };
+    expect(
+      alteracaoNaoContatarWhatsapp({ etiquetas: ['vip'], camposPersonalizados: {} }, true),
+    ).toEqual({
+      etiquetas: ['vip', 'nao-contatar-whatsapp'],
+    });
+    expect(alteracaoNaoContatarWhatsapp(contato, false)).toEqual({
+      etiquetas: ['vip'],
+      camposPersonalizados: { plano: 'ouro' },
+    });
   });
 });

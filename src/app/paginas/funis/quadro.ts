@@ -124,6 +124,8 @@ export class QuadroFunil {
   readonly area = input.required<string>();
   /** Funil específico da área (query `funil`), quando há mais de um. */
   readonly funil = input<string | null>(null);
+  /** Etapa a destacar (query `etapaId`, os cliques do BI): o quadro mostra só essa coluna. */
+  readonly etapaId = input<string | null>(null);
 
   protected readonly estado = inject(EstadoQuadro);
   protected readonly sessao = inject(SessaoService);
@@ -180,13 +182,22 @@ export class QuadroFunil {
       this.locale,
     );
   });
+  /** A coluna pedida pelo link, se ela existe neste funil. */
+  protected readonly etapaFiltrada = computed(
+    () => this.estado.colunas().find((coluna) => coluna.etapa.id === this.etapaId())?.etapa ?? null,
+  );
+  protected readonly colunasVisiveis = computed(() => {
+    const etapa = this.etapaFiltrada();
+    const colunas = this.estado.colunas();
+    return etapa ? colunas.filter((coluna) => coluna.etapa.id === etapa.id) : colunas;
+  });
   protected readonly queryParams = computed<Record<string, string> | null>(() => {
     const funil = this.estado.funil();
     return funil && !funil.base ? { funil: funil.id } : null;
   });
   protected readonly filtrando = computed(() => {
     const { visao, busca, etiqueta } = this.estado.filtros();
-    return visao !== 'TODOS' || !!busca || !!etiqueta;
+    return visao !== 'TODOS' || !!busca || !!etiqueta || !!this.etapaFiltrada();
   });
   protected readonly semResultados = computed(
     () => this.filtrando() && this.estado.colunas().every((coluna) => coluna.total === 0),
@@ -237,6 +248,13 @@ export class QuadroFunil {
     }
   }
 
+  protected mostrarTodasEtapas(): void {
+    void this.router.navigate([], {
+      queryParams: { etapaId: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   protected escolherFunil(funilId: string | null): void {
     if (!funilId) {
       return;
@@ -270,6 +288,9 @@ export class QuadroFunil {
   protected limparFiltros(): void {
     this.termo.set('');
     this.estado.definirFiltros({ visao: 'TODOS', busca: '', etiqueta: null });
+    if (this.etapaFiltrada()) {
+      this.mostrarTodasEtapas();
+    }
   }
 
   // Colunas ---------------------------------------------------------------------------------

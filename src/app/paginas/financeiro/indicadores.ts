@@ -8,11 +8,14 @@ import { Botao } from '../../ui/botao/botao';
 import { Cartao } from '../../ui/cartao/cartao';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
+import { Grafico } from '../../ui/grafico/grafico';
 import { Indicador } from '../../ui/indicador/indicador';
 import { Legenda } from '../../ui/legenda/legenda';
 import { Selo } from '../../ui/selo/selo';
 import { CelulaTabela } from '../../ui/tabela/celula-tabela';
 import { type ColunaTabela, Tabela } from '../../ui/tabela/tabela';
+import { montarGrafico } from '../bi/bi.graficos';
+import type { LinhaBi, TabelaBi } from '../bi/bi.tipos';
 import { FinanceiroApi } from './financeiro.api';
 import {
   type FaixaInadimplencia,
@@ -48,9 +51,15 @@ const COLUNAS_RISCO: readonly ColunaTabela[] = [
  * contração e cancelamentos, inadimplência por faixa de atraso, previsto × recebido e os clientes
  * com maior risco de cancelamento. Cada gráfico vem com a tabela dos mesmos números.
  */
+/** Os números do financeiro no formato de tabela do BI, para usar o mesmo componente de gráfico. */
+function tabelaDoGrafico(titulo: string, linhas: readonly LinhaBi[]): TabelaBi {
+  return { chave: 'financeiro', titulo, dica: '', colunas: [], linhas };
+}
+
 @Component({
   selector: 'app-indicadores',
   imports: [
+    Grafico,
     RouterLink,
     Botao,
     Cartao,
@@ -107,7 +116,8 @@ const COLUNAS_RISCO: readonly ColunaTabela[] = [
           dica="Soma do que os contratos ativos rendem por mês. É o MRR."
         />
         <app-indicador
-          legenda="Contratos ativos"
+          legenda="Contratos na receita"
+          dica="Contratos ativos e suspensos: os que compõem a receita mensal."
           tamanho="sm"
           casas="1.0-0"
           [valor]="r.mrr.contratos"
@@ -140,20 +150,12 @@ const COLUNAS_RISCO: readonly ColunaTabela[] = [
         complemento="· últimos meses"
         dica="Altura de cada coluna: a receita mensal ao fim do mês. Abaixo, o que entrou e saiu em cada mês."
       >
-        <figure class="grafico" [attr.aria-label]="descricaoMrr()">
-          <div class="colunas" aria-hidden="true">
-            @for (m of mesesMrr(); track m.mes) {
-              <div class="coluna" [title]="m.mes + ': ' + moeda(m.mrr)">
-                <span class="coluna__valor">{{ abreviado(m.mrr) }}</span>
-                <span
-                  class="coluna__barra coluna__barra--1"
-                  [style.height.%]="altura(m.mrr, maxMrr())"
-                ></span>
-                <span class="coluna__rotulo">{{ rotuloMes(m.mes) }}</span>
-              </div>
-            }
-          </div>
-        </figure>
+        <app-grafico
+          class="grafico"
+          rotulo="Receita mensal por mês"
+          [opcao]="graficoMrr().opcao"
+          altura="14rem"
+        />
         <app-tabela
           rotulo="Movimentos da receita mensal"
           densa
@@ -187,17 +189,16 @@ const COLUNAS_RISCO: readonly ColunaTabela[] = [
           dica="Quanto está atrasado, separado pelos dias desde o vencimento. Quanto mais antigo, mais difícil de receber."
         >
           @if (inad.hasValue()) {
+            <app-grafico
+              class="grafico"
+              rotulo="Valor em atraso por faixa"
+              [opcao]="graficoFaixas().opcao"
+              altura="12rem"
+            />
             <ul class="faixas" [attr.aria-label]="'Valor em atraso por faixa'">
               @for (f of inad.value().faixas; track f.faixa; let i = $index) {
                 <li class="faixa">
                   <span class="faixa__rotulo">{{ rotuloFaixa[f.faixa] }}</span>
-                  <span class="faixa__trilho" aria-hidden="true">
-                    <span
-                      class="faixa__barra"
-                      [style.width.%]="altura(f.valor, maxFaixa())"
-                      [style.background]="'var(--dado-' + (i + 1) + ')'"
-                    ></span>
-                  </span>
                   <span class="faixa__valor numero">{{ moeda(f.valor) }}</span>
                   <span class="nota faixa__nota">{{ resumoFaixa(f) }}</span>
                 </li>
@@ -259,34 +260,12 @@ const COLUNAS_RISCO: readonly ColunaTabela[] = [
       >
         @if (pr.hasValue()) {
           <app-legenda [series]="['Previsto', 'Recebido']" />
-          <figure class="grafico" [attr.aria-label]="descricaoPr()">
-            <div class="colunas" aria-hidden="true">
-              @for (m of pr.value().meses; track m.mes) {
-                <div
-                  class="coluna coluna--dupla"
-                  [title]="
-                    rotuloMes(m.mes) +
-                    ': previsto ' +
-                    moeda(m.previsto) +
-                    ', recebido ' +
-                    moeda(m.realizado)
-                  "
-                >
-                  <span class="par">
-                    <span
-                      class="coluna__barra coluna__barra--1"
-                      [style.height.%]="altura(m.previsto, maxPr())"
-                    ></span>
-                    <span
-                      class="coluna__barra coluna__barra--2"
-                      [style.height.%]="altura(m.realizado, maxPr())"
-                    ></span>
-                  </span>
-                  <span class="coluna__rotulo">{{ rotuloMes(m.mes) }}</span>
-                </div>
-              }
-            </div>
-          </figure>
+          <app-grafico
+            class="grafico"
+            rotulo="Previsto e recebido por mês"
+            [opcao]="graficoPr().opcao"
+            altura="14rem"
+          />
           <app-tabela
             rotulo="Previsto e recebido por mês"
             densa
@@ -335,80 +314,6 @@ const COLUNAS_RISCO: readonly ColunaTabela[] = [
       min-width: 0;
     }
 
-    .colunas {
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: minmax(0, 1fr);
-      align-items: end;
-      gap: var(--esp-1);
-      height: 11rem;
-    }
-
-    .coluna {
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      justify-items: center;
-      height: 100%;
-      min-width: 0;
-      gap: 2px;
-    }
-
-    .coluna__valor {
-      color: var(--cor-texto-suave);
-      font: var(--fonte-micro);
-      white-space: nowrap;
-    }
-
-    .coluna__barra {
-      align-self: end;
-      width: min(100%, 1.75rem);
-      min-height: 2px;
-      border-radius: 6px 6px 0 0;
-      box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
-    }
-
-    .coluna__barra--1 {
-      background: var(--dado-1);
-    }
-
-    .coluna__barra--2 {
-      background: var(--dado-2);
-    }
-
-    .coluna__rotulo {
-      color: var(--cor-texto-suave);
-      font: var(--fonte-micro);
-      white-space: nowrap;
-    }
-
-    .coluna--dupla {
-      grid-template-rows: 1fr auto;
-    }
-
-    .par {
-      display: flex;
-      align-items: end;
-      justify-content: center;
-      gap: 2px;
-      width: 100%;
-      height: 100%;
-    }
-
-    .par .coluna__barra {
-      width: 40%;
-      max-width: 1rem;
-    }
-
-    @media (max-width: 599px) {
-      .coluna__valor {
-        display: none;
-      }
-
-      .coluna__rotulo {
-        font-size: 0.625rem;
-      }
-    }
-
     .faixas {
       display: grid;
       gap: var(--esp-3);
@@ -419,10 +324,10 @@ const COLUNAS_RISCO: readonly ColunaTabela[] = [
 
     .faixa {
       display: grid;
-      grid-template-columns: minmax(6rem, 8rem) minmax(0, 1fr) auto;
+      grid-template-columns: minmax(6rem, 8rem) auto;
       grid-template-areas:
-        'rotulo trilho valor'
-        'nota nota nota';
+        'rotulo valor'
+        'nota nota';
       align-items: center;
       gap: 2px var(--esp-3);
     }
@@ -430,22 +335,6 @@ const COLUNAS_RISCO: readonly ColunaTabela[] = [
     .faixa__rotulo {
       grid-area: rotulo;
       font-weight: 600;
-    }
-
-    .faixa__trilho {
-      grid-area: trilho;
-      height: 0.75rem;
-      border-radius: var(--raio-pilula);
-      background: var(--cor-superficie-3);
-      overflow: hidden;
-    }
-
-    .faixa__barra {
-      display: block;
-      height: 100%;
-      min-width: 2px;
-      border-radius: var(--raio-pilula);
-      box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
     }
 
     .faixa__valor {
@@ -471,7 +360,6 @@ export class Indicadores {
   protected readonly varianteNivel = VARIANTE_NIVEL_RISCO;
   protected readonly rotuloMes = rotuloDoMes;
   protected readonly moeda = (v: string | number) => formatarMoeda(v);
-  protected readonly abreviado = (v: string) => formatarMoedaAbreviada(paraNumero(v) ?? 0, 'pt-BR');
   protected readonly numero = (v: string | number | null) => paraNumero(v) ?? 0;
   protected readonly linkDoCliente = (c: { contato: { id: string } }) => [
     '/contatos',
@@ -491,49 +379,59 @@ export class Indicadores {
 
   protected readonly mesesMrr = computed(() => (this.mrr.hasValue() ? this.mrr.value().meses : []));
   protected readonly mesesMrrInversos = computed(() => [...this.mesesMrr()].reverse());
-  protected readonly maxMrr = computed(() =>
-    Math.max(1, ...this.mesesMrr().map((m) => paraNumero(m.mrr) ?? 0)),
-  );
-  protected readonly maxFaixa = computed(() =>
-    Math.max(
-      1,
-      ...(this.inad.hasValue() ? this.inad.value().faixas : []).map(
-        (f) => paraNumero(f.valor) ?? 0,
+  protected readonly graficoMrr = computed(() =>
+    montarGrafico(
+      tabelaDoGrafico(
+        'Receita mensal',
+        this.mesesMrr().map((m) => ({ mes: m.mes, mrr: paraNumero(m.mrr) ?? 0 })),
       ),
+      {
+        tipoValor: 'moeda',
+        categoria: 'mes',
+        series: [{ chave: 'mrr', nome: 'Receita mensal', cor: 0 }],
+      },
+    ),
+  );
+  protected readonly graficoPr = computed(() =>
+    montarGrafico(
+      tabelaDoGrafico(
+        'Previsto e recebido',
+        (this.pr.hasValue() ? this.pr.value().meses : []).map((m) => ({
+          mes: m.mes,
+          previsto: paraNumero(m.previsto) ?? 0,
+          realizado: paraNumero(m.realizado) ?? 0,
+        })),
+      ),
+      {
+        tipoValor: 'moeda',
+        categoria: 'mes',
+        series: [
+          { chave: 'previsto', nome: 'Previsto', cor: 0 },
+          { chave: 'realizado', nome: 'Recebido', cor: 1 },
+        ],
+      },
+    ),
+  );
+  protected readonly graficoFaixas = computed(() =>
+    montarGrafico(
+      tabelaDoGrafico(
+        'Valor em atraso por faixa',
+        (this.inad.hasValue() ? this.inad.value().faixas : []).map((f) => ({
+          faixa: ROTULO_FAIXA[f.faixa],
+          valor: paraNumero(f.valor) ?? 0,
+        })),
+      ),
+      {
+        tipoValor: 'moeda',
+        categoria: 'faixa',
+        series: [{ chave: 'valor', nome: 'Em atraso', cor: 3 }],
+        orientacao: 'barras',
+      },
     ),
   );
   protected readonly mesesPrInversos = computed(() =>
     this.pr.hasValue() ? [...this.pr.value().meses].reverse() : [],
   );
-  protected readonly maxPr = computed(() =>
-    Math.max(
-      1,
-      ...(this.pr.hasValue() ? this.pr.value().meses : []).flatMap((m) => [
-        paraNumero(m.previsto) ?? 0,
-        paraNumero(m.realizado) ?? 0,
-      ]),
-    ),
-  );
-
-  protected readonly descricaoMrr = computed(() => {
-    const meses = this.mesesMrr();
-    if (meses.length === 0) {
-      return 'Sem dados de receita mensal.';
-    }
-    const ultimo = meses[meses.length - 1];
-    return `Receita mensal de ${rotuloDoMes(meses[0].mes)} a ${rotuloDoMes(ultimo.mes)}; no último mês, ${formatarMoeda(ultimo.mrr)}.`;
-  });
-  protected readonly descricaoPr = computed(() => {
-    const meses = this.pr.hasValue() ? this.pr.value().meses : [];
-    return meses.length === 0
-      ? 'Sem dados de previsto e recebido.'
-      : `Previsto e recebido de ${rotuloDoMes(meses[0].mes)} a ${rotuloDoMes(meses[meses.length - 1].mes)}; os valores estão na tabela abaixo.`;
-  });
-
-  protected altura(valor: string | number, maximo: number): number {
-    const n = paraNumero(valor) ?? 0;
-    return Math.max(0, Math.min(100, (n / maximo) * 100));
-  }
 
   protected taxa(valor: number | string | null): string {
     const n = paraNumero(valor);

@@ -678,3 +678,41 @@ export function primeiroNome(nome: string): string {
 export function linkDoSite(site: string): string {
   return /^https?:\/\//i.test(site) ? site : `https://${site}`;
 }
+
+/** Etiqueta e campo personalizado que a régua de cobrança respeita (R24.7). */
+export const ETIQUETA_NAO_CONTATAR_WHATSAPP = 'nao-contatar-whatsapp';
+export const CAMPO_NAO_CONTATAR_WHATSAPP = 'nao_contatar_whatsapp';
+
+function campoLigado(valor: unknown): boolean {
+  return (
+    valor === true ||
+    (typeof valor === 'string' && ['true', 'sim', '1', 'yes'].includes(valor.trim().toLowerCase()))
+  );
+}
+
+/** O contato pediu para não ser cobrado por WhatsApp (etiqueta ou campo personalizado)? */
+export function marcadoNaoContatarWhatsapp(
+  contato: Pick<Contato, 'etiquetas' | 'camposPersonalizados'>,
+): boolean {
+  return (
+    contato.etiquetas.includes(ETIQUETA_NAO_CONTATAR_WHATSAPP) ||
+    campoLigado(contato.camposPersonalizados?.[CAMPO_NAO_CONTATAR_WHATSAPP])
+  );
+}
+
+/**
+ * A alteração que liga ou desliga a marca. Ligar põe a etiqueta; desligar tira a etiqueta e,
+ * se o campo personalizado estava ligado, tira o campo também (senão a régua continuaria
+ * respeitando a marca antiga).
+ */
+export function alteracaoNaoContatarWhatsapp(
+  contato: Pick<Contato, 'etiquetas' | 'camposPersonalizados'>,
+  ligado: boolean,
+): AlteracaoContato {
+  const semEtiqueta = contato.etiquetas.filter((e) => e !== ETIQUETA_NAO_CONTATAR_WHATSAPP);
+  if (ligado) {
+    return { etiquetas: [...semEtiqueta, ETIQUETA_NAO_CONTATAR_WHATSAPP] };
+  }
+  const { [CAMPO_NAO_CONTATAR_WHATSAPP]: _campo, ...resto } = contato.camposPersonalizados ?? {};
+  return { etiquetas: semEtiqueta, camposPersonalizados: resto };
+}

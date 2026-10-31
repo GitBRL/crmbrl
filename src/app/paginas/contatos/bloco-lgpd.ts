@@ -23,7 +23,12 @@ import { Dica } from '../../ui/dica/dica';
 import { Modal } from '../../ui/modal/modal';
 import { gerarId } from '../../ui/tipos';
 import { ContatosApi } from './contatos.api';
-import { type Contato, primeiroNome } from './contatos.tipos';
+import {
+  alteracaoNaoContatarWhatsapp,
+  type Contato,
+  marcadoNaoContatarWhatsapp,
+  primeiroNome,
+} from './contatos.tipos';
 
 /**
  * Bloco LGPD do contato (R4.6): opt-out de marketing (efeito imediato), consentimento (de onde
@@ -79,6 +84,20 @@ export class BlocoLgpd {
     return contato.podeEditar ? situacao : `${situacao} ${this.motivoSemEdicao()}`;
   });
 
+  // ----- Não contatar por WhatsApp (régua de cobrança, R24) ---------------------------------------
+
+  protected readonly salvandoWhatsapp = signal(false);
+  private readonly whatsappPendente = signal<boolean | null>(null);
+  protected readonly naoContatar = computed(
+    () => this.whatsappPendente() ?? marcadoNaoContatarWhatsapp(this.contato()),
+  );
+  protected readonly dicaWhatsapp = computed(() => {
+    const situacao = marcadoNaoContatarWhatsapp(this.contato())
+      ? 'A cobrança deste contato não sai por WhatsApp: a régua usa só e-mail e ligação.'
+      : 'A régua de cobrança pode cobrar este contato por WhatsApp.';
+    return this.contato().podeEditar ? situacao : `${situacao} ${this.motivoSemEdicao()}`;
+  });
+
   // ----- Consentimento --------------------------------------------------------------------------
 
   protected readonly consentimentoAberto = signal(false);
@@ -112,6 +131,29 @@ export class BlocoLgpd {
         return 'Seu papel não altera contatos.';
     }
   });
+
+  protected async mudarWhatsapp(ligado: boolean): Promise<void> {
+    const contato = this.contato();
+    this.whatsappPendente.set(ligado);
+    this.salvandoWhatsapp.set(true);
+    try {
+      const atualizado = await this.api.atualizarContato(
+        contato.id,
+        alteracaoNaoContatarWhatsapp(contato, ligado),
+      );
+      this.avisos.sucesso(
+        ligado
+          ? `${primeiroNome(contato.nome)} não será mais cobrado por WhatsApp.`
+          : `${primeiroNome(contato.nome)} pode voltar a ser cobrado por WhatsApp.`,
+      );
+      this.atualizado.emit(atualizado);
+    } catch (falha) {
+      this.avisos.erro(erroDaApi(falha));
+    } finally {
+      this.whatsappPendente.set(null);
+      this.salvandoWhatsapp.set(false);
+    }
+  }
 
   protected async mudarOptOut(ligado: boolean): Promise<void> {
     const contato = this.contato();

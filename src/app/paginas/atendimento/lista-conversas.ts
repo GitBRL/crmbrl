@@ -153,6 +153,10 @@ export class ListaConversas {
     this.estado.filas().map((fila) => ({ valor: fila.id, rotulo: fila.nome })),
   );
 
+  protected readonly opcoesConta = computed<readonly OpcaoSeletor<string>[]>(() =>
+    this.estado.canais().map((canal) => ({ valor: canal.id, rotulo: canal.nome })),
+  );
+
   protected readonly opcoesEtiqueta = computed<readonly OpcaoSeletor<string>[]>(() =>
     this.estado.etiquetasEmUso().map((etiqueta) => ({ valor: etiqueta, rotulo: etiqueta })),
   );
@@ -226,6 +230,15 @@ export class ListaConversas {
   );
 
   constructor() {
+    // Link já filtrado (cliques do BI): o painel de filtros abre para mostrar o que vale.
+    effect(() => {
+      if (this.estado.abrirFiltros()) {
+        untracked(() => {
+          this.filtrosAbertos.set(true);
+          this.estado.abrirFiltros.set(false);
+        });
+      }
+    });
     // O item focável acompanha a conversa aberta (ou a primeira da lista).
     effect(() => {
       const selecionada = this.estado.selecionadaId();
@@ -271,6 +284,10 @@ export class ListaConversas {
 
   protected escolherCanais(canais: readonly string[]): void {
     this.estado.mudarFiltros({ canais: canais as TipoCanal[] });
+  }
+
+  protected escolherCanal(canalId: string | null): void {
+    this.estado.mudarFiltros({ canalId });
   }
 
   protected escolherFila(filaId: string | null): void {

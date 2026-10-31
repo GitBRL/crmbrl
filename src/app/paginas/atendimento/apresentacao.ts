@@ -428,6 +428,9 @@ export function cabeNoFiltro(
   if (filtros.tipoCanal?.length && !filtros.tipoCanal.includes(conversa.canal.tipo)) {
     return false;
   }
+  if (filtros.canalId && conversa.canal.id !== filtros.canalId) {
+    return false;
+  }
   if (filtros.filaId && conversa.fila?.id !== filtros.filaId) {
     return false;
   }

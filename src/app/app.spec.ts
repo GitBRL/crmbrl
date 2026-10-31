@@ -50,7 +50,7 @@ describe('App', () => {
 const UUID = '1e61b8e7-0cb3-4184-a167-77f7c5febf42';
 
 describe('app.routes', () => {
-  const casca = routes.find((rota) => rota.canActivate?.length) as Route;
+  const casca = routes.find((rota) => rota.canActivateChild?.length) as Route;
   const filhas: Route[] = casca.children ?? [];
 
   beforeEach(() => {

@@ -149,6 +149,7 @@ export interface FiltrosConversas {
   readonly status?: readonly StatusConversa[];
   readonly tipoCanal?: readonly TipoCanal[];
   readonly filaId?: string;
+  readonly canalId?: string;
   readonly etiqueta?: readonly string[];
   readonly naoLidas?: boolean;
   readonly slaEstourado?: boolean;

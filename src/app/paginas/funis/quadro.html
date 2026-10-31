@@ -172,6 +172,21 @@
         Este funil está arquivado: não recebe negócios novos.
       </p>
     }
+    @if (etapaFiltrada(); as etapa) {
+      <p class="quadro__aviso" role="status">
+        <app-selo variante="contorno">Etapa {{ etapa.nome }}</app-selo>
+        Mostrando só esta etapa.
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="contorno"
+          (click)="mostrarTodasEtapas()"
+        >
+          Mostrar todas as etapas
+        </button>
+      </p>
+    }
     @if (semResultados()) {
       <app-estado-vazio
         class="quadro__estado"
@@ -192,7 +207,7 @@
       role="region"
       [attr.aria-label]="'Quadro do funil ' + titulo()"
     >
-      @for (coluna of estado.colunas(); track coluna.etapa.id) {
+      @for (coluna of colunasVisiveis(); track coluna.etapa.id) {
         <section
           class="coluna"
           [class.coluna--fechada]="ehFechada(coluna)"

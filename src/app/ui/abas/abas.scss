@@ -102,12 +102,13 @@
   max-width: 100%;
 
   .abas__lista {
+    flex-wrap: wrap; // em tela estreita as opções quebram de linha em vez de passar da borda
     gap: 2px;
     margin: 0;
     padding: 3px;
     overflow: visible;
     border: 1px solid var(--cor-borda);
-    border-radius: var(--raio-pilula);
+    border-radius: calc(var(--_altura) / 2 + 3px);
     background: var(--cor-superficie-2);
   }
 

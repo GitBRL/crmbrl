@@ -78,6 +78,14 @@
     </div>
     <div class="lista__seletores">
       <app-seletor
+        rotulo="Conta do canal"
+        placeholder="Todas as contas"
+        permitirVazio
+        [opcoes]="opcoesConta()"
+        [valor]="filtros().canalId"
+        (valorChange)="escolherCanal($event)"
+      />
+      <app-seletor
         rotulo="Fila"
         placeholder="Todas as filas"
         permitirVazio

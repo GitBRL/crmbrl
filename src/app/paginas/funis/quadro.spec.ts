@@ -42,10 +42,17 @@ describe('QuadroFunil', () => {
     http.verify();
   });
 
-  async function abrir(papel: Papel = 'LIDER_COMERCIAL', negocios?: Record<string, Negocio[]>) {
+  async function abrir(
+    papel: Papel = 'LIDER_COMERCIAL',
+    negocios?: Record<string, Negocio[]>,
+    etapaId?: string,
+  ) {
     entrarComo(papel);
     fixture = TestBed.createComponent(QuadroFunil);
     fixture.componentRef.setInput('area', 'comercial');
+    if (etapaId) {
+      fixture.componentRef.setInput('etapaId', etapaId);
+    }
     raiz = fixture.nativeElement as HTMLElement;
     fixture.detectChanges();
     http.expectOne('/api/v1/funis?area=COMERCIAL').flush([funilDeTeste()]);
@@ -120,6 +127,16 @@ describe('QuadroFunil', () => {
     expect(nomes).toEqual(['Novo', 'Proposta', 'Ganho', 'Perdido']);
     expect(titulosEm('Novo')).toEqual(['Padaria — delivery', 'Negócio b']);
     expect(colunaDe('Proposta').querySelector('.coluna__valor')?.textContent).toContain('R$');
+  });
+
+  it('cenário 79 — ?etapaId (clique do BI) mostra só a coluna da etapa, com o aviso para voltar a todas', async () => {
+    await abrir('LIDER_COMERCIAL', undefined, NOVO.id);
+    const nomes = [...raiz.querySelectorAll('.coluna__titulo')].map((el) =>
+      el.childNodes[0].textContent!.trim(),
+    );
+    expect(nomes).toEqual(['Novo']);
+    expect(raiz.querySelector('.quadro__aviso')?.textContent).toContain('Etapa Novo');
+    expect(raiz.textContent).toContain('Mostrar todas as etapas');
   });
 
   it('cartão parado ganha o selo coral com o texto; sem responsável mostra "Assumir"', async () => {

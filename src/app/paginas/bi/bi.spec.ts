@@ -201,7 +201,7 @@ describe('BI (página)', () => {
     expect(texto(raiz.querySelector('app-bi-painel app-tabela'))).toContain('Proposta');
   });
 
-  it('clicar numa barra do funil abre os negócios da etapa', async () => {
+  it('cenário 78 — clicar numa barra do funil abre os negócios da etapa', async () => {
     const { harness } = await abrir('/bi/comercial', ['comercial']);
     const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     grafico.aoClicar?.({
