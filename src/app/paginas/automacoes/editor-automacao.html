@@ -1,0 +1,542 @@
+<header class="topo">
+  <a
+    appBotao
+    variante="contorno"
+    tamanho="sm"
+    routerLink="/automacoes"
+    class="topo__voltar"
+    [icone]="iconeVoltar"
+  >
+    Automações
+  </a>
+</header>
+
+@if (carregando()) {
+  <app-cartao>
+    <div class="carregando" role="status" aria-label="Carregando a automação">
+      <app-esqueleto forma="bloco" altura="3rem" />
+      <app-esqueleto [linhas]="4" />
+      <app-esqueleto forma="bloco" altura="8rem" />
+    </div>
+  </app-cartao>
+} @else if (erro(); as falha) {
+  <app-cartao>
+    <app-estado-vazio
+      variante="erro"
+      manterAcoes
+      [titulo]="
+        falha.status === 404 ? 'Automação não encontrada' : 'Não foi possível abrir a automação'
+      "
+      [texto]="
+        falha.status === 404
+          ? 'Ela pode ter sido excluída ou ser de outra área.'
+          : 'Tente de novo em instantes.'
+      "
+      [falha]="falha"
+    >
+      <a appBotao variante="contorno" routerLink="/automacoes">Voltar para a lista</a>
+      @if (falha.status !== 404 && !falha.ehSemPermissao) {
+        <button appBotao type="button" variante="marca" (click)="iniciar()">Tentar de novo</button>
+      }
+    </app-estado-vazio>
+  </app-cartao>
+} @else {
+  <div class="titulo">
+    <div class="titulo__texto">
+      <h1 class="texto-display">{{ titulo() }}</h1>
+      <div class="titulo__selos">
+        @if (automacao(); as a) {
+          @if (a.ativa) {
+            <app-selo variante="menta" ponto>Ligada</app-selo>
+          } @else {
+            <app-selo variante="neutro" ponto>Desligada</app-selo>
+          }
+          <app-selo variante="contorno">Versão {{ a.versao }}</app-selo>
+        } @else {
+          <app-selo variante="neutro" ponto>Nova, ainda não salva</app-selo>
+        }
+        @if (sujo() && !ehNova()) {
+          <app-selo variante="lima">Mudanças não salvas</app-selo>
+        }
+      </div>
+    </div>
+    <div class="titulo__acoes">
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        [disabled]="!podeSalvar() || (!sujo() && !ehNova())"
+        [carregando]="salvando()"
+        (click)="salvar()"
+        [icone]="iconeSalvar"
+      >
+        Salvar
+      </button>
+      @if (automacao(); as a) {
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          (click)="abrirTeste()"
+          [icone]="iconeTeste"
+        >
+          Testar
+        </button>
+        @if (a.ativa) {
+          <button
+            appBotao
+            type="button"
+            variante="neutro"
+            [carregando]="agindo()"
+            (click)="abrirPausar()"
+            [icone]="iconePausar"
+          >
+            Desligar
+          </button>
+        } @else {
+          <button
+            appBotao
+            type="button"
+            variante="marca"
+            [carregando]="agindo()"
+            (click)="ativar()"
+            [icone]="iconeLigar"
+          >
+            Ligar
+          </button>
+        }
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          (click)="duplicar()"
+          [icone]="iconeCopiar"
+        >
+          Duplicar
+        </button>
+        <button appBotao type="button" variante="contorno" (click)="excluir()" [icone]="iconeLixo">
+          Excluir
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (!ehNova()) {
+    <app-abas rotulo="Seções da automação" [abas]="abas" [(selecionada)]="aba" />
+  }
+
+  @if (avisoErro(); as texto) {
+    <p class="alerta alerta--erro" role="alert">{{ texto }}</p>
+  }
+
+  @if (aba() === 'historico' && !ehNova()) {
+    <app-cartao
+      titulo="Histórico desta automação"
+      dica="Cada linha é uma vez em que a automação rodou. Abra para ver o que foi feito."
+    >
+      <app-historico-automacoes [automacaoId]="id() ?? null" />
+    </app-cartao>
+  } @else {
+    @if (pendenciasDaApi().length && !automacao()?.ativa) {
+      <div class="alerta alerta--aviso" role="status">
+        <strong>Falta para poder ligar:</strong>
+        <ul>
+          @for (p of pendenciasDaApi(); track p) {
+            <li>{{ p }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <app-cartao
+      titulo="1. Identificação"
+      dica="O nome aparece na lista e no histórico. A descrição é só para o seu time lembrar do que a automação faz."
+    >
+      <div class="grade-campos">
+        <app-campo-texto
+          rotulo="Nome"
+          obrigatorio
+          placeholder="Ex.: Boas-vindas ao lead"
+          [maximoCaracteres]="120"
+          [(valor)]="nome"
+        />
+        @if (sessao.ehDiretoria()) {
+          <app-seletor
+            rotulo="Área"
+            permitirVazio
+            placeholder="Todas as áreas"
+            dica="A automação só mexe em registros dessa área. Vazio: vale para todas."
+            [opcoes]="opcoesArea"
+            [(valor)]="area"
+          />
+        }
+      </div>
+      <app-area-texto rotulo="Descrição" opcional [linhas]="2" [(valor)]="descricao" />
+    </app-cartao>
+
+    <app-cartao
+      titulo="2. Quando começa"
+      dica="O gatilho é o que faz a automação rodar. Ela roda uma vez para cada contato, negócio ou conversa que se encaixar."
+    >
+      <div class="grade-campos">
+        <app-seletor
+          rotulo="Como começa"
+          [opcoes]="opcoesTipoGatilho"
+          [valor]="tipoGatilho()"
+          (valorChange)="mudarTipoGatilho($event)"
+        />
+        @if (tipoGatilho() === 'EVENTO') {
+          <app-seletor
+            rotulo="O que acontece"
+            placeholder="Escolha o que inicia"
+            obrigatorio
+            [erro]="evento() ? null : erroDoGatilho()"
+            [opcoes]="opcoesEvento()"
+            [valor]="evento()"
+            (valorChange)="mudarEvento($event)"
+          />
+        }
+      </div>
+
+      @if (tipoGatilho() === 'EVENTO') {
+        @if (gatilhoAtual(); as g) {
+          <p class="nota">
+            Roda para: <strong>{{ rotuloEntidade[g.entidade] }}</strong>
+            @if (g.origem === 'agenda') {
+              · o CRM confere esta situação de tempos em tempos.
+            }
+          </p>
+          @if (filtrosDoEvento().length) {
+            <div class="grade-campos">
+              @for (f of filtrosDoEvento(); track f) {
+                @switch (f) {
+                  @case ('origem') {
+                    <app-seletor
+                      [rotulo]="filtroRotulo[f].rotulo"
+                      [dica]="filtroRotulo[f].dica ?? null"
+                      permitirVazio
+                      placeholder="Qualquer"
+                      [opcoes]="origens"
+                      [valor]="valorFiltro(f)"
+                      (valorChange)="definirFiltro(f, $event)"
+                    />
+                  }
+                  @case ('funilId') {
+                    <app-seletor
+                      [rotulo]="filtroRotulo[f].rotulo"
+                      [dica]="filtroRotulo[f].dica ?? null"
+                      permitirVazio
+                      placeholder="Qualquer"
+                      [opcoes]="opcoesFunil()"
+                      [valor]="valorFiltro(f)"
+                      (valorChange)="definirFiltro(f, $event)"
+                    />
+                  }
+                  @case ('etapaId') {
+                    <app-seletor
+                      [rotulo]="filtroRotulo[f].rotulo"
+                      [dica]="filtroRotulo[f].dica ?? null"
+                      [obrigatorio]="g.evento === 'negocio.movido'"
+                      permitirVazio
+                      placeholder="Qualquer"
+                      [opcoes]="opcoesEtapaDoFiltro()"
+                      [valor]="valorFiltro(f)"
+                      (valorChange)="definirFiltro(f, $event)"
+                    />
+                  }
+                  @case ('tipo') {
+                    <app-seletor
+                      [rotulo]="filtroRotulo[f].rotulo"
+                      [dica]="filtroRotulo[f].dica ?? null"
+                      permitirVazio
+                      placeholder="Qualquer"
+                      [opcoes]="tiposAtividade"
+                      [valor]="valorFiltro(f)"
+                      (valorChange)="definirFiltro(f, $event)"
+                    />
+                  }
+                  @case ('canalTipo') {
+                    <app-seletor
+                      [rotulo]="filtroRotulo[f].rotulo"
+                      [dica]="filtroRotulo[f].dica ?? null"
+                      permitirVazio
+                      placeholder="Qualquer"
+                      [opcoes]="tiposCanal"
+                      [valor]="valorFiltro(f)"
+                      (valorChange)="definirFiltro(f, $event)"
+                    />
+                  }
+                  @case ('canalId') {
+                    <app-seletor
+                      [rotulo]="filtroRotulo[f].rotulo"
+                      [dica]="filtroRotulo[f].dica ?? null"
+                      permitirVazio
+                      placeholder="Qualquer"
+                      [opcoes]="canais()"
+                      [valor]="valorFiltro(f)"
+                      (valorChange)="definirFiltro(f, $event)"
+                    />
+                  }
+                  @case ('campanhaId') {
+                    <app-seletor
+                      [rotulo]="filtroRotulo[f].rotulo"
+                      [dica]="filtroRotulo[f].dica ?? null"
+                      permitirVazio
+                      placeholder="Qualquer"
+                      [opcoes]="campanhas()"
+                      [valor]="valorFiltro(f)"
+                      (valorChange)="definirFiltro(f, $event)"
+                    />
+                  }
+                  @case ('palavras') {
+                    <app-campo-texto
+                      [rotulo]="filtroRotulo[f].rotulo"
+                      [dica]="filtroRotulo[f].dica ?? null"
+                      [obrigatorio]="g.evento === 'mensagem.recebida'"
+                      placeholder="preço, orçamento"
+                      [valor]="valorFiltro(f)"
+                      (valorChange)="definirFiltro(f, $event)"
+                    />
+                  }
+                  @default {
+                    <app-campo-texto
+                      tipo="number"
+                      [minimo]="0"
+                      [rotulo]="filtroRotulo[f].rotulo ?? f"
+                      [dica]="filtroRotulo[f].dica ?? null"
+                      [valor]="valorFiltro(f)"
+                      (valorChange)="definirFiltro(f, $event)"
+                    />
+                  }
+                }
+              }
+            </div>
+          }
+        }
+      } @else {
+        <app-seletor-agenda
+          [modos]="tipoGatilho() === 'RECORRENCIA' ? ['recorrente'] : ['relativa']"
+          [camposData]="opcoesCampoData()"
+          [(valor)]="agenda"
+        />
+        @if (tipoGatilho() === 'RECORRENCIA') {
+          <p class="nota">
+            Para repetir, é preciso dizer para quem na seção “3. Para quem e quando”.
+          </p>
+        } @else {
+          <p class="nota">Campos de data do contato devem estar no formato AAAA-MM-DD.</p>
+        }
+      }
+    </app-cartao>
+
+    <app-cartao
+      titulo="3. Para quem e quando"
+      dica="Opcional. Sem condições, vale para todo mundo que se encaixar no gatilho. O horário limita quando as ações podem acontecer."
+    >
+      <app-caixa-selecao
+        rotulo="Só para contatos que atendem a condições"
+        [(valor)]="usarSegmento"
+      />
+      @if (usarSegmento()) {
+        @if (segmentoAvancado()) {
+          <div class="alerta alerta--aviso" role="status">
+            <p>
+              Esta automação usa filtros avançados que não aparecem aqui. Eles continuam valendo.
+              Para trocar por condições simples, comece de novo.
+            </p>
+            <button
+              appBotao
+              type="button"
+              variante="contorno"
+              tamanho="sm"
+              (click)="trocarSegmentoAvancado()"
+            >
+              Trocar por condições simples
+            </button>
+          </div>
+        } @else {
+          <app-construtor-segmento
+            [campos]="camposSegmento()"
+            [contagem]="contagem"
+            [(valor)]="segmento"
+          />
+        }
+      }
+      <app-caixa-selecao rotulo="Só executar em certos dias e horários" [(valor)]="usarHorario" />
+      @if (usarHorario()) {
+        @if (horarioAvancado()) {
+          <div class="alerta alerta--aviso" role="status">
+            <p>
+              O horário desta automação tem faixas diferentes por dia e continua valendo como está.
+            </p>
+            <button
+              appBotao
+              type="button"
+              variante="contorno"
+              tamanho="sm"
+              (click)="trocarHorarioAvancado()"
+            >
+              Trocar por um horário simples
+            </button>
+          </div>
+        } @else {
+          <app-seletor-janela-envio rotulo="Dias e horário permitidos" [(valor)]="janela" />
+          @if (erroJanela(); as e) {
+            <p class="alerta alerta--erro" role="alert">{{ e }}</p>
+          }
+        }
+      }
+    </app-cartao>
+
+    <app-cartao
+      titulo="4. O que fazer"
+      dica="Monte a sequência: ações (enviar mensagem, criar tarefa…), esperas e “se… senão”. Os passos rodam de cima para baixo. Arraste ou use as setas para mudar a ordem."
+    >
+      <app-editor-passos [definicoes]="definicoes()" [(passos)]="passos" />
+    </app-cartao>
+
+    <app-cartao
+      titulo="5. Quando parar e limites"
+      dica="Evita que a automação continue falando com quem já respondeu, e que rode mais de uma vez para o mesmo registro sem querer."
+    >
+      <fieldset class="grupo">
+        <legend>Parar de executar quando…</legend>
+        @for (c of criteriosLista; track c) {
+          <app-caixa-selecao
+            [rotulo]="rotuloCriterio[c]"
+            [valor]="temCriterio(c)"
+            (valorChange)="alternarCriterio(c, $event)"
+          />
+        }
+      </fieldset>
+      <div class="grade-campos">
+        <app-seletor rotulo="Quantas vezes pode rodar" [opcoes]="opcoesLimite" [(valor)]="limite" />
+        @if (limite() === 'UMA_VEZ_POR_PERIODO') {
+          <app-campo-texto
+            tipo="number"
+            rotulo="A cada quantos dias"
+            [minimo]="1"
+            [maximo]="3650"
+            [(valor)]="limiteDias"
+          />
+        }
+      </div>
+      <app-caixa-selecao rotulo="É uma mensagem de marketing" [(valor)]="marketing" />
+      <p class="nota">
+        Mensagens de marketing não são enviadas para quem pediu para não receber (opt-out). Deixe
+        desmarcado para avisos e mensagens de acompanhamento.
+      </p>
+    </app-cartao>
+
+    <div class="rodape">
+      @if (problemasDosPassos().length) {
+        <p class="alerta alerta--aviso" role="status">
+          {{ problemasDosPassos().length }} campo(s) obrigatório(s) vazio(s) nos passos. Dá para
+          salvar, mas só é possível ligar com tudo preenchido.
+        </p>
+      }
+      <button
+        appBotao
+        type="button"
+        variante="marca"
+        [disabled]="!podeSalvar()"
+        [carregando]="salvando()"
+        (click)="salvar()"
+      >
+        Salvar automação
+      </button>
+    </div>
+  }
+}
+
+<app-modal
+  [(aberto)]="modalPausar"
+  titulo="Desligar a automação"
+  complemento="Ela deixa de começar para novos registros."
+>
+  <div class="modal-corpo">
+    <app-caixa-selecao
+      rotulo="Também cancelar as execuções que estão esperando"
+      [(valor)]="cancelarEsperas"
+    />
+    <p class="nota">
+      Sem marcar, o que já está esperando fica guardado e não recebe novas ações enquanto estiver
+      desligada.
+    </p>
+    <div class="modal-acoes">
+      <button appBotao type="button" variante="contorno" (click)="modalPausar.set(false)">
+        Voltar
+      </button>
+      <button appBotao type="button" variante="marca" [carregando]="agindo()" (click)="pausar()">
+        Desligar
+      </button>
+    </div>
+  </div>
+</app-modal>
+
+<app-painel-lateral
+  largura="lg"
+  titulo="Testar a automação"
+  complemento="Roda para um registro, sem enviar nada de verdade e sem esperar."
+  [(aberto)]="painelTeste"
+>
+  <div class="teste">
+    <p class="nota">
+      Escolha
+      {{
+        entidadeDeTeste() === 'contato'
+          ? 'um contato'
+          : entidadeDeTeste() === 'negocio'
+            ? 'um negócio'
+            : entidadeDeTeste() === 'conversa'
+              ? 'uma conversa'
+              : 'uma atividade'
+      }}
+      para ver o que a automação faria. Mensagens e avisos são apenas simulados.
+    </p>
+    @if (candidatos().length) {
+      <app-seletor
+        rotulo="Registro para o teste"
+        placeholder="Escolha um registro"
+        [opcoes]="candidatos()"
+        [(valor)]="candidatoId"
+      />
+    } @else {
+      <app-campo-texto
+        rotulo="Código do registro"
+        dica="Não encontramos registros para listar. Cole o código do registro (está no endereço da página dele)."
+        [(valor)]="idManual"
+      />
+    }
+    @if (erroTeste(); as e) {
+      <p class="alerta alerta--erro" role="alert">{{ e }}</p>
+    }
+    <button
+      appBotao
+      type="button"
+      variante="marca"
+      [carregando]="testando()"
+      (click)="testar()"
+      [icone]="iconeTeste"
+    >
+      Rodar teste
+    </button>
+
+    @if (resultadoTeste(); as r) {
+      @if (!r.condicoesAtendidas) {
+        <div class="alerta alerta--aviso" role="status">
+          <strong>Não rodaria para este registro.</strong>
+          <p>{{ textoMotivo(r.motivoDasCondicoes) }}</p>
+        </div>
+      }
+      @if (r.execucao; as e) {
+        <app-detalhe-execucao
+          [execucao]="e"
+          [ocupado]="acaoExecucao()"
+          (reexecutar)="agirNaExecucao('reexecutar', $event.id)"
+          (cancelar)="agirNaExecucao('cancelar', $event.id)"
+        />
+      }
+    }
+  </div>
+</app-painel-lateral>
