@@ -1,0 +1,151 @@
+@if (estado(); as e) {
+  <div class="sim">
+    <div class="sim__topo">
+      <app-selo [variante]="terminou() ? 'neutro' : 'menta'" tamanho="sm" [ponto]="!terminou()">
+        {{ terminou() ? 'Conversa encerrada' : e.aguardando ? 'Esperando você' : 'Rodando' }}
+      </app-selo>
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        tamanho="sm"
+        [icone]="iconeReiniciar"
+        (click)="recomecar()"
+      >
+        Nova simulação
+      </button>
+    </div>
+
+    <ol class="conversa" aria-label="Conversa de teste" aria-live="polite">
+      @for (m of e.transcricao; track $index) {
+        <li class="msg" [class]="'msg--' + m.de">
+          <span class="msg__autor">{{
+            m.de === 'bot' ? 'Robô' : m.de === 'contato' ? 'Você' : 'Sistema'
+          }}</span>
+          <span class="msg__texto">{{ m.texto }}</span>
+          @if (m.opcoes?.length) {
+            <span class="msg__opcoes">
+              @for (opcao of m.opcoes; track opcao) {
+                <span class="msg__botao">{{ opcao }}</span>
+              }
+            </span>
+          }
+        </li>
+      }
+      <li #fimDaConversa class="conversa__fim" aria-hidden="true"></li>
+    </ol>
+
+    @if (e.erro) {
+      <p class="sim__erro" role="alert">O fluxo parou com um erro: {{ e.erro }}</p>
+    }
+
+    @if (terminou()) {
+      <p class="sim__fim" role="status">
+        {{ motivo() ?? 'A simulação terminou.' }}. Nada disto foi enviado a ninguém nem salvo no
+        CRM.
+      </p>
+    } @else if (e.aguardando; as espera) {
+      @if (espera.opcoes?.length) {
+        <div class="sim__opcoes" role="group" aria-label="Responder com uma opção">
+          @for (opcao of espera.opcoes; track opcao.id; let i = $index) {
+            <button
+              appBotao
+              type="button"
+              variante="contorno"
+              tamanho="sm"
+              [attr.aria-disabled]="ocupado() || null"
+              (click)="enviar(opcao.rotulo)"
+            >
+              {{ i + 1 }}. {{ opcao.rotulo }}
+            </button>
+          }
+        </div>
+      }
+      <form class="sim__resposta" (submit)="$event.preventDefault(); enviar(resposta())">
+        <app-campo-texto
+          class="sim__campo"
+          rotulo="Sua resposta"
+          rotuloOculto
+          [placeholder]="
+            espera.tipo === 'opcoes'
+              ? 'Ou digite o número ou o texto da opção'
+              : 'Digite a resposta'
+          "
+          [(valor)]="resposta"
+        />
+        <button
+          appBotao
+          type="submit"
+          variante="destaque"
+          [icone]="iconeEnviar"
+          [carregando]="ocupado()"
+        >
+          Enviar
+        </button>
+      </form>
+      @if (espera.temTempo) {
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          [attr.aria-disabled]="ocupado() || null"
+          (click)="deixarPassar()"
+        >
+          Deixar o tempo passar sem responder
+        </button>
+        <p class="sim__dica">Mostra o lembrete ou o caminho “não respondeu” que você configurou.</p>
+      }
+    }
+
+    @if (variaveis().length) {
+      <details class="sim__variaveis">
+        <summary>O que o robô guardou até agora</summary>
+        <dl>
+          @for (v of variaveis(); track v.chave) {
+            <dt>{{ v.chave }}</dt>
+            <dd>{{ v.valor }}</dd>
+          }
+        </dl>
+      </details>
+    }
+  </div>
+} @else {
+  <form class="config" (submit)="$event.preventDefault(); iniciar()">
+    <p class="config__dica">
+      Converse com o robô como se fosse um cliente. É só um teste: nenhum contato, conversa ou
+      negócio de verdade é criado e nada é enviado.
+    </p>
+    <app-seletor rotulo="O que testar" [opcoes]="origens()" [(valor)]="origem" />
+    <app-seletor
+      rotulo="Canal do cliente"
+      [opcoes]="canais"
+      [(valor)]="canalTipo"
+      dica="No chat do site as opções viram botões."
+    />
+    <app-campo-texto rotulo="Nome do cliente" [(valor)]="nome" />
+    <app-campo-texto
+      rotulo="Primeira mensagem do cliente"
+      opcional
+      [(valor)]="primeiraMensagem"
+      dica="Importante nos fluxos que começam por palavra-chave."
+    />
+    <app-alternador
+      rotulo="Dentro do horário de atendimento"
+      dica="Desligue para testar o caminho de “fora do horário”."
+      [(valor)]="horarioAberto"
+    />
+    @if (falha(); as f) {
+      <p class="sim__erro" role="alert">{{ f }}</p>
+    }
+    <button
+      appBotao
+      type="submit"
+      variante="destaque"
+      [carregando]="ocupado()"
+      [icone]="iconeConversa"
+    >
+      Começar a conversa de teste
+    </button>
+  </form>
+}

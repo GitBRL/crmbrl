@@ -1,0 +1,146 @@
+<header class="cabecalho">
+  <div class="cabecalho__textos">
+    <h1 class="texto-display">Chatbot</h1>
+    <p class="cabecalho__frase">
+      Fluxos que recebem o cliente, fazem as primeiras perguntas e passam para uma pessoa.
+    </p>
+  </div>
+  <a appBotao variante="destaque" routerLink="/chatbot/novo" [icone]="iconeNovo">Novo fluxo</a>
+</header>
+
+<app-cartao>
+  <div class="filtros">
+    <app-campo-busca
+      class="filtros__busca"
+      rotulo="Buscar fluxo"
+      placeholder="Buscar pelo nome…"
+      [(valor)]="busca"
+      (buscar)="filtrou()"
+    />
+    <app-filtros-pilula
+      rotulo="Situação"
+      [opcoes]="situacoes"
+      [(selecionado)]="situacao"
+      (selecionadoChange)="filtrou()"
+    />
+    <app-seletor
+      class="filtros__gatilho"
+      rotulo="Começa quando"
+      rotuloOculto
+      permitirVazio
+      placeholder="Qualquer início"
+      [opcoes]="gatilhos"
+      [(valor)]="gatilho"
+      (valorChange)="filtrou()"
+    />
+  </div>
+
+  @if (erro(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos carregar os fluxos"
+      [texto]="falha.resumo"
+      [codigo]="falha.ehFalhaDoServidor ? falha.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeTentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <app-tabela
+      rotulo="Fluxos do chatbot"
+      [colunas]="colunas"
+      [linhas]="linhas()"
+      [carregando]="carregando() && dados() === null"
+      [link]="linkDoFluxo"
+      colunaPrincipal="nome"
+    >
+      <ng-template appCelula="nome" [appCelulaDe]="linhas()" let-fluxo>
+        <span class="fluxo__nome">{{ fluxo.nome }}</span>
+        @if (fluxo.descricao) {
+          <span class="fluxo__descricao">{{ fluxo.descricao }}</span>
+        }
+      </ng-template>
+      <ng-template appCelula="gatilho" [appCelulaDe]="linhas()" let-fluxo>
+        {{ nomeDoGatilho(fluxo.gatilho) }}
+        @if (fluxo.palavrasChave.length) {
+          <span class="fluxo__descricao">“{{ fluxo.palavrasChave.join('”, “') }}”</span>
+        }
+      </ng-template>
+      <ng-template appCelula="situacao" [appCelulaDe]="linhas()" let-fluxo>
+        <span class="fluxo__situacao">
+          <app-selo [variante]="fluxo.ativo ? 'menta' : 'neutro'">{{
+            fluxo.ativo ? 'Ligado' : 'Desligado'
+          }}</app-selo>
+          @if (!fluxo.versaoPublicada) {
+            <app-selo variante="lima" tamanho="sm">Nunca publicado</app-selo>
+          } @else if (fluxo.rascunhoNaoPublicado) {
+            <app-selo variante="ciano" tamanho="sm">Rascunho novo</app-selo>
+          } @else {
+            <app-selo variante="contorno" tamanho="sm"
+              >Versão {{ fluxo.versaoPublicada.numero }}</app-selo
+            >
+          }
+        </span>
+      </ng-template>
+      <ng-template appCelula="conversas" [appCelulaDe]="linhas()" let-fluxo>
+        {{ fluxo.contadores.total }}
+        @if (fluxo.contadores.emAndamento) {
+          <span class="fluxo__descricao">{{ fluxo.contadores.emAndamento }} em andamento</span>
+        }
+      </ng-template>
+      <ng-template appCelula="atualizado" [appCelulaDe]="linhas()" let-fluxo>
+        {{ quando(fluxo.rascunhoAlteradoEm) }}
+      </ng-template>
+      <ng-template appCelula="acoes" [appCelulaDe]="linhas()" let-fluxo>
+        <app-menu-acoes
+          [rotulo]="'Ações do fluxo ' + fluxo.nome"
+          [itens]="acoesDe(fluxo)"
+          (escolher)="executar(fluxo, $event)"
+        />
+      </ng-template>
+
+      <app-estado-vazio
+        tabela-vazio
+        [titulo]="filtrando() ? 'Nenhum fluxo encontrado' : 'Nenhum fluxo ainda'"
+        [texto]="
+          filtrando()
+            ? 'Tente outra busca ou limpe os filtros.'
+            : 'Crie o primeiro fluxo para o robô receber os clientes antes de uma pessoa.'
+        "
+      >
+        @if (filtrando()) {
+          <button appBotao type="button" variante="invertido" (click)="limparFiltros()">
+            Limpar filtros
+          </button>
+        } @else {
+          <a appBotao variante="invertido" routerLink="/chatbot/novo" [icone]="iconeNovo"
+            >Novo fluxo</a
+          >
+        }
+      </app-estado-vazio>
+    </app-tabela>
+
+    @if ((dados()?.total ?? 0) > porPagina()) {
+      <app-paginacao
+        [total]="dados()?.total ?? 0"
+        [(pagina)]="pagina"
+        [(porPagina)]="porPagina"
+        (paginaChange)="carregar()"
+        (porPaginaChange)="filtrou()"
+      />
+    }
+  }
+</app-cartao>
+
+<p class="dica-rodape">
+  Dica: um fluxo só atende conversas depois de publicado e ligado. Você pode testar o rascunho no
+  simulador sem falar com nenhum cliente de verdade.
+</p>

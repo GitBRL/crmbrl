@@ -1,0 +1,196 @@
+<ol class="lista" [attr.aria-label]="nome()">
+  @for (
+    linha of linhas();
+    track linha.passo.id;
+    let i = $index, primeiro = $first, ultimo = $last
+  ) {
+    <li
+      class="passo"
+      [class.passo--erro]="linha.problemas.length > 0"
+      [attr.data-passo]="linha.passo.id"
+    >
+      <div class="passo__cabeca">
+        <span class="passo__numero" aria-hidden="true">{{ i + 1 }}</span>
+        <app-selo class="passo__grupo" [variante]="linha.grupo.variante" tamanho="sm">{{
+          linha.grupo.rotulo
+        }}</app-selo>
+        <button
+          type="button"
+          class="passo__resumo"
+          [attr.aria-expanded]="linha.aberto"
+          [attr.aria-controls]="'corpo-' + linha.passo.id"
+          (click)="alternar(linha.passo.id)"
+        >
+          <span class="passo__titulo">{{ linha.rotulo }}</span>
+          @if (linha.resumo) {
+            <span class="passo__detalhe">{{ linha.resumo }}</span>
+          }
+          <svg
+            class="passo__seta"
+            [class.passo__seta--aberta]="linha.aberto"
+            [lucideIcon]="icones.abrir"
+            [size]="16"
+            aria-hidden="true"
+          />
+        </button>
+        @if (linha.problemas.length) {
+          <app-selo variante="coral" tamanho="sm" class="passo__alerta">Falta preencher</app-selo>
+        }
+        @if (!somenteLeitura()) {
+          <div class="passo__acoes">
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              data-acao="subir"
+              [icone]="icones.subir"
+              [rotulo]="'Subir o passo ' + (i + 1)"
+              [attr.aria-disabled]="primeiro || null"
+              (click)="mover(i, -1)"
+            ></button>
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              data-acao="descer"
+              [icone]="icones.descer"
+              [rotulo]="'Descer o passo ' + (i + 1)"
+              [attr.aria-disabled]="ultimo || null"
+              (click)="mover(i, 1)"
+            ></button>
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              [icone]="icones.copiar"
+              [rotulo]="'Duplicar o passo ' + (i + 1)"
+              (click)="duplicar(linha.passo)"
+            ></button>
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              [icone]="icones.remover"
+              [rotulo]="'Remover o passo ' + (i + 1)"
+              (click)="remover(linha.passo, linha.rotulo)"
+            ></button>
+          </div>
+        }
+      </div>
+
+      @if (linha.aberto) {
+        <div class="passo__corpo" [id]="'corpo-' + linha.passo.id">
+          @if (linha.descricao; as descricao) {
+            <p class="passo__descricao">{{ descricao }}</p>
+          }
+          @if (linha.problemas.length) {
+            <ul class="passo__problemas" role="status">
+              @for (problema of linha.problemas; track problema) {
+                <li>{{ problema }}</li>
+              }
+            </ul>
+          }
+          <app-formulario-passo
+            [passo]="linha.passo"
+            [somenteLeitura]="somenteLeitura()"
+            (mudou)="substituir($event)"
+          />
+        </div>
+      }
+
+      @if (linha.temRamos) {
+        <div class="passo__ramos">
+          @for (ramo of linha.passo.ramos; track ramo.id; let r = $index) {
+            <section class="ramo">
+              @if (ehCondicao(linha.passo)) {
+                <app-condicoes-ramo
+                  [ramo]="ramo"
+                  [indice]="r"
+                  [senao]="ehSenao(ramo)"
+                  [somenteLeitura]="somenteLeitura()"
+                  [podeRemover]="(linha.passo.ramos?.length ?? 0) > 1"
+                  (mudou)="mudarCondicaoDoRamo(linha.passo, r, $event)"
+                  (remover)="removerRamo(linha.passo, r)"
+                />
+              } @else {
+                <h4 class="ramo__titulo">{{ tituloDoRamo(ramo, linha.passo) }}</h4>
+              }
+              <app-arvore-passos
+                [nome]="tituloDoRamo(ramo, linha.passo) + ', passos'"
+                [passos]="ramo.passos"
+                [nivel]="nivel() + 1"
+                [somenteLeitura]="somenteLeitura()"
+                [problemasDaApi]="problemasDaApi()"
+                rotuloAdicionar="Adicionar passo neste caminho"
+                (passosChange)="mudarRamo(linha.passo, r, $event)"
+              />
+            </section>
+          }
+          @if (ehCondicao(linha.passo) && !somenteLeitura()) {
+            <div class="ramos__acoes">
+              <button
+                appBotao
+                type="button"
+                variante="contorno"
+                tamanho="sm"
+                [icone]="icones.mais"
+                (click)="adicionarCaminho(linha.passo)"
+              >
+                Adicionar caminho
+              </button>
+              @if (!temSenao(linha.passo)) {
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  (click)="adicionarSenao(linha.passo)"
+                >
+                  Adicionar “Senão”
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </li>
+  }
+</ol>
+
+@if (!somenteLeitura()) {
+  <div class="adicionar">
+    <button
+      appBotao
+      type="button"
+      variante="contorno"
+      tamanho="sm"
+      class="lista__adicionar"
+      [icone]="icones.mais"
+      [attr.aria-expanded]="menuAberto()"
+      [attr.aria-disabled]="limiteAtingido() || null"
+      (click)="limiteAtingido() ? null : menuAberto.set(!menuAberto())"
+    >
+      {{ rotuloAdicionar() }}
+    </button>
+    @if (limiteAtingido()) {
+      <p class="adicionar__aviso" role="status">O fluxo chegou ao limite de 150 passos.</p>
+    }
+    @if (menuAberto()) {
+      <div class="adicionar__menu" role="group" aria-label="Escolha o passo">
+        @for (grupo of grupos(); track grupo.grupo) {
+          <div class="adicionar__grupo">
+            <p class="adicionar__titulo">{{ grupo.titulo }}</p>
+            <div class="adicionar__itens">
+              @for (item of grupo.itens; track item.tipo) {
+                <button type="button" class="adicionar__item" (click)="adicionar(item)">
+                  <span class="adicionar__nome">{{ item.rotulo }}</span>
+                  <span class="adicionar__descricao">{{ descricaoDe(item) }}</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}
