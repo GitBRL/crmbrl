@@ -220,6 +220,12 @@ export class DisparosApi {
     return firstValueFrom(this.http.get<ConfiguracaoDisparos>(urlApi('disparos', 'configuracao')));
   }
 
+  salvarConfiguracao(dados: Partial<ConfiguracaoDisparos>): Promise<ConfiguracaoDisparos> {
+    return firstValueFrom(
+      this.http.put<ConfiguracaoDisparos>(urlApi('disparos', 'configuracao'), dados),
+    );
+  }
+
   // Modelos de mensagem -------------------------------------------------------------------------
 
   modelos(canal?: CanalCampanha): Promise<Pagina<ModeloMensagem>> {

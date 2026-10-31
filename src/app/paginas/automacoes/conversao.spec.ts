@@ -8,6 +8,7 @@ import {
   filtrosParaConfig,
   horarioParaJanela,
   janelaParaHorario,
+  marketingPadrao,
   segmentoDaApi,
   segmentoParaApi,
   segmentoTemCondicoes,
@@ -164,5 +165,14 @@ describe('conversão do gatilho', () => {
       quantidade: 7,
       campo: 'negocio.ganhoEm',
     });
+  });
+});
+
+describe('marketingPadrao', () => {
+  it('a área de Marketing nasce marcada; as outras e "todas as áreas" não', () => {
+    expect(marketingPadrao('MARKETING')).toBe(true);
+    expect(marketingPadrao('COMERCIAL')).toBe(false);
+    expect(marketingPadrao(null)).toBe(false);
+    expect(marketingPadrao(undefined)).toBe(false);
   });
 });

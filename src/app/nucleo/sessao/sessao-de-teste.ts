@@ -55,6 +55,7 @@ export function permissoesDoPapel(papel: Papel): Permissoes {
     verAtividades: diretoria ? 'TODOS' : lider ? 'EQUIPE' : 'PROPRIOS',
     configurarPassagens: diretoria,
     configurarRodizio: diretoria ? 'TODOS' : lider ? 'AREA' : 'NENHUM',
+    importarContatos: diretoria || lider,
     gerenciarWebhooks: admin,
     verAuditoria: diretoria,
     verLogsTecnicos: admin,

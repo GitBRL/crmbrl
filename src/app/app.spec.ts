@@ -145,7 +145,7 @@ describe('app.routes', () => {
     ['/disparos/novo', 'app-disparo-novo', 'Nova campanha'],
     [`/disparos/${UUID}`, 'app-detalhe-disparo', 'Campanha'],
     ['/chatbot', 'app-chatbot', 'Chatbot'],
-    ['/chatbot/novo', 'app-editor-fluxo', 'Novo fluxo'],
+    ['/chatbot/novo', 'app-novo-fluxo', 'Novo fluxo'],
     [`/chatbot/${UUID}`, 'app-editor-fluxo', 'Fluxo do chatbot'],
     ['/automacoes', 'app-automacoes', 'Automações'],
     ['/automacoes/nova', 'app-editor-automacao', 'Nova automação'],

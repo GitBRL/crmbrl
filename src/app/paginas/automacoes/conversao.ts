@@ -328,3 +328,11 @@ export function configParaAgenda(
     hora: typeof c['hora'] === 'string' ? c['hora'] : '09:00',
   };
 }
+
+/**
+ * Valor inicial de "É uma mensagem de marketing" numa automação nova: a área de Marketing
+ * nasce marcada (R4.6), para o e-mail não chegar a quem pediu para não receber.
+ */
+export function marketingPadrao(area: string | null | undefined): boolean {
+  return area === 'MARKETING';
+}

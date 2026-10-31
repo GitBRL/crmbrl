@@ -1,33 +1,27 @@
 import { DestroyRef, inject } from '@angular/core';
 
-import type { EventoServidor } from '../../nucleo/tempo-real/eventos';
 import { TempoRealService } from '../../nucleo/tempo-real/tempo-real.service';
 import type { EventoCampanhaProgresso } from './disparos.tipos';
 
 /**
  * Ouve `campanha.progresso` enquanto o componente existir (chame no construtor). A entrega é
  * "pelo menos uma vez": evento repetido ou mais velho que o último visto da mesma campanha é
- * ignorado (pelo campo `em`). O nome do evento ainda não está no catálogo tipado do núcleo
- * (`nucleo/tempo-real/eventos.ts`), por isso o `as`.
+ * ignorado (pelo campo `em`).
  */
 export function aoReceberProgresso(tratar: (evento: EventoCampanhaProgresso) => void): void {
   const tempoReal = inject(TempoRealService);
   const ultimo = new Map<string, string>();
-  const parar = tempoReal.ouvir(
-    'campanha.progresso' as EventoServidor,
-    ((dados: unknown) => {
-      const evento = dados as EventoCampanhaProgresso | null;
-      if (!evento?.campanhaId || !evento.contadores) {
-        return;
-      }
-      const visto = ultimo.get(evento.campanhaId);
-      if (visto && evento.em && evento.em <= visto) {
-        return;
-      }
-      ultimo.set(evento.campanhaId, evento.em ?? '');
-      tratar(evento);
-    }) as never,
-  );
+  const parar = tempoReal.ouvir('campanha.progresso', (evento: EventoCampanhaProgresso | null) => {
+    if (!evento?.campanhaId || !evento.contadores) {
+      return;
+    }
+    const visto = ultimo.get(evento.campanhaId);
+    if (visto && evento.em && evento.em <= visto) {
+      return;
+    }
+    ultimo.set(evento.campanhaId, evento.em ?? '');
+    tratar(evento);
+  });
   inject(DestroyRef).onDestroy(parar);
 }
 

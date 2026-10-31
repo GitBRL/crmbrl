@@ -421,10 +421,15 @@
           />
         }
       </div>
-      <app-caixa-selecao rotulo="É uma mensagem de marketing" [(valor)]="marketing" />
+      <app-caixa-selecao
+        rotulo="É uma mensagem de marketing"
+        [valor]="marketing()"
+        (valorChange)="escolherMarketing($event)"
+      />
       <p class="nota">
         Mensagens de marketing não são enviadas para quem pediu para não receber (opt-out). Deixe
-        desmarcado para avisos e mensagens de acompanhamento.
+        desmarcado para avisos e mensagens de acompanhamento. Na área de Marketing a caixa já vem
+        marcada, para a automação nunca alcançar quem saiu da lista.
       </p>
     </app-cartao>
 

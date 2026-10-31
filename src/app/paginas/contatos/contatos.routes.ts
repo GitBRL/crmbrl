@@ -1,6 +1,7 @@
 import type { Routes } from '@angular/router';
 
-import { ehUuid, redirecionar } from '../../nucleo/sessao/guardas';
+import { podeImportarContatos } from '../../nucleo/sessao/perfil';
+import { ehUuid, exigirPermissao, redirecionar } from '../../nucleo/sessao/guardas';
 
 /** Rotas de `/contatos` (carregadas sob demanda por app.routes.ts). */
 export const ROTAS_CONTATOS: Routes = [
@@ -9,9 +10,9 @@ export const ROTAS_CONTATOS: Routes = [
     loadComponent: () => import('./contatos').then((m) => m.Contatos),
   },
   {
-    // Esqueleto da Onda B; o agente `importacao-front` troca o conteúdo.
     path: 'importar',
     title: 'Importar contatos',
+    canActivate: [exigirPermissao(podeImportarContatos)],
     loadComponent: () => import('./importar/importar').then((m) => m.Importar),
   },
   {

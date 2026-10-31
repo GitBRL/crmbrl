@@ -48,6 +48,7 @@ describe('Configuracoes (moldura e seções por papel)', () => {
       'Usuários',
       'Distribuição de leads',
       'Passagens entre funis',
+      'Disparos',
       'Meu perfil',
     ]);
   });
@@ -57,6 +58,7 @@ describe('Configuracoes (moldura e seções por papel)', () => {
       'Minha equipe',
       'Distribuição de leads',
       'Passagens entre funis',
+      'Disparos',
       'Meu perfil',
     ]);
   });

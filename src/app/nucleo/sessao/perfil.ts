@@ -79,6 +79,11 @@ export interface Permissoes {
    * a API mandar; sem ele vale `podeConfigurarAtendimento()`.
    */
   readonly configurarAtendimento?: Escopo;
+  /**
+   * Onda B — importar contatos e empresas de planilha (R16). Opcional até a API mandar; sem
+   * ele vale `podeImportarContatos()`.
+   */
+  readonly importarContatos?: boolean;
 }
 
 export type NivelUsuario = 'ADMINISTRADOR' | 'DIRETORIA' | 'LIDER' | 'MEMBRO';
@@ -144,4 +149,17 @@ export function podeConfigurarAtendimento(permissoes: Permissoes, perfil: Perfil
     return permissoes.configurarAtendimento !== 'NENHUM';
   }
   return ['ADMIN', 'C_LEVEL', 'LIDER_COMERCIAL', 'LIDER_CS'].includes(perfil.usuario.papel);
+}
+
+/**
+ * Contatos → Importar (R16): a permissão `importarContatos` quando a API a manda; sem ela,
+ * Admin, C-level e os líderes.
+ */
+export function podeImportarContatos(permissoes: Permissoes, perfil: Perfil): boolean {
+  return (
+    permissoes.importarContatos ??
+    ['ADMIN', 'C_LEVEL', 'LIDER_COMERCIAL', 'LIDER_MARKETING', 'LIDER_CS'].includes(
+      perfil.usuario.papel,
+    )
+  );
 }

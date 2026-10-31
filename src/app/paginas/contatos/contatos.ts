@@ -8,9 +8,11 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { LucidePlus } from '@lucide/angular';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { LucideUpload, LucidePlus } from '@lucide/angular';
 
+import { podeImportarContatos } from '../../nucleo/sessao/perfil';
+import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Abas, type ItemAba } from '../../ui/abas/abas';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
@@ -37,6 +39,7 @@ const ABAS: readonly ItemAba[] = [
 @Component({
   selector: 'app-contatos',
   imports: [
+    RouterLink,
     Abas,
     Botao,
     BotaoIcone,
@@ -69,7 +72,10 @@ export class Contatos {
   private readonly rota = inject(ActivatedRoute);
 
   protected readonly abas = ABAS;
-  protected readonly icones = { novo: LucidePlus };
+  protected readonly icones = { novo: LucidePlus, importar: LucideUpload };
+  private readonly sessao = inject(SessaoService);
+  /** Importar planilha (R16): Admin, C-level e líderes. */
+  protected readonly podeImportar = computed(() => this.sessao.permite(podeImportarContatos));
 
   protected readonly abaAtual = computed<AbaContatos>(() =>
     this.aba() === 'empresas' ? 'empresas' : 'pessoas',

@@ -20,6 +20,8 @@ import type { Notificacao } from '../notificacoes.service';
  * | `chat.atualizado`     | `{ canalId, canal?, removido? }`                                     |
  * | `whatsapp.conexao`    | `{ numeroId, canalId, status, qr?, qrExpiraEm?, telefone?, motivo? }` |
  * | `sessao.encerrada`    | `{ motivo }` — a conexão cai logo em seguida                         |
+ * | `importacao.progresso`| `{ importacaoId, status, totalLinhas, processadas, criados… }` (B2)   |
+ * | `campanha.progresso`  | `{ campanhaId, status, contadores, proximoEnvioEm, pausaMotivo, em }` |
  *
  * Cliente → servidor (com confirmação `{ ok }` ou `{ ok: false, erro, mensagem }`):
  * `conversa.entrar`/`sair` `{ conversaId }`, `chat.entrar`/`sair` `{ canalId }` e `digitando`
@@ -127,6 +129,48 @@ export interface EventoSessaoEncerrada {
   readonly motivo: 'sessao_revogada' | 'sessao_expirada' | 'usuario_inativo';
 }
 
+/** Andamento de uma importação de contatos (Onda B). */
+export interface EventoImportacaoProgresso {
+  readonly importacaoId: string;
+  readonly status: 'RASCUNHO' | 'NA_FILA' | 'PROCESSANDO' | 'CONCLUIDA' | 'FALHOU' | 'CANCELADA';
+  readonly totalLinhas: number;
+  readonly processadas: number;
+  readonly criados: number;
+  readonly atualizados: number;
+  readonly ignorados: number;
+  readonly erros: number;
+  readonly relatorioId?: string | null;
+}
+
+/** Andamento de uma campanha de disparos (Onda B). */
+export interface EventoCampanhaProgresso {
+  readonly campanhaId: string;
+  readonly status:
+    | 'RASCUNHO'
+    | 'AGUARDANDO_APROVACAO'
+    | 'AGENDADA'
+    | 'EM_ANDAMENTO'
+    | 'PAUSADA'
+    | 'CONCLUIDA'
+    | 'CANCELADA';
+  readonly contadores: {
+    readonly total: number;
+    readonly pendentes: number;
+    readonly enviando: number;
+    readonly enviados: number;
+    readonly entregues: number;
+    readonly lidos: number;
+    readonly respondidos: number;
+    readonly falhas: number;
+    readonly invalidos: number;
+    readonly excluidos: number;
+    readonly optOuts: number;
+  };
+  readonly proximoEnvioEm: string | null;
+  readonly pausaMotivo: string | null;
+  readonly em: string;
+}
+
 /** Servidor → cliente. */
 export interface EventosServidor {
   'notificacao.nova': EventoNotificacaoNova;
@@ -140,6 +184,8 @@ export interface EventosServidor {
   'chat.atualizado': EventoChatAtualizado;
   'whatsapp.conexao': EventoWhatsappConexao;
   'sessao.encerrada': EventoSessaoEncerrada;
+  'importacao.progresso': EventoImportacaoProgresso;
+  'campanha.progresso': EventoCampanhaProgresso;
 }
 
 export type EventoServidor = keyof EventosServidor;

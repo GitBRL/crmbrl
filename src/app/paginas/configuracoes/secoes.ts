@@ -26,6 +26,11 @@ export const SECOES_CONFIGURACOES: readonly SecaoConfiguracoes[] = [
     permite: (p) => p.configurarRodizio !== 'NENHUM',
   },
   { caminho: 'passagens', rotulo: 'Passagens entre funis', permite: (p) => p.configurarPassagens },
+  {
+    caminho: 'disparos',
+    rotulo: 'Disparos',
+    permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN' || perfil.usuario.papel === 'C_LEVEL',
+  },
   { caminho: 'perfil', rotulo: 'Meu perfil', permite: () => true },
 ];
 

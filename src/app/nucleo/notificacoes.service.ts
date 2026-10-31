@@ -47,7 +47,12 @@ export type TipoNotificacao =
   | 'atividade.atrasada'
   | 'webhook_saida.falhou'
   | 'webhook_saida.desativado'
-  | 'equipe.sem_lider';
+  | 'equipe.sem_lider'
+  | 'campanha.pausada'
+  | 'campanha.concluida'
+  | 'campanha.aprovacao_pedida'
+  | 'campanha.aprovada'
+  | 'campanha.reprovada';
 
 /**
  * Intervalo da busca de reserva: as notificações chegam ao vivo (`notificacao.nova`); a busca

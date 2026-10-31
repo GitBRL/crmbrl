@@ -6,6 +6,17 @@
     </p>
   </div>
   <div class="cabecalho__acoes">
+    @if (podeImportar()) {
+      <a
+        appBotao
+        class="so-desktop"
+        variante="contorno"
+        routerLink="/contatos/importar"
+        [icone]="icones.importar"
+      >
+        Importar planilha
+      </a>
+    }
     <button
       appBotao
       type="button"

@@ -23,8 +23,8 @@ import { type ErroApi, erroDaApi } from '../../../nucleo/api/erro-api';
 import { AvisosService } from '../../../nucleo/avisos.service';
 import { ConfirmacaoService } from '../../../nucleo/confirmacao.service';
 import { formatarDataHora, formatarNumero } from '../../../nucleo/formatos';
+import { podeImportarContatos } from '../../../nucleo/sessao/perfil';
 import { SessaoService } from '../../../nucleo/sessao/sessao.service';
-import type { EventoServidor } from '../../../nucleo/tempo-real/eventos';
 import { TempoRealService } from '../../../nucleo/tempo-real/tempo-real.service';
 import { Botao } from '../../../ui/botao/botao';
 import { Cartao } from '../../../ui/cartao/cartao';
@@ -196,11 +196,7 @@ export class Importar implements OnInit {
   protected readonly numero = (valor: number): string => formatarNumero(valor, 0);
 
   /** A permissão nova (`/auth/eu` → `permissoes.importarContatos`); a API continua decidindo. */
-  protected readonly podeImportar = computed(
-    () =>
-      (this.sessao.permissoes() as { importarContatos?: boolean } | null)?.importarContatos ===
-      true,
-  );
+  protected readonly podeImportar = computed(() => this.sessao.permite(podeImportarContatos));
 
   // ----- Estado ------------------------------------------------------------------------------
   protected readonly etapa = signal<Etapa>(1);
@@ -351,11 +347,7 @@ export class Importar implements OnInit {
 
   constructor() {
     const destruir = inject(DestroyRef);
-    // `importacao.progresso` ainda não está no catálogo tipado do núcleo; o serviço despacha por nome.
-    const parar = this.tempoReal.ouvir(
-      'importacao.progresso' as unknown as EventoServidor,
-      ((dados: ProgressoImportacao) => this.aoProgresso(dados)) as never,
-    );
+    const parar = this.tempoReal.ouvir('importacao.progresso', (dados) => this.aoProgresso(dados));
     destruir.onDestroy(() => {
       parar();
       this.pararConsulta();

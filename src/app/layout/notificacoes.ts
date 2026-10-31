@@ -19,6 +19,7 @@ import {
   LucideContact,
   LucideDynamicIcon,
   LucideHandshake,
+  LucideMegaphone,
   LucideMessageCircle,
   LucideMessagesSquare,
   LucideRefreshCw,
@@ -65,6 +66,9 @@ const ICONE_DO_PREFIXO: readonly (readonly [string, LucideIcon])[] = [
   ['chat.', LucideMessageCircle],
   ['whatsapp.', LucideWebhook],
   ['canal.', LucideWebhook],
+  ['campanha.', LucideMegaphone],
+  ['automacao.', LucideWorkflow],
+  ['importacao.', LucideContact],
 ];
 
 export function iconeDaNotificacao(tipo: string): LucideIcon {

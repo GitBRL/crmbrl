@@ -73,6 +73,7 @@ import {
   filtrosParaConfig,
   horarioParaJanela,
   janelaParaHorario,
+  marketingPadrao,
   segmentoDaApi,
   segmentoParaApi,
   segmentoTemCondicoes,
@@ -237,6 +238,8 @@ export class EditorAutomacao {
   protected readonly limite = signal<LimiteExecucao>('UMA_VEZ');
   protected readonly limiteDias = signal<Texto>(30);
   protected readonly marketing = signal(false);
+  /** Depois que a pessoa mexe na caixa (ou abre uma automação salva), o padrão não interfere mais. */
+  private marketingEscolhido = false;
   private readonly bruto: Bruto = new Map();
 
   // --- ações
@@ -419,6 +422,11 @@ export class EditorAutomacao {
   protected readonly entidadeDeTeste = computed(() => this.automacao()?.entidade ?? 'contato');
   protected readonly textoMotivo = (m: string | null): string =>
     m ? (ROTULO_MOTIVO_CONDICOES[m] ?? m) : '';
+  protected escolherMarketing(valor: boolean): void {
+    this.marketingEscolhido = true;
+    this.marketing.set(valor);
+  }
+
   protected readonly titulo = computed(() => {
     const nome = String(this.nome() ?? '').trim();
     return nome || (this.ehNova() ? 'Nova automação' : 'Automação');
@@ -429,6 +437,13 @@ export class EditorAutomacao {
     effect(() => {
       this.id();
       untracked(() => void this.iniciar());
+    });
+    // Automação nova da área de Marketing nasce como "mensagem de marketing" (R4.6): assim o
+    // e-mail dela não chega a quem pediu para não receber.
+    effect(() => {
+      const area = this.sessao.ehDiretoria() ? this.area() : (this.sessao.usuario()?.area ?? null);
+      if (this.id() || this.marketingEscolhido) return;
+      untracked(() => this.marketing.set(marketingPadrao(area)));
     });
   }
 
@@ -508,6 +523,7 @@ export class EditorAutomacao {
     this.criterios.set([...a.criteriosParada]);
     this.limite.set(a.limiteExecucao);
     this.limiteDias.set(a.limitePeriodoDias ?? 30);
+    this.marketingEscolhido = true;
     this.marketing.set(a.marketing);
     this.pendenciasDaApi.set(a.pendencias);
     this.instantaneo.set(JSON.stringify(this.montarCorpo()));

@@ -98,6 +98,7 @@ describe('Contatos (/contatos)', () => {
     await estabilizar();
 
     expect(texto()).toContain('Contatos e empresas');
+    expect(texto()).not.toContain('Importar planilha');
     expect(texto()).toContain('1 pessoa encontrada');
     expect(texto()).toContain('Ana Beatriz Lopes');
     expect(texto()).toContain('Clínica Vida Plena');
@@ -105,6 +106,19 @@ describe('Contatos (/contatos)', () => {
     expect(texto()).toContain('2 entradas');
     const link = harness.routeNativeElement?.querySelector('a.tabela__abrir') as HTMLAnchorElement;
     expect(link.getAttribute('href')).toBe('/contatos/11111111-1111-4111-8111-111111111111');
+  });
+
+  it('o líder vê "Importar planilha", que leva ao assistente de importação (R16.1)', async () => {
+    entrarComo('LIDER_COMERCIAL');
+    await harness.navigateByUrl('/contatos', Contatos);
+    responderApoio();
+    lista().flush(pagina([contatoDeTeste()]));
+    await estabilizar();
+
+    const link = [...(harness.routeNativeElement?.querySelectorAll('a') ?? [])].find((a) =>
+      a.textContent?.includes('Importar planilha'),
+    );
+    expect(link?.getAttribute('href')).toBe('/contatos/importar');
   });
 
   it('filtro de opt-out e "meus" vão para a URL e para a API', async () => {
