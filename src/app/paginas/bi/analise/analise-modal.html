@@ -1,0 +1,299 @@
+<app-modal [(aberto)]="aberto" titulo="Análise com IA" largura="lg">
+  <p class="escopo">
+    <span class="escopo__rotulo">Painel lido</span>
+    {{ escopo() }}
+  </p>
+  <!-- Região viva fixa: anuncia o início, a nova tentativa e o fim (nunca cada pedaço do texto). -->
+  <p class="visualmente-oculto" role="status" aria-live="polite">{{ anuncio() }}</p>
+
+  @switch (tela()) {
+    @case ('carregando') {
+      <div class="caixa" aria-busy="true">
+        <svg lucideLoaderCircle class="giro" [size]="20" aria-hidden="true" />
+        {{ modoHistorico() ? 'Abrindo a análise…' : 'Verificando a IA…' }}
+      </div>
+    }
+    @case ('falha') {
+      <div class="caixa caixa--erro">
+        <p class="caixa__titulo">Não conseguimos abrir a análise com IA</p>
+        <p>{{ falha()?.resumo }}</p>
+        <button appBotao type="button" variante="invertido" (click)="iniciarSessao()">
+          Tentar de novo
+        </button>
+      </div>
+    }
+    @case ('nao-configurada') {
+      <div class="caixa">
+        <p class="caixa__titulo">A análise com IA ainda não foi configurada</p>
+        <p>
+          {{
+            estado()?.comoConfigurar ??
+              'Peça à TI para configurar a chave da IA no servidor do CRM.'
+          }}
+        </p>
+      </div>
+    }
+    @case ('indisponivel') {
+      <div class="caixa">
+        <p class="caixa__titulo">Análise indisponível agora</p>
+        <p>{{ estado()?.motivo ?? 'O limite de análises de hoje foi atingido.' }}</p>
+        @if (estado(); as e) {
+          <p class="caixa__nota">
+            Limite de {{ e.limiteDiario }} por dia; {{ e.usadasHoje }} usadas hoje. O contador
+            recomeça amanhã. As perguntas de acompanhamento não contam no limite.
+          </p>
+        }
+      </div>
+    }
+    @case ('pronto') {
+      <div class="vazio">
+        <span class="vazio__simbolo" aria-hidden="true">
+          <svg lucideWandSparkles [size]="24" [strokeWidth]="1.5" />
+        </span>
+        <div class="vazio__texto">
+          <p>
+            A IA lê só os <strong>números agregados</strong> do painel e dos filtros atuais, sem
+            nenhum dado pessoal de contatos, e devolve um resumo, destaques, riscos e ações com link
+            para a lista que sustenta cada uma.
+          </p>
+          <p class="caixa__nota">
+            Depois da análise você pode fazer perguntas sobre ela.
+            @if (estado(); as e) {
+              {{ restantesTexto() }}
+            }
+          </p>
+        </div>
+      </div>
+    }
+    @case ('gerando') {
+      @if (principal(); as turno) {
+        <ol class="etapas" aria-label="Andamento da análise">
+          @for (etapa of etapas; track etapa.id; let i = $index) {
+            <li
+              class="etapa"
+              [class.etapa--feita]="i < etapaAtual(turno)"
+              [class.etapa--atual]="i === etapaAtual(turno)"
+              [attr.aria-current]="i === etapaAtual(turno) ? 'step' : null"
+            >
+              <span class="etapa__marca" aria-hidden="true">
+                @if (i === etapaAtual(turno)) {
+                  <svg lucideLoaderCircle class="giro" [size]="14" />
+                } @else {
+                  {{ i < etapaAtual(turno) ? '✓' : i + 1 }}
+                }
+              </span>
+              {{ etapa.rotulo }}{{ i === etapaAtual(turno) ? '…' : '' }}
+              @if (i < etapaAtual(turno)) {
+                <span class="visualmente-oculto"> (feito)</span>
+              }
+            </li>
+          }
+        </ol>
+        @if (turno.retentando) {
+          <p class="aviso">A primeira tentativa não deu certo. Tentando de novo…</p>
+        }
+        <app-analise-resultado
+          [conteudo]="turno.conteudo"
+          rotuloTexto="Resumo"
+          (navegou)="aberto.set(false)"
+        />
+      }
+    }
+    @case ('concluida') {
+      @if (detalhe(); as d) {
+        <p class="meta">
+          {{ d.usuario.nome }} · {{ formatarDataHora(d.criadoEm) }} ·
+          <app-selo tamanho="sm" variante="neutro">{{ rotuloStatus[d.status] }}</app-selo>
+        </p>
+      }
+      <app-analise-resultado
+        [conteudo]="principal()?.conteudo ?? null"
+        rotuloTexto="Resumo"
+        (navegou)="aberto.set(false)"
+      />
+    }
+    @case ('erro') {
+      <div class="caixa caixa--erro" role="alert">
+        <p class="caixa__titulo">A análise não foi concluída</p>
+        <p>{{ principal()?.erro }}</p>
+      </div>
+      @if (principal()?.conteudo) {
+        <app-analise-resultado
+          [conteudo]="principal()?.conteudo ?? null"
+          (navegou)="aberto.set(false)"
+        />
+      }
+    }
+  }
+
+  @if (detalhe(); as d) {
+    @if (d.tokens || d.duracaoMs || dadosEnviados()) {
+      <details class="detalhes">
+        <summary>Como foi gerada</summary>
+        <dl class="detalhes__lista">
+          <div>
+            <dt>Modelo</dt>
+            <dd>{{ d.modelo }}</dd>
+          </div>
+          <div>
+            <dt>Tentativas</dt>
+            <dd>{{ d.tentativas }}</dd>
+          </div>
+          @if (tokensTotal() !== null) {
+            <div>
+              <dt>Tokens (entrada + saída)</dt>
+              <dd>{{ tokensTotal() }}</dd>
+            </div>
+          }
+          @if (d.duracaoMs) {
+            <div>
+              <dt>Duração</dt>
+              <dd>{{ (d.duracaoMs / 1000).toFixed(1).replace('.', ',') }} s</dd>
+            </div>
+          }
+        </dl>
+        @if (dadosEnviados(); as json) {
+          <p class="detalhes__titulo">Números enviados à IA</p>
+          <pre class="detalhes__json" tabindex="0" aria-label="Números enviados à IA">{{
+            json
+          }}</pre>
+        }
+      </details>
+    }
+  }
+
+  @if (perguntas().length) {
+    <section class="perguntas" aria-label="Perguntas de acompanhamento">
+      <h3 class="perguntas__titulo">Perguntas sobre esta análise</h3>
+      @for (turno of perguntas(); track $index; let ultimo = $last) {
+        <article class="turno" [attr.data-ultimo-turno]="ultimo ? '' : null">
+          <p class="turno__pergunta">
+            <span class="visualmente-oculto">Pergunta: </span>{{ turno.pergunta }}
+          </p>
+          @if (turno.status === 'andamento') {
+            <p class="aviso" aria-busy="true">
+              <svg lucideLoaderCircle class="giro" [size]="16" aria-hidden="true" />
+              @if (turno.retentando) {
+                Tentando de novo…
+              } @else if (turno.etapa === 'escrevendo') {
+                Escrevendo a resposta…
+              } @else {
+                Pensando…
+              }
+            </p>
+          }
+          @if (turno.conteudo) {
+            <app-analise-resultado
+              [conteudo]="turno.conteudo"
+              rotuloTexto="Resposta"
+              (navegou)="aberto.set(false)"
+            />
+          }
+          @if (turno.status === 'erro') {
+            <div class="caixa caixa--erro" role="alert">
+              <p>{{ turno.erro }}</p>
+              @if (ultimo && !modoHistorico()) {
+                <button
+                  appBotao
+                  type="button"
+                  variante="invertido"
+                  tamanho="sm"
+                  (click)="repetirPergunta()"
+                >
+                  Tentar de novo
+                </button>
+              }
+            </div>
+          }
+        </article>
+      }
+    </section>
+  }
+
+  @if (podePerguntar()) {
+    <form class="pergunta" (submit)="$event.preventDefault(); perguntar()">
+      <app-area-texto
+        rotulo="Pergunte sobre esta análise"
+        placeholder="Ex.: Por que a taxa de ganho caiu?"
+        [linhas]="2"
+        [maximoCaracteres]="maximo"
+        [dica]="perguntasTexto()"
+        [(valor)]="textoPergunta"
+      />
+      <button
+        appBotao
+        type="submit"
+        variante="marca"
+        [icone]="icones.enviar"
+        [disabled]="!perguntaValida()"
+      >
+        Perguntar
+      </button>
+    </form>
+  } @else if (tela() === 'concluida' && !perguntaEmAndamento() && perguntasRestantes() <= 0) {
+    <p class="caixa__nota">
+      Esta análise já tem {{ maxPerguntas() }} perguntas. Gere outra para continuar.
+    </p>
+  }
+
+  <div modal-rodape class="rodape">
+    @if (!semHistorico()) {
+      <a
+        appBotao
+        variante="neutro"
+        tamanho="sm"
+        routerLink="/bi/analises"
+        [icone]="icones.historico"
+        (click)="aberto.set(false)"
+      >
+        Histórico
+      </a>
+    }
+    <span class="rodape__espaco"></span>
+    @switch (tela()) {
+      @case ('pronto') {
+        <button
+          appBotao
+          type="button"
+          autofocus
+          variante="marca"
+          [icone]="icones.ia"
+          [disabled]="!painel()"
+          (click)="gerar()"
+        >
+          Gerar análise
+        </button>
+      }
+      @case ('gerando') {
+        <button appBotao type="button" variante="contorno" (click)="cancelar()">Cancelar</button>
+      }
+      @case ('erro') {
+        @if (!modoHistorico()) {
+          <button appBotao type="button" variante="marca" [icone]="icones.ia" (click)="gerar()">
+            Tentar de novo
+          </button>
+        }
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="icones.fechar"
+          (click)="aberto.set(false)"
+        >
+          Fechar
+        </button>
+      }
+      @default {
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="icones.fechar"
+          (click)="aberto.set(false)"
+        >
+          Fechar
+        </button>
+      }
+    }
+  </div>
+</app-modal>

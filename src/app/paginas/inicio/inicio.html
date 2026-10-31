@@ -135,5 +135,9 @@
 </div>
 
 @if (perfil.ehAdmin()) {
-  <app-inicio-analise [(aberto)]="analiseAberta" [dados]="dados()" />
+  <app-analise-ia
+    [(aberto)]="analiseAberta"
+    [painel]="painelAnalise()"
+    [filtros]="filtrosAnalise()"
+  />
 }

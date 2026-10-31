@@ -10,7 +10,7 @@ import {
   untracked,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { LucideDownload, LucideRefreshCw } from '@lucide/angular';
+import { LucideDownload, LucideRefreshCw, LucideSparkles } from '@lucide/angular';
 import { map } from 'rxjs';
 
 import { erroDaApi, type ErroApi } from '../../nucleo/api/erro-api';
@@ -21,6 +21,7 @@ import { Botao } from '../../ui/botao/botao';
 import { Dica } from '../../ui/dica/dica';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
+import { AnaliseIa } from './analise/analise-modal';
 import { BiApi } from './bi.api';
 import {
   ehPainel,
@@ -44,7 +45,7 @@ type EstadoPagina = 'carregando' | 'pronto' | 'erro' | 'sem-acesso';
  */
 @Component({
   selector: 'app-bi',
-  imports: [Abas, Botao, Dica, Esqueleto, EstadoVazio, FiltrosBiComponente, PainelBi],
+  imports: [Abas, AnaliseIa, Botao, Dica, Esqueleto, EstadoVazio, FiltrosBiComponente, PainelBi],
   templateUrl: './bi.html',
   styleUrl: './bi.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,7 +58,13 @@ export class Bi {
   private readonly avisos = inject(AvisosService);
   private readonly documento = inject(DOCUMENT);
 
-  protected readonly icones = { baixar: LucideDownload, atualizar: LucideRefreshCw };
+  protected readonly icones = {
+    baixar: LucideDownload,
+    atualizar: LucideRefreshCw,
+    ia: LucideSparkles,
+  };
+  protected readonly ehAdmin = this.sessao.ehAdmin;
+  protected readonly analiseAberta = signal(false);
   protected readonly diretoria = this.sessao.ehDiretoria;
 
   private readonly painelDaRota = toSignal(
@@ -99,7 +106,7 @@ export class Bi {
   private painelCarregado: IdPainel | null = null;
 
   /** O período escolhido é válido (de ≤ ate, até 1 ano)? Senão, não consulta. */
-  private readonly periodoValido = computed(() => {
+  protected readonly periodoValido = computed(() => {
     const { de, ate } = this.filtros();
     if (!de || !ate || de > ate) {
       return false;

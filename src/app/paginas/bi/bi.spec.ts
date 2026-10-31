@@ -363,4 +363,35 @@ describe('BI (página)', () => {
       url: '/api/v1/arquivos/a2',
     });
   });
+
+  it('"Analisar com IA" aparece só para o Admin e abre o modal com o estado da IA', async () => {
+    const { harness, raiz } = await abrir('/bi/comercial', ['comercial', 'cs']);
+    const botao = Array.from(raiz.querySelectorAll('button')).find(
+      (b) => texto(b) === 'Analisar com IA',
+    );
+    expect(botao).toBeTruthy();
+    botao!.click();
+    await estabilizar(harness);
+    http.expectOne('/api/v1/bi/analise/estado').flush({
+      configurada: false,
+      comoConfigurar: 'Defina a chave da IA no servidor.',
+      disponivel: false,
+      motivo: null,
+      modelo: 'claude-opus-5-5',
+      limiteDiario: 20,
+      usadasHoje: 0,
+      restantesHoje: 20,
+      maxPerguntasPorAnalise: 5,
+    });
+    await estabilizar(harness);
+    expect(texto(raiz.querySelector('app-analise-ia'))).toContain(
+      'Defina a chave da IA no servidor.',
+    );
+  });
+
+  it('quem não é Admin não vê o botão nem o modal da análise', async () => {
+    const { raiz } = await abrir('/bi/comercial', ['comercial'], 'C_LEVEL');
+    expect(texto(raiz.querySelector('.cabecalho'))).not.toContain('Analisar com IA');
+    expect(raiz.querySelector('app-analise-ia')).toBeNull();
+  });
 });

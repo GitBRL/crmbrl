@@ -670,14 +670,15 @@ describe('Inicio (visão geral)', () => {
     expect(iconeIa()?.classList).toContain('botao-icone--marca');
     botaoIa()?.click();
     await estabilizar(fixture);
-    expect(raiz.querySelector('app-inicio-analise dialog')?.hasAttribute('open')).toBe(true);
+    expect(raiz.querySelector('app-analise-ia dialog')?.hasAttribute('open')).toBe(true);
+    expect(raiz.querySelector('app-analise-ia')?.textContent).toContain('Comercial');
 
     for (const papel of ['C_LEVEL', 'LIDER_COMERCIAL', 'COMERCIAL', 'MARKETING', 'CS'] as const) {
       entrarComo(papel);
       await estabilizar(fixture);
       expect(botaoIa(), papel).toBeUndefined();
       expect(iconeIa(), papel).toBeNull();
-      expect(raiz.querySelector('app-inicio-analise'), papel).toBeNull();
+      expect(raiz.querySelector('app-analise-ia'), papel).toBeNull();
     }
     entrarComo('ADMIN');
     await estabilizar(fixture);

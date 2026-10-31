@@ -1,0 +1,64 @@
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-entre-cartoes, var(--esp-6));
+  max-width: var(--largura-pagina, 1600px);
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-5) var(--esp-6);
+}
+
+.cabecalho__texto {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.cabecalho__titulo {
+  font: var(--fonte-display);
+  letter-spacing: var(--tracking-display);
+}
+
+.cabecalho__frase {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+.limite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-4);
+}
+
+.limite__campo {
+  width: min(100%, 14rem);
+}
+
+.limite__uso {
+  margin: 0;
+  align-self: center;
+  color: var(--cor-texto-suave);
+}
+
+.filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--esp-4);
+  margin-bottom: var(--esp-5);
+}
+
+.resumo {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}

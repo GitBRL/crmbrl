@@ -24,7 +24,9 @@ import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
 import { PilhaAvatares, type PessoaAvatar } from '../../ui/pilha-avatares/pilha-avatares';
 import { gerarId } from '../../ui/tipos';
-import { AnaliseIa } from './analise-ia';
+import { AnaliseIa } from '../bi/analise/analise-modal';
+import { FILTROS_PADRAO, type FiltrosBi, type IdPainel } from '../bi/bi.tipos';
+import { ultimosDias } from '../bi/filtros-bi';
 import { InicioAtendimento } from './atendimento';
 import { DADOS_POR_PERIODO, ehIdPeriodo, PERIODO_PADRAO, PERIODOS } from './dados-exemplo';
 import { InicioEquipe } from './equipe';
@@ -66,7 +68,7 @@ export function formatarIntervalo(fim: Date, dias: number, locale: string): stri
  * funis, R5.10), os indicadores de leads e taxa de ganho, a pilha de quem usa o CRM, as
  * próximas atividades e o status do sistema. De exemplo (`dados-exemplo.ts`, com o selo), só
  * o que depende de módulos futuros: as abas Atendimento e Equipe (metas), o MRR, o health
- * score e a análise com IA.
+ * score. A análise com IA é o modal real do BI, com o painel da aba e o período escolhidos.
  *
  * Estrutura: cabeçalho (título em dois tons à esquerda; à direita o período com as datas, a
  * equipe, compartilhar e a análise com IA, que só o Admin vê) → palco com abas entalhadas
@@ -176,6 +178,15 @@ export class Inicio {
   });
 
   protected readonly analiseAberta = signal(false);
+  /** A análise com IA lê o painel da aba aberta (Atendimento ou, nas demais, o Comercial). */
+  protected readonly painelAnalise = computed<IdPainel>(() =>
+    this.abaVisivel() === 'atendimento' ? 'atendimento' : 'comercial',
+  );
+  /** ...e o mesmo período do seletor da Visão geral (os últimos N dias, com comparação). */
+  protected readonly filtrosAnalise = computed<FiltrosBi>(() => ({
+    ...FILTROS_PADRAO,
+    ...ultimosDias(this.dados().periodo.dias),
+  }));
 
   protected readonly compartilhamento = signal<Compartilhamento | null>(null);
   protected readonly iconeCompartilhar = computed(() => {

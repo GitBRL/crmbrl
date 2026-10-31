@@ -8,6 +8,19 @@
 
   @if (estado() === 'pronto' || atualizando()) {
     <div class="cabecalho__acoes">
+      @if (ehAdmin()) {
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="marca"
+          [icone]="icones.ia"
+          [disabled]="!periodoValido()"
+          (click)="analiseAberta.set(true)"
+        >
+          Analisar com IA
+        </button>
+      }
       <button
         appBotao
         type="button"
@@ -138,4 +151,8 @@
       </app-abas>
     }
   }
+}
+
+@if (ehAdmin()) {
+  <app-analise-ia [(aberto)]="analiseAberta" [painel]="painelAtual()" [filtros]="filtros()" />
 }

@@ -1,12 +1,9 @@
-import { formatNumber } from '@angular/common';
-
 import { ROTULO_PAPEL, type Papel } from '../../nucleo/papeis';
 import type { SerieFunil } from '../../ui/barra-funil/barra-funil';
 
 /**
  * Dados FICTÍCIOS dos blocos da Visão geral (/inicio) que dependem de módulos futuros:
- * atendimento (Fase 2), ranking com metas (BI), MRR (Financeiro), health score (CS) e a
- * análise com IA. A jornada e os indicadores de leads e taxa de ganho são reais
+ * atendimento (Fase 2), ranking com metas (BI), MRR (Financeiro) e health score (CS). A jornada e os indicadores de leads e taxa de ganho são reais
  * (`metricas-jornada.ts`); estes números aparecem sempre com o selo "Dados de exemplo".
  *
  * Os números contam o fluxo que o CRM vai ter: o lead chega por webhook (ou formulário,
@@ -491,83 +488,3 @@ export const DESLIGAMENTO = {
   destino: 'Carla Nogueira',
   papelDestino: ROTULO_PAPEL.LIDER_COMERCIAL,
 } as const;
-
-// ---------------------------------------------------------------------------------------
-// Análise com IA (simulada)
-// ---------------------------------------------------------------------------------------
-
-/** Módulos onde as ações sugeridas pela IA vão ser feitas (ids de `nucleo/navegacao.ts`). */
-export type ModuloSugestao = 'automacoes' | 'disparos' | 'atendimento';
-
-export interface SugestaoIa {
-  readonly id: string;
-  readonly titulo: string;
-  /** A métrica observada no painel, com os números do período. */
-  readonly metrica: string;
-  readonly hipotese: string;
-  readonly acao: string;
-  /** Onde a ação vai ser feita: a sugestão leva até o módulo. */
-  readonly modulo: ModuloSugestao;
-}
-
-/**
- * As três sugestões da análise simulada, montadas com os números do período (o texto
- * acompanha o seletor): o maior gargalo do funil, a origem que mais converte e o canal de
- * atendimento sem chatbot.
- */
-export function gerarSugestoes(dados: DadosPeriodo, locale: string): readonly SugestaoIa[] {
-  const numero = (valor: number) => formatNumber(valor, locale, '1.0-1');
-  const { etapas } = dados.jornada;
-
-  // 1. Maior queda entre etapas, sem contar a passagem para o CS (que é automática).
-  const comQueda = etapas.filter((etapa) => etapa.queda !== null && etapa.area !== 'cs');
-  const gargalo = comQueda.reduce((maior, etapa) =>
-    (etapa.queda ?? 0) > (maior.queda ?? 0) ? etapa : maior,
-  );
-  const antes = etapas[etapas.indexOf(gargalo) - 1];
-
-  // 2. Origem com a maior conversão de lead em negócio ganho.
-  const leads = etapas[0].series;
-  const ganhos = etapas.find((etapa) => etapa.id === 'ganhos')?.series ?? [];
-  const conversoes = leads.map((serie, i) => ({
-    rotulo: serie.rotulo,
-    leads: serie.valor,
-    ganhos: ganhos[i]?.valor ?? 0,
-    taxa: percentual(ganhos[i]?.valor ?? 0, serie.valor),
-  }));
-  const melhor = conversoes.reduce((a, b) => (b.taxa > a.taxa ? b : a));
-  const pior = conversoes.reduce((a, b) => (b.taxa < a.taxa ? b : a));
-
-  // 3. Canal sem chatbot (a 1ª série zerada).
-  const { atendimento } = dados;
-  const semChatbot =
-    atendimento.canais.find((canal) => canal.series[0]?.valor === 0) ?? atendimento.canais[0];
-
-  return [
-    {
-      id: 'gargalo',
-      titulo: 'Destravar a negociação',
-      metrica: `Queda de ${numero(gargalo.queda ?? 0)}% entre ${antes.etapa} e ${gargalo.etapa} (${numero(antes.total)} → ${numero(gargalo.total)}).`,
-      hipotese:
-        'Propostas ficam paradas na etapa Negociação além do prazo-alvo de 10 dias, sem um próximo passo combinado.',
-      acao: 'Criar uma automação que avisa o responsável e o líder quando o negócio passa do prazo-alvo e abre uma tarefa de follow-up.',
-      modulo: 'automacoes',
-    },
-    {
-      id: 'origem',
-      titulo: 'Investir em indicações',
-      metrica: `Leads de ${melhor.rotulo} viram negócio ganho em ${numero(melhor.taxa)}% dos casos (${numero(melhor.ganhos)} de ${numero(melhor.leads)}); os de ${pior.rotulo}, em ${numero(pior.taxa)}%.`,
-      hipotese: 'Quem chega indicado já confia na marca e decide mais rápido.',
-      acao: 'Lançar uma campanha de indicação para clientes com health score acima de 80, com convite por disparo no WhatsApp.',
-      modulo: 'disparos',
-    },
-    {
-      id: 'atendimento',
-      titulo: 'Levar o chatbot ao e-mail',
-      metrica: `${semChatbot.canal} é o único canal sem chatbot: ${numero(semChatbot.series[1]?.valor ?? 0)} conversas resolvidas só pela equipe.`,
-      hipotese: `Perguntas repetidas (2ª via, acesso, prazos) ocupam a equipe e puxam a 1ª resposta para ${numero(atendimento.primeiraRespostaMin)} min em média.`,
-      acao: 'Ativar a triagem do chatbot e as respostas rápidas também no e-mail, com transferência para a equipe quando não resolver.',
-      modulo: 'atendimento',
-    },
-  ];
-}

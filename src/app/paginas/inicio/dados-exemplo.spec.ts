@@ -2,7 +2,6 @@ import {
   DADOS_POR_PERIODO,
   DESLIGAMENTO,
   ehIdPeriodo,
-  gerarSugestoes,
   ORIGENS,
   percentual,
   PERIODOS,
@@ -119,26 +118,6 @@ describe('Dados de exemplo do painel', () => {
       'os 7 dias anteriores',
       'os 30 dias anteriores',
       'o trimestre anterior',
-    ]);
-  });
-
-  it('a análise com IA usa os números do período selecionado', () => {
-    const [gargalo, origem, atendimento] = gerarSugestoes(DADOS_POR_PERIODO['30d'], 'pt-BR');
-    expect(gargalo.metrica).toBe(
-      'Queda de 51,4% entre Oportunidades e Negócios ganhos (560 → 272).',
-    );
-    expect(origem.metrica).toContain('Indicação e outros viram negócio ganho em 24,4%');
-    expect(origem.metrica).toContain('(78 de 320)');
-    expect(atendimento.metrica).toContain('E-mail é o único canal sem chatbot: 255 conversas');
-    expect(atendimento.hipotese).toContain('4,2 min');
-
-    const trimestre = gerarSugestoes(DADOS_POR_PERIODO.trimestre, 'pt-BR');
-    expect(trimestre[0].metrica).toContain('(1.530 → 723)');
-    // Cada sugestão aponta o módulo onde a ação vai ser feita.
-    expect(trimestre.map((sugestao) => sugestao.modulo)).toEqual([
-      'automacoes',
-      'disparos',
-      'atendimento',
     ]);
   });
 });
