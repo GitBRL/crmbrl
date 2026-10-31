@@ -41,6 +41,7 @@ import { DestinatariosCampanha } from './destinatarios-campanha';
 import { DisparosApi } from './disparos.api';
 import {
   aplicarProgresso,
+  assinaturaDosContadores,
   type Campanha,
   type EventoCampanhaProgresso,
   ROTULO_CANAL_CAMPANHA,
@@ -220,24 +221,10 @@ const ABAS: readonly ItemAba[] = [
 
       @switch (c.status === 'RASCUNHO' ? 'resumo' : aba()) {
         @case ('destinatarios') {
-          <app-destinatarios-campanha
-            [campanhaId]="c.id"
-            [versao]="c.contadores.enviados + ':' + c.contadores.falhas"
-          />
+          <app-destinatarios-campanha [campanhaId]="c.id" [versao]="assinatura()" />
         }
         @case ('resultados') {
-          <app-relatorio-campanha
-            [campanhaId]="c.id"
-            [versao]="
-              c.contadores.entregues +
-              ':' +
-              c.contadores.lidos +
-              ':' +
-              c.contadores.respondidos +
-              ':' +
-              c.contadores.enviados
-            "
-          />
+          <app-relatorio-campanha [campanhaId]="c.id" [versao]="assinatura()" />
         }
         @default {
           @if (c.contadores.total > 0) {
@@ -613,6 +600,12 @@ export class DetalheDisparo {
       itens.push({ id: 'excluir', rotulo: 'Excluir', perigo: true, separarAntes: !a.cancelar });
     }
     return itens;
+  });
+
+  /** Muda a cada contador que muda: as abas de destinatários e de resultados recarregam com ela. */
+  protected readonly assinatura = computed(() => {
+    const c = this.campanha();
+    return c ? assinaturaDosContadores(c.contadores) : '';
   });
 
   protected readonly publico = computed(() => descreverSegmento(this.campanha()?.segmento));

@@ -8,6 +8,7 @@ import {
   ehUuid,
   exigirSessao,
   exigirSessaoParaTrocarSenha,
+  paraInicioOuEntrar,
   paraPrimeiroFunil,
   redirecionarFunilPorId,
 } from './nucleo/sessao/guardas';
@@ -82,6 +83,9 @@ const tituloDoFunil: ResolveFn<string> = (rota) =>
   moduloBasePorRota(`/funis/${rota.paramMap.get('area') ?? ''}`)?.rotulo ?? 'Funis';
 
 export const routes: Routes = [
+  // A raiz sozinha: as duas cascas abaixo têm caminho vazio e a de acesso (sem filha vazia) a
+  // engoliria, deixando a tela em branco.
+  { path: '', pathMatch: 'full', canActivate: [paraInicioOuEntrar], children: [] },
   {
     path: '',
     loadComponent: () => import('./layout/casca-acesso').then((m) => m.CascaAcesso),

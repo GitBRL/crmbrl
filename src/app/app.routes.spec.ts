@@ -18,6 +18,13 @@ function filhasDaCasca(): Routes {
 const caminho = (rota: Route) => rota.path;
 
 describe('app.routes (Onda A)', () => {
+  it('a raiz sozinha é a primeira rota, antes das cascas de caminho vazio (sem sessão → /entrar)', () => {
+    expect(routes[0].path).toBe('');
+    expect(routes[0].pathMatch).toBe('full');
+    expect(routes[0].canActivate).toHaveLength(1);
+    expect(routes[0].loadComponent).toBeUndefined();
+  });
+
   it('Atendimento e Chat da equipe são rotas da casca com título, carregadas sob demanda', () => {
     const filhas = filhasDaCasca();
     for (const [path, titulo] of [

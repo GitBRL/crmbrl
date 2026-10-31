@@ -13,6 +13,7 @@ import {
   exigirPapel,
   exigirPermissao,
   exigirSessao,
+  paraInicioOuEntrar,
   paraPrimeiroFunil,
   redirecionarFunilPorId,
 } from './guardas';
@@ -23,7 +24,9 @@ import { SessaoService } from './sessao.service';
 class Pagina {}
 
 const ROTAS: Routes = [
-  { path: 'entrar', canActivate: [apenasVisitante], component: Pagina },
+  { path: '', pathMatch: 'full', canActivate: [paraInicioOuEntrar], children: [] },
+  // Como a casca de acesso real: caminho vazio, com filhas e sem filha vazia.
+  { path: '', children: [{ path: 'entrar', canActivate: [apenasVisitante], component: Pagina }] },
   { path: 'trocar-senha', component: Pagina },
   {
     path: '',
@@ -90,6 +93,18 @@ describe('guardas de rota', () => {
     await new Promise((fim) => setTimeout(fim));
     http.expectOne('/api/v1/auth/eu').flush(null, { status: 401, statusText: 'x' });
     expect(await indo).toBe('/entrar?voltar=%2Ffunis%2Fcs%3Fx%3D1');
+  });
+
+  it('a raiz sem sessão vai para /entrar (e não fica em branco)', async () => {
+    const indo = navegar('/');
+    await new Promise((fim) => setTimeout(fim));
+    http.expectOne('/api/v1/auth/eu').flush(null, { status: 401, statusText: 'x' });
+    expect(await indo).toBe('/entrar');
+  });
+
+  it('a raiz com sessão vai para /inicio', async () => {
+    sessao.definirPerfil(perfilDeTeste('CS'));
+    expect(await navegar('/')).toBe('/inicio');
   });
 
   it('com troca de senha pendente: vai para /trocar-senha', async () => {

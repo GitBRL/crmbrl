@@ -119,6 +119,44 @@ describe('DetalheDisparo', () => {
     http.expectNone('/api/v1/disparos/campanhas/a');
   });
 
+  it('na aba "Quem recebeu", uma resposta ou um opt-out recarrega a lista (não só envio e falha)', async () => {
+    const { fixture, raiz } = await abrir(detalhe('a'));
+    const aba = [...raiz.querySelectorAll('[role="tab"], button')].find(
+      (b) => texto(b) === 'Quem recebeu',
+    ) as HTMLElement;
+    aba.click();
+    await passar(fixture);
+    const lista = (r: { url: string }) => r.url === '/api/v1/disparos/campanhas/a/destinatarios';
+    http.expectOne(lista).flush({ itens: [], total: 0, pagina: 1, porPagina: 20 });
+    await passar(fixture);
+    socket.ultimo().simularConexao();
+    const evento = (respondidos: number, optOuts: number, em: string) =>
+      socket.ultimo().receber('campanha.progresso', {
+        campanhaId: 'a',
+        status: 'EM_ANDAMENTO',
+        contadores: {
+          ...CONTADORES_ZERADOS,
+          total: 10,
+          pendentes: 0,
+          enviados: 10,
+          respondidos,
+          optOuts,
+        },
+        proximoEnvioEm: null,
+        pausaMotivo: null,
+        em,
+      });
+    evento(0, 0, '2026-10-30T12:10:00.000Z');
+    await passar(fixture);
+    http.match(lista).forEach((r) => r.flush({ itens: [], total: 0, pagina: 1, porPagina: 20 }));
+    evento(1, 0, '2026-10-30T12:10:05.000Z');
+    await passar(fixture);
+    http.expectOne(lista).flush({ itens: [], total: 0, pagina: 1, porPagina: 20 });
+    evento(1, 1, '2026-10-30T12:10:10.000Z');
+    await passar(fixture);
+    http.expectOne(lista).flush({ itens: [], total: 0, pagina: 1, porPagina: 20 });
+  });
+
   it('campanha de outra área (404) mostra "não encontrada"', async () => {
     const fixture = TestBed.createComponent(DetalheDisparo);
     fixture.componentRef.setInput('id', 'x');

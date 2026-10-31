@@ -371,7 +371,7 @@ export interface ModeloMensagem {
   readonly podeEditar: boolean;
 }
 
-/** Canal de atendimento que pode servir à campanha (`GET /atendimento/canais`). */
+/** Canal de atendimento que pode servir à campanha (`GET /disparos/canais`). */
 export interface CanalDisponivel {
   readonly id: string;
   readonly tipo: string;
@@ -409,6 +409,26 @@ export function formatarPercentual(valor: number | null | undefined): string {
 }
 
 /** Aplica um evento de progresso ao resumo/detalhe, sem tocar no resto. */
+/**
+ * Assinatura dos contadores: muda quando qualquer um muda (envio, entrega, leitura, resposta,
+ * opt-out, exclusão…). As abas "Quem recebeu" e "Resultados" recarregam quando ela muda.
+ */
+export function assinaturaDosContadores(c: ContadoresCampanha): string {
+  return [
+    c.total,
+    c.pendentes,
+    c.enviando,
+    c.enviados,
+    c.entregues,
+    c.lidos,
+    c.respondidos,
+    c.falhas,
+    c.invalidos,
+    c.excluidos,
+    c.optOuts,
+  ].join(':');
+}
+
 export function aplicarProgresso<T extends ResumoCampanha>(
   campanha: T,
   evento: EventoCampanhaProgresso,

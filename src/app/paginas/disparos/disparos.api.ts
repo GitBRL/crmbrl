@@ -265,7 +265,7 @@ export class DisparosApi {
 
   /** Canais de atendimento ativos (o líder não lê `/whatsapp/numeros`; este serve a todos). */
   canais(): Promise<readonly CanalDisponivel[]> {
-    return firstValueFrom(this.http.get<CanalDisponivel[]>(urlApi('atendimento', 'canais')));
+    return firstValueFrom(this.http.get<CanalDisponivel[]>(urlApi('disparos', 'canais')));
   }
 
   importacoesConcluidas(): Promise<Pagina<ImportacaoResumo>> {

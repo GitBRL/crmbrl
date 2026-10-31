@@ -31,7 +31,7 @@ describe('DisparoNovo (assistente)', () => {
   function responderApoio() {
     for (const pedido of http.match(() => true)) {
       const url = pedido.request.url;
-      if (url.endsWith('/atendimento/canais')) {
+      if (url.endsWith('/disparos/canais')) {
         pedido.flush([
           { id: 'c1', tipo: 'WHATSAPP', nome: 'WhatsApp Vendas', ativo: true, disponivel: true },
           { id: 'c2', tipo: 'WHATSAPP', nome: 'WhatsApp Suporte', ativo: true, disponivel: false },

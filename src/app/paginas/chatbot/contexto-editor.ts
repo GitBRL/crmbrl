@@ -53,11 +53,12 @@ export class ContextoEditor {
   readonly abertos = signal<ReadonlySet<string>>(new Set());
 
   async carregarApoio(): Promise<void> {
-    const [filas, pessoas, funis, canais] = await Promise.allSettled([
+    const [opcoes, pessoas, funis] = await Promise.allSettled([
       firstValueFrom(
-        this.http.get<readonly { id: string; nome: string; ativa?: boolean }[]>(
-          urlApi('atendimento', 'filas'),
-        ),
+        this.http.get<{
+          canais: readonly CanalDoEditor[];
+          filas: readonly { id: string; nome: string; area?: string; ativa?: boolean }[];
+        }>(urlApi('chatbot', 'opcoes')),
       ),
       firstValueFrom(
         this.http.get<Pagina<{ id: string; nome: string }>>(urlApi('usuarios'), {
@@ -65,23 +66,20 @@ export class ContextoEditor {
         }),
       ),
       firstValueFrom(this.http.get<readonly FunilDoEditor[]>(urlApi('funis'))),
-      firstValueFrom(this.http.get<readonly CanalDoEditor[]>(urlApi('atendimento', 'canais'))),
     ]);
-    if (filas.status === 'fulfilled') {
+    if (opcoes.status === 'fulfilled') {
       this.filas.set(
-        filas.value
+        opcoes.value.filas
           .filter((fila) => fila.ativa !== false)
           .map((fila) => ({ valor: fila.id, rotulo: fila.nome })),
       );
+      this.canais.set(opcoes.value.canais);
     }
     if (pessoas.status === 'fulfilled') {
       this.pessoas.set(pessoas.value.itens.map((p) => ({ valor: p.id, rotulo: p.nome })));
     }
     if (funis.status === 'fulfilled') {
       this.funis.set(funis.value);
-    }
-    if (canais.status === 'fulfilled') {
-      this.canais.set(canais.value);
     }
   }
 }

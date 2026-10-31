@@ -203,8 +203,16 @@ export class AutomacoesApi {
   }
 
   async canais(): Promise<readonly OpcaoCarregada[]> {
-    const r = await this.lista<{ id: string; nome: string }>(['atendimento', 'canais']);
-    return r.map((c) => ({ id: c.id, rotulo: c.nome }));
+    try {
+      const r = await firstValueFrom(
+        this.http.get<{ canais?: readonly { id: string; nome: string }[] }>(
+          urlApi('automacoes', 'opcoes'),
+        ),
+      );
+      return (r.canais ?? []).map((c) => ({ id: c.id, rotulo: c.nome }));
+    } catch {
+      return [];
+    }
   }
 
   async camposPersonalizados(): Promise<readonly string[]> {

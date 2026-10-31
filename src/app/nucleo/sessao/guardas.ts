@@ -154,6 +154,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** `canMatch` de rotas com id: só UUID (o resto cai na página não encontrada). */
 export const ehUuid: CanMatchFn = (_rota, segmentos) => UUID.test(segmentos[0]?.path ?? '');
 
+/**
+ * A raiz (`/`): com sessão vai para `/inicio`; sem sessão (ou sem resposta da API) vai para
+ * `/entrar`. Precisa vir antes das cascas, que também têm caminho vazio.
+ */
+export const paraInicioOuEntrar: CanActivateFn = async () => {
+  const router = inject(Router);
+  try {
+    return router.parseUrl((await inject(SessaoService).carregar()) ? '/inicio' : '/entrar');
+  } catch {
+    return router.parseUrl('/entrar');
+  }
+};
+
 /** `/funis` sozinho: o primeiro funil que o usuário vê (ou a visão geral, se nenhum). */
 export const paraPrimeiroFunil: CanActivateFn = () => {
   const router = inject(Router);
