@@ -83,7 +83,13 @@ describe('DetalheContato (/contatos/:id)', () => {
     await harness.navigateByUrl(url, DetalheContato);
   }
 
-  afterEach(() => http.verify({ ignoreCancelled: true }));
+  afterEach(() => {
+    // O cartão de risco de cancelamento (Financeiro) consulta por conta própria.
+    for (const pedido of http.match((req) => req.url.includes('/financeiro/risco-churn'))) {
+      pedido.flush({ risco: null });
+    }
+    http.verify({ ignoreCancelled: true });
+  });
 
   async function processar() {
     await new Promise((resolver) => setTimeout(resolver, 0));

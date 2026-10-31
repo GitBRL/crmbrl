@@ -1,6 +1,6 @@
 /** Tipos e regras puras do assistente de importação (`/contatos/importar`, R16). */
 
-export type TipoImportacao = 'CONTATOS' | 'EMPRESAS';
+export type TipoImportacao = 'CONTATOS' | 'EMPRESAS' | 'PARCELAS';
 export type StatusImportacao =
   'RASCUNHO' | 'NA_FILA' | 'PROCESSANDO' | 'CONCLUIDA' | 'FALHOU' | 'CANCELADA';
 export type PoliticaDuplicados = 'ATUALIZAR_VAZIOS' | 'IGNORAR' | 'SOBRESCREVER';
@@ -121,6 +121,7 @@ export interface ProgressoImportacao {
 export const ROTULO_TIPO: Readonly<Record<TipoImportacao, string>> = {
   CONTATOS: 'Contatos',
   EMPRESAS: 'Empresas',
+  PARCELAS: 'Parcelas a receber',
 };
 
 export const ROTULO_STATUS: Readonly<Record<StatusImportacao, string>> = {
@@ -226,6 +227,9 @@ export function exigenciasDoMapeamento(
   mapeamento: Mapeamento,
 ): readonly ExigenciaMapeamento[] {
   const campos = new Set(Object.values(mapeamento));
+  if (tipo === 'PARCELAS') {
+    return [{ texto: 'Número do título', atendida: campos.has('numero') }];
+  }
   const nome = { texto: 'Nome', atendida: campos.has('nome') };
   if (tipo === 'EMPRESAS') {
     return [nome];

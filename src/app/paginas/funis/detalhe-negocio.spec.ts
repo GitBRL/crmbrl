@@ -95,6 +95,14 @@ describe('DetalheNegocio', () => {
     for (const pedido of http.match((req) => req.url.endsWith('/linha-do-tempo'))) {
       pedido.flush({ itens: [], total: 0, pagina: 1, porPagina: 20 });
     }
+    // Sugestão de contrato e risco de cancelamento (Financeiro): sem nada a mostrar.
+    for (const pedido of http.match((req) => req.url.includes('/financeiro/'))) {
+      pedido.flush(
+        pedido.request.url.includes('sugestao')
+          ? { negocioGanho: true, jaTemContrato: true, sugestao: null }
+          : { risco: null },
+      );
+    }
     await microtarefas();
     fixture.detectChanges();
     await fixture.whenStable();

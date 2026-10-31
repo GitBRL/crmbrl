@@ -83,6 +83,24 @@ const OPCOES_TIPO: readonly OpcaoGrupo<TipoImportacao>[] = [
   { valor: 'EMPRESAS', rotulo: 'Empresas' },
 ];
 
+const OPCOES_DUPLICADOS_PARCELAS: readonly OpcaoGrupo<PoliticaDuplicados>[] = [
+  {
+    valor: 'ATUALIZAR_VAZIOS',
+    rotulo: 'Atualizar os títulos que já existem',
+    dica: 'Pelo número do título: dá baixa nos pagos e reinicia a régua de quem mudou o vencimento. Colunas ausentes não apagam nada.',
+  },
+  {
+    valor: 'IGNORAR',
+    rotulo: 'Pular os títulos que já existem',
+    dica: 'Só os títulos novos entram. Os que já existem não são tocados e aparecem como ignorados.',
+  },
+  {
+    valor: 'SOBRESCREVER',
+    rotulo: 'Trocar pelos dados da planilha',
+    dica: 'Os dados da planilha substituem os do título. Use com cuidado.',
+  },
+];
+
 const OPCOES_RESPONSAVEL: readonly OpcaoGrupo<EstrategiaResponsavel | 'NENHUM'>[] = [
   {
     valor: 'NENHUM',
@@ -182,6 +200,10 @@ export class Importar implements OnInit {
     rotulo: o.rotulo,
     dica: o.dica,
   }));
+  protected readonly opcoesDuplicadosParcelas = OPCOES_DUPLICADOS_PARCELAS;
+  /** Rota própria de um tipo (`data.tipo`): `/financeiro/parcelas/importar` só importa parcelas. */
+  protected readonly tipoFixo =
+    (this.rota.snapshot.data['tipo'] as TipoImportacao | undefined) ?? null;
   protected readonly opcoesResponsavel = OPCOES_RESPONSAVEL;
   protected readonly opcoesArea = OPCOES_AREA;
   protected readonly opcoesSeparador = OPCOES_SEPARADOR;
@@ -196,7 +218,11 @@ export class Importar implements OnInit {
   protected readonly numero = (valor: number): string => formatarNumero(valor, 0);
 
   /** A permissão nova (`/auth/eu` → `permissoes.importarContatos`); a API continua decidindo. */
-  protected readonly podeImportar = computed(() => this.sessao.permite(podeImportarContatos));
+  protected readonly podeImportar = computed(() =>
+    this.tipoFixo === 'PARCELAS'
+      ? this.sessao.temPapel('ADMIN', 'C_LEVEL', 'LIDER_CS')
+      : this.sessao.permite(podeImportarContatos),
+  );
 
   // ----- Estado ------------------------------------------------------------------------------
   protected readonly etapa = signal<Etapa>(1);
@@ -206,7 +232,7 @@ export class Importar implements OnInit {
   protected readonly erroCarga = signal<ErroApi | null>(null);
 
   // Etapa 1
-  protected readonly tipo = signal<TipoImportacao>('CONTATOS');
+  protected readonly tipo = signal<TipoImportacao>(this.tipoFixo ?? 'CONTATOS');
   protected readonly arquivo = signal<File | null>(null);
   protected readonly erroArquivo = signal<string | null>(null);
   protected readonly arrastando = signal(false);
@@ -249,6 +275,9 @@ export class Importar implements OnInit {
 
   protected readonly tituloTipo = computed(
     () => ROTULO_TIPO[this.importacao()?.tipo ?? this.tipo()],
+  );
+  protected readonly ehParcelas = computed(
+    () => (this.importacao()?.tipo ?? this.tipo()) === 'PARCELAS',
   );
   protected readonly substantivo = computed(() =>
     (this.importacao()?.tipo ?? this.tipo()) === 'EMPRESAS' ? 'empresas' : 'contatos',
@@ -314,6 +343,10 @@ export class Importar implements OnInit {
   });
 
   protected readonly resumoDasOpcoes = computed(() => {
+    if (this.ehParcelas()) {
+      const dupP = OPCOES_DUPLICADOS_PARCELAS.find((o) => o.valor === this.duplicados());
+      return `Títulos que já existem: ${(dupP?.rotulo ?? '').toLowerCase()}`;
+    }
     const dup = OPCOES_DUPLICADOS.find((o) => o.valor === this.duplicados());
     const partes: string[] = [`Quem já existe: ${(dup?.rotulo ?? '').toLowerCase()}`];
     if (this.etiquetas().length > 0) {
@@ -639,14 +672,19 @@ export class Importar implements OnInit {
     this.iniciando.set(true);
     try {
       const estrategia = this.estrategia();
-      await this.api.alterar(imp.id, {
-        duplicados: this.duplicados(),
-        etiquetas: this.etiquetas(),
-        estrategiaResponsavel: estrategia === 'NENHUM' ? null : estrategia,
-        areaRodizio: estrategia === 'RODIZIO' ? this.areaRodizio() : null,
-        responsavelId: estrategia === 'RESPONSAVEL_FIXO' ? this.responsavelId() : null,
-        origemDetalhe: this.origemDetalhe().trim() || null,
-      });
+      await this.api.alterar(
+        imp.id,
+        imp.tipo === 'PARCELAS'
+          ? { duplicados: this.duplicados() }
+          : {
+              duplicados: this.duplicados(),
+              etiquetas: this.etiquetas(),
+              estrategiaResponsavel: estrategia === 'NENHUM' ? null : estrategia,
+              areaRodizio: estrategia === 'RODIZIO' ? this.areaRodizio() : null,
+              responsavelId: estrategia === 'RESPONSAVEL_FIXO' ? this.responsavelId() : null,
+              origemDetalhe: this.origemDetalhe().trim() || null,
+            },
+      );
       const iniciada = await this.api.iniciar(imp.id);
       this.mostrarAndamento(iniciada);
       void this.carregarHistorico();

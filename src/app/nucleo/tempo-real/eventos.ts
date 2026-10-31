@@ -22,6 +22,8 @@ import type { Notificacao } from '../notificacoes.service';
  * | `sessao.encerrada`    | `{ motivo }` — a conexão cai logo em seguida                         |
  * | `importacao.progresso`| `{ importacaoId, status, totalLinhas, processadas, criados… }` (B2)   |
  * | `campanha.progresso`  | `{ campanhaId, status, contadores, proximoEnvioEm, pausaMotivo, em }` |
+ * | `parcela.atualizada`  | `{ parcelaId, numero, contratoId, contatoId, status, motivo }` (C3)   |
+ * | `regua.progresso`     | `{ execucaoId, status, resumo, envioId?, situacao? }` (C3)             |
  *
  * Cliente → servidor (com confirmação `{ ok }` ou `{ ok: false, erro, mensagem }`):
  * `conversa.entrar`/`sair` `{ conversaId }`, `chat.entrar`/`sair` `{ canalId }` e `digitando`
@@ -171,6 +173,25 @@ export interface EventoCampanhaProgresso {
   readonly em: string;
 }
 
+/** Mudança numa parcela a receber (Onda C, Financeiro). */
+export interface EventoParcelaAtualizada {
+  readonly parcelaId: string;
+  readonly numero: string;
+  readonly contratoId: string | null;
+  readonly contatoId: string | null;
+  readonly status: string;
+  readonly motivo: 'paga' | 'atrasada' | 'alterada' | 'cancelada' | 'renegociada' | 'promessa';
+}
+
+/** Andamento de uma execução da régua de cobrança (Onda C, Financeiro). */
+export interface EventoReguaProgresso {
+  readonly execucaoId: string;
+  readonly status: string;
+  readonly resumo: Readonly<Record<string, number>> | null;
+  readonly envioId?: string;
+  readonly situacao?: string;
+}
+
 /** Servidor → cliente. */
 export interface EventosServidor {
   'notificacao.nova': EventoNotificacaoNova;
@@ -186,6 +207,8 @@ export interface EventosServidor {
   'sessao.encerrada': EventoSessaoEncerrada;
   'importacao.progresso': EventoImportacaoProgresso;
   'campanha.progresso': EventoCampanhaProgresso;
+  'parcela.atualizada': EventoParcelaAtualizada;
+  'regua.progresso': EventoReguaProgresso;
 }
 
 export type EventoServidor = keyof EventosServidor;

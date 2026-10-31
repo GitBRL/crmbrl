@@ -1,8 +1,16 @@
 <header class="cabecalho">
-  <h1 class="texto-display">Importar contatos e empresas</h1>
-  <p class="cabecalho__frase">
-    Traga os cadastros de uma planilha CSV ou Excel. Você confere tudo antes de importar.
-  </p>
+  @if (tipoFixo === 'PARCELAS') {
+    <h1 class="texto-display">Importar parcelas a receber</h1>
+    <p class="cabecalho__frase">
+      Traga os títulos de uma planilha CSV ou Excel. Quem já existe é atualizado pelo número do
+      título. Você confere tudo antes de importar.
+    </p>
+  } @else {
+    <h1 class="texto-display">Importar contatos e empresas</h1>
+    <p class="cabecalho__frase">
+      Traga os cadastros de uma planilha CSV ou Excel. Você confere tudo antes de importar.
+    </p>
+  }
 </header>
 
 @if (!podeImportar()) {
@@ -65,12 +73,14 @@
         dica="Aceitamos arquivos .csv e .xlsx (Excel), com até 50 mil linhas. A primeira linha deve ter os nomes das colunas."
       >
         <div class="envio">
-          <app-grupo-opcoes
-            rotulo="O que você vai importar?"
-            disposicao="pilulas"
-            [opcoes]="opcoesTipo"
-            [(valor)]="tipo"
-          />
+          @if (!tipoFixo) {
+            <app-grupo-opcoes
+              rotulo="O que você vai importar?"
+              disposicao="pilulas"
+              [opcoes]="opcoesTipo"
+              [(valor)]="tipo"
+            />
+          }
 
           <div
             class="soltar"
@@ -403,51 +413,61 @@
           [complemento]="numero(imp.totalLinhas) + ' linhas serão lidas'"
         >
           <div class="opcoes">
-            <app-grupo-opcoes
-              rotulo="Se a pessoa ou empresa já existir no CRM"
-              [opcoes]="opcoesDuplicados"
-              [(valor)]="duplicados"
-            />
-
-            <app-campo-etiquetas
-              rotulo="Etiquetas para todos os importados"
-              dica="Ajudam a achar esta lista depois. Tecle Enter para acrescentar cada uma."
-              opcional
-              [(valor)]="etiquetas"
-            />
-
-            <app-campo-texto
-              rotulo="De onde vem esta lista?"
-              opcional
-              placeholder="Ex.: Feira de negócios 2026"
-              dica="Fica registrado na origem de cada {{
-                substantivo() === 'empresas' ? 'empresa' : 'contato'
-              }}."
-              [maximoCaracteres]="120"
-              [(valor)]="origemDetalhe"
-            />
-
-            <app-grupo-opcoes
-              rotulo="Quem fica responsável pelos registros"
-              [opcoes]="opcoesResponsavel"
-              [(valor)]="estrategia"
-            />
-            @if (estrategia() === 'RODIZIO') {
-              <app-seletor
-                rotulo="Área do rodízio"
-                placeholder="Escolha a área"
-                [opcoes]="opcoesArea"
-                [(valor)]="areaRodizio"
+            @if (ehParcelas()) {
+              <app-grupo-opcoes
+                rotulo="Se o número do título já existir no CRM"
+                [opcoes]="opcoesDuplicadosParcelas"
+                [(valor)]="duplicados"
               />
-            } @else if (estrategia() === 'RESPONSAVEL_FIXO') {
-              <app-seletor
-                rotulo="Responsável"
-                [placeholder]="
-                  responsaveis().length === 0 ? 'Carregando pessoas…' : 'Escolha a pessoa'
-                "
-                [opcoes]="opcoesResponsaveis()"
-                [(valor)]="responsavelId"
+            } @else {
+              <app-grupo-opcoes
+                rotulo="Se a pessoa ou empresa já existir no CRM"
+                [opcoes]="opcoesDuplicados"
+                [(valor)]="duplicados"
               />
+            }
+
+            @if (!ehParcelas()) {
+              <app-campo-etiquetas
+                rotulo="Etiquetas para todos os importados"
+                dica="Ajudam a achar esta lista depois. Tecle Enter para acrescentar cada uma."
+                opcional
+                [(valor)]="etiquetas"
+              />
+
+              <app-campo-texto
+                rotulo="De onde vem esta lista?"
+                opcional
+                placeholder="Ex.: Feira de negócios 2026"
+                dica="Fica registrado na origem de cada {{
+                  substantivo() === 'empresas' ? 'empresa' : 'contato'
+                }}."
+                [maximoCaracteres]="120"
+                [(valor)]="origemDetalhe"
+              />
+
+              <app-grupo-opcoes
+                rotulo="Quem fica responsável pelos registros"
+                [opcoes]="opcoesResponsavel"
+                [(valor)]="estrategia"
+              />
+              @if (estrategia() === 'RODIZIO') {
+                <app-seletor
+                  rotulo="Área do rodízio"
+                  placeholder="Escolha a área"
+                  [opcoes]="opcoesArea"
+                  [(valor)]="areaRodizio"
+                />
+              } @else if (estrategia() === 'RESPONSAVEL_FIXO') {
+                <app-seletor
+                  rotulo="Responsável"
+                  [placeholder]="
+                    responsaveis().length === 0 ? 'Carregando pessoas…' : 'Escolha a pessoa'
+                  "
+                  [opcoes]="opcoesResponsaveis()"
+                  [(valor)]="responsavelId"
+                />
+              }
             }
 
             <p class="resumo" aria-live="polite">{{ resumoDasOpcoes() }}</p>

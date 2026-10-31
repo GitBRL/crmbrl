@@ -31,6 +31,7 @@ import { ContatosApi } from './contatos.api';
 import { type Contato, descreverUtm, formatarTelefone, ROTULO_ORIGEM } from './contatos.tipos';
 import { listarCampos, rotuloDoCampo } from './dados-personalizados';
 import { FormularioContato } from './formulario-contato';
+import { RiscoChurnCartao } from '../financeiro/risco-churn';
 import { LinhaDoTempo } from './linha-do-tempo';
 import { MeiosDeContato } from './meios-de-contato';
 import { NegociosRelacionados } from './negocios-relacionados';
@@ -79,6 +80,7 @@ export function motivoSemEdicao(
     LinhaDoTempo,
     MeiosDeContato,
     NegociosRelacionados,
+    RiscoChurnCartao,
     RouterLink,
     Selo,
   ],

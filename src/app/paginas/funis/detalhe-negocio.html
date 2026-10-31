@@ -139,6 +139,13 @@
           <p class="resumo__motivo"><strong>Motivo da perda:</strong> {{ n.motivoPerda }}</p>
         }
 
+        @if (n.status === 'GANHO') {
+          <app-sugestao-contrato [negocioId]="n.id" />
+        }
+        @if (n.funil.area === 'CS') {
+          <app-risco-churn [negocioId]="n.id" />
+        }
+
         <dl class="vinculos">
           <div class="vinculo">
             <dt>Contato</dt>

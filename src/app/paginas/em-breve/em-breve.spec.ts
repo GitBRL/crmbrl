@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
+import type { ModuloBase } from '../../nucleo/modulos';
+import { MODULOS, type Modulo } from '../../nucleo/navegacao';
 import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
 import { descreverQuemAcessa, EmBreve } from './em-breve';
 import { termosNoTexto } from './glossario';
@@ -89,18 +91,32 @@ describe('EmBreve', () => {
     return { fixture, raiz: fixture.nativeElement as HTMLElement };
   }
 
+  // Todos os módulos já estão prontos: um módulo "em breve" de mentira (Fase 3) exercita a tela.
+  const MODULO_DE_TESTE: Modulo = {
+    ...({} as ModuloBase),
+    icone: MODULOS[0].icone,
+    id: 'modulo-de-teste',
+    rotulo: 'Módulo de teste',
+    rota: '/modulo-de-teste',
+    grupo: 'gestao',
+    papeis: ['ADMIN'],
+    status: 'em-breve',
+    fase: 'Fase 3',
+    descricao: 'Descrição do módulo de teste.',
+    funcionalidades: ['Painéis por área', 'Filtros', 'Exportação', 'Análise'],
+  };
+  beforeEach(() => (MODULOS as Modulo[]).push(MODULO_DE_TESTE));
+  afterEach(() => (MODULOS as Modulo[]).splice(MODULOS.indexOf(MODULO_DE_TESTE), 1));
+
   it('mostra o módulo no palco: título em dois tons, descrição, fase e funcionalidades', () => {
-    // BI continua "em breve" (Atendimento, Disparos, Chatbot e Automações já estão prontos).
-    const { raiz } = criar('bi');
+    const { raiz } = criar('modulo-de-teste');
     const titulo = raiz.querySelector('h1') as HTMLElement;
-    expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('BI e relatórios · em breve');
+    expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Módulo de teste · em breve');
     // O "·" fica no fim da primeira linha; o complemento desce inteiro.
     expect(titulo.querySelector('.tom-fraco')?.textContent?.trim()).toBe('·');
     expect(titulo.querySelector('.tom-fraco.sem-quebra')?.textContent?.trim()).toBe('em breve');
     expect(raiz.querySelector('app-cartao.em-breve__palco')?.classList).toContain('cartao--palco');
-    expect(raiz.textContent).toContain(
-      'Métricas de Marketing, Comercial, CS e Atendimento num só painel.',
-    );
+    expect(raiz.textContent).toContain('Descrição do módulo de teste.');
     expect(raiz.querySelector('app-selo')?.textContent?.trim()).toBe('Fase 3');
 
     const chips = [...raiz.querySelectorAll('app-chip')].map((chip) => chip.textContent?.trim());
@@ -115,12 +131,12 @@ describe('EmBreve', () => {
   });
 
   it('destaca a fase do módulo no roadmap', () => {
-    const { raiz } = criar('bi');
+    const { raiz } = criar('modulo-de-teste');
     const fases = [...raiz.querySelectorAll('.roadmap__fase')];
     expect(fases.length).toBe(7);
     const atual = raiz.querySelector('[aria-current="step"]') as HTMLElement;
     expect(atual.textContent).toContain('Fase 3');
-    expect(atual.textContent).toContain('BI e relatórios');
+    expect(atual.textContent).toContain('BI');
     expect(fases[0].textContent).toContain('no ar');
     expect(fases[1].textContent).toContain('no ar');
   });
