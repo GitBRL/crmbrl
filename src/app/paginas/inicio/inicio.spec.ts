@@ -14,6 +14,8 @@ import type { Atividade, GrupoAtividade } from '../atividades/atividades.api';
 import { formatarIntervalo, Inicio } from './inicio';
 import { COMERCIAL, CS, MARKETING, metricas } from './metricas-de-teste';
 import type { MetricasDoFunil } from './metricas-jornada';
+import { PAINEIS_DE_TESTE } from '../bi/bi-de-teste';
+import type { IdPainel } from '../bi/bi.tipos';
 
 const RESPOSTA_OK: RespostaSaude = {
   status: 'ok',
@@ -93,6 +95,17 @@ const AREAS_DO_PAPEL: Readonly<Record<Papel, readonly Area[]>> = {
   MARKETING: ['MARKETING'],
   LIDER_CS: ['CS'],
   CS: ['CS'],
+};
+
+const PAINEIS_DO_PAPEL: Readonly<Record<Papel, readonly IdPainel[]>> = {
+  ADMIN: ['marketing', 'comercial', 'cs', 'atendimento', 'financeiro'],
+  C_LEVEL: ['marketing', 'comercial', 'cs', 'atendimento', 'financeiro'],
+  LIDER_COMERCIAL: ['comercial', 'atendimento'],
+  COMERCIAL: ['comercial', 'atendimento'],
+  LIDER_MARKETING: ['marketing'],
+  MARKETING: ['marketing'],
+  LIDER_CS: ['cs', 'atendimento', 'financeiro'],
+  CS: ['cs', 'atendimento', 'financeiro'],
 };
 
 function atividade(id: string, ajustes: Partial<Atividade> = {}): Atividade {
@@ -221,12 +234,37 @@ describe('Inicio (visão geral)', () => {
     await estabilizar(fixture);
   }
 
+  /** Responde a lista de painéis do BI e o período de cada painel que a Visão geral usa. */
+  async function responderBi(
+    fixture: ComponentFixture<unknown>,
+    paineis: readonly IdPainel[],
+    falhar?: IdPainel,
+  ) {
+    http.expectOne('/api/v1/bi/paineis').flush({ paineis });
+    await estabilizar(fixture);
+    for (const painel of ['comercial', 'cs', 'atendimento', 'financeiro'] as const) {
+      const pedidos = http.match((requisicao) => requisicao.url === `/api/v1/bi/${painel}`);
+      expect(pedidos.length, painel).toBe(paineis.includes(painel) ? 1 : 0);
+      pedidos.forEach((pedido) =>
+        painel === falhar
+          ? pedido.flush(
+              { statusCode: 500, erro: 'erro_interno', mensagem: 'Falhou.', requisicaoId: 'r' },
+              { status: 500, statusText: 'Erro' },
+            )
+          : pedido.flush(PAINEIS_DE_TESTE[painel]),
+      );
+    }
+    await estabilizar(fixture);
+  }
+
   /** Cria a página e responde tudo o que ela pede ao abrir. */
   async function criar(
     opcoes: {
       readonly papel?: Papel;
       readonly atuais?: Readonly<Record<Area, MetricasDoFunil>>;
       readonly proximas?: ReturnType<typeof agenda>;
+      readonly paineis?: readonly IdPainel[];
+      readonly falhar?: IdPainel;
     } = {},
   ) {
     const papel = opcoes.papel ?? 'ADMIN';
@@ -252,6 +290,7 @@ describe('Inicio (visão geral)', () => {
     expect(proximas.request.params.get('limitePorGrupo')).toBe('5');
     proximas.flush(opcoes.proximas ?? AGENDA_PADRAO);
     await responderJornada(fixture, AREAS_DO_PAPEL[papel], opcoes.atuais);
+    await responderBi(fixture, opcoes.paineis ?? PAINEIS_DO_PAPEL[papel], opcoes.falhar);
     const raiz = fixture.nativeElement as HTMLElement;
     const clicar = async (seletor: string, rotulo: string) => {
       const alvo = [...raiz.querySelectorAll<HTMLElement>(seletor)].find(
@@ -407,11 +446,7 @@ describe('Inicio (visão geral)', () => {
     ]);
     expect(numeros('app-inicio-jornada')[0]).toBe('25 %');
     // A taxa de ganho não se repete nos indicadores: lá vão os negócios novos da área.
-    expect(legendas('app-inicio-indicadores')).toEqual([
-      'Negócios novos em 30 dias',
-      'Receita recorrente (MRR)',
-      'Health score médio (CS)',
-    ]);
+    expect(legendas('app-inicio-indicadores')).toEqual(['Negócios novos em 30 dias']);
   });
 
   it('o Marketing (sem o Comercial) vê os negócios parados no lugar da receita', async () => {
@@ -465,64 +500,80 @@ describe('Inicio (visão geral)', () => {
     expect(raiz.querySelectorAll('app-inicio-jornada app-barra-funil').length).toBe(6);
   });
 
-  it('indicadores: leads e taxa de ganho reais; MRR e health score com o selo de exemplo', async () => {
+  it('indicadores: leads e taxa de ganho da jornada; MRR e clientes em risco vêm do BI', async () => {
     const { raiz, numeros, legendas, dica } = await criar();
     expect(texto(raiz.querySelector('.kpis__base'))).toBe(
       'Variações em relação aos 30 dias anteriores',
     );
-    expect(numeros('app-inicio-indicadores')).toEqual(['20', '25 %', 'R$ 412 mil', '78']);
+    expect(numeros('app-inicio-indicadores')).toEqual(['20', '25 %', 'R$ 119,5 mil', '5']);
     // "30 dias" preso por um espaço inseparável (não se parte na legenda).
     expect(raiz.querySelector('app-inicio-indicadores .indicador__legenda')?.textContent).toBe(
       'Leads em 30\u00a0dias',
     );
-    expect(legendas('app-inicio-indicadores')[1]).toBe('Taxa de ganho');
-    const cartoes = [...raiz.querySelectorAll('app-inicio-indicadores .kpi')];
-    expect(cartoes.map((cartao) => texto(cartao.querySelector('.kpi__lado app-selo')))).toEqual([
-      '',
-      '',
-      'exemplo',
-      'exemplo',
+    expect(legendas('app-inicio-indicadores')).toEqual([
+      'Leads em 30 dias',
+      'Taxa de ganho',
+      'Receita recorrente (MRR)',
+      'Clientes em risco alto',
     ]);
+    // Nada de "exemplo": os quatro números são reais.
+    expect(raiz.querySelector('app-inicio-indicadores app-selo[variante="contorno"]')).toBeNull();
     const variacoes = [...raiz.querySelectorAll('app-inicio-indicadores .indicador__variacao')];
     expect(variacoes.map((selo) => texto(selo.querySelector('span[aria-hidden="true"]')))).toEqual([
       '25%',
       '5 p.p.',
-      '3,1%',
-      '2,6 pts',
     ]);
     expect(dica('Sobre: Leads em 30 dias')).toContain('A seta compara com os 30 dias anteriores.');
     expect(dica('Sobre: Taxa de ganho')).toContain(
       '3 de 12. A seta compara com os 30 dias anteriores.',
     );
-    expect(dica('Sobre: Receita recorrente (MRR)')).toMatch(
-      /^Número de exemplo: o MRR chega com o módulo Financeiro\./,
+    expect(dica('Sobre: Receita recorrente (MRR)')).toBe(
+      'Dica de MRR atual. Valor de hoje, sem comparação.',
     );
-    expect(dica('Sobre: Health score médio (CS)')).toContain(
-      'Valor de hoje; a seta compara com o início do período.',
-    );
+    expect(dica('Sobre: Clientes em risco alto')).toContain('Valor de hoje, sem comparação.');
   });
 
-  it('troca as abas do palco: atendimento e equipe, prévias com dados de exemplo', async () => {
+  it('sem o painel financeiro nem o de CS, os indicadores de agora não aparecem', async () => {
+    const { legendas } = await criar({ papel: 'COMERCIAL' });
+    expect(legendas('app-inicio-indicadores')).toEqual(['Negócios novos em 30 dias']);
+  });
+
+  it('troca as abas do palco: atendimento e equipe com os números do BI', async () => {
     const { raiz, aba, etapas, numeros } = await criar();
 
     await aba('Atendimento');
     const titulo = raiz.querySelector('[role="tabpanel"] h2');
     expect(texto(titulo)).toBe('Atendimento · 30 dias');
-    expect(
-      [...raiz.querySelectorAll('app-inicio-atendimento .palco__topo app-selo')].map(texto),
-    ).toEqual(['Dados de exemplo', 'módulo da Fase 2']);
-    expect(numeros('app-inicio-atendimento')).toEqual(['38', '4,2 min', '94 %', '92 %']);
-    expect(etapas()).toEqual(['WhatsApp', 'Instagram', 'Chat do site', 'E-mail']);
+    expect(raiz.querySelector('app-inicio-atendimento app-selo[variante="contorno"]')).toBeNull();
+    expect(numeros('app-inicio-atendimento')).toEqual(['18', '5 min', '72,5 %', '3,7 / 5']);
+    // Canal sem conversa no período não ganha barra.
+    expect(etapas()).toEqual(['WhatsApp Vendas', 'Chat do site']);
+    expect(texto(raiz.querySelector('app-inicio-atendimento a[href="/bi/atendimento"]'))).toContain(
+      'Ver o painel completo',
+    );
     expect(raiz.querySelector('app-inicio-jornada')).toBeNull();
 
     await aba('Equipe');
     expect(texto(raiz.querySelector('[role="tabpanel"] h2'))).toBe('Equipe comercial · 30 dias');
     expect(
       [...raiz.querySelectorAll('app-inicio-equipe .palco__topo app-selo')].map(texto),
-    ).toEqual(['Dados de exemplo', '272 negócios ganhos']);
+    ).toEqual(['11 negócios ganhos']);
     const pessoas = [...raiz.querySelectorAll('.ranking__item')];
-    expect(pessoas.length).toBe(6);
-    expect(texto(pessoas[0].querySelector('.ranking__nome'))).toBe('1º lugar: João Batista');
+    expect(pessoas.length).toBe(2);
+    expect(texto(pessoas[0].querySelector('.ranking__nome'))).toBe('1º lugar: Lucas Pereira');
+    expect(texto(pessoas[0].querySelector('app-selo'))).toBe('R$ 144 mil');
+    expect(texto(pessoas[1].querySelector('.meta__texto'))).toBe('57%');
+  });
+
+  it('um painel do BI que falha mostra o erro só na aba dele', async () => {
+    const { fixture, raiz, aba } = await criar({ falhar: 'atendimento' });
+    await aba('Atendimento');
+    expect(texto(raiz.querySelector('app-inicio-atendimento app-estado-vazio'))).toContain(
+      'Não conseguimos carregar o atendimento',
+    );
+    await aba('Equipe');
+    expect(raiz.querySelectorAll('.ranking__item').length).toBe(2);
+    expect(fixture).toBeTruthy();
   });
 
   it('o período pede as métricas de novo, do primeiro dia do período até agora', async () => {
@@ -633,16 +684,16 @@ describe('Inicio (visão geral)', () => {
     expect(botaoIa()).toBeDefined();
   });
 
-  it('a aba Atendimento segue o papel: o Marketing não a vê e volta para a Jornada', async () => {
-    const { fixture, abas, aba, raiz } = await criar();
-    await aba('Atendimento');
-    expect(raiz.querySelector('app-inicio-atendimento')).not.toBeNull();
-    entrarComo('MARKETING');
-    await estabilizar(fixture);
-    expect(abas()).toEqual(['Jornada do cliente', 'Equipe']);
+  it('as abas seguem os painéis do papel: o Marketing não vê Atendimento nem Equipe', async () => {
+    const { abas, raiz } = await criar({ papel: 'MARKETING' });
+    expect(abas()).toEqual(['Jornada do cliente']);
     expect(raiz.querySelector('app-inicio-atendimento')).toBeNull();
     expect(raiz.querySelector('app-inicio-jornada')).not.toBeNull();
-    expect(raiz.querySelector('[role="tab"]')?.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('o CS vê o Atendimento e não vê a Equipe comercial', async () => {
+    const { abas } = await criar({ papel: 'CS' });
+    expect(abas()).toEqual(['Jornada do cliente', 'Atendimento']);
   });
 
   it('"Compartilhar" copia o link da página e mostra "Link copiado" à vista', async () => {

@@ -90,10 +90,22 @@
     <div class="palco">
       @switch (abaVisivel()) {
         @case ('atendimento') {
-          <app-inicio-atendimento [dados]="dados().atendimento" [periodo]="dados().periodo" />
+          <app-inicio-atendimento
+            [resposta]="bi()?.atendimento ?? null"
+            [estado]="estadoBiAtendimento()"
+            [erro]="erroBi()"
+            [periodo]="dados().periodo"
+            (recarregar)="carregarBi()"
+          />
         }
         @case ('equipe') {
-          <app-inicio-equipe [dados]="dados().equipe" [periodo]="dados().periodo" />
+          <app-inicio-equipe
+            [resposta]="bi()?.comercial ?? null"
+            [estado]="estadoBiComercial()"
+            [erro]="erroBi()"
+            [periodo]="dados().periodo"
+            (recarregar)="carregarBi()"
+          />
         }
         @default {
           <app-inicio-jornada
@@ -112,6 +124,7 @@
     class="grade__indicadores"
     [dados]="dados()"
     [reais]="indicadoresReais()"
+    [bi]="bi()"
     [estado]="estadoJornada()"
   />
 

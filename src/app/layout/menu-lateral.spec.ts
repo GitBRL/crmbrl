@@ -114,11 +114,10 @@ describe('MenuLateral', () => {
     expect(inicio?.querySelector('app-selo')).toBeNull();
     expect(inicio?.getAttribute('aria-label')).toBeNull();
     expect(inicio?.textContent?.trim()).toBe('Visão geral');
-    // O selo é visual; o nome acessível já diz "em breve".
-    const disparos = itens().find((item) => item.getAttribute('href') === '/financeiro');
-    expect(disparos?.getAttribute('aria-label')).toBe('Financeiro (em breve)');
-    expect(disparos?.querySelector('app-selo')?.getAttribute('aria-hidden')).toBe('true');
-    expect(disparos?.querySelector('app-selo')?.getAttribute('tamanho')).toBe('sm');
+    // O Financeiro (Onda C) está pronto: sem selo e sem "(em breve)" no nome.
+    const financeiro = itens().find((item) => item.getAttribute('href') === '/financeiro');
+    expect(financeiro?.getAttribute('aria-label')).toBeNull();
+    expect(financeiro?.querySelector('app-selo')).toBeNull();
     // Os módulos da Fase 1 e os da Onda A (Atendimento, Chat da equipe) estão prontos.
     for (const rota of [
       '/funis/marketing',
@@ -133,7 +132,7 @@ describe('MenuLateral', () => {
     }
   });
 
-  it('filtra pelo papel e pelas permissões reais (Marketing não vê Atendimento nem Gestão)', () => {
+  it('filtra pelo papel e pelas permissões reais (Marketing não vê Atendimento; em Gestão vê só o BI)', () => {
     entrarComo('MARKETING');
     const { raiz, itens } = criar();
     const rotas = itens().map((item) => item.getAttribute('href'));
@@ -145,7 +144,11 @@ describe('MenuLateral', () => {
     expect(rotas).not.toContain('/funis/comercial');
     expect(rotas).not.toContain('/integracoes');
     const grupos = [...raiz.querySelectorAll('.menu__grupo')].map((g) => g.textContent?.trim());
-    expect(grupos).not.toContain('Gestão');
+    // Todo papel tem o BI (as abas do painel seguem a área); o resto de Gestão é de líderes e direção.
+    expect(grupos).toContain('Gestão');
+    expect(rotas).toContain('/bi');
+    expect(rotas).not.toContain('/automacoes');
+    expect(rotas).not.toContain('/financeiro');
   });
 
   it('marca a página atual com aria-current e o círculo invertido', async () => {
@@ -175,13 +178,12 @@ describe('MenuLateral', () => {
     const marketing = itens().find((item) => item.getAttribute('href') === '/financeiro')!;
     expect(marketing.querySelector('.menu__rotulo')?.classList).toContain('visualmente-oculto');
     expect(marketing.querySelector('app-selo')).toBeNull();
-    expect(marketing.getAttribute('aria-label')).toBe('Financeiro (em breve)');
 
     const dica = raiz.querySelector('.menu__dica') as HTMLElement;
     expect(dica.getAttribute('aria-hidden')).toBe('true');
     marketing.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
     await fixture.whenStable();
-    expect(dica.textContent?.trim()).toBe('Financeiro · em breve');
+    expect(dica.textContent?.trim()).toBe('Financeiro');
     expect(dica.classList).toContain('menu__dica--visivel');
 
     marketing.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));

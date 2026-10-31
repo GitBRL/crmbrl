@@ -37,6 +37,7 @@ import {
   PessoasDoCrmApi,
   type MedidasDaJornada,
 } from './metricas-jornada';
+import { InicioBiApi, type MedidasBi } from './metricas-bi';
 import { ProximasAtividades } from './proximas-atividades';
 import { fornecerRelogio, RELOGIO } from './relogio';
 import { StatusSistema } from './status-sistema';
@@ -99,6 +100,7 @@ export class Inicio {
   private readonly agora = inject(RELOGIO);
   private readonly metricasApi = inject(MetricasJornadaApi);
   private readonly pessoasApi = inject(PessoasDoCrmApi);
+  private readonly biApi = inject(InicioBiApi);
 
   /** "outubro de 2026" — o segundo tom do título. */
   protected readonly mesAtual = formatDate(new Date(), "MMMM 'de' y", this.locale);
@@ -133,6 +135,19 @@ export class Inicio {
   });
   private consultaJornada = 0;
 
+  /** Painéis do BI (atendimento, comercial, financeiro e CS) do mesmo período. */
+  protected readonly estadoBi = signal<EstadoJornada>('carregando');
+  protected readonly erroBi = signal<ErroApi | null>(null);
+  protected readonly bi = signal<MedidasBi | null>(null);
+  private consultaBi = 0;
+  /** Falha de um painel só (a lista veio): a aba dele mostra o erro. */
+  protected readonly estadoBiAtendimento = computed<EstadoJornada>(() =>
+    this.estadoDoPainel('atendimento'),
+  );
+  protected readonly estadoBiComercial = computed<EstadoJornada>(() =>
+    this.estadoDoPainel('comercial'),
+  );
+
   /** As datas que o período cobre ("21/09 a 20/10/2026"), ao lado do seletor. */
   protected readonly intervalo = computed(() =>
     formatarIntervalo(this.agora(), this.dados().periodo.dias, this.locale),
@@ -140,11 +155,19 @@ export class Inicio {
   protected readonly idIntervalo = gerarId('periodo-intervalo');
 
   /** A aba Atendimento só aparece para quem acessa o módulo (o Marketing, não). */
-  protected readonly abas = computed<readonly ItemAba[]>(() => [
-    { id: 'jornada', rotulo: 'Jornada do cliente' },
-    ...(this.perfil.pode('atendimento') ? [{ id: 'atendimento', rotulo: 'Atendimento' }] : []),
-    { id: 'equipe', rotulo: 'Equipe' },
-  ]);
+  protected readonly abas = computed<readonly ItemAba[]>(() => {
+    // Com a lista de painéis do BI em mãos, ela manda; antes dela, vale o acesso ao módulo.
+    const paineis = this.bi()?.paineis;
+    const comAtendimento = paineis
+      ? paineis.includes('atendimento')
+      : this.perfil.pode('atendimento');
+    const comEquipe = paineis ? paineis.includes('comercial') : true;
+    return [
+      { id: 'jornada', rotulo: 'Jornada do cliente' },
+      ...(comAtendimento ? [{ id: 'atendimento', rotulo: 'Atendimento' }] : []),
+      ...(comEquipe ? [{ id: 'equipe', rotulo: 'Equipe' }] : []),
+    ];
+  });
   protected readonly aba = signal<string | null>('jornada');
   /** A aba escolhida, ou a Jornada se ela sumiu com a troca de persona. */
   protected readonly abaVisivel = computed(() => {
@@ -195,7 +218,10 @@ export class Inicio {
     // Período novo: as métricas da jornada são buscadas de novo.
     effect(() => {
       const dias = this.dados().periodo.dias;
-      untracked(() => void this.carregarJornada(dias));
+      untracked(() => {
+        void this.carregarJornada(dias);
+        void this.carregarBi(dias);
+      });
     });
     if (this.perfil.permite((permissoes) => permissoes.verUsuarios !== 'PROPRIOS')) {
       this.pessoasApi
@@ -236,6 +262,32 @@ export class Inicio {
       this.medidas.set(null);
       this.erroJornada.set(erroDaApi(falha));
       this.estadoJornada.set('erro');
+    }
+  }
+
+  private estadoDoPainel(painel: 'atendimento' | 'comercial'): EstadoJornada {
+    const estado = this.estadoBi();
+    return estado === 'pronto' && this.bi()?.falhas.includes(painel) ? 'erro' : estado;
+  }
+
+  /** Os painéis do BI usados pela Visão geral, nos últimos `dias` dias. */
+  protected async carregarBi(dias = this.dados().periodo.dias): Promise<void> {
+    const consulta = ++this.consultaBi;
+    this.estadoBi.set('carregando');
+    this.erroBi.set(null);
+    try {
+      const medidas = await this.biApi.carregar(dias);
+      if (consulta !== this.consultaBi) {
+        return;
+      }
+      this.bi.set(medidas);
+      this.estadoBi.set('pronto');
+    } catch (falha) {
+      if (consulta !== this.consultaBi) {
+        return;
+      }
+      this.erroBi.set(erroDaApi(falha));
+      this.estadoBi.set('erro');
     }
   }
 

@@ -1,119 +1,189 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { LucideMessagesSquare } from '@lucide/angular';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
-import { BarraFunil } from '../../ui/barra-funil/barra-funil';
+import type { ErroApi } from '../../nucleo/api/erro-api';
+import { BarraFunil, type SerieFunil } from '../../ui/barra-funil/barra-funil';
+import { Botao } from '../../ui/botao/botao';
 import { Dica } from '../../ui/dica/dica';
+import { Esqueleto } from '../../ui/esqueleto/esqueleto';
+import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { Indicador } from '../../ui/indicador/indicador';
 import { Legenda } from '../../ui/legenda/legenda';
-import { Selo } from '../../ui/selo/selo';
-import { SERIES_ATENDIMENTO, type DadosAtendimento, type Periodo } from './dados-exemplo';
+import { valorDoCartao } from '../bi/bi.formatos';
+import type { Cartao, RespostaPainel } from '../bi/bi.tipos';
+import type { Periodo } from './dados-exemplo';
+import type { EstadoJornada } from './jornada';
+
+const SERIES = ['Resolvidas', 'Em andamento'] as const;
+
+/** Os quatro indicadores do topo, na ordem, e a legenda curta de cada um. */
+const INDICADORES: readonly { readonly chave: string; readonly legenda: string }[] = [
+  { chave: 'emAberto', legenda: 'Conversas abertas agora' },
+  { chave: 'primeiraRespostaMediana', legenda: 'Tempo típico da 1ª resposta' },
+  { chave: 'slaPrimeiraResposta', legenda: 'SLA da 1ª resposta cumprido' },
+  { chave: 'csat', legenda: 'Satisfação (CSAT)' },
+];
 
 /**
- * Aba "Atendimento" do palco (prévia do módulo da Fase 2): conversas abertas, tempo da
- * 1ª resposta, SLA e satisfação, e o volume por canal nas mesmas barras de cápsulas do
- * funil — chatbot, equipe e em andamento. O nome da aba já titula o painel: o título fica só
- * para leitores de tela.
+ * Aba "Atendimento" do palco: os números do painel de Atendimento do BI (`GET /bi/atendimento`)
+ * — conversas abertas, tempo da 1ª resposta, SLA e satisfação — e o volume por canal nas barras
+ * de cápsulas: resolvidas e ainda em andamento. O nome da aba já titula o painel: o título fica
+ * só para leitores de tela.
  */
 @Component({
   selector: 'app-inicio-atendimento',
-  imports: [BarraFunil, Dica, Indicador, Legenda, LucideMessagesSquare, Selo],
+  imports: [BarraFunil, Botao, Dica, Esqueleto, EstadoVazio, Indicador, Legenda, RouterLink],
   template: `
     <h2 class="visualmente-oculto">Atendimento · {{ periodo().complemento }}</h2>
-    <header class="palco__topo">
-      <div class="palco__titulo-linha">
-        <app-selo variante="contorno">Dados de exemplo</app-selo>
-        <app-selo variante="contorno" [icone]="iconeFase">módulo da Fase 2</app-selo>
-      </div>
-    </header>
-
-    <div class="palco__bloco">
-      <p class="palco__base">Variações {{ periodo().comparacao }}</p>
-      <div class="palco__kpis palco__kpis--4">
-        <app-indicador
-          [valor]="dados().conversasAbertas"
-          legenda="Conversas abertas agora"
-          dica="Conversas em andamento neste momento, somando todos os canais."
-        />
-        <app-indicador
-          variacaoAbaixo
-          [valor]="dados().primeiraRespostaMin"
-          unidade="min"
-          legenda="Tempo médio da 1ª resposta"
-          [variacao]="dados().variacaoPrimeiraResposta"
-          quedaEhBoa
-          [dica]="dicas().resposta"
-        />
-        <app-indicador
-          variacaoAbaixo
-          unidadeVariacao="p.p."
-          [valor]="dados().slaCumprido"
-          unidade="%"
-          legenda="SLA cumprido"
-          [variacao]="dados().variacaoSla"
-          [dica]="dicas().sla"
-        />
-        <app-indicador
-          variacaoAbaixo
-          unidadeVariacao="p.p."
-          [valor]="dados().csat"
-          unidade="%"
-          legenda="Satisfação (CSAT)"
-          [variacao]="dados().variacaoCsat"
-          [dica]="dicas().csat"
-        />
-      </div>
-    </div>
-
-    <div class="canais">
-      <div class="palco__topo">
-        <div class="palco__titulo-linha">
-          <h3 class="canais__titulo">Volume por canal</h3>
-          <app-dica
-            rotulo="Sobre o volume por canal"
-            texto="Conversas do período em cada canal, do maior para o menor. Cada barra mostra quantas o chatbot resolveu sozinho, quantas a equipe resolveu e quantas ainda estão em andamento."
-          />
+    @switch (estado()) {
+      @case ('carregando') {
+        <div class="palco__bloco" aria-busy="true">
+          <span class="visualmente-oculto" role="status">Carregando o atendimento…</span>
+          <app-esqueleto forma="bloco" altura="6rem" />
+          <app-esqueleto forma="bloco" altura="10rem" />
         </div>
-        <app-legenda [series]="series" />
-      </div>
-      @for (canal of dados().canais; track canal.canal) {
-        <app-barra-funil
-          [etapa]="canal.canal"
-          [total]="canal.total"
-          [series]="canal.series"
-          [totalReferencia]="maior()"
-        />
       }
-    </div>
+      @case ('erro') {
+        <app-estado-vazio
+          compacto
+          variante="erro"
+          [falha]="erro()"
+          titulo="Não conseguimos carregar o atendimento"
+          [texto]="erro()?.resumo ?? null"
+          [codigo]="erro()?.requisicaoId ?? null"
+        >
+          <button appBotao variante="invertido" type="button" (click)="recarregar.emit()">
+            Tentar de novo
+          </button>
+        </app-estado-vazio>
+      }
+      @default {
+        @if (resposta() === null) {
+          <app-estado-vazio
+            compacto
+            variante="sem-acesso"
+            titulo="O atendimento não está no seu painel"
+            texto="Peça ao seu líder ou ao administrador para liberar o acesso."
+          />
+        } @else {
+          <div class="palco__bloco">
+            <p class="palco__base">Variações {{ periodo().comparacao }}</p>
+            <div class="palco__kpis palco__kpis--4">
+              @for (kpi of indicadores(); track kpi.chave) {
+                <app-indicador
+                  variacaoAbaixo
+                  [valor]="kpi.valor"
+                  [prefixo]="kpi.prefixo"
+                  [unidade]="kpi.unidade"
+                  [casas]="kpi.casas"
+                  [legenda]="kpi.legenda"
+                  [variacao]="kpi.variacao"
+                  [quedaEhBoa]="kpi.quedaEhBoa"
+                  [dica]="kpi.dica"
+                />
+              }
+            </div>
+          </div>
 
-    <p class="palco__nota">
-      <svg lucideMessagesSquare [size]="16" />
-      <span>
-        Prévia do módulo Atendimento: WhatsApp por conexão própria, sem serviços de terceiros, além
-        de Instagram, e-mail e chat do site, com chatbot e distribuição de conversas — tudo dentro
-        do CRM.
-      </span>
-    </p>
+          <div class="canais">
+            <div class="palco__topo">
+              <div class="palco__titulo-linha">
+                <h3 class="canais__titulo">Volume por canal</h3>
+                <app-dica
+                  rotulo="Sobre o volume por canal"
+                  texto="Conversas do período em cada canal, do maior para o menor. Cada barra mostra quantas já foram resolvidas e quantas ainda estão em andamento."
+                />
+              </div>
+              <app-legenda [series]="series" />
+            </div>
+            @if (canais().length === 0) {
+              <app-estado-vazio
+                compacto
+                titulo="Nenhuma conversa no período"
+                texto="Escolha um período maior para ver o volume por canal."
+              />
+            } @else {
+              @for (canal of canais(); track canal.id ?? canal.nome) {
+                <app-barra-funil
+                  [etapa]="canal.nome"
+                  [total]="canal.total"
+                  [series]="canal.series"
+                  [totalReferencia]="maior()"
+                />
+              }
+            }
+          </div>
+
+          <p class="palco__nota">
+            <a appBotao tamanho="sm" routerLink="/bi/atendimento">Ver o painel completo no BI</a>
+          </p>
+        }
+      }
+    }
   `,
   styleUrl: './atendimento.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InicioAtendimento {
-  readonly dados = input.required<DadosAtendimento>();
+  /** `null` = o papel não vê o painel (ou ele ainda não veio). */
+  readonly resposta = input.required<RespostaPainel | null>();
+  readonly estado = input<EstadoJornada>('carregando');
+  readonly erro = input<ErroApi | null>(null);
   readonly periodo = input.required<Periodo>();
+  readonly recarregar = output<void>();
 
-  protected readonly series = SERIES_ATENDIMENTO;
-  protected readonly iconeFase = LucideMessagesSquare;
-  /** Cada dica termina dizendo com o que a seta compara (o período anterior). */
-  protected readonly dicas = computed(() => {
-    const compara = `A seta compara com ${this.periodo().anterior}`;
-    return {
-      resposta: `Tempo entre a mensagem do cliente e a primeira resposta de alguém da equipe. Aqui, cair é bom. ${compara}.`,
-      sla: `SLA é o prazo máximo combinado para responder o cliente (aqui, 15 minutos). Mostra a parte das conversas respondidas dentro dele. ${compara}, em pontos percentuais (p.p.).`,
-      csat: `CSAT é a nota que o cliente dá ao fim do atendimento, de 1 a 5. Mostra a parte das notas 4 e 5. ${compara}, em pontos percentuais (p.p.).`,
-    };
+  protected readonly series = SERIES;
+
+  protected readonly indicadores = computed(() => {
+    const cartoes = new Map<string, Cartao>(
+      (this.resposta()?.cartoes ?? []).map((cartao) => [cartao.chave, cartao]),
+    );
+    return INDICADORES.flatMap(({ chave, legenda }) => {
+      const cartao = cartoes.get(chave);
+      if (!cartao) {
+        return [];
+      }
+      const formatado = valorDoCartao(cartao);
+      return [
+        {
+          chave,
+          legenda,
+          valor: formatado?.valor ?? '—',
+          prefixo: formatado?.prefixo ?? null,
+          unidade: formatado?.unidade ?? null,
+          casas: formatado?.casas ?? '1.0-1',
+          variacao: this.resposta()?.anterior ? cartao.variacao : null,
+          quedaEhBoa: cartao.melhorQuando === 'menor',
+          dica: cartao.dica,
+        },
+      ];
+    });
   });
+
+  /** Canais com conversas no período, do maior para o menor. */
+  protected readonly canais = computed(() => {
+    const linhas = this.resposta()?.tabelas['porCanal']?.linhas ?? [];
+    return linhas
+      .map((linha) => {
+        const total = Number(linha['conversas']) || 0;
+        const resolvidas = Math.min(total, Number(linha['resolvidas']) || 0);
+        const series: readonly SerieFunil[] = [
+          { rotulo: SERIES[0], valor: resolvidas },
+          { rotulo: SERIES[1], valor: total - resolvidas },
+        ];
+        return {
+          id: typeof linha['id'] === 'string' ? linha['id'] : null,
+          nome: String(linha['nome'] ?? 'Sem canal'),
+          total,
+          series,
+        };
+      })
+      .filter((canal) => canal.total > 0)
+      .sort((a, b) => b.total - a.total);
+  });
+
   /** As barras são proporcionais ao canal com mais conversas. */
   protected readonly maior = computed(() =>
-    Math.max(0, ...this.dados().canais.map((canal) => canal.total)),
+    Math.max(0, ...this.canais().map((canal) => canal.total)),
   );
 }

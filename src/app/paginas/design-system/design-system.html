@@ -527,6 +527,20 @@
         </div>
       </div>
     </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Gráfico"
+      seletor="app-grafico"
+      quando="Barras e linhas do ECharts, carregado só quando o primeiro gráfico aparece. As cores vêm dos tokens e o desenho se refaz ao trocar o tema. O rótulo descreve o gráfico para leitores de tela e a tela oferece os mesmos números em tabela (veja os painéis do BI)."
+    >
+      <app-cartao titulo="Leads por origem" complemento="· exemplo" [nivel]="4">
+        <app-grafico
+          rotulo="Barras: leads por origem. Site 36, WhatsApp 18, Indicação 12, Outros 7."
+          [opcao]="graficoDeExemplo"
+          altura="14rem"
+        />
+      </app-cartao>
+    </app-ds-exemplo>
   </div>
 </app-ds-secao>
 

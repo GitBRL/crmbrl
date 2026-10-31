@@ -16,16 +16,16 @@ import {
   type LucideIcon,
 } from '@lucide/angular';
 
-import { abreviarNumero } from '../../nucleo/formatos';
 import { AREAS, type Area } from '../../nucleo/sessao/perfil';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Dica } from '../../ui/dica/dica';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { Indicador, type UnidadeVariacao } from '../../ui/indicador/indicador';
-import { Selo } from '../../ui/selo/selo';
 import { gerarId } from '../../ui/tipos';
 import type { DadosPeriodo } from './dados-exemplo';
 import type { EstadoJornada } from './jornada';
+import { valorDoCartao } from '../bi/bi.formatos';
+import type { MedidasBi } from './metricas-bi';
 import type { IndicadoresReais } from './metricas-jornada';
 
 interface Kpi {
@@ -43,8 +43,6 @@ interface Kpi {
   /** % (padrão), pontos percentuais na taxa e pontos da nota no health score. */
   readonly unidadeVariacao: UnidadeVariacao;
   readonly dica: string;
-  /** Depende de um módulo que ainda não existe: número fictício, com o selo "exemplo". */
-  readonly exemplo: boolean;
 }
 
 /** "Leads em 30 dias" → "Negócios novos em 30 dias" para quem vê só o Comercial. */
@@ -80,16 +78,16 @@ export function semQuebraNumeroUnidade(texto: string): string {
 /**
  * Linha de indicadores do período. Negócios novos (leads do Marketing, ou os da área de quem
  * vê uma só) e a taxa de ganho do Comercial (para quem vê a jornada inteira) são reais, das
- * métricas dos funis (R5.10); MRR e health score dependem dos
- * módulos Financeiro e de Customer Success, que ainda não existem: ficam com números de
- * exemplo e o selo "exemplo". Cada cartão tem o ícone do módulo de onde o número vem, a dica
+ * métricas dos funis (R5.10); a receita recorrente (MRR) e os
+ * clientes em risco alto vêm do BI (`GET /bi/financeiro` e `/bi/cs`), para quem vê esses painéis.
+ * Cada cartão tem o ícone do módulo de onde o número vem, a dica
  * que explica a sigla e com o que a seta compara e, embaixo, o número, a variação (menta sobe,
  * coral cai) e a legenda. Quatro numa linha quando cabem; dois por linha; no celular, um por
  * linha, com o ícone à esquerda e a dica à direita.
  */
 @Component({
   selector: 'app-inicio-indicadores',
-  imports: [Dica, Esqueleto, Indicador, LucideDynamicIcon, Selo],
+  imports: [Dica, Esqueleto, Indicador, LucideDynamicIcon],
   template: `
     <h2 class="visualmente-oculto" [id]="idTitulo">
       Indicadores · {{ dados().periodo.descricao }}
@@ -120,9 +118,6 @@ export function semQuebraNumeroUnidade(texto: string): string {
             />
           }
           <span class="kpi__lado">
-            @if (kpi.exemplo) {
-              <app-selo variante="contorno" tamanho="sm">exemplo</app-selo>
-            }
             <app-dica class="kpi__dica" [rotulo]="'Sobre: ' + kpi.nome" [texto]="kpi.dica" />
           </span>
         </li>
@@ -140,8 +135,10 @@ export class InicioIndicadores {
   private readonly locale = inject(LOCALE_ID);
   private readonly sessao = inject(SessaoService);
 
-  /** Os dados de exemplo do período (MRR, health score) e os textos do período. */
+  /** Os textos do período ("últimos 30 dias", "o período anterior"…). */
   readonly dados = input.required<DadosPeriodo>();
+  /** Os painéis do BI usados aqui (MRR e risco de churn); `null` enquanto carregam. */
+  readonly bi = input<MedidasBi | null>(null);
   /** Leads e taxa de ganho reais; `null` enquanto carregam ou se falharam. */
   readonly reais = input<IndicadoresReais | null>(null);
   readonly estado = input<EstadoJornada>('carregando');
@@ -149,14 +146,12 @@ export class InicioIndicadores {
   protected readonly idTitulo = gerarId('indicadores-titulo');
 
   protected readonly kpis = computed<readonly Kpi[]>(() => {
-    const { indicadores, periodo } = this.dados();
+    const { periodo } = this.dados();
     const reais = this.reais();
     const estado = this.estado();
     const areas = this.sessao.permissoes()?.areasVisiveis ?? [];
     const numero = (valor: number) => formatNumber(valor, this.locale, '1.0-0');
-    const mrr = abreviarNumero(indicadores.mrr.valor, this.locale);
     const comparaPeriodo = `A seta compara com ${periodo.anterior}.`;
-    const comparaHoje = 'Valor de hoje; a seta compara com o início do período.';
     /** Enquanto carrega: `null` (esqueleto); com erro: "—". */
     const pendente = estado === 'carregando' ? null : '—';
     const lista: Omit<Kpi, 'legenda'>[] = [];
@@ -177,7 +172,6 @@ export class InicioIndicadores {
         variacao: novos?.variacao ?? null,
         unidadeVariacao: '%',
         dica: `${DICA_NOVOS[areaNovos]} ${comparaPeriodo}`,
-        exemplo: false,
       });
     }
     // Taxa de ganho do Comercial: com uma área só, a jornada já a mostra.
@@ -195,35 +189,39 @@ export class InicioIndicadores {
         dica: taxa
           ? `Parte dos negócios criados no Comercial no período que já foi ganha: ${numero(taxa.ganhos)} de ${numero(taxa.criados)}. ${comparaPeriodo} p.p. são pontos percentuais.`
           : `Parte dos negócios criados no Comercial no período que já foi ganha. ${comparaPeriodo}`,
-        exemplo: false,
       });
     }
-    lista.push(
-      {
+    // De agora (sem comparação): MRR do Financeiro e clientes em risco alto do CS.
+    const bi = this.bi();
+    const mrr = bi?.financeiro?.cartoes.find((cartao) => cartao.chave === 'mrrAtual');
+    const mrrFormatado = mrr ? valorDoCartao(mrr) : null;
+    if (mrr && mrrFormatado) {
+      lista.push({
         id: 'mrr',
         icone: LucideWallet,
-        valor: mrr.numero,
-        prefixo: 'R$',
-        unidade: mrr.sufixo || null,
+        valor: mrrFormatado.valor,
+        prefixo: mrrFormatado.prefixo,
+        unidade: mrrFormatado.unidade,
         nome: 'Receita recorrente (MRR)',
-        variacao: indicadores.mrr.variacao,
+        variacao: null,
         unidadeVariacao: '%',
-        dica: `Número de exemplo: o MRR chega com o módulo Financeiro. MRR é a receita recorrente mensal: quanto os contratos ativos faturam por mês. Sobe com os negócios ganhos e cai com os cancelamentos. ${comparaHoje}`,
-        exemplo: true,
-      },
-      {
-        id: 'health-score',
+        dica: `${mrr.dica} Valor de hoje, sem comparação.`,
+      });
+    }
+    const risco = bi?.cs?.cartoes.find((cartao) => cartao.chave === 'riscoAlto');
+    if (risco && risco.valor !== null) {
+      lista.push({
+        id: 'risco-churn',
         icone: LucideHeartHandshake,
-        valor: indicadores.healthScore.valor,
+        valor: risco.valor,
         prefixo: null,
         unidade: null,
-        nome: 'Health score médio (CS)',
-        variacao: indicadores.healthScore.variacao,
-        unidadeVariacao: 'pts',
-        dica: `Número de exemplo: o health score chega com o módulo de Customer Success. É uma nota de 0 a 100 para a saúde de cada cliente: uso do produto, pagamentos em dia, chamados e satisfação. Abaixo de 60, o CS entra em ação. ${comparaHoje}`,
-        exemplo: true,
-      },
-    );
+        nome: 'Clientes em risco alto',
+        variacao: null,
+        unidadeVariacao: '%',
+        dica: `${risco.dica} Valor de hoje, sem comparação.`,
+      });
+    }
     return lista.map((kpi) => ({ ...kpi, legenda: semQuebraNumeroUnidade(kpi.nome) }));
   });
 }

@@ -45,6 +45,7 @@ import { Cartao } from '../../ui/cartao/cartao';
 import { Chip, type TipoChip } from '../../ui/chip/chip';
 import { Dica } from '../../ui/dica/dica';
 import { Indicador } from '../../ui/indicador/indicador';
+import { Grafico, type ConstrutorOpcao } from '../../ui/grafico/grafico';
 import { Legenda } from '../../ui/legenda/legenda';
 import { Logo } from '../../ui/logo/logo';
 import { Modal } from '../../ui/modal/modal';
@@ -108,6 +109,7 @@ function series(...valores: number[]): readonly SerieFunil[] {
     Cartao,
     Chip,
     Dica,
+    Grafico,
     Indicador,
     Legenda,
     Logo,
@@ -122,6 +124,37 @@ function series(...valores: number[]): readonly SerieFunil[] {
 })
 export class DesignSystem {
   protected readonly tema = inject(TemaService);
+
+  /** Gráfico de barras do catálogo: as cores saem da paleta do tema em uso. */
+  protected readonly graficoDeExemplo: ConstrutorOpcao = (paleta) => ({
+    color: [...paleta.dados],
+    grid: { left: 8, right: 16, top: 12, bottom: 8, containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: paleta.flutuante,
+      borderColor: paleta.borda,
+      textStyle: { color: paleta.texto },
+    },
+    xAxis: {
+      type: 'category',
+      data: ['Site', 'WhatsApp', 'Indicação', 'Outros'],
+      axisLine: { lineStyle: { color: paleta.borda } },
+      axisLabel: { color: paleta.textoFraco },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: paleta.textoFraco },
+      splitLine: { lineStyle: { color: paleta.borda } },
+    },
+    series: [
+      {
+        type: 'bar',
+        data: [36, 18, 12, 7],
+        barMaxWidth: 36,
+        itemStyle: { borderColor: paleta.contornoDado, borderWidth: 1, borderRadius: [4, 4, 0, 0] },
+      },
+    ],
+  });
 
   /** Índice do topo: id da seção (âncora), rótulo e número ("01"). */
   protected readonly indice = [

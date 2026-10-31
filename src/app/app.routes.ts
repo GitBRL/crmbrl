@@ -159,6 +159,11 @@ export const routes: Routes = [
           import('./paginas/atendimento/atendimento.routes').then((m) => m.ROTAS_ATENDIMENTO),
       },
       {
+        path: 'bi',
+        title: titulo('bi'),
+        loadChildren: () => import('./paginas/bi/bi.routes').then((m) => m.ROTAS_BI),
+      },
+      {
         path: 'chat',
         title: titulo('chat'),
         loadChildren: () => import('./paginas/chat/chat.routes').then((m) => m.ROTAS_CHAT),
@@ -197,6 +202,12 @@ export const routes: Routes = [
         title: titulo('atividades'),
         loadChildren: () =>
           import('./paginas/atividades/atividades.routes').then((m) => m.ROTAS_ATIVIDADES),
+      },
+      {
+        path: 'financeiro',
+        title: titulo('financeiro'),
+        loadChildren: () =>
+          import('./paginas/financeiro/financeiro.routes').then((m) => m.ROTAS_FINANCEIRO),
       },
       {
         path: 'configuracoes',

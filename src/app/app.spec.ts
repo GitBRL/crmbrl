@@ -140,7 +140,7 @@ describe('app.routes', () => {
     ['/administracao/logs', 'app-logs-tecnicos', 'Logs técnicos'],
     ['/administracao/ia', 'app-duvidas-ia', 'Dúvidas à IA'],
     ['/sem-acesso?pagina=%2Fintegracoes', 'app-sem-acesso', 'Sem acesso'],
-    ['/financeiro', 'app-em-breve', 'Financeiro'],
+    ['/financeiro/contratos', 'app-contratos', 'Contratos'],
     ['/disparos', 'app-disparos', 'Disparos'],
     ['/disparos/novo', 'app-disparo-novo', 'Nova campanha'],
     [`/disparos/${UUID}`, 'app-detalhe-disparo', 'Campanha'],
