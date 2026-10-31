@@ -23,6 +23,7 @@ import {
   LucideMessageCircle,
   LucideMessagesSquare,
   LucideRefreshCw,
+  LucideSparkles,
   LucideTriangleAlert,
   LucideUserMinus,
   LucideWebhook,
@@ -69,6 +70,7 @@ const ICONE_DO_PREFIXO: readonly (readonly [string, LucideIcon])[] = [
   ['campanha.', LucideMegaphone],
   ['automacao.', LucideWorkflow],
   ['importacao.', LucideContact],
+  ['assistente.', LucideSparkles],
 ];
 
 export function iconeDaNotificacao(tipo: string): LucideIcon {

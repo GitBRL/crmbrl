@@ -138,7 +138,7 @@ describe('app.routes', () => {
     ['/integracoes/saida', 'app-webhooks-saida', 'Webhooks de saída'],
     ['/administracao/auditoria', 'app-auditoria', 'Auditoria'],
     ['/administracao/logs', 'app-logs-tecnicos', 'Logs técnicos'],
-    ['/administracao/ia', 'app-duvidas-ia', 'Dúvidas à IA'],
+    ['/administracao/duvidas', 'app-duvidas', 'Dúvidas à IA'],
     ['/sem-acesso?pagina=%2Fintegracoes', 'app-sem-acesso', 'Sem acesso'],
     ['/financeiro/contratos', 'app-contratos', 'Contratos'],
     ['/disparos', 'app-disparos', 'Disparos'],

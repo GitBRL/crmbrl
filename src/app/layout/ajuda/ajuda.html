@@ -1,0 +1,289 @@
+<button
+  appBotao
+  type="button"
+  class="ajuda__botao ajuda__botao--largo"
+  variante="contorno"
+  tamanho="sm"
+  aria-haspopup="dialog"
+  aria-label="Ajuda: pergunte ao assistente"
+  [icone]="icones.ajuda"
+  [ativo]="aberto()"
+  (click)="abrir()"
+>
+  Ajuda
+</button>
+<button
+  appBotaoIcone
+  type="button"
+  class="ajuda__botao ajuda__botao--estreito"
+  aria-haspopup="dialog"
+  rotulo="Ajuda: pergunte ao assistente"
+  [icone]="icones.ajuda"
+  (click)="abrir()"
+></button>
+
+<app-painel-lateral
+  [(aberto)]="aberto"
+  titulo="Ajuda"
+  descricao="Pergunte como usar o CRM. Eu respondo com base na ajuda oficial."
+  largura="md"
+>
+  <ng-container painel-acoes>
+    <button
+      appBotaoIcone
+      type="button"
+      rotulo="Conversas anteriores"
+      [icone]="icones.historico"
+      [attr.aria-pressed]="modo() === 'lista'"
+      (click)="verConversas()"
+    ></button>
+    <button
+      appBotaoIcone
+      type="button"
+      rotulo="Nova conversa"
+      [icone]="icones.nova"
+      [disabled]="turnos().length === 0 && modo() === 'conversa'"
+      (click)="novaConversa()"
+    ></button>
+  </ng-container>
+
+  <div class="ajuda">
+    <p class="visualmente-oculto" role="status" aria-live="polite" aria-atomic="true">
+      {{ anuncio() }}
+    </p>
+
+    @if (falhaEstado(); as falha) {
+      <div class="ajuda__alerta ajuda__alerta--erro" role="alert">
+        <p>{{ falha }}</p>
+        <button appBotao tamanho="sm" variante="contorno" type="button" (click)="carregarEstado()">
+          Tentar de novo
+        </button>
+      </div>
+    } @else if (bloqueio(); as motivo) {
+      <p class="ajuda__alerta" role="status" data-teste="bloqueio">{{ motivo }}</p>
+    }
+
+    @if (modo() === 'lista') {
+      <section aria-labelledby="ajuda-conversas">
+        <h3 class="ajuda__subtitulo" id="ajuda-conversas">Conversas anteriores</h3>
+        @if (erroConversas(); as falha) {
+          <p class="ajuda__alerta ajuda__alerta--erro" role="alert">{{ falha }}</p>
+        } @else if (carregandoConversas()) {
+          <p class="ajuda__fraco" role="status">Carregando…</p>
+        } @else if ((conversas() ?? []).length === 0) {
+          <p class="ajuda__fraco">Você ainda não conversou com o assistente.</p>
+        } @else {
+          <ul class="ajuda__conversas">
+            @for (conversa of conversas(); track conversa.id) {
+              <li>
+                <button type="button" class="ajuda__conversa" (click)="abrirConversa(conversa)">
+                  <span class="ajuda__conversa-titulo">{{ conversa.titulo }}</span>
+                  <span class="ajuda__fraco">
+                    {{ conversa.totalPerguntas }}
+                    {{ conversa.totalPerguntas === 1 ? 'pergunta' : 'perguntas' }} ·
+                    {{ quando(conversa.atualizadoEm) }}
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    } @else if (turnos().length === 0) {
+      <section class="ajuda__inicio" aria-labelledby="ajuda-exemplos">
+        <h3 class="ajuda__subtitulo" id="ajuda-exemplos">Como posso ajudar?</h3>
+        <p class="ajuda__fraco">
+          Escreva sua dúvida do jeito que falaria com um colega. Eu sei em qual tela você está.
+        </p>
+        <ul class="ajuda__exemplos">
+          @for (exemplo of exemplos; track exemplo) {
+            <li>
+              <button
+                type="button"
+                class="ajuda__exemplo"
+                [disabled]="bloqueio() !== null"
+                (click)="usarExemplo(exemplo)"
+              >
+                {{ exemplo }}
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    } @else {
+      <ol class="ajuda__turnos" aria-label="Conversa com o assistente">
+        @for (turno of turnos(); track turno.chave) {
+          <li class="turno">
+            <div class="turno__pergunta">
+              <p class="visualmente-oculto">Você perguntou:</p>
+              <p>{{ turno.pergunta }}</p>
+            </div>
+
+            <div class="turno__resposta" [attr.aria-busy]="turno.status === 'andamento'">
+              <p class="visualmente-oculto">Resposta do assistente:</p>
+              @if (turno.status === 'andamento' && !turno.resposta) {
+                <p class="turno__pensando" data-teste="pensando">{{ etapaTexto(turno) }}</p>
+              } @else if (turno.resposta) {
+                <app-markdown-simples [texto]="turno.resposta" />
+                @if (turno.status === 'andamento') {
+                  <p class="turno__pensando">{{ etapaTexto(turno) }}</p>
+                }
+              }
+
+              @if (turno.status === 'erro') {
+                <div class="ajuda__alerta ajuda__alerta--erro" role="alert" data-teste="erro">
+                  <p>{{ turno.erro }}</p>
+                  <button
+                    appBotao
+                    tamanho="sm"
+                    variante="contorno"
+                    type="button"
+                    [disabled]="ocupado() || bloqueio() !== null"
+                    (click)="tentarDeNovo(turno)"
+                  >
+                    Tentar de novo
+                  </button>
+                </div>
+              }
+
+              @if (turno.status === 'ok') {
+                <div class="turno__rodape">
+                  @if (turno.categoria; as categoria) {
+                    <span class="ajuda__fraco">{{ rotuloCategoria[categoria] }}</span>
+                  }
+                  <span class="turno__avaliar" role="group" aria-label="Esta resposta foi útil?">
+                    <button
+                      type="button"
+                      class="turno__voto"
+                      aria-label="Resposta útil"
+                      [attr.aria-pressed]="turno.avaliacao === 'UTIL'"
+                      [class.turno__voto--ativo]="turno.avaliacao === 'UTIL'"
+                      (click)="avaliar(turno, 'UTIL')"
+                    >
+                      <svg lucideThumbsUp [size]="16" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      class="turno__voto"
+                      aria-label="Resposta não útil"
+                      [attr.aria-pressed]="turno.avaliacao === 'NAO_UTIL'"
+                      [class.turno__voto--ativo]="turno.avaliacao === 'NAO_UTIL'"
+                      (click)="avaliar(turno, 'NAO_UTIL')"
+                    >
+                      <svg lucideThumbsDown [size]="16" aria-hidden="true" />
+                    </button>
+                  </span>
+                </div>
+
+                @if (turno.chamado; as chamado) {
+                  <p class="ajuda__alerta" role="status" data-teste="chamado">
+                    {{ situacaoDoChamado(chamado) }}
+                    @if (link(chamado); as endereco) {
+                      <a [href]="endereco" target="_blank" rel="noopener noreferrer"
+                        >Abrir no sistema de chamados</a
+                      >
+                    }
+                  </p>
+                } @else if (turno.podeAbrirChamado && estado()?.chamadosDisponiveis !== false) {
+                  <div class="ajuda__alerta" data-teste="oferta-chamado">
+                    <p>
+                      Isso parece algo que o CRM ainda não faz ou um problema. Posso abrir um
+                      chamado para a equipe responsável.
+                    </p>
+                    <button
+                      appBotao
+                      tamanho="sm"
+                      variante="invertido"
+                      type="button"
+                      [icone]="icones.chamado"
+                      (click)="pedirChamado(turno)"
+                    >
+                      Abrir chamado
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          </li>
+        }
+      </ol>
+      <span #fim></span>
+    }
+  </div>
+
+  <form
+    painel-rodape
+    class="compositor"
+    (submit)="$event.preventDefault(); enviar()"
+    (keydown)="aoTeclar($event)"
+  >
+    <p class="ajuda__aviso compositor__aviso" data-teste="aviso">{{ aviso() }}</p>
+    <app-area-texto
+      class="compositor__campo"
+      rotulo="Sua dúvida"
+      rotuloOculto
+      placeholder="Escreva sua dúvida…"
+      [linhas]="2"
+      [maximoLinhas]="5"
+      [maximoCaracteres]="maxCaracteres()"
+      [(valor)]="texto"
+    />
+    <button
+      appBotao
+      type="submit"
+      variante="invertido"
+      [icone]="icones.enviar"
+      [carregando]="ocupado()"
+      [disabled]="!podeEnviar() && !ocupado()"
+    >
+      Enviar
+    </button>
+  </form>
+</app-painel-lateral>
+
+<app-modal
+  [(aberto)]="chamadoAberto"
+  titulo="Abrir chamado"
+  complemento="· confira antes de enviar"
+  largura="md"
+>
+  <form class="chamado" (submit)="$event.preventDefault(); confirmarChamado()">
+    <p class="ajuda__fraco">
+      Isto será enviado à equipe responsável: o título, a descrição, seu nome e e-mail, a tela em
+      que você estava (<code>{{ telaDoChamado() }}</code
+      >) e <strong>toda a conversa com o assistente</strong>.
+    </p>
+    <app-campo-texto
+      rotulo="Título"
+      [maximoCaracteres]="200"
+      [erro]="erroDoTitulo()"
+      [(valor)]="chamadoTitulo"
+    />
+    <app-area-texto
+      rotulo="Descrição"
+      [linhas]="4"
+      [maximoCaracteres]="4000"
+      [erro]="erroDaDescricao()"
+      [(valor)]="chamadoDescricao"
+    />
+    @if (erroChamado(); as falha) {
+      <p class="ajuda__alerta ajuda__alerta--erro" role="alert">{{ falha }}</p>
+    }
+  </form>
+  <ng-container modal-rodape>
+    <button appBotao type="button" variante="contorno" (click)="chamadoAberto.set(false)">
+      Cancelar
+    </button>
+    <button
+      appBotao
+      type="button"
+      variante="invertido"
+      [icone]="icones.chamado"
+      [carregando]="enviandoChamado()"
+      [disabled]="!!erroDoTitulo() || !!erroDaDescricao()"
+      (click)="confirmarChamado()"
+    >
+      Confirmar e abrir chamado
+    </button>
+  </ng-container>
+</app-modal>

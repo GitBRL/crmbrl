@@ -22,6 +22,7 @@ import { AlternadorTema } from '../ui/alternador-tema/alternador-tema';
 import { BotaoIcone } from '../ui/botao-icone/botao-icone';
 import { CampoBusca } from '../ui/campo-busca/campo-busca';
 import { Logo } from '../ui/logo/logo';
+import { Ajuda } from './ajuda/ajuda';
 import { EstadoCasca } from './estado-casca';
 import { IndicadorConexao } from './indicador-conexao';
 import { MenuConta } from './menu-conta';
@@ -83,6 +84,7 @@ export function buscarModulo<T extends ModuloBase>(
     CampoBusca,
     BotaoIcone,
     AlternadorTema,
+    Ajuda,
     IndicadorConexao,
     Notificacoes,
     MenuConta,

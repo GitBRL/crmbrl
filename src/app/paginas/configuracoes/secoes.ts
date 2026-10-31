@@ -31,6 +31,11 @@ export const SECOES_CONFIGURACOES: readonly SecaoConfiguracoes[] = [
     rotulo: 'Disparos',
     permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN' || perfil.usuario.papel === 'C_LEVEL',
   },
+  {
+    caminho: 'assistente',
+    rotulo: 'Assistente de ajuda',
+    permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN',
+  },
   { caminho: 'perfil', rotulo: 'Meu perfil', permite: () => true },
 ];
 

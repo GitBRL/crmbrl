@@ -1,0 +1,194 @@
+// Botão "Ajuda" e painel do assistente. Só tokens.
+
+:host {
+  display: inline-flex;
+}
+
+.ajuda {
+  display: grid;
+  gap: var(--esp-4);
+  align-content: start;
+}
+
+.ajuda__aviso {
+  font: var(--fonte-legenda);
+  color: var(--cor-texto-fraco);
+  padding: var(--esp-2) var(--esp-3);
+  border-radius: var(--raio-lg);
+  background: var(--cor-vidro);
+}
+
+.ajuda__fraco {
+  font: var(--fonte-legenda);
+  color: var(--cor-texto-fraco);
+}
+
+.ajuda__subtitulo {
+  font: var(--fonte-h3);
+  margin-bottom: var(--esp-2);
+}
+
+.ajuda__alerta {
+  display: grid;
+  gap: var(--esp-2);
+  justify-items: start;
+  margin-top: var(--esp-2);
+  padding: var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-vidro);
+  font: var(--fonte-corpo-sm);
+  overflow-wrap: anywhere;
+
+  &--erro {
+    border-color: var(--cor-erro);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+}
+
+.ajuda__exemplos,
+.ajuda__conversas,
+.ajuda__turnos {
+  display: grid;
+  gap: var(--esp-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ajuda__turnos {
+  gap: var(--esp-5);
+}
+
+.ajuda__exemplo,
+.ajuda__conversa {
+  display: grid;
+  gap: var(--esp-1);
+  width: 100%;
+  text-align: start;
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-vidro);
+  color: var(--cor-texto);
+  font: var(--fonte-corpo-sm);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--cor-vidro-forte);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.ajuda__conversa-titulo {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.turno {
+  display: grid;
+  gap: var(--esp-3);
+}
+
+.turno__pergunta {
+  justify-self: end;
+  max-width: 88%;
+  padding: var(--esp-2) var(--esp-4);
+  border-radius: var(--raio-xl);
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+  font: var(--fonte-corpo-sm);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.turno__resposta {
+  justify-self: start;
+  max-width: 100%;
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-xl);
+  background: var(--cor-superficie-2);
+  font: var(--fonte-corpo-sm);
+}
+
+.turno__pensando {
+  color: var(--cor-texto-fraco);
+  font-style: italic;
+}
+
+.turno__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  margin-top: var(--esp-3);
+}
+
+.turno__avaliar {
+  display: inline-flex;
+  gap: var(--esp-1);
+  margin-inline-start: auto;
+}
+
+.turno__voto {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--cor-texto-fraco);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cor-vidro-forte);
+    color: var(--cor-texto);
+  }
+
+  &--ativo {
+    background: var(--cor-inverso);
+    color: var(--cor-sobre-inverso);
+  }
+}
+
+.compositor__aviso {
+  grid-column: 1 / -1;
+  font: var(--fonte-micro);
+}
+
+.compositor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--esp-2);
+  width: 100%;
+}
+
+.chamado {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+// Telas largas: botão com texto; estreitas: só o ícone (círculo, como os vizinhos).
+.ajuda__botao--estreito {
+  display: none;
+}
+
+@media (max-width: 899.98px) {
+  .ajuda__botao--largo {
+    display: none;
+  }
+
+  .ajuda__botao--estreito {
+    display: inline-flex;
+  }
+}

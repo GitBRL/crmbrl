@@ -43,12 +43,13 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     );
   }
 
-  it('Admin: usuários, distribuição, passagens e perfil', () => {
+  it('Admin: usuários, distribuição, passagens, assistente e perfil', () => {
     expect(secoesDe('ADMIN')).toEqual([
       'Usuários',
       'Distribuição de leads',
       'Passagens entre funis',
       'Disparos',
+      'Assistente de ajuda',
       'Meu perfil',
     ]);
   });

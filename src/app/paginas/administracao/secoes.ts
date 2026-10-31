@@ -15,9 +15,9 @@ export const SECOES_ADMINISTRACAO: readonly SecaoAdministracao[] = [
   { caminho: 'auditoria', rotulo: 'Auditoria', permite: (p) => p.verAuditoria },
   { caminho: 'logs', rotulo: 'Logs técnicos', permite: (p) => p.verLogsTecnicos },
   {
-    caminho: 'ia',
+    caminho: 'duvidas',
     rotulo: 'Dúvidas à IA',
-    permite: (p) => p.verAuditoria || p.verLogsTecnicos,
+    permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN',
   },
 ];
 

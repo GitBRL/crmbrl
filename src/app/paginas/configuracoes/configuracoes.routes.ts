@@ -41,6 +41,7 @@ export const ROTAS_CONFIGURACOES: Routes = [
       secao('distribuicao', () => import('./distribuicao').then((m) => m.Distribuicao)),
       secao('passagens', () => import('./passagens').then((m) => m.Passagens)),
       secao('disparos', () => import('./disparos-config').then((m) => m.DisparosConfig)),
+      secao('assistente', () => import('./assistente-config').then((m) => m.AssistenteConfig)),
       secao('perfil', () => import('./meu-perfil').then((m) => m.MeuPerfil)),
     ],
   },

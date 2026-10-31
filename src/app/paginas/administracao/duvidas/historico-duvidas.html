@@ -1,0 +1,220 @@
+<app-cartao
+  titulo="Perguntas feitas"
+  dica="Tudo o que as pessoas perguntaram ao assistente de ajuda, com a resposta, a avaliação e o chamado, se houve. Só o Admin vê esta tela."
+>
+  <div class="filtros">
+    <div class="filtros__topo">
+      <app-campo-busca
+        class="filtros__busca"
+        rotulo="Buscar nas perguntas"
+        placeholder="Buscar no texto da pergunta…"
+        (buscar)="buscar($event)"
+        (valorChange)="aoDigitarBusca($event)"
+      />
+      <span class="filtros__exportar">
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          [icone]="icones.baixar"
+          [carregando]="exportando() === 'csv'"
+          (click)="exportar('csv')"
+        >
+          CSV
+        </button>
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          [icone]="icones.baixar"
+          [carregando]="exportando() === 'xlsx'"
+          (click)="exportar('xlsx')"
+        >
+          Planilha
+        </button>
+      </span>
+    </div>
+    <div class="filtros__grade">
+      <app-campo-data rotulo="De" [(valor)]="de" (valorChange)="mudou()" />
+      <app-campo-data rotulo="Até" [(valor)]="ate" (valorChange)="mudou()" />
+      <app-seletor
+        rotulo="Tipo"
+        permitirVazio
+        placeholder="Todos"
+        [opcoes]="opcoesCategoria"
+        [(valor)]="categoria"
+        (valorChange)="mudou()"
+      />
+      <app-seletor
+        rotulo="Área"
+        permitirVazio
+        placeholder="Todas"
+        [opcoes]="opcoesArea"
+        [(valor)]="area"
+        (valorChange)="mudou()"
+      />
+      <app-seletor
+        rotulo="Pessoa"
+        permitirVazio
+        placeholder="Todas"
+        [opcoes]="opcoesPessoa()"
+        [(valor)]="usuarioId"
+        (valorChange)="mudou()"
+      />
+      <app-campo-texto rotulo="Módulo" [(valor)]="modulo" (valorChange)="mudou()" />
+      <app-seletor
+        rotulo="Resolvida"
+        permitirVazio
+        placeholder="Todas"
+        [opcoes]="simNao"
+        [(valor)]="resolvido"
+        (valorChange)="mudou()"
+      />
+      <app-seletor
+        rotulo="Avaliação"
+        permitirVazio
+        placeholder="Todas"
+        [opcoes]="opcoesAvaliacao"
+        [(valor)]="avaliacao"
+        (valorChange)="mudou()"
+      />
+      <app-seletor
+        rotulo="Com chamado"
+        permitirVazio
+        placeholder="Todas"
+        [opcoes]="simNao"
+        [(valor)]="comChamado"
+        (valorChange)="mudou()"
+      />
+    </div>
+    @if (filtrado()) {
+      <div>
+        <button appBotao type="button" variante="contorno" tamanho="sm" (click)="limpar()">
+          Limpar filtros
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (erro(); as falha) {
+    <app-estado-vazio
+      compacto
+      variante="erro"
+      titulo="Não conseguimos carregar o histórico"
+      [falha]="falha"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao variante="invertido" type="button" (click)="carregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (!carregando() && itens().length === 0) {
+    @if (filtrado()) {
+      <app-estado-vazio
+        compacto
+        variante="busca"
+        titulo="Nenhuma pergunta com esses filtros"
+        texto="Tire um filtro para ver mais."
+      >
+        <button appBotao variante="invertido" type="button" (click)="limpar()">
+          Limpar filtros
+        </button>
+      </app-estado-vazio>
+    } @else {
+      <app-estado-vazio
+        compacto
+        titulo="Ninguém perguntou ainda"
+        texto="Quando as pessoas usarem o botão Ajuda, as perguntas aparecem aqui."
+      />
+    }
+  } @else {
+    <app-tabela
+      rotulo="Perguntas ao assistente"
+      densa
+      clicavel
+      colunaPrincipal="pergunta"
+      [colunas]="colunas"
+      [linhas]="itens()"
+      [carregando]="carregando()"
+      [linhasEsqueleto]="6"
+      (abrir)="abrir($event)"
+    >
+      <ng-template appCelula="quando" [appCelulaDe]="itens()" let-p>
+        <time [attr.datetime]="p.criadoEm" [title]="dataHora(p.criadoEm)">{{
+          quando(p.criadoEm)
+        }}</time>
+      </ng-template>
+      <ng-template appCelula="usuario" [appCelulaDe]="itens()" let-p>
+        {{ p.usuario.nome }}
+        <span class="consulta__fraco">{{ rotuloPapel[p.usuario.papel] }}</span>
+      </ng-template>
+      <ng-template appCelula="pergunta" [appCelulaDe]="itens()" let-p>
+        <span class="resumo">{{ p.pergunta }}</span>
+        @if (p.modulo) {
+          <span class="consulta__fraco"> · {{ p.modulo }}</span>
+        }
+      </ng-template>
+      <ng-template appCelula="categoria" [appCelulaDe]="itens()" let-p>
+        @if (p.categoria) {
+          <app-selo tamanho="sm" [variante]="seloCategoria(p.categoria)">{{
+            rotuloCategoria[p.categoria]
+          }}</app-selo>
+        } @else {
+          <span class="consulta__fraco">—</span>
+        }
+      </ng-template>
+      <ng-template appCelula="resolvido" [appCelulaDe]="itens()" let-p>
+        @if (p.resolvido === true) {
+          Sim
+        } @else if (p.resolvido === false) {
+          Não
+        } @else {
+          <span class="consulta__fraco">—</span>
+        }
+      </ng-template>
+      <ng-template appCelula="avaliacao" [appCelulaDe]="itens()" let-p>
+        @if (p.avaliacao === 'UTIL') {
+          <app-selo tamanho="sm" variante="menta">Útil</app-selo>
+        } @else if (p.avaliacao === 'NAO_UTIL') {
+          <app-selo tamanho="sm" variante="coral">Não útil</app-selo>
+        } @else {
+          <span class="consulta__fraco">—</span>
+        }
+      </ng-template>
+      <ng-template appCelula="chamado" [appCelulaDe]="itens()" let-p>
+        @if (p.chamado; as c) {
+          <app-selo
+            tamanho="sm"
+            [variante]="
+              c.status === 'ENVIADO' ? 'menta' : c.status === 'FALHOU' ? 'coral' : 'neutro'
+            "
+          >
+            {{
+              c.status === 'ENVIADO'
+                ? 'Nº ' + (c.numero ?? '')
+                : c.status === 'FALHOU'
+                  ? 'Falhou'
+                  : 'Pendente'
+            }}
+          </app-selo>
+        } @else {
+          <span class="consulta__fraco">—</span>
+        }
+      </ng-template>
+    </app-tabela>
+
+    @if (lista(); as l) {
+      <app-paginacao
+        rotulo="Paginação do histórico de dúvidas"
+        [total]="l.total"
+        [porPagina]="porPagina"
+        [(pagina)]="pagina"
+      />
+    }
+  }
+</app-cartao>
+
+<app-detalhe-conversa-duvida [(aberto)]="detalheAberto" [conversaId]="conversaAberta()" />

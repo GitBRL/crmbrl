@@ -3,7 +3,6 @@ import { provideRouter } from '@angular/router';
 
 import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
 import { Administracao } from './administracao';
-import { DuvidasIa } from './duvidas-ia';
 import { dadosLegiveis, formatarValor, nomesDosDados } from './formatar-valor';
 import { fimDoDia, inicioDoDia, problemaDoPeriodo } from './periodo';
 import { ROTULO_ACAO, rotuloDaAcao, rotuloDoCampo } from './tipos';
@@ -193,16 +192,8 @@ describe('Administracao (moldura)', () => {
     expect(abas()).toEqual(['Auditoria', 'Logs técnicos', 'Dúvidas à IA']);
   });
 
-  it('C-level não vê os logs técnicos', () => {
+  it('C-level não vê os logs técnicos nem as dúvidas à IA (só o Admin)', () => {
     entrarComo('C_LEVEL');
-    expect(abas()).toEqual(['Auditoria', 'Dúvidas à IA']);
-  });
-
-  it('"Dúvidas à IA" diz que vem na Fase 5', () => {
-    const fixture = TestBed.createComponent(DuvidasIa);
-    fixture.detectChanges();
-    const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(texto).toContain('em breve');
-    expect(texto).toContain('Fase 5');
+    expect(abas()).toEqual(['Auditoria']);
   });
 });
