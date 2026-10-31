@@ -25,7 +25,7 @@ import {
   erroDaCondicao,
   novaCondicao,
   type OperadorSegmento,
-  operadoresDoTipo,
+  operadoresDoCampo,
   ROTULO_OPERADOR,
   SEGMENTO_VAZIO,
   type Segmento,
@@ -256,10 +256,12 @@ export class ConstrutorSegmento {
       return {
         condicao,
         entrada: entradaDoValor(tipo, condicao.operador),
-        operadores: operadoresDoTipo(tipo).map<OpcaoSeletor<OperadorSegmento>>((operador) => ({
-          valor: operador,
-          rotulo: ROTULO_OPERADOR[operador],
-        })),
+        operadores: operadoresDoCampo(campo ?? { tipo }).map<OpcaoSeletor<OperadorSegmento>>(
+          (operador) => ({
+            valor: operador,
+            rotulo: ROTULO_OPERADOR[operador],
+          }),
+        ),
         opcoes: (campo?.opcoes ?? []).map<OpcaoSeletor<string>>((o) => ({
           valor: o.valor,
           rotulo: o.rotulo,

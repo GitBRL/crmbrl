@@ -1,8 +1,8 @@
 import type { Routes } from '@angular/router';
 
 /**
- * Rotas de `/disparos` (carregadas sob demanda por app.routes.ts). Esqueletos da Onda B: o
- * agente `disparos-front` troca o conteúdo de cada página. `novo` vem antes de `:id`.
+ * Rotas de `/disparos` (carregadas sob demanda por app.routes.ts): lista, assistente (`novo` e
+ * `:id/editar`) e detalhe. `novo` vem antes de `:id`.
  */
 export const ROTAS_DISPAROS: Routes = [
   {
@@ -12,6 +12,11 @@ export const ROTAS_DISPAROS: Routes = [
   {
     path: 'novo',
     title: 'Nova campanha',
+    loadComponent: () => import('./disparo-novo').then((m) => m.DisparoNovo),
+  },
+  {
+    path: ':id/editar',
+    title: 'Editar campanha',
     loadComponent: () => import('./disparo-novo').then((m) => m.DisparoNovo),
   },
   {

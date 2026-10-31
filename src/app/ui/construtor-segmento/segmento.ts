@@ -22,6 +22,8 @@ export interface CampoSegmento {
   readonly opcoes?: readonly OpcaoCampoSegmento[];
   /** Agrupa na lista de campos ("Contato", "Negócio"…). Só informativo. */
   readonly grupo?: string;
+  /** Restringe os operadores oferecidos (padrão: todos os do tipo). */
+  readonly operadores?: readonly OperadorSegmento[];
 }
 
 export type OperadorSegmento =
@@ -88,6 +90,13 @@ export function operadoresDoTipo(tipo: TipoCampoSegmento): readonly OperadorSegm
   return OPERADORES_POR_TIPO[tipo];
 }
 
+/** Operadores de um campo: os restritos por ele ou, sem restrição, os do tipo. */
+export function operadoresDoCampo(
+  campo: Pick<CampoSegmento, 'tipo' | 'operadores'>,
+): readonly OperadorSegmento[] {
+  return campo.operadores?.length ? campo.operadores : OPERADORES_POR_TIPO[campo.tipo];
+}
+
 /** Como o valor é digitado: nada, texto, número, data ou escolha entre as opções do campo. */
 export type EntradaValor = 'nenhuma' | 'texto' | 'numero' | 'data' | 'opcao';
 
@@ -131,7 +140,7 @@ export function erroDaCondicao(
 
 /** Uma condição nova para o primeiro campo da lista, já com um operador válido. */
 export function novaCondicao(id: string, campo: CampoSegmento): CondicaoSegmento {
-  return { id, campo: campo.id, operador: operadoresDoTipo(campo.tipo)[0], valor: null };
+  return { id, campo: campo.id, operador: operadoresDoCampo(campo)[0], valor: null };
 }
 
 /**
@@ -143,7 +152,7 @@ export function trocarCampo(
   antigo: CampoSegmento | undefined,
   novo: CampoSegmento,
 ): CondicaoSegmento {
-  const operadores = operadoresDoTipo(novo.tipo);
+  const operadores = operadoresDoCampo(novo);
   const operador = operadores.includes(condicao.operador) ? condicao.operador : operadores[0];
   const manterValor =
     antigo?.tipo === novo.tipo && novo.tipo !== 'opcao' && operador === condicao.operador;
