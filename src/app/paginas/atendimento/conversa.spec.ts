@@ -9,11 +9,13 @@ import { AvisosService } from '../../nucleo/avisos.service';
 import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
 import { provideSocketFalso } from '../../nucleo/tempo-real/tempo-real-de-teste';
 import type { ConversaDetalhe, MensagemDaConversa } from './atendimento.tipos';
+import { templateDoCanal } from '../configuracoes/canais/dados-de-teste';
 import { Conversa } from './conversa';
 import {
   ANA,
   assentar,
   CANAL_INSTAGRAM,
+  CANAL_OFICIAL,
   conversaDetalhe,
   conversaResumo,
   EU,
@@ -324,6 +326,97 @@ describe('Conversa (Atendimento)', () => {
     await assentar();
     expect(raiz.querySelector('.compositor__bloqueio')).toBeNull();
     expect(raiz.querySelector('app-compositor textarea')).not.toBeNull();
+  });
+
+  const ACOES_OFICIAL = {
+    assumir: false,
+    transferir: true,
+    resolver: true,
+    reabrir: false,
+    responder: false,
+    criarNegocio: true,
+    enviarTemplate: true,
+  };
+
+  it('WhatsApp oficial fora da janela: aviso, lista de templates no lugar do compositor e envio', async () => {
+    const { fixture, raiz, bolhas } = await criar(
+      conversaDetalhe({
+        canal: CANAL_OFICIAL,
+        janelaAte: ha(60 * 30),
+        podeResponder: {
+          pode: false,
+          motivo: 'Passaram mais de 24 horas desde a última mensagem do contato.',
+          apenasTemplate: true,
+        },
+        acoes: ACOES_OFICIAL,
+      }),
+    );
+    http.expectOne(`${DETALHE}/templates`).flush({
+      suportado: true,
+      janelaAberta: false,
+      janelaAte: null,
+      aviso: null,
+      sincronizadoEm: ha(60),
+      itens: [templateDoCanal()],
+    });
+    await assentar();
+    expect(raiz.querySelector('app-compositor')).toBeNull();
+    expect(texto(raiz.querySelector('.conversa__aviso'))).toContain('Passaram mais de 24 horas');
+    expect(texto(raiz.querySelector('.faixa'))).toContain('Janela de 24 h fechou');
+    const lista = raiz.querySelectorAll<HTMLButtonElement>('app-seletor-template .item');
+    expect(lista).toHaveLength(1);
+    lista[0].click();
+    await assentar();
+    const campos = raiz.querySelectorAll<HTMLInputElement>('app-seletor-template input');
+    ['Ana', '123', 'a caminho'].forEach((valor, i) => {
+      campos[i].value = valor;
+      campos[i].dispatchEvent(new Event('input'));
+    });
+    await assentar();
+    expect(texto(raiz.querySelector('.templates__previa'))).toContain(
+      'Olá Ana, seu pedido 123 está a caminho.',
+    );
+    raiz
+      .querySelector<HTMLFormElement>('app-seletor-template form')!
+      .dispatchEvent(new Event('submit'));
+    const pedido = http.expectOne(MENSAGENS);
+    expect(pedido.request.body).toEqual({
+      template: {
+        templateId: 't-1',
+        variaveis: { corpo: ['Ana', '123', 'a caminho'] },
+      },
+    });
+    pedido.flush(
+      mensagemDto({
+        id: 'm-t',
+        direcao: 'SAIDA',
+        texto: 'Olá Ana, seu pedido 123 está a caminho.',
+        status: 'PENDENTE',
+        metadados: { template: { id: 't-1', nome: 'pedido_atualizacao' } },
+      }),
+    );
+    await fixture.whenStable();
+    await assentar();
+    expect(bolhas().at(-1)).toContain('Olá Ana, seu pedido 123 está a caminho.');
+    expect(bolhas().at(-1)).toContain('template');
+    http.match(DETALHE).forEach((p) => p.flush(conversaDetalhe()));
+  });
+
+  it('WhatsApp oficial dentro da janela: compositor livre e "Enviar template" como extra', async () => {
+    const { raiz } = await criar(
+      conversaDetalhe({
+        canal: CANAL_OFICIAL,
+        janelaAte: ha(-60 * 5),
+        podeResponder: { pode: true, motivo: null, apenasTemplate: false },
+        acoes: { ...ACOES_OFICIAL, responder: true },
+      }),
+    );
+    expect(raiz.querySelector('app-compositor textarea')).not.toBeNull();
+    expect(raiz.querySelector('app-seletor-template')).toBeNull();
+    const extra = [
+      ...raiz.querySelectorAll<HTMLButtonElement>('.conversa__bloqueio-acoes button'),
+    ].find((b) => b.textContent?.includes('Enviar template'));
+    expect(extra).toBeDefined();
   });
 
   it('sem responsável: "Assumir" chama a API e a conversa passa a ser sua', async () => {

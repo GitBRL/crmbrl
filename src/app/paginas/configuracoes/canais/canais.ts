@@ -18,6 +18,7 @@ import { Carregamento } from '../carregamento';
 import {
   contagemDoTipo,
   detalheDoCanal,
+  detalheDoOficial,
   enviosDeHoje,
   linkDoCanal,
   linkDoNovo,
@@ -25,6 +26,8 @@ import {
   type SituacaoVisual,
   SITUACAO_WHATSAPP,
   situacaoDoCanal,
+  situacaoDoOficial,
+  resumoDosTemplates,
   telefoneDoNumero,
   textoDaFila,
   TIPO_DE_CANAL,
@@ -32,6 +35,7 @@ import {
 import { CanaisApi } from './canais.api';
 import {
   type CanalBase,
+  type CanalOficial,
   type ListaDeCanais,
   type NumeroWhatsapp,
   type TipoCanal,
@@ -137,6 +141,10 @@ export class Canais {
           erro = erros.whatsapp ?? null;
           itens = (lista.whatsapp ?? []).map((numero) => itemDoNumero(numero, aoVivo));
           break;
+        case 'WHATSAPP_OFICIAL':
+          erro = erros.oficial ?? null;
+          itens = (lista.oficial ?? []).map(itemDoOficial);
+          break;
         case 'WEBCHAT':
           erro = erros.site ?? null;
           itens = (lista.site ?? []).map(itemDoCanal);
@@ -164,7 +172,7 @@ export class Canais {
   /** Todos os tipos falharam: a tela inteira vira o estado de erro. */
   protected readonly tudoFalhou = computed(() => {
     const dados = this.dados.dados();
-    return dados !== null && Object.keys(dados.erros).length === 4 ? dados.erros.whatsapp! : null;
+    return dados !== null && Object.keys(dados.erros).length === 5 ? dados.erros.whatsapp! : null;
   });
 
   protected readonly nenhumCanal = computed(
@@ -184,11 +192,12 @@ export class Canais {
 
   protected carregar(): void {
     void this.dados.executar(async () => {
-      const [whatsapp, site, email, meta] = await Promise.all([
+      const [whatsapp, site, email, meta, oficial] = await Promise.all([
         parte(this.api.listarNumeros()),
         parte(this.api.listarSites()),
         parte(this.api.listarEmails()),
         parte(this.api.listarMeta()),
+        parte(this.api.listarOficiais()),
       ]);
       const erros: Partial<Record<keyof ListaDeCanais, ErroApi>> = {};
       const ler = <T>(chave: keyof ListaDeCanais, p: Parte<T>): readonly T[] | null => {
@@ -205,6 +214,7 @@ export class Canais {
           site: ler('site', site),
           email: ler('email', email),
           meta: ler('meta', meta),
+          oficial: ler('oficial', oficial),
         },
         erros,
       };
@@ -272,6 +282,18 @@ function itemDoNumero(
     situacao: SITUACAO_WHATSAPP[status],
     aviso: numero.pausa ? 'Envios pausados' : !numero.ativo ? 'Não recebe conversas novas' : null,
     link: linkDoCanal('WHATSAPP', numero.id),
+  };
+}
+
+function itemDoOficial(canal: CanalOficial): ItemDaLista {
+  return {
+    id: canal.id,
+    nome: canal.nome,
+    detalhe: detalheDoOficial(canal),
+    meta: [textoDaFila(canal), resumoDosTemplates(canal.templates)],
+    situacao: situacaoDoOficial(canal),
+    aviso: null,
+    link: linkDoCanal(canal.tipo, canal.id),
   };
 }
 

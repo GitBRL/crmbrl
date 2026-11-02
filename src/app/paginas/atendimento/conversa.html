@@ -239,7 +239,7 @@
                 <app-dica
                   rotulo="O que é a janela de 24 horas"
                   titulo="Janela de 24 horas"
-                  texto="No Instagram e no Messenger, a Meta só deixa a empresa responder até 24 horas depois da última mensagem do cliente. Passado esse prazo, a conversa só continua quando o cliente escrever de novo. Notas internas continuam liberadas."
+                  [texto]="textoDaJanela()"
                 />
               </span>
             }
@@ -277,69 +277,109 @@
 
       @if (conversa) {
         <div class="conversa__escrever">
-          @if (compositorBloqueado()) {
-            <div class="conversa__bloqueio-acoes">
-              <button
-                appBotao
-                type="button"
-                tamanho="sm"
-                variante="contorno"
-                [icone]="icones.nota"
-                (click)="escreverNota()"
-              >
-                Escrever nota interna
-              </button>
-              @if (conversa.acoes.reabrir) {
+          @if (somenteTemplate() && modo() === 'mensagem') {
+            <section class="conversa__templates" aria-labelledby="aviso-template">
+              <p class="conversa__aviso" id="aviso-template" role="status">
+                <svg [lucideIcon]="icones.espera" [size]="16" aria-hidden="true" />
+                <span>{{ avisoDaJanela() }}</span>
+              </p>
+              <app-seletor-template
+                [conversaId]="conversa.id"
+                (enviado)="aoEnviarTemplate($event)"
+                (recusado)="conferirDetalhe(0)"
+              />
+              <div class="conversa__bloqueio-acoes">
                 <button
                   appBotao
                   type="button"
                   tamanho="sm"
                   variante="contorno"
-                  [icone]="icones.reabrir"
-                  [carregando]="acao() === 'reabrir'"
-                  (click)="reabrir()"
+                  [icone]="icones.nota"
+                  (click)="escreverNota()"
                 >
-                  Reabrir
+                  Escrever nota interna
                 </button>
-              } @else if (conversa.acoes.assumir) {
+              </div>
+            </section>
+          } @else {
+            @if (templateOpcional() && modo() === 'mensagem') {
+              <div class="conversa__bloqueio-acoes">
                 <button
                   appBotao
                   type="button"
                   tamanho="sm"
                   variante="contorno"
-                  [icone]="icones.assumir"
-                  [carregando]="acao() === 'assumir'"
-                  (click)="assumir()"
+                  [icone]="icones.template"
+                  (click)="templateAberto.set(true)"
                 >
-                  Assumir
+                  Enviar template
                 </button>
-              }
-            </div>
+              </div>
+            }
+            @if (compositorBloqueado()) {
+              <div class="conversa__bloqueio-acoes">
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  variante="contorno"
+                  [icone]="icones.nota"
+                  (click)="escreverNota()"
+                >
+                  Escrever nota interna
+                </button>
+                @if (conversa.acoes.reabrir) {
+                  <button
+                    appBotao
+                    type="button"
+                    tamanho="sm"
+                    variante="contorno"
+                    [icone]="icones.reabrir"
+                    [carregando]="acao() === 'reabrir'"
+                    (click)="reabrir()"
+                  >
+                    Reabrir
+                  </button>
+                } @else if (conversa.acoes.assumir) {
+                  <button
+                    appBotao
+                    type="button"
+                    tamanho="sm"
+                    variante="contorno"
+                    [icone]="icones.assumir"
+                    [carregando]="acao() === 'assumir'"
+                    (click)="assumir()"
+                  >
+                    Assumir
+                  </button>
+                }
+              </div>
+            }
+            <app-compositor
+              permitirNota
+              [modo]="modo()"
+              (modoChange)="modo.set($event)"
+              [texto]="rascunho()"
+              (textoChange)="aoMudarRascunho($event)"
+              [rotulo]="modo() === 'nota' ? 'Nota interna' : 'Mensagem para ' + nome()"
+              [placeholder]="
+                modo() === 'nota'
+                  ? 'Só a equipe vê esta nota…'
+                  : conversa.canal.tipo === 'EMAIL'
+                    ? 'Escreva a resposta do e-mail…'
+                    : null
+              "
+              [respostasRapidas]="respostas()"
+              [variaveis]="variaveis()"
+              [permitirAnexos]="modo() === 'mensagem'"
+              [permitirAudio]="modo() === 'mensagem' && conversa.canal.tipo !== 'EMAIL'"
+              [desabilitado]="compositorBloqueado()"
+              [motivo]="bloqueio()"
+              [maximoCaracteres]="4096"
+              (enviar)="enviar($event)"
+              (digitando)="tempoReal.digitando({ conversaId: conversa.id }, $event)"
+            />
           }
-          <app-compositor
-            permitirNota
-            [modo]="modo()"
-            (modoChange)="modo.set($event)"
-            [texto]="rascunho()"
-            (textoChange)="aoMudarRascunho($event)"
-            [rotulo]="modo() === 'nota' ? 'Nota interna' : 'Mensagem para ' + nome()"
-            [placeholder]="
-              modo() === 'nota'
-                ? 'Só a equipe vê esta nota…'
-                : conversa.canal.tipo === 'EMAIL'
-                  ? 'Escreva a resposta do e-mail…'
-                  : null
-            "
-            [respostasRapidas]="respostas()"
-            [variaveis]="variaveis()"
-            [permitirAnexos]="modo() === 'mensagem'"
-            [permitirAudio]="modo() === 'mensagem' && conversa.canal.tipo !== 'EMAIL'"
-            [desabilitado]="compositorBloqueado()"
-            [motivo]="bloqueio()"
-            [maximoCaracteres]="4096"
-            (enviar)="enviar($event)"
-            (digitando)="tempoReal.digitando({ conversaId: conversa.id }, $event)"
-          />
         </div>
       }
     </section>
@@ -390,6 +430,15 @@
         (criado)="aoCriarNegocio($event)"
       />
       <app-historico-conversa [(aberto)]="historicoAberto" [conversa]="conversa" />
+      <app-modal titulo="Enviar template" [complemento]="'· ' + nome()" [(aberto)]="templateAberto">
+        @if (templateAberto()) {
+          <app-seletor-template
+            [conversaId]="conversa.id"
+            (enviado)="aoEnviarTemplate($event)"
+            (recusado)="conferirDetalhe(0)"
+          />
+        }
+      </app-modal>
     }
   }
 }

@@ -27,6 +27,12 @@ export const CANAL_INSTAGRAM = {
   nome: 'Instagram @brl',
   ativo: true,
 } as const;
+export const CANAL_OFICIAL = {
+  id: 'canal-of',
+  tipo: 'WHATSAPP_OFICIAL',
+  nome: 'WhatsApp Oficial (demo)',
+  ativo: true,
+} as const;
 export const FILA_VENDAS = { id: 'fila-vendas', nome: 'Vendas', area: 'COMERCIAL' } as const;
 
 /** `minutos` atrás (negativo = no futuro), em ISO. */

@@ -22,6 +22,7 @@ import {
   LucideCircleCheck,
   LucideDynamicIcon,
   LucideFlag,
+  LucideFileText,
   LucideHand,
   LucideHistory,
   LucideHourglass,
@@ -57,6 +58,7 @@ import {
 import { ListaMensagens } from '../../ui/mensagens/lista-mensagens';
 import type { MensagemConversa } from '../../ui/mensagens/mensagens';
 import { tipoDoAnexo } from '../../ui/mensagens/mensagens';
+import { Modal } from '../../ui/modal/modal';
 import { PainelLateral } from '../../ui/painel-lateral/painel-lateral';
 import { Selo } from '../../ui/selo/selo';
 import { AtendimentoApi } from './atendimento.api';
@@ -83,6 +85,7 @@ import { EditarEtiquetas } from './editar-etiquetas';
 import { EstadoAtendimento } from './estado-atendimento';
 import { HistoricoConversa } from './historico-conversa';
 import { PainelContato } from './painel-contato';
+import { SeletorTemplate } from './seletor-template';
 import { TransferirConversa } from './transferir-conversa';
 
 /** Largura da conversa a partir da qual o painel do contato fica ao lado (senão, por cima). */
@@ -133,6 +136,8 @@ interface Pendente {
     RouterLink,
     Selo,
     TransferirConversa,
+    SeletorTemplate,
+    Modal,
   ],
   templateUrl: './conversa.html',
   styleUrl: './conversa.scss',
@@ -170,6 +175,7 @@ export class Conversa {
     espera: LucideHourglass,
     negocio: LucideBriefcase,
     etiqueta: LucideTag,
+    template: LucideFileText,
   };
   protected readonly ROTULO_PRIORIDADE = ROTULO_PRIORIDADE;
 
@@ -270,6 +276,40 @@ export class Conversa {
     }
     return null;
   });
+
+  /**
+   * Canal de templates (WhatsApp oficial) com a janela de 24 h fechada: o compositor livre dá lugar
+   * à lista de templates. Vale a janela do servidor e também a que fechou enquanto a tela ficou aberta.
+   */
+  protected readonly somenteTemplate = computed(() => {
+    const detalhe = this.detalhe();
+    if (!detalhe || detalhe.status === 'RESOLVIDA' || !detalhe.acoes.enviarTemplate) {
+      return false;
+    }
+    const janela = this.janela();
+    return !!detalhe.podeResponder.apenasTemplate || (!!janela && !janela.aberta);
+  });
+
+  /** Janela aberta num canal de templates: o compositor livre fica e o template é um extra. */
+  protected readonly templateOpcional = computed(
+    () => !!this.detalhe()?.acoes.enviarTemplate && !this.somenteTemplate() && !this.bloqueio(),
+  );
+
+  protected readonly avisoDaJanela = computed(() => {
+    const detalhe = this.detalhe();
+    return (
+      detalhe?.podeResponder.motivo ||
+      'Passaram mais de 24 horas desde a última mensagem do contato: o WhatsApp só permite enviar um template aprovado.'
+    );
+  });
+
+  protected readonly textoDaJanela = computed(() =>
+    this.detalhe()?.canal.tipo === 'WHATSAPP_OFICIAL'
+      ? 'No WhatsApp oficial, a empresa só pode mandar texto livre até 24 horas depois da última mensagem do cliente. Passado esse prazo, só um template aprovado pela Meta. Notas internas continuam liberadas.'
+      : 'No Instagram e no Messenger, a Meta só deixa a empresa responder até 24 horas depois da última mensagem do cliente. Passado esse prazo, a conversa só continua quando o cliente escrever de novo. Notas internas continuam liberadas.',
+  );
+
+  protected readonly templateAberto = signal(false);
 
   protected readonly compositorBloqueado = computed(
     () => this.modo() === 'mensagem' && this.bloqueio() !== null,
@@ -540,7 +580,7 @@ export class Conversa {
     });
   }
 
-  private conferirDetalhe(espera = 400): void {
+  protected conferirDetalhe(espera = 400): void {
     clearTimeout(this.esperaDetalhe);
     this.esperaDetalhe = setTimeout(() => {
       const id = this.conversaId();
@@ -828,6 +868,14 @@ export class Conversa {
   protected escreverNota(): void {
     this.modo.set('nota');
     afterNextRender(() => this.compositor()?.focar(), { injector: this.injector });
+  }
+
+  /** Um template foi enviado (no painel fora da janela ou no modal): a bolha entra na conversa. */
+  protected aoEnviarTemplate(dto: MensagemDaConversa): void {
+    this.templateAberto.set(false);
+    this.dtos.update((atuais) => juntarMensagens(atuais, [dto]));
+    this.lista()?.rolarParaOFim('smooth');
+    this.conferirDetalhe(0);
   }
 
   protected async enviar(envio: EnvioCompositor): Promise<void> {

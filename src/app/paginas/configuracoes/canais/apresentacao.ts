@@ -3,6 +3,8 @@ import type { VarianteSelo } from '../../../ui/selo/selo';
 import { formatarTelefone } from '../textos';
 import type {
   CanalBase,
+  CanalOficial,
+  CategoriaDoTemplate,
   NumeroWhatsapp,
   StatusWhatsapp,
   TipoCanal,
@@ -35,6 +37,15 @@ export const TIPO_DE_CANAL: Readonly<Record<TipoCanal, TipoDeCanalVisual>> = {
       'Conecte um número lendo um QR com o celular. As mensagens chegam ao Atendimento e as respostas saem pelo próprio número.',
     caminho: 'whatsapp',
     textoNovo: 'Novo número',
+    singular: 'número',
+    plural: 'números',
+  },
+  WHATSAPP_OFICIAL: {
+    rotulo: 'WhatsApp oficial',
+    descricao:
+      'O número do WhatsApp Business pela API oficial da Meta: sem QR, com templates aprovados para falar depois de 24 horas.',
+    caminho: 'whatsapp-oficial',
+    textoNovo: 'Novo número oficial',
     singular: 'número',
     plural: 'números',
   },
@@ -86,7 +97,7 @@ export function contagemDoTipo(tipo: TipoCanal, quantidade: number): string {
   return `${quantidade} ${quantidade === 1 ? visual.singular : visual.plural}`;
 }
 
-/** A rota da tela de um canal já criado. */
+/** A rota da tela de um canal já criado (o WhatsApp oficial e o Baileys têm telas próprias). */
 export function linkDoCanal(tipo: TipoCanal, id: string): string[] {
   const caminho =
     tipo === 'INSTAGRAM' || tipo === 'MESSENGER' ? 'meta' : TIPO_DE_CANAL[tipo].caminho;
@@ -140,6 +151,86 @@ export function situacaoDoCanal(canal: Pick<CanalBase, 'ativo' | 'ultimoErro'>):
     return { rotulo: 'Com erro', variante: 'coral', ponto: false };
   }
   return { rotulo: 'Ativo', variante: 'menta', ponto: true };
+}
+
+// WhatsApp oficial ------------------------------------------------------------------------------------
+
+/** Situação de um canal oficial: desligado, ou o resultado do último teste na Meta. */
+export function situacaoDoOficial(canal: Pick<CanalOficial, 'ativo' | 'estado'>): SituacaoVisual {
+  if (!canal.ativo) {
+    return { rotulo: 'Desligado', variante: 'neutro', ponto: false };
+  }
+  switch (canal.estado.situacao) {
+    case 'CONECTADO':
+      return { rotulo: 'Conectado', variante: 'menta', ponto: true };
+    case 'ERRO':
+      return { rotulo: 'Com erro', variante: 'coral', ponto: false };
+    default:
+      return { rotulo: 'Ainda não testado', variante: 'neutro', ponto: false };
+  }
+}
+
+/** A linha de detalhe do canal oficial na lista. */
+export function detalheDoOficial(
+  canal: Pick<CanalOficial, 'numeroExibido' | 'phoneNumberId' | 'estado'>,
+): string {
+  const numero = canal.numeroExibido
+    ? canal.numeroExibido.replace(/\D/g, '') === canal.numeroExibido
+      ? formatarTelefone(canal.numeroExibido)
+      : canal.numeroExibido
+    : `Número ${canal.phoneNumberId}`;
+  return canal.estado.nomeVerificado ? `${numero} · ${canal.estado.nomeVerificado}` : numero;
+}
+
+/** "3 templates aprovados de 4", "Nenhum template sincronizado ainda". */
+export function resumoDosTemplates(templates: {
+  readonly total: number;
+  readonly aprovados: number;
+  readonly sincronizadoEm: string | null;
+}): string {
+  if (!templates.sincronizadoEm) {
+    return 'Templates ainda não sincronizados';
+  }
+  if (templates.total === 0) {
+    return 'Nenhum template na conta';
+  }
+  const aprovados = templates.aprovados === 1 ? '1 aprovado' : `${templates.aprovados} aprovados`;
+  return `${templates.total === 1 ? '1 template' : `${templates.total} templates`} · ${aprovados}`;
+}
+
+export const ROTULO_CATEGORIA_TEMPLATE: Readonly<Record<CategoriaDoTemplate, string>> = {
+  MARKETING: 'Marketing',
+  UTILITY: 'Utilidade',
+  AUTHENTICATION: 'Autenticação',
+};
+
+/** Status do template na Meta em português (os desconhecidos aparecem como vieram). */
+export function rotuloDoStatusDoTemplate(status: string): string {
+  const mapa: Readonly<Record<string, string>> = {
+    APPROVED: 'Aprovado',
+    PENDING: 'Em análise',
+    IN_APPEAL: 'Em recurso',
+    REJECTED: 'Rejeitado',
+    PAUSED: 'Pausado',
+    DISABLED: 'Desativado',
+    FLAGGED: 'Com alerta',
+    LIMIT_EXCEEDED: 'Limite excedido',
+  };
+  return mapa[status.toUpperCase()] ?? status;
+}
+
+/** Qualidade do número como a Meta informa (`GREEN`, `YELLOW`, `RED`, `UNKNOWN`). */
+export function rotuloDaQualidade(qualidade: string | null): string | null {
+  if (!qualidade) {
+    return null;
+  }
+  const mapa: Readonly<Record<string, string>> = {
+    GREEN: 'Alta',
+    YELLOW: 'Média',
+    RED: 'Baixa',
+    UNKNOWN: 'Desconhecida',
+  };
+  return mapa[qualidade.toUpperCase()] ?? qualidade;
 }
 
 // Textos do número --------------------------------------------------------------------------------

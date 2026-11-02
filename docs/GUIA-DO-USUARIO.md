@@ -60,13 +60,16 @@ suas e as sem responsável da área). Marketing não acessa.
 
 ![Caixa de entrada](guia/atendimento.png)
 
-- **Ler a caixa de entrada.** As conversas dos cinco canais (WhatsApp, chat do site, e-mail, Instagram e
-  Messenger) chegam numa lista só. A conversa vai para uma fila e, pelo rodízio, para quem está disponível.
+- **Ler a caixa de entrada.** As conversas dos seis canais (WhatsApp, WhatsApp oficial, chat do site, e-mail,
+  Instagram e Messenger) chegam numa lista só. A conversa vai para uma fila e, pelo rodízio, para quem está disponível.
 - **Assumir, transferir, resolver, reabrir.** Abra a conversa e use os botões do topo. Transferir leva a
   conversa a outra pessoa ou fila; resolver pode pedir a nota de satisfação ao cliente (se ligada no canal).
 - **Responder.** Escreva a mensagem, anexe arquivos ou use uma **resposta rápida**. A **nota interna** nunca
   chega ao cliente. No Instagram e no Messenger só dá para responder até 24 horas depois da última mensagem
-  do cliente (regra da Meta).
+  do cliente (regra da Meta). No **WhatsApp oficial**, passadas as 24 horas, o campo de mensagem dá lugar à
+  lista de **templates** aprovados: escolha um, preencha as variáveis, confira a prévia e envie. Dentro da
+  janela, o campo normal funciona e **Enviar template** fica como extra. Cada mensagem mostra enviada,
+  entregue, lida ou o motivo da falha, com **Tentar de novo**.
 - **Painel do contato.** Ao lado da conversa estão os dados do contato, os negócios e o histórico.
 - **Configurar (líder, C-level, Admin).** Filas, prazos de SLA, horário de atendimento, satisfação e respostas
   rápidas ficam em Configurações; quando o prazo estoura, o líder é avisado pelo sino.
@@ -174,6 +177,10 @@ O CRM não emite boleto, Pix nem nota fiscal e não se conecta a bancos: a baixa
 - **WhatsApp:** Configurações > Canais > **Novo canal** > WhatsApp; leia o QR em "aparelhos conectados" do
   celular. O CRM controla limite diário, ritmo e aquecimento (14 dias) e pausa sozinho depois de falhas.
   Se o número desconectar, campanhas esperam e o Atendimento não envia até reconectar (leia o QR de novo).
+- **WhatsApp oficial (API da Meta):** Configurações > Canais > **Novo canal** > WhatsApp oficial. Informe o ID
+  do número, o ID da conta (WABA), o token e a chave secreta do app (a tela diz onde achar cada um e mostra os
+  segredos só mascarados). Salve, use **Testar conexão**, copie o endereço e o token de verificação do
+  **Webhook** para a Meta e clique em **Sincronizar templates**. Artigo: `configuracoes-canais-whatsapp-oficial.md`.
 - **Chat do site, e-mail, Instagram e Messenger:** cadastre o canal e, no site, cole o trecho de instalação.
 - **Disparos (Admin e C-level):** limites e ritmo gerais.
 - **Atendimento (Admin, C-level e líderes de Comercial e CS):** filas, horários de atendimento e respostas
@@ -200,7 +207,7 @@ Administração > **Saúde do sistema** reúne, numa tela só, o que o Admin pre
 | **WhatsApp**                 | Gateway no ar ou fora, e a situação de cada número                  | Número desconectado ou banido; gateway fora              |
 | **Backup e disco**           | Último backup, tamanho do arquivo, espaço livre e tamanho do banco  | Backup com falha ou atrasado; espaço livre abaixo de 15% |
 | **Filas de trabalho**        | Trabalhos esperando, em andamento, com falha e o mais antigo parado | Fila marcada como "travada"                              |
-| **Canais**                   | Último erro de e-mail, Instagram, Messenger e chat do site          | Erro recente de login ou de conexão                      |
+| **Canais**                   | Último erro de e-mail, Instagram, Messenger, WhatsApp oficial e chat do site         | Erro recente de login ou de conexão                      |
 | **Erros recentes**           | Os últimos erros dos logs técnicos                                  | Muitos erros em pouco tempo                              |
 
 A tela se atualiza sozinha a cada 30 segundos (com a aba escondida ela não consulta);
@@ -239,8 +246,8 @@ parcela atrasada).
 
 ## 14. O que o CRM não faz
 
-- Canais são só WhatsApp (conexão própria por QR, não a API oficial), chat do site, e-mail, Instagram e
-  Messenger; não há SMS, Telegram nem ligação.
+- Canais são WhatsApp (conexão própria por QR), WhatsApp oficial (API da Meta, com templates fora da janela de
+  24 horas), chat do site, e-mail, Instagram e Messenger; não há SMS, Telegram nem ligação.
 - Disparos são graduais, não envio instantâneo em massa; quem pediu opt-out não recebe.
 - Não move negócio direto de um funil a outro (só pelas passagens) e não exclui os três funis.
 - Sem bancos, boleto, Pix ou nota fiscal; sem agenda externa (Google, Outlook); integrações só por webhooks.

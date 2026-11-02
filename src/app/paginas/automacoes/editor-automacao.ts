@@ -132,6 +132,7 @@ const ORIGENS: readonly OpcaoSeletor<string>[] = [
 
 const TIPOS_CANAL: readonly OpcaoSeletor<string>[] = [
   ['WHATSAPP', 'WhatsApp'],
+  ['WHATSAPP_OFICIAL', 'WhatsApp oficial'],
   ['WEBCHAT', 'Chat do site'],
   ['EMAIL', 'E-mail'],
   ['INSTAGRAM', 'Instagram'],
