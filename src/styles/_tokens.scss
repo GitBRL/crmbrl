@@ -1,0 +1,231 @@
+// Tokens do design system (DESIGN-SYSTEM.md §2). Todo valor de cor, raio, espaço ou
+// tipografia usado em tela sai daqui: nada de hex solto em componente.
+//
+// Os tokens semânticos mudam com `data-tema` ("escuro" | "claro"), que pode estar no <html>
+// ou em qualquer contêiner (o catálogo usa isso para mostrar os dois temas lado a lado).
+// Sem `data-tema` (JavaScript desligado), vale a preferência do sistema.
+
+@use 'mixins' as m;
+
+// ---------------------------------------------------------------------------------------
+// Valores que não mudam com o tema
+// ---------------------------------------------------------------------------------------
+:root {
+  // 2.1 Paleta base (oficial da referência)
+  --pb-preto: #000000;
+  --pb-branco: #ffffff;
+  --pb-ciano: #00bdf9;
+  --pb-menta: #00f99b;
+  --pb-lima: #e5f900;
+  --pb-coral: #f46f51;
+
+  // Séries de dados, sempre nesta ordem
+  --dado-1: var(--pb-ciano);
+  --dado-2: var(--pb-menta);
+  --dado-3: var(--pb-lima);
+  --dado-4: var(--pb-coral);
+  // Preenchimento da série 2 dentro das barras (medido na referência: verde-água → verde)
+  --dado-2-gradiente: linear-gradient(90deg, #00e8b8 15%, #00f99b 55%, #46f86c 90%);
+  --gradiente-dados: linear-gradient(90deg, #00bdf9, #00f99b 50%, #e5f900);
+  // Listras diagonais do cartão destaque (coral)
+  --listras-destaque: repeating-linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.07) 0 2px,
+    transparent 2px 10px
+  );
+
+  // 2.3 Tipografia — tokens no formato do atalho `font` (use `font: var(--fonte-h2)`)
+  --familia: 'Urbanist', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  // Código e seletores (catálogo, migrations no status do sistema).
+  --familia-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --fonte-display: 300 3.5rem/1.05 var(--familia);
+  --fonte-numero: 300 3.5rem/1 var(--familia);
+  --fonte-numero-pequeno: 300 1.25rem/1.2 var(--familia);
+  --fonte-h1: 300 2.5rem/1.1 var(--familia);
+  --fonte-h2: 400 1.75rem/1.2 var(--familia);
+  --fonte-h3: 500 1.25rem/1.3 var(--familia);
+  --fonte-lead: 400 1.0625rem/1.5 var(--familia); // frase de topo das páginas (17px)
+  --fonte-corpo: 400 0.9375rem/1.5 var(--familia);
+  --fonte-corpo-sm: 400 0.875rem/1.5 var(--familia); // balões, "quando usar" (14px)
+  --fonte-rotulo: 500 0.875rem/1.2 var(--familia);
+  --fonte-legenda-lg: 400 0.8125rem/1.35 var(--familia); // notas e metadados maiores (13px)
+  --fonte-legenda: 400 0.75rem/1.35 var(--familia);
+  --fonte-micro: 500 0.6875rem/1.2 var(--familia);
+  --tracking-display: -0.02em;
+  --tracking-titulo: -0.01em;
+
+  // 2.4 Espaçamento (base 4px)
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-5: 20px;
+  --esp-6: 24px;
+  --esp-8: 32px;
+  --esp-10: 40px;
+  --esp-12: 48px;
+  --esp-16: 64px;
+  --esp-cartao: var(--esp-6);
+  --esp-entre-cartoes: var(--esp-4);
+
+  // 2.5 Raios
+  --raio-sm: 12px;
+  --raio-md: 16px;
+  --raio-lg: 24px;
+  --raio-xl: 28px;
+  --raio-2xl: 36px;
+  --raio-pilula: 999px;
+  --raio-cartao: var(--raio-xl);
+  --raio-palco: var(--raio-2xl);
+
+  // 2.6 Alturas de controle
+  --altura-sm: 36px;
+  --altura-md: 44px;
+  --altura-lg: 52px;
+
+  // Página: largura máxima do conteúdo e altura da barra superior fixa (a casca usa os
+  // mesmos valores). O `scroll-padding-top` do <html> desconta a barra (§8: o foco nunca
+  // fica sob ela).
+  --largura-pagina: 1600px;
+  --casca-altura-topo: 76px;
+
+  // 2.8 Movimento
+  --duracao-rapida: 120ms;
+  --duracao: 200ms;
+  --duracao-lenta: 320ms;
+  --duracao-opacidade: 120ms; // não zera com movimento reduzido
+  --curva: cubic-bezier(0.2, 0, 0, 1);
+
+  // Camadas
+  --z-cabecalho: 20;
+  --z-gaveta: 40;
+  --z-flutuante: 60;
+}
+
+@include m.abaixo(m.$md) {
+  :root {
+    --casca-altura-topo: 68px;
+    --fonte-display: 300 2.25rem/1.05 var(--familia);
+    --raio-cartao: var(--raio-lg);
+    --raio-palco: var(--raio-xl);
+    --esp-entre-cartoes: var(--esp-3);
+  }
+}
+
+@include m.abaixo(m.$sm) {
+  :root {
+    --fonte-numero: 300 2.75rem/1 var(--familia);
+    --fonte-h1: 300 1.875rem/1.1 var(--familia);
+    --fonte-h2: 400 1.5rem/1.2 var(--familia);
+    --esp-cartao: var(--esp-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duracao-rapida: 0ms;
+    --duracao: 0ms;
+    --duracao-lenta: 0ms;
+  }
+}
+
+// ---------------------------------------------------------------------------------------
+// Temas
+// ---------------------------------------------------------------------------------------
+@mixin tema-escuro {
+  color-scheme: dark;
+  color: var(--cor-texto); // contêineres com data-tema próprio herdam a cor certa
+  --cor-fundo: #000000;
+  --cor-superficie: #161616;
+  --cor-superficie-2: #1e1e1e;
+  --cor-superficie-3: #2a2a2a;
+  --cor-flutuante: #232323;
+  --cor-borda: rgba(255, 255, 255, 0.08);
+  --cor-borda-forte: rgba(255, 255, 255, 0.16);
+  --cor-texto: #ffffff;
+  --cor-logo: #ffffff; // logo BRL CRM: sempre monocromático (DESIGN-SYSTEM §9)
+  --cor-texto-suave: #b3b3b3;
+  --cor-texto-fraco: #969696;
+  --cor-inverso: #ffffff;
+  --cor-sobre-inverso: #000000;
+  --cor-destaque: #f46f51;
+  --cor-sobre-destaque: #000000;
+  --cor-destaque-texto: #f46f51;
+  --cor-marca: #e5f900;
+  --cor-sobre-marca: #000000;
+  --cor-foco: #e5f900;
+  --cor-sucesso: #00f99b;
+  --cor-info: #00bdf9;
+  --cor-aviso: #e5f900;
+  --cor-erro: #ff5a5f;
+  --cor-sobre-erro: #000000;
+  --cor-veu: rgba(0, 0, 0, 0.72);
+  --cor-vidro: rgba(255, 255, 255, 0.07);
+  --cor-vidro-forte: rgba(255, 255, 255, 0.12);
+  // Contornos que só existem no claro (no escuro o contraste já vem do fundo preto):
+  // preenchimentos de dado (WCAG 1.4.11) e controles neutros sobre o fundo.
+  --cor-contorno-dado: transparent;
+  --cor-contorno-controle: transparent;
+  --sombra-cartao: none;
+  --sombra-flutuante: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --gradiente-palco:
+    radial-gradient(90% 70% at 0% 0%, rgba(0, 200, 170, 0.14), transparent 60%),
+    radial-gradient(80% 70% at 100% 100%, rgba(190, 70, 160, 0.14), transparent 65%), #161616;
+}
+
+@mixin tema-claro {
+  color-scheme: light;
+  color: var(--cor-texto);
+  --cor-fundo: #efefec;
+  --cor-superficie: #ffffff;
+  --cor-superficie-2: #f4f4f1;
+  --cor-superficie-3: #e8e8e4;
+  --cor-flutuante: #ffffff;
+  --cor-borda: rgba(0, 0, 0, 0.08);
+  --cor-borda-forte: rgba(0, 0, 0, 0.16);
+  --cor-texto: #0a0a0a;
+  --cor-logo: #000000;
+  --cor-texto-suave: #4d4d4d;
+  --cor-texto-fraco: #666666;
+  --cor-inverso: #0a0a0a;
+  --cor-sobre-inverso: #ffffff;
+  --cor-destaque: #f46f51;
+  --cor-sobre-destaque: #000000;
+  --cor-destaque-texto: #b93a1f;
+  --cor-marca: #e5f900;
+  --cor-sobre-marca: #000000;
+  --cor-foco: #0a0a0a;
+  --cor-sucesso: #00804f;
+  --cor-info: #0072a3;
+  --cor-aviso: #7a6a00;
+  --cor-erro: #c8102e;
+  --cor-sobre-erro: #ffffff;
+  --cor-veu: rgba(10, 10, 10, 0.42);
+  --cor-vidro: rgba(0, 0, 0, 0.04);
+  --cor-vidro-forte: rgba(0, 0, 0, 0.08);
+  // Lima, menta e ciano somem sobre branco (1,17:1 a 2,18:1): um contorno interno de 1px
+  // dá ao preenchimento ≥ 3:1 (o do lima fica em ~#7E8900, 3,8:1 sobre branco).
+  --cor-contorno-dado: rgba(0, 0, 0, 0.45);
+  // Botão-ícone neutro e aba inativa (superfície 2/3) quase não se destacam do fundo claro.
+  --cor-contorno-controle: var(--cor-borda-forte);
+  --sombra-cartao: 0 1px 2px rgba(16, 16, 16, 0.04), 0 8px 24px rgba(16, 16, 16, 0.06);
+  --sombra-flutuante: 0 16px 40px rgba(16, 16, 16, 0.14);
+  --gradiente-palco:
+    radial-gradient(90% 70% at 0% 0%, rgba(0, 189, 249, 0.1), transparent 60%),
+    radial-gradient(80% 70% at 100% 100%, rgba(229, 249, 0, 0.2), transparent 65%), #ffffff;
+}
+
+:root,
+[data-tema='escuro'] {
+  @include tema-escuro;
+}
+
+[data-tema='claro'] {
+  @include tema-claro;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-tema]) {
+    @include tema-claro;
+  }
+}

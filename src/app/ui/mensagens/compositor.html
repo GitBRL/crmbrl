@@ -1,0 +1,217 @@
+<div
+  class="compositor__caixa"
+  [class.compositor__caixa--arrastando]="arrastando()"
+  (dragenter)="aoArrastar($event)"
+  (dragover)="aoArrastar($event)"
+  (dragleave)="aoSairDoArraste($event)"
+  (drop)="aoSoltar($event)"
+>
+  @if (permitirNota() && !desabilitado()) {
+    <div class="compositor__modos" role="group" aria-label="Enviar como">
+      <button
+        type="button"
+        class="compositor__modo"
+        [attr.aria-pressed]="modo() === 'mensagem'"
+        (click)="escolherModo('mensagem')"
+      >
+        Mensagem
+      </button>
+      <button
+        type="button"
+        class="compositor__modo compositor__modo--nota"
+        [attr.aria-pressed]="modo() === 'nota'"
+        (click)="escolherModo('nota')"
+      >
+        <svg [lucideIcon]="icones.nota" [size]="14" aria-hidden="true" />
+        Nota interna
+      </button>
+    </div>
+  }
+
+  @if (listaAberta()) {
+    <app-respostas-rapidas
+      class="compositor__respostas"
+      [opcoes]="sugestoes()"
+      [ativa]="ativa()"
+      [idLista]="idLista"
+      [consulta]="consulta() ?? ''"
+      (escolher)="escolher($event)"
+      (passar)="ativa.set($event)"
+    />
+  }
+
+  @if (desabilitado()) {
+    <p class="compositor__bloqueio">
+      <svg [lucideIcon]="icones.nota" [size]="18" aria-hidden="true" />
+      <span>{{ motivo() || 'Não dá para enviar mensagens nesta conversa agora.' }}</span>
+    </p>
+  } @else {
+    @if (anexos().length) {
+      <ul class="compositor__anexos" aria-label="Anexos">
+        @for (anexo of anexos(); track anexo.id) {
+          <li class="compositor__anexo">
+            @if (anexo.miniatura) {
+              <img class="compositor__miniatura" [src]="anexo.miniatura" alt="" />
+            } @else {
+              <span class="compositor__miniatura" aria-hidden="true">
+                <svg [lucideIcon]="icones.documento" [size]="18" />
+              </span>
+            }
+            <span class="compositor__anexo-textos">
+              <span class="compositor__anexo-nome" [title]="anexo.arquivo.name">{{
+                anexo.arquivo.name
+              }}</span>
+              <span class="compositor__anexo-detalhe">{{ anexo.detalhe }}</span>
+            </span>
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              [icone]="icones.remover"
+              [rotulo]="'Remover ' + anexo.arquivo.name"
+              (click)="removerAnexo(anexo)"
+            ></button>
+          </li>
+        }
+      </ul>
+    }
+
+    <div class="compositor__barra">
+      @if (gravador.estado() !== 'parado') {
+        <button
+          appBotaoIcone
+          type="button"
+          variante="contorno"
+          [icone]="icones.descartar"
+          rotulo="Descartar a gravação"
+          (click)="cancelarGravacao()"
+        ></button>
+        <div class="compositor__gravando">
+          <span class="compositor__ponto" aria-hidden="true"></span>
+          <span class="compositor__tempo">{{ duracaoGravacao() }}</span>
+          <span class="compositor__niveis" aria-hidden="true">
+            @for (nivel of gravador.niveis(); track $index) {
+              <i [style.height.%]="15 + nivel * 85"></i>
+            }
+          </span>
+          <span class="visualmente-oculto">Gravando áudio</span>
+        </div>
+        <button
+          appBotaoIcone
+          type="button"
+          variante="contorno"
+          [icone]="icones.parar"
+          rotulo="Parar e ouvir antes de enviar"
+          [disabled]="gravador.estado() !== 'gravando'"
+          (click)="pararGravacao()"
+        ></button>
+        <button
+          appBotaoIcone
+          type="button"
+          variante="invertido"
+          [icone]="icones.enviar"
+          rotulo="Enviar o áudio"
+          [disabled]="gravador.estado() !== 'gravando'"
+          (click)="enviarAudio()"
+        ></button>
+      } @else if (audio(); as gravado) {
+        <button
+          appBotaoIcone
+          type="button"
+          variante="contorno"
+          [icone]="icones.descartar"
+          rotulo="Descartar o áudio"
+          (click)="descartarAudio()"
+        ></button>
+        <app-player-audio
+          class="compositor__player"
+          rotulo="Áudio gravado"
+          [src]="gravado.url"
+          [duracao]="gravado.duracao"
+        />
+        <button
+          appBotaoIcone
+          type="button"
+          variante="invertido"
+          [icone]="icones.enviar"
+          rotulo="Enviar o áudio"
+          (click)="enviarAudio()"
+        ></button>
+      } @else {
+        @if (permitirAnexos()) {
+          <button
+            appBotaoIcone
+            type="button"
+            variante="contorno"
+            [icone]="icones.anexar"
+            rotulo="Anexar arquivos"
+            (click)="abrirSeletor()"
+          ></button>
+          <input
+            #seletor
+            type="file"
+            class="compositor__seletor"
+            multiple
+            tabindex="-1"
+            aria-hidden="true"
+            [accept]="aceitar"
+            (change)="aoEscolherArquivos($event)"
+          />
+        }
+        <textarea
+          #campo
+          class="compositor__campo"
+          rows="1"
+          aria-autocomplete="list"
+          [id]="idCampo"
+          [attr.aria-label]="rotulo()"
+          [placeholder]="textoDoPlaceholder()"
+          [attr.aria-controls]="listaAberta() ? idLista : null"
+          [attr.aria-activedescendant]="idAtiva()"
+          [attr.aria-describedby]="idDica"
+          [attr.aria-invalid]="passouDoLimite() || null"
+          (input)="aoDigitar($event)"
+          (keydown)="aoTeclar($event)"
+          (keyup)="aoMoverCursor($event)"
+          (click)="aoMoverCursor()"
+          (paste)="aoColar($event)"
+          (blur)="pararDigitando()"
+        ></textarea>
+        @if (podeEnviar() || !mostrarGravar()) {
+          <button
+            appBotaoIcone
+            type="button"
+            variante="invertido"
+            [icone]="icones.enviar"
+            [rotulo]="modo() === 'nota' ? 'Salvar a nota interna' : 'Enviar'"
+            [disabled]="!podeEnviar()"
+            [attr.aria-busy]="enviando() || null"
+            (click)="enviarTexto()"
+          ></button>
+        } @else {
+          <button
+            appBotaoIcone
+            type="button"
+            variante="contorno"
+            [icone]="icones.gravar"
+            rotulo="Gravar um áudio"
+            (click)="gravar()"
+          ></button>
+        }
+      }
+    </div>
+  }
+</div>
+
+<div class="compositor__rodape">
+  <p class="compositor__erro" role="alert">{{ erro() }}</p>
+  @if (!desabilitado()) {
+    <p class="compositor__dica" [id]="idDica">{{ dica() }}</p>
+  }
+  @if (contador(); as texto) {
+    <span class="compositor__contador" [class.compositor__contador--excedeu]="passouDoLimite()">{{
+      texto
+    }}</span>
+  }
+</div>

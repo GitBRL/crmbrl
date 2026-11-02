@@ -1,0 +1,122 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3) var(--esp-6);
+}
+
+.paginacao__resumo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.paginacao__controles {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.paginacao__paginas {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+.paginacao__pagina {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: var(--altura-sm);
+  height: var(--altura-sm);
+  margin: 0;
+  padding: 0 var(--esp-2);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  @include m.area-toque(4px, 0px);
+
+  &:hover {
+    background: var(--cor-vidro-forte);
+    color: var(--cor-texto);
+  }
+
+  // Atual: invertida, como a aba ativa.
+  &[aria-current='page'] {
+    background: var(--cor-inverso);
+    color: var(--cor-sobre-inverso);
+  }
+}
+
+.paginacao__reticencias {
+  display: grid;
+  place-items: center;
+  width: var(--esp-6);
+  color: var(--cor-texto-suave);
+}
+
+.paginacao__compacto {
+  display: none;
+  min-width: 8rem;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.paginacao__por-pagina {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.paginacao__seletor {
+  min-height: var(--altura-sm);
+  padding: 0 var(--esp-3);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  font: var(--fonte-rotulo);
+
+  option {
+    background: var(--cor-flutuante);
+  }
+}
+
+@media (forced-colors: active) {
+  .paginacao__pagina[aria-current='page'] {
+    border: 2px solid Highlight;
+  }
+}
+
+// Celular: só "Página 2 de 7" entre as setas.
+@include m.abaixo(m.$sm) {
+  .paginacao {
+    justify-content: center;
+  }
+
+  .paginacao__paginas {
+    display: none;
+  }
+
+  .paginacao__compacto {
+    display: block;
+  }
+}

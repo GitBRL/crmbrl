@@ -1,0 +1,175 @@
+@use 'mixins' as m;
+@use '../secao' as s;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+@include s.acao-flutuante;
+@include s.faixa;
+
+// Um cartão por tipo de canal. O do WhatsApp (o principal) ocupa duas colunas quando cabem.
+.canais__grade {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--esp-entre-cartoes);
+  align-items: start;
+}
+
+.canais__grupo--largo {
+  @container (min-width: 46rem) {
+    grid-column: span 2;
+  }
+}
+
+.canais__esqueleto {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.canais__vazio {
+  display: grid;
+  justify-items: start;
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: var(--raio-lg);
+}
+
+.canais__vazio-texto {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.canais__lista {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Cada canal: uma linha que abre a tela dele (o link cobre a linha inteira).
+.canal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--esp-3) var(--esp-4);
+  min-height: 72px;
+  padding: var(--esp-3) var(--esp-3) var(--esp-3) var(--esp-3);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--duracao) var(--curva);
+
+  &:hover {
+    background: var(--cor-superficie-3);
+
+    .canal__seta {
+      transform: translateX(2px);
+      color: var(--cor-texto);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.canal__icone {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+}
+
+.canal__icone--vazio {
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto-suave);
+}
+
+.canal__textos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.canal__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1) var(--esp-2);
+  min-width: 0;
+}
+
+.canal__nome {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font: var(--fonte-rotulo);
+  font-size: 1rem;
+}
+
+.canal__detalhe {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.canal__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--esp-3);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+
+  span + span::before {
+    content: '·';
+    margin-right: var(--esp-3);
+  }
+}
+
+.canal__seta {
+  flex: none;
+  color: var(--cor-texto-fraco);
+  transition:
+    transform var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+}
+
+.escolha {
+  display: grid;
+}
+
+@include m.abaixo(m.$sm) {
+  .canal {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  // No celular, um dado por linha (o "·" não abre linha).
+  .canal__meta {
+    flex-direction: column;
+
+    span + span::before {
+      content: none;
+    }
+  }
+
+  .canal__seta {
+    display: none;
+  }
+}

@@ -1,0 +1,203 @@
+<app-ds-secao
+  ancora="formularios"
+  numero="12"
+  titulo="Formulários"
+  complemento="· campos e escolhas"
+>
+  <p frase>
+    Todo campo tem rótulo; a ajuda e o erro ficam embaixo, ligados ao campo para o leitor de tela. O
+    erro aparece quando a pessoa sai do campo ou envia — e a mensagem da API vai para o campo certo.
+    Funcionam com formulários reativos (<code class="ds-token">formControlName</code>) ou soltos
+    (<code class="ds-token">[(valor)]</code>).
+  </p>
+
+  <app-ds-exemplo
+    titulo="Formulário de exemplo"
+    seletor="formControlName · [erro]"
+    quando="Cadastros e edições. Envie para ver os erros; simule o erro da API para ver a mensagem do servidor no campo de e-mail."
+  >
+    <form
+      class="ds-form"
+      novalidate
+      [formGroup]="form"
+      (ngSubmit)="enviar()"
+      (reset)="erroEmail.set(null); resultado.set('')"
+    >
+      <div class="ds-form__grade">
+        <app-campo-texto rotulo="Nome" autocomplete="name" formControlName="nome" />
+        <app-campo-texto
+          rotulo="E-mail"
+          tipo="email"
+          autocomplete="email"
+          placeholder="nome@empresa.com.br"
+          formControlName="email"
+          [erro]="erroEmail()"
+          (valorChange)="erroEmail.set(null)"
+        />
+        <app-campo-texto
+          rotulo="Valor"
+          tipo="number"
+          prefixo="R$"
+          opcional
+          [passo]="0.01"
+          ajuda="Valor do negócio, em reais. Vira a soma da coluna no funil."
+          formControlName="valor"
+        />
+        <app-seletor
+          rotulo="Papel"
+          dica="Define o que a pessoa vê e pode fazer."
+          [opcoes]="papeis"
+          formControlName="papel"
+        />
+        <app-campo-data
+          rotulo="Próximo contato"
+          tipo="data-hora"
+          opcional
+          formControlName="quando"
+        />
+        <app-grupo-opcoes
+          rotulo="Tipo de atividade"
+          disposicao="pilulas"
+          [opcoes]="tiposAtividade"
+          formControlName="tipo"
+        />
+      </div>
+      <app-area-texto
+        rotulo="Observação"
+        opcional
+        [linhas]="3"
+        [maximoCaracteres]="280"
+        formControlName="observacao"
+      />
+      <app-caixa-selecao
+        rotulo="O contato aceitou receber mensagens"
+        dica="Consentimento da LGPD: sem ele, o contato não entra em disparos de marketing."
+        formControlName="aceite"
+      />
+      <div class="ds-linha">
+        <button appBotao type="submit" variante="invertido" [icone]="iconeEnviar">Enviar</button>
+        <button appBotao type="button" variante="contorno" (click)="simularErroDaApi()">
+          Simular erro da API
+        </button>
+        <button appBotao type="reset" variante="contorno">Limpar</button>
+      </div>
+      <p class="ds-nota" aria-live="polite">{{ resultado() }}</p>
+    </form>
+  </app-ds-exemplo>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Campo de texto e senha"
+      seletor="app-campo-texto · app-campo-senha"
+      quando="Texto curto, e-mail, telefone, número (com prefixo R$ ou sufixo %). A senha tem mostrar/ocultar e avisa do Caps Lock."
+    >
+      <app-campo-senha
+        rotulo="Senha"
+        dica="Mínimo de 8 caracteres."
+        autocomplete="new-password"
+        [(valor)]="senha"
+      />
+      <app-campo-texto
+        rotulo="Probabilidade"
+        tipo="number"
+        sufixo="%"
+        [minimo]="0"
+        [maximo]="100"
+      />
+      <app-campo-texto rotulo="Desabilitado" desabilitado placeholder="Não dá para editar" />
+      <app-campo-texto
+        rotulo="Com erro vindo da tela"
+        erro="Este e-mail já está em uso."
+        placeholder="maria@escola.com.br"
+      />
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Área de texto"
+      seletor="app-area-texto"
+      quando="Texto longo (motivo da perda, observações). Cresce com o texto; com limite, mostra a contagem. Monoespaçada para JSON e cabeçalhos."
+    >
+      <app-area-texto rotulo="Motivo da perda" [linhas]="3" [maximoCaracteres]="500" />
+      <app-area-texto
+        rotulo="JSON de exemplo"
+        monoespacado
+        [linhas]="4"
+        dica="Corpo que o webhook de entrada recebe."
+        [(valor)]="json"
+      />
+    </app-ds-exemplo>
+  </div>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Seletor e data"
+      seletor="app-seletor · app-campo-data"
+      quando="Escolha numa lista longa (papel, líder, etapa) e datas: os controles nativos dão a lista e o calendário do sistema, no celular também."
+    >
+      <app-seletor
+        rotulo="Líder"
+        placeholder="Sem líder"
+        permitirVazio
+        [opcoes]="papeis"
+        dica="A primeira linha pode ser escolhida: volta para nenhum."
+      />
+      <div class="ds-form__grade ds-form__grade--estreita">
+        <app-campo-data rotulo="Previsão de fechamento" />
+        <app-campo-data rotulo="Horário" tipo="hora" [passo]="900" />
+      </div>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Grupo de opções"
+      seletor="app-grupo-opcoes"
+      quando="Escolher uma entre poucas opções visíveis (até seis). Lista com descrição para decisões; pílulas para escolhas rápidas."
+    >
+      <app-grupo-opcoes rotulo="Modelo de mapeamento" [opcoes]="modelos" [(valor)]="modelo" />
+    </app-ds-exemplo>
+  </div>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Caixa de seleção"
+      seletor="app-caixa-selecao"
+      quando="Marcar itens independentes (eventos de um webhook) e concluir atividades (lg, círculo). Marcada fica invertida, com o visto."
+    >
+      <app-caixa-selecao
+        rotulo="negocio.ganho"
+        dica="Quando um negócio vai para a etapa de ganho."
+        [valor]="true"
+      />
+      <app-caixa-selecao rotulo="Selecionar todos" [(indeterminado)]="alguns" [(valor)]="todos" />
+      <div class="ds-linha">
+        <app-caixa-selecao
+          rotulo="Concluir: Ligar para Maria amanhã às 10h"
+          rotuloOculto
+          tamanho="lg"
+          forma="circulo"
+          [(valor)]="concluida"
+        />
+        <span [class.ds-riscado]="concluida()">Ligar para Maria amanhã às 10h</span>
+      </div>
+      <app-caixa-selecao rotulo="Desabilitada" desabilitado />
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Alternador"
+      seletor="app-alternador"
+      quando="Liga/desliga com efeito imediato, sem botão Salvar (participa do rodízio, passagem ativa)."
+    >
+      <app-alternador
+        rotulo="Participa do rodízio"
+        dica="Recebe leads novos na sua vez."
+        ajuda="Rodízio: os leads novos vão para cada pessoa da área, uma de cada vez."
+        [(valor)]="rodizio"
+      />
+      <app-alternador rotulo="Passagem Comercial → Customer Success" [(valor)]="passagem" />
+      <app-alternador rotulo="Desabilitado" desabilitado [valor]="true" />
+      <p class="ds-nota" aria-live="polite">
+        Rodízio {{ rodizio() ? 'ligado' : 'desligado' }} · passagem
+        {{ passagem() ? 'ativa' : 'inativa' }}
+      </p>
+    </app-ds-exemplo>
+  </div>
+</app-ds-secao>

@@ -1,0 +1,328 @@
+@use 'mixins' as m;
+
+// Atividades: cabeçalho (título em dois tons e a ação principal), a coluna principal
+// (criação rápida, filtros, abas com a agenda agrupada) e, ao lado, o resumo. A página é um
+// contêiner: as colunas seguem a largura do conteúdo (a navegação aberta ou recolhida muda).
+
+:host {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-8);
+  max-width: var(--largura-pagina, 1600px);
+}
+
+// Cabeçalho -------------------------------------------------------------------------------
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-6);
+}
+
+.cabecalho__texto {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.cabecalho__titulo {
+  font: var(--fonte-display);
+  letter-spacing: var(--tracking-display);
+}
+
+.cabecalho__frase {
+  max-width: 60ch;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-lead);
+}
+
+// Celular: a ação principal vira o botão flutuante circular (embaixo, à direita).
+.flutuante {
+  display: none;
+}
+
+@include m.abaixo(m.$sm) {
+  .cabecalho__acao {
+    display: none;
+  }
+
+  .flutuante {
+    position: fixed;
+    right: var(--esp-4);
+    bottom: calc(var(--esp-4) + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-cabecalho);
+    display: inline-grid;
+    box-shadow: var(--sombra-flutuante);
+  }
+
+  // Com a criação rápida aberta, o botão (que só leva até ela) sai do caminho dos campos.
+  :host:has(.criacao-rapida--aberta) .flutuante {
+    display: none;
+  }
+}
+
+// Grade -----------------------------------------------------------------------------------
+
+.grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--esp-entre-cartoes);
+}
+
+.principal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-6);
+  min-width: 0;
+}
+
+.lateral {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  align-items: start;
+  gap: var(--esp-entre-cartoes);
+}
+
+@container (width >= 60rem) {
+  .grade {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+
+  .lateral {
+    position: sticky;
+    top: calc(var(--casca-altura-topo) + var(--esp-4));
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// Filtros: escopo à esquerda, tipos à direita; sem espaço, um embaixo do outro.
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3) var(--esp-6);
+  min-width: 0;
+
+  > app-filtros-pilula {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+// Lista -----------------------------------------------------------------------------------
+
+.lista {
+  // O painel das abas não desenha cartão: os grupos são os cartões.
+  ::ng-deep .abas__painel {
+    display: grid;
+    gap: var(--esp-entre-cartoes);
+  }
+}
+
+.lista__carregando {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+}
+
+.grupo {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--esp-3);
+  padding: var(--esp-cartao);
+  padding-inline: calc(var(--esp-cartao) - var(--esp-2));
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.grupo--esqueleto {
+  gap: var(--esp-4);
+  padding-inline: var(--esp-cartao);
+}
+
+.esqueleto-linha {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-4);
+}
+
+.grupo__titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  padding-inline: var(--esp-2);
+  font: var(--fonte-h3);
+  letter-spacing: var(--tracking-titulo);
+  border-radius: var(--raio-sm);
+  scroll-margin-top: calc(var(--casca-altura-topo) + var(--esp-4));
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.grupo__ponto {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cor-texto-fraco);
+}
+
+.grupo--atrasadas .grupo__titulo {
+  color: var(--cor-destaque-texto);
+}
+
+.grupo__lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li + li {
+    border-top: 1px solid var(--cor-borda);
+  }
+}
+
+.grupo__mais {
+  justify-self: start;
+  margin-inline-start: var(--esp-2);
+}
+
+// Resumo ----------------------------------------------------------------------------------
+
+.resumo {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 var(--esp-4);
+  padding: 0;
+  list-style: none;
+}
+
+.resumo__linha {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--esp-3);
+  width: 100%;
+  min-height: var(--altura-md);
+  margin: 0;
+  padding: 0 var(--esp-3);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
+  text-align: start;
+}
+
+button.resumo__linha {
+  cursor: pointer;
+  transition: background-color var(--duracao) var(--curva);
+
+  &:hover {
+    background: var(--cor-vidro-forte);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.resumo__linha--vazia {
+  color: var(--cor-texto-suave);
+}
+
+.resumo__ponto {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cor-texto-fraco);
+}
+
+.resumo__total {
+  font: var(--fonte-numero-pequeno);
+  font-variant-numeric: tabular-nums;
+}
+
+// Cada grupo com a sua cor, a mesma no resumo e no título do grupo na lista: atrasadas em
+// coral; hoje e os próximos nas cores de dado, na ordem da agenda; sem data neutro;
+// concluídas, um anel menta (não se confunde com o menta dos próximos 7 dias).
+.resumo__ponto,
+.grupo__ponto {
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+[data-grupo='ATRASADAS'] {
+  .resumo__ponto,
+  .grupo__ponto {
+    background: var(--cor-destaque);
+  }
+
+  &:not(.resumo__linha--vazia) .resumo__total {
+    color: var(--cor-destaque-texto);
+  }
+}
+
+[data-grupo='HOJE'] :is(.resumo__ponto, .grupo__ponto) {
+  background: var(--dado-1);
+}
+
+[data-grupo='PROXIMOS_7_DIAS'] :is(.resumo__ponto, .grupo__ponto) {
+  background: var(--dado-2);
+}
+
+[data-grupo='MAIS_TARDE'] :is(.resumo__ponto, .grupo__ponto) {
+  background: var(--dado-3);
+}
+
+[data-grupo='CONCLUIDAS'] :is(.resumo__ponto, .grupo__ponto) {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--cor-sucesso);
+}
+
+.resumo__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  padding-top: var(--esp-4);
+  border-top: 1px solid var(--cor-borda);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+
+  svg {
+    flex: none;
+    margin-top: 1px;
+  }
+}
+
+.encaminhadas {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-4);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.encaminhadas__numero {
+  color: var(--cor-texto);
+  font: var(--fonte-numero);
+  font-size: 2.5rem;
+}
+
+@media (forced-colors: active) {
+  .grupo__ponto,
+  .resumo__ponto {
+    forced-color-adjust: none;
+    border: 1px solid CanvasText;
+  }
+}

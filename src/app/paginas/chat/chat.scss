@@ -1,0 +1,126 @@
+@use 'mixins' as m;
+
+// Página do Chat da equipe: cabeçalho e, embaixo, as duas colunas (lista de canais e canal
+// aberto) ocupando o resto da altura da tela — a página não rola, cada coluna rola por dentro.
+// A margem negativa devolve parte do respiro do pé da casca (64px) para a página caber
+// exatamente na janela, com o mesmo vão de baixo da navegação lateral (24px). Só tokens.
+
+:host {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--esp-6);
+  min-width: 0;
+  height: calc(100dvh - var(--casca-reservado) - var(--esp-4) - var(--esp-6));
+  min-height: 34rem;
+  margin-bottom: calc(var(--esp-6) - var(--esp-16));
+}
+
+router-outlet {
+  display: none;
+}
+
+// Os modais abrem na camada superior (<dialog>): fora da grade, sem criar linhas nem vãos.
+app-chat-novo-grupo,
+app-chat-nova-direta {
+  position: absolute;
+}
+
+.chat__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-4) var(--esp-6);
+}
+
+.chat__titulos {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.chat__frase {
+  max-width: 68ch;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-lead);
+
+  kbd {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.6em;
+    padding: 0 0.35em;
+    border: 1px solid var(--cor-borda-forte);
+    border-radius: var(--raio-sm);
+    background: var(--cor-superficie-2);
+    color: var(--cor-texto);
+    font: inherit;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+}
+
+.chat__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
+
+.chat__colunas {
+  display: grid;
+  grid-template-columns: minmax(17rem, 22rem) minmax(0, 1fr);
+  gap: var(--esp-entre-cartoes);
+  min-height: 0;
+}
+
+.chat__canal {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.chat__convite {
+  align-self: center;
+  padding: var(--esp-cartao);
+}
+
+// Celular: uma coluna por vez. Com um canal aberto, ele ocupa a tela (sem o cabeçalho da
+// página; a barra superior já diz "Chat da equipe" e o canal tem o "voltar").
+@include m.abaixo(m.$md) {
+  :host {
+    gap: var(--esp-4);
+    height: calc(100dvh - var(--casca-reservado) - var(--esp-2) - var(--esp-4));
+    min-height: 28rem;
+    margin-bottom: calc(var(--esp-4) - var(--esp-16));
+  }
+
+  .chat__acoes {
+    display: none;
+  }
+
+  // No celular a dica do @ e do # fica só no compositor (a frase cabe em duas linhas).
+  .chat__frase-dica {
+    display: none;
+  }
+
+  .chat__colunas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :host(:not(.chat--canal-aberto)) .chat__canal {
+    display: none;
+  }
+
+  :host(.chat--canal-aberto) {
+    grid-template-rows: minmax(0, 1fr);
+
+    .chat__cabecalho,
+    .chat__lista {
+      display: none;
+    }
+  }
+}

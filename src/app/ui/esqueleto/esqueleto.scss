@@ -1,0 +1,64 @@
+:host {
+  display: grid;
+  gap: var(--esp-2);
+  width: var(--_largura, 100%);
+  max-width: 100%;
+}
+
+.esqueleto__forma {
+  display: block;
+  height: 0.875em;
+  border-radius: var(--raio-pilula);
+  // Base na superfície-3 e um brilho levemente mais claro que atravessa a forma.
+  background: linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in srgb, var(--cor-texto) 7%, transparent) 50%,
+      transparent 70%
+    )
+    var(--cor-superficie-3);
+  background-size: 250% 100%;
+  background-position: 120% 0;
+  // Três passagens (~4,5 s) e para: nenhuma animação automática passa de 5 s (§8).
+  animation: brilho 1.5s var(--curva) 3;
+}
+
+// Texto: altura de uma linha do corpo (15px), com respiro como entre linhas.
+:host(.esqueleto--texto) {
+  padding-block: 0.25em;
+}
+
+:host(.esqueleto--bloco) .esqueleto__forma {
+  height: var(--_altura, 96px);
+  border-radius: var(--raio-lg);
+}
+
+:host(.esqueleto--pilula) {
+  width: var(--_largura, 8rem);
+}
+
+:host(.esqueleto--pilula) .esqueleto__forma {
+  height: var(--_altura, var(--altura-md));
+}
+
+:host(.esqueleto--circulo) {
+  width: var(--_largura, var(--altura-md));
+}
+
+:host(.esqueleto--circulo) .esqueleto__forma {
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+@keyframes brilho {
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto__forma {
+    animation: none;
+  }
+}

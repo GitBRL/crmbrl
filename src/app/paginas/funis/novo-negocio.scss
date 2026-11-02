@@ -1,0 +1,91 @@
+@use 'mixins' as m;
+
+// Modal "Novo negócio": campos em uma coluna, com pares lado a lado quando cabem. Só tokens.
+
+.form {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.form__linha {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--esp-5) var(--esp-4);
+  align-items: start;
+}
+
+.form__erro {
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-erro);
+  border-radius: var(--raio-lg);
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+}
+
+.form__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-3);
+}
+
+// Contato novo: um bloco interno, para ficar claro que é outra coisa sendo criada.
+.novo-contato {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+  margin: 0;
+  padding: var(--esp-5);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+}
+
+.novo-contato__titulo {
+  float: left;
+  width: 100%;
+  padding: 0;
+  font: var(--fonte-h3);
+}
+
+.novo-contato__regra {
+  margin-top: calc(var(--esp-2) * -1);
+  padding-inline-start: var(--esp-4);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.novo-contato__voltar {
+  justify-self: start;
+}
+
+// Aviso de duplicado (R4.2): atenção, com a ação de usar o existente.
+.duplicado {
+  display: grid;
+  gap: var(--esp-3);
+  justify-items: start;
+  padding: var(--esp-4);
+  border: 1px solid var(--cor-aviso);
+  border-radius: var(--raio-lg);
+  background: color-mix(in srgb, var(--cor-marca) 10%, transparent);
+}
+
+.duplicado__texto {
+  color: var(--cor-texto);
+  font: var(--fonte-corpo-sm);
+
+  strong {
+    font-weight: 500;
+  }
+}
+
+.duplicado__detalhe {
+  color: var(--cor-texto-suave);
+}
+
+@include m.abaixo(m.$sm) {
+  .novo-contato {
+    padding: var(--esp-4);
+  }
+}

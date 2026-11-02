@@ -1,0 +1,118 @@
+@use 'mixins' as m;
+@use '../secao' as s;
+@use '../canais/comum/tela-canal' as t;
+
+:host {
+  display: block;
+}
+
+@include s.faixa;
+@include t.formulario;
+
+.horarios {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-5);
+  min-width: 0;
+}
+
+.horarios__lista {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Cada canal num cartão em linha: ícone, situação e resumo, e o botão à direita.
+.canal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--esp-4);
+  padding: var(--esp-4) var(--esp-5);
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: var(--esp-4);
+
+    > button {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
+  }
+}
+
+.canal--inativo .canal__icone {
+  opacity: 0.55;
+}
+
+.canal__icone {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+}
+
+.canal__textos {
+  display: grid;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.canal__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1) var(--esp-2);
+}
+
+.canal__nome {
+  font: var(--fonte-rotulo);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.canal__tipo {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda-lg);
+}
+
+.canal__horario {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+  font-variant-numeric: tabular-nums;
+
+  svg {
+    flex: none;
+  }
+}
+
+.canal__fatos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+
+  li + li::before {
+    content: '·';
+    margin-right: var(--esp-3);
+  }
+}
+
+.canal__fato--sim {
+  color: var(--cor-texto-suave);
+}

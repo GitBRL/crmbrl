@@ -1,0 +1,93 @@
+// Classes para o conteúdo que as telas de acesso projetam na moldura (formulário, ações,
+// links, notas, e-mail da conta e listas). Sem encapsulamento, como a moldura: valem só
+// dentro de `app-moldura-acesso`.
+
+app-moldura-acesso {
+  .acesso-formulario,
+  .acesso-bloco {
+    display: grid;
+    gap: var(--esp-5);
+  }
+
+  .acesso-acoes {
+    display: grid;
+    gap: var(--esp-3);
+    margin-top: var(--esp-2);
+
+    > :is(button, a)[appBotao] {
+      width: 100%;
+    }
+  }
+
+  .acesso-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--esp-1) var(--esp-4);
+  }
+
+  // Link de texto com alvo de 44px (a área de toque cresce, o desenho não).
+  .acesso-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--altura-md);
+    padding: 0 var(--esp-1);
+    border: 0;
+    border-radius: var(--raio-sm);
+    background: none;
+    color: var(--cor-texto);
+    font: var(--fonte-rotulo);
+    text-decoration: underline;
+    text-decoration-color: var(--cor-borda-forte);
+    text-underline-offset: 0.3em;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration-color: currentColor;
+    }
+  }
+
+  .acesso-nota {
+    margin: 0;
+    color: var(--cor-texto-suave);
+    font: var(--fonte-legenda-lg);
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  // E-mail da conta (definir/redefinir senha): pílula neutra, quebra onde precisar.
+  .acesso-email {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-1) var(--esp-2);
+    padding: var(--esp-3) var(--esp-4);
+    border-radius: var(--raio-lg);
+    background: var(--cor-superficie-2);
+    font: var(--fonte-corpo-sm);
+
+    strong {
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .acesso-email__rotulo {
+    color: var(--cor-texto-suave);
+  }
+
+  .acesso-lista {
+    display: grid;
+    gap: var(--esp-2);
+    margin: 0;
+    padding-left: var(--esp-5);
+    color: var(--cor-texto-suave);
+    font: var(--fonte-corpo-sm);
+
+    li::marker {
+      color: var(--cor-texto-fraco);
+    }
+  }
+}

@@ -1,0 +1,39 @@
+// Pontos de quebra e mixins compartilhados (DESIGN-SYSTEM.md §2.9).
+// Não gera CSS: use nos componentes com `@use 'mixins' as m;`
+// (o caminho src/styles está em stylePreprocessorOptions.includePaths no angular.json).
+
+$sm: 600px;
+$md: 900px;
+$lg: 1200px;
+$xl: 1440px;
+
+// Abaixo de um ponto de quebra (exclusivo): `@include m.abaixo(m.$md) { … }` → < 900px.
+@mixin abaixo($ponto) {
+  @media (max-width: ($ponto - 0.02px)) {
+    @content;
+  }
+}
+
+// A partir de um ponto de quebra (inclusivo): `@include m.acima(m.$lg) { … }` → ≥ 1200px.
+@mixin acima($ponto) {
+  @media (min-width: $ponto) {
+    @content;
+  }
+}
+
+// Só em telas de toque (dedo), onde os alvos precisam de 44px.
+@mixin toque {
+  @media (pointer: coarse) {
+    @content;
+  }
+}
+
+// Amplia a área clicável de um controle menor que 44px sem mudar o desenho.
+// O elemento precisa de `position: relative`.
+@mixin area-toque($vertical: 4px, $horizontal: 4px) {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * #{$vertical}) calc(-1 * #{$horizontal});
+  }
+}

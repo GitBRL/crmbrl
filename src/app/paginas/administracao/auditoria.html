@@ -1,0 +1,443 @@
+<app-cartao
+  titulo="Eventos registrados"
+  dica="Tudo o que muda dados no CRM fica registrado aqui: quem fez, o quê, quando e o antes e depois de cada campo. Ninguém consegue alterar nem apagar estes registros. Senhas e segredos nunca aparecem. A busca procura no resumo de cada evento: nomes de pessoas, negócios, e-mails."
+>
+  <div class="filtros">
+    <div class="filtros__topo">
+      <app-campo-busca
+        class="filtros__busca"
+        rotulo="Buscar na auditoria"
+        placeholder="Buscar no resumo…"
+        [valor]="texto()"
+        (valorChange)="aoDigitar($event)"
+        (buscar)="buscar($event)"
+      />
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        class="filtros__alternar"
+        aria-controls="auditoria-mais-filtros"
+        [icone]="iconeFiltros"
+        [attr.aria-expanded]="filtrosAbertos()"
+        (click)="alternarFiltros()"
+      >
+        Filtros
+        @if (quantosFiltros()) {
+          <span class="contador-filtros">{{ quantosFiltros() }}</span>
+        }
+      </button>
+    </div>
+    <div
+      class="filtros__mais"
+      id="auditoria-mais-filtros"
+      [class.filtros__mais--aberto]="filtrosAbertos()"
+    >
+      <div class="filtros__linha">
+        <span class="filtros__rotulo">
+          Quem fez
+          <app-dica
+            rotulo="O que é “Quem fez”?"
+            texto="Pessoa: alguém do time. Sistema: tarefas automáticas. Webhook: leads que chegaram de fora. Automação: passagens entre funis. Sem nada marcado, mostra todos."
+          />
+        </span>
+        <app-filtros-pilula
+          rotulo="Quem fez"
+          multipla
+          [opcoes]="opcoesTipoAtor()"
+          [selecionados]="tiposAtor()"
+          (selecionadosChange)="tiposAtor.set($event)"
+        />
+      </div>
+      <div class="filtros__grade">
+        <app-campo-data
+          rotulo="De"
+          [valor]="de()"
+          [maximo]="ate()"
+          (valorChange)="de.set($event)"
+        />
+        <app-campo-data
+          rotulo="Até"
+          [valor]="ate()"
+          [minimo]="de()"
+          [erro]="problemaPeriodo()"
+          (valorChange)="ate.set($event)"
+        />
+        <app-seletor
+          rotulo="Pessoa"
+          permitirVazio
+          placeholder="Todas as pessoas"
+          [opcoes]="opcoesPessoa()"
+          [valor]="usuarioId()"
+          (valorChange)="usuarioId.set($event)"
+        />
+        <app-seletor
+          rotulo="Ação"
+          permitirVazio
+          placeholder="Todas as ações"
+          [opcoes]="opcoesAcao()"
+          [valor]="acao()"
+          (valorChange)="acao.set($event)"
+        />
+        <app-seletor
+          rotulo="Entidade"
+          permitirVazio
+          placeholder="Todas"
+          [opcoes]="opcoesEntidade()"
+          [valor]="entidade()"
+          (valorChange)="entidade.set($event)"
+        />
+      </div>
+    </div>
+    @if (requisicaoId() || temFiltro()) {
+      <div class="filtros__ativos">
+        @if (requisicaoId(); as id) {
+          <span class="filtros__requisicao">
+            Só a requisição <code>{{ id }}</code>
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              [icone]="iconeLimpar"
+              (click)="limparRequisicao()"
+            >
+              Tirar
+            </button>
+          </span>
+        }
+        @if (temFiltro()) {
+          <button appBotao type="button" tamanho="sm" variante="contorno" (click)="limparFiltros()">
+            Limpar filtros
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (erro(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos carregar a auditoria"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao type="button" variante="invertido" (click)="recarregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <app-tabela
+      rotulo="Eventos de auditoria"
+      densa
+      clicavel
+      colunaPrincipal="resumo"
+      [colunas]="colunas"
+      [linhas]="itens()"
+      [carregando]="carregando()"
+      [linhasEsqueleto]="8"
+      (abrir)="abrir($event)"
+    >
+      <ng-template appCelula="quando" [appCelulaDe]="itens()" let-e>
+        <time
+          class="consulta__quando"
+          [attr.datetime]="e.criadoEm"
+          [title]="dataHora(e.criadoEm)"
+          >{{ quando(e) }}</time
+        >
+      </ng-template>
+      <ng-template appCelula="ator" [appCelulaDe]="itens()" let-e>
+        <span class="consulta__ator">
+          @if (iconeDoAtor(e.tipoAtor); as icone) {
+            <span class="consulta__ator-icone" aria-hidden="true"
+              ><svg [lucideIcon]="icone" [size]="16"
+            /></span>
+          } @else {
+            <app-avatar tamanho="sm" decorativo [nome]="nomeDoAtor(e)" />
+          }
+          <span class="consulta__ator-nome">
+            {{ nomeDoAtor(e) }}
+            @if (e.tipoAtor !== 'USUARIO') {
+              <span class="consulta__fraco">{{ rotuloTipoAtor[e.tipoAtor] }}</span>
+            }
+          </span>
+        </span>
+      </ng-template>
+      <ng-template appCelula="acao" [appCelulaDe]="itens()" let-e>
+        {{ acaoLegivel(e.acao) }}
+      </ng-template>
+      <ng-template appCelula="resumo" [appCelulaDe]="itens()" let-e>
+        <span class="consulta__resumo">{{ e.resumo }}</span>
+      </ng-template>
+      <ng-template appCelula="campos" [appCelulaDe]="itens()" let-e>
+        @if (e.quantidadeAlteracoes) {
+          <span class="numeros">{{ e.quantidadeAlteracoes }}</span>
+        } @else {
+          <span class="consulta__fraco">—</span>
+        }
+      </ng-template>
+
+      @if (temFiltro()) {
+        <app-estado-vazio
+          tabela-vazio
+          compacto
+          variante="busca"
+          titulo="Nenhum evento com esses filtros"
+          texto="Tire algum filtro ou aumente o período."
+        >
+          <button appBotao type="button" tamanho="sm" variante="contorno" (click)="limparFiltros()">
+            Limpar filtros
+          </button>
+        </app-estado-vazio>
+      } @else {
+        <app-estado-vazio
+          tabela-vazio
+          compacto
+          titulo="Nenhum evento registrado ainda"
+          texto="Quando alguém mudar algo no CRM, o registro aparece aqui."
+        />
+      }
+    </app-tabela>
+
+    @if (itens().length) {
+      <div class="consulta__rodape">
+        <p class="consulta__contagem" role="status">{{ contagem() }}</p>
+        @if (erroMais(); as falhaMais) {
+          <p class="consulta__erro" role="alert">{{ falhaMais.mensagem }}</p>
+        }
+        @if (proximoCursor()) {
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            [carregando]="carregandoMais()"
+            (click)="carregarMais()"
+          >
+            Carregar mais
+          </button>
+        }
+      </div>
+    }
+  }
+</app-cartao>
+
+<app-painel-lateral
+  largura="lg"
+  [aberto]="painelAberto()"
+  [titulo]="tituloPainel()"
+  [complemento]="complementoPainel()"
+  [descricao]="descricaoPainel()"
+  (fechado)="fecharPainel()"
+>
+  @if (detalhe(); as d) {
+    <div class="detalhe">
+      <dl class="detalhe__fatos">
+        <div>
+          <dt>Quem</dt>
+          <dd>
+            {{ d.usuario?.nome ?? d.atorDescricao ?? rotuloTipoAtor[d.tipoAtor] }}
+            @if (d.usuario && !d.usuario.ativo) {
+              <app-selo tamanho="sm">desligado</app-selo>
+            }
+            @if (d.tipoAtor !== 'USUARIO') {
+              <app-selo tamanho="sm" variante="contorno">{{ rotuloTipoAtor[d.tipoAtor] }}</app-selo>
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>Quando</dt>
+          <dd>{{ dataHora(d.criadoEm) }}</dd>
+        </div>
+        <div>
+          <dt>Entidade</dt>
+          <dd>
+            {{ entidadeLegivel(d.entidade) }}
+            @if (linkDaEntidade(); as link) {
+              <a
+                class="detalhe__link"
+                [routerLink]="link.comandos"
+                [queryParams]="link.query ?? null"
+                >{{ link.rotulo }}</a
+              >
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>Ação</dt>
+          <dd>
+            {{ acaoLegivel(d.acao) }} <code class="detalhe__codigo-acao">{{ d.acao }}</code>
+          </dd>
+        </div>
+      </dl>
+
+      <section class="detalhe__secao" aria-labelledby="auditoria-mudancas">
+        <h3 class="detalhe__subtitulo" id="auditoria-mudancas">O que mudou</h3>
+        @if (diff().length) {
+          <div class="diff__rolagem">
+            <table class="diff">
+              <caption class="visualmente-oculto">
+                Campos alterados: antes e depois
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Campo</th>
+                  <th scope="col">Antes</th>
+                  <th scope="col">Depois</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (linha of diff(); track $index) {
+                  <tr>
+                    <th scope="row">{{ linha.campo }}</th>
+                    <td>
+                      <span
+                        class="diff__antes"
+                        [class.diff__vazio]="linha.antes.vazio"
+                        [class.diff__id]="linha.antes.id"
+                        [attr.title]="linha.antes.original ?? null"
+                        >{{ linha.antes.texto }}</span
+                      >
+                    </td>
+                    <td>
+                      <span
+                        class="diff__depois"
+                        [class.diff__vazio]="linha.depois.vazio"
+                        [class.diff__id]="linha.depois.id"
+                        [attr.title]="linha.depois.original ?? null"
+                        >{{ linha.depois.texto }}</span
+                      >
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="detalhe__fraco">Este evento não altera campos: ele registra o que aconteceu.</p>
+        }
+      </section>
+
+      @if (dadosExtras(); as dados) {
+        <section class="detalhe__secao" aria-labelledby="auditoria-dados">
+          <h3 class="detalhe__subtitulo" id="auditoria-dados">Dados registrados</h3>
+          <dl class="detalhe__dados">
+            @for (dado of dadosLegiveis(); track dado.campo) {
+              <div>
+                <dt>{{ dado.campo }}</dt>
+                <dd
+                  [class.diff__vazio]="dado.valor.vazio"
+                  [class.diff__id]="dado.valor.id"
+                  [attr.title]="dado.valor.original ?? null"
+                >
+                  {{ dado.valor.texto }}
+                </dd>
+              </div>
+            }
+          </dl>
+          <details class="detalhe__tecnico">
+            <summary>Ver dados técnicos</summary>
+            <app-bloco-codigo rotulo="Dados registrados (JSON)" oQue="Dados" [codigo]="dados" />
+          </details>
+        </section>
+      }
+
+      @if (d.relacionados.length) {
+        <section class="detalhe__secao" aria-labelledby="auditoria-relacionados">
+          <h3 class="detalhe__subtitulo" id="auditoria-relacionados">Ligado a</h3>
+          <ul class="detalhe__relacionados">
+            @for (item of relacionados(); track item.entidade + item.id) {
+              <li>
+                <span class="detalhe__entidade">{{ item.entidade }}</span>
+                @if (item.nome) {
+                  <span class="detalhe__nome" [title]="item.id">{{ item.nome }}</span>
+                } @else {
+                  <code>{{ item.id }}</code>
+                }
+                @if (item.link; as link) {
+                  <a
+                    class="detalhe__link"
+                    [routerLink]="link.comandos"
+                    [queryParams]="link.query ?? null"
+                    >{{ link.rotulo }}</a
+                  >
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <section class="detalhe__secao" aria-labelledby="auditoria-tecnico">
+        <h3 class="detalhe__subtitulo" id="auditoria-tecnico">Detalhes técnicos</h3>
+        <dl class="detalhe__dados">
+          <div>
+            <dt>Id da requisição</dt>
+            <dd>
+              @if (d.requisicaoId; as requisicao) {
+                <code>{{ requisicao }}</code>
+                <span class="detalhe__acoes-linha">
+                  <app-botao-copiar [texto]="requisicao" oQue="Id da requisição" />
+                  <button
+                    appBotao
+                    type="button"
+                    tamanho="sm"
+                    variante="contorno"
+                    (click)="filtrarPorRequisicao(requisicao)"
+                  >
+                    Ver eventos desta requisição
+                  </button>
+                  @if (podeVerLogs()) {
+                    <a
+                      appBotao
+                      tamanho="sm"
+                      variante="contorno"
+                      routerLink="/administracao/logs"
+                      [queryParams]="{ requisicao: requisicao }"
+                      >Ver nos logs técnicos</a
+                    >
+                  }
+                </span>
+              } @else {
+                <span class="detalhe__fraco">—</span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>IP</dt>
+            <dd>{{ ip(d.ip) }}</dd>
+          </div>
+          <div>
+            <dt>Navegador</dt>
+            <dd class="detalhe__agente">{{ d.userAgent ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Id do evento</dt>
+            <dd>
+              <code>{{ d.id }}</code>
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  } @else if (erroDetalhe(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      manterAcoes
+      [falha]="falha"
+      compacto
+      [titulo]="falha.ehNaoEncontrado ? 'Evento não encontrado' : 'Não conseguimos abrir o evento'"
+      [texto]="falha.resumo"
+      [codigo]="falha.ehFalhaDoServidor ? falha.requisicaoId : null"
+    >
+      <button appBotao type="button" variante="contorno" (click)="fecharPainel()">Fechar</button>
+    </app-estado-vazio>
+  } @else {
+    <div class="detalhe" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando…</p>
+      <app-esqueleto forma="bloco" altura="6rem" />
+      <app-esqueleto forma="texto" [linhas]="4" />
+      <app-esqueleto forma="bloco" altura="8rem" />
+    </div>
+  }
+</app-painel-lateral>

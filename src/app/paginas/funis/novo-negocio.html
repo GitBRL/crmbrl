@@ -1,0 +1,151 @@
+<app-modal [(aberto)]="aberto" titulo="Novo negócio" [complemento]="'· ' + funil().nome">
+  <form id="form-novo-negocio" class="form" novalidate (submit)="$event.preventDefault(); salvar()">
+    @if (erroGeral(); as erro) {
+      <p class="form__erro" role="alert">{{ erro.mensagem }}</p>
+    }
+
+    @if (!criandoContato()) {
+      <app-busca-entidade
+        #buscaContato
+        rotulo="Contato"
+        placeholder="Nome, e-mail ou telefone…"
+        nomeDoItem="contato"
+        obrigatorio
+        ajuda="Procure pelo nome, e-mail ou telefone. Se a pessoa ainda não está no CRM, crie o contato aqui mesmo: o CRM avisa se já existir alguém com o mesmo e-mail ou telefone."
+        [buscar]="buscarContatos"
+        [rotuloDe]="nomeDoContato"
+        [detalheDe]="detalheDoContato"
+        [textoCriar]="textoCriarContato"
+        [erro]="erroContato()"
+        [(valor)]="contato"
+        (criar)="comecarContato($event)"
+      />
+    } @else {
+      <fieldset class="novo-contato">
+        <legend class="novo-contato__titulo">Novo contato</legend>
+        <app-campo-texto
+          #campoNome
+          rotulo="Nome"
+          autocomplete="off"
+          obrigatorio
+          [erro]="erroNome()"
+          [(valor)]="novoNome"
+        />
+        <div class="form__linha">
+          <app-campo-texto
+            rotulo="E-mail"
+            tipo="email"
+            autocomplete="off"
+            [erro]="erroEmail()"
+            [(valor)]="novoEmail"
+            (focusout)="conferirDuplicado()"
+          />
+          <app-campo-texto
+            rotulo="Telefone"
+            tipo="tel"
+            teclado="tel"
+            autocomplete="off"
+            dica="Com DDD."
+            [erro]="erroTelefone()"
+            [(valor)]="novoTelefone"
+            (focusout)="conferirDuplicado()"
+          />
+        </div>
+        <p class="novo-contato__regra">Informe o e-mail, o telefone ou os dois.</p>
+
+        @if (duplicado(); as existente) {
+          <div class="duplicado" role="alert">
+            <p class="duplicado__texto">
+              <strong>Já existe um contato com este e-mail ou telefone:</strong>
+              {{ existente.nome }}<span class="duplicado__detalhe">{{ detalheDoDuplicado() }}</span
+              >. Use o contato existente para não duplicar.
+            </p>
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="invertido"
+              (click)="usarDuplicado()"
+            >
+              Usar {{ existente.nome }}
+            </button>
+          </div>
+        }
+
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="contorno"
+          class="novo-contato__voltar"
+          (click)="desistirDoContato()"
+        >
+          Buscar um contato existente
+        </button>
+      </fieldset>
+    }
+
+    <app-busca-entidade
+      rotulo="Empresa"
+      placeholder="Nome ou CNPJ…"
+      nomeDoItem="empresa"
+      opcional
+      [buscar]="buscarEmpresas"
+      [rotuloDe]="nomeDaEmpresa"
+      [detalheDe]="detalheDaEmpresa"
+      [textoCriar]="textoCriarEmpresa"
+      [(valor)]="empresa"
+      (criar)="escolherEmpresaNova($event)"
+    />
+
+    <app-campo-texto
+      rotulo="Título"
+      [placeholder]="tituloSugerido() || 'Ex.: ACME — plano anual'"
+      dica="Sugerido a partir do contato e da empresa; mude se quiser."
+      [maximoCaracteres]="200"
+      [valor]="tituloEditado() ? titulo() : tituloSugerido()"
+      (valorChange)="editarTitulo($event)"
+    />
+
+    <div class="form__linha">
+      <app-campo-texto
+        rotulo="Valor"
+        tipo="number"
+        prefixo="R$"
+        opcional
+        [passo]="0.01"
+        [minimo]="0"
+        [erro]="erroValor()"
+        [(valor)]="valor"
+      />
+      <app-seletor
+        rotulo="Etapa"
+        ajuda="O negócio entra na etapa escolhida. Ganho e perda ficam para depois, no quadro."
+        [opcoes]="opcoesEtapa()"
+        [(valor)]="etapaId"
+      />
+    </div>
+
+    <app-seletor
+      rotulo="Responsável"
+      placeholder="Sem responsável"
+      permitirVazio
+      ajuda="Quem cuida do negócio. Só aparece quem é desta área, o C-level e o Admin. Sem responsável, qualquer pessoa da área pode assumir."
+      [opcoes]="opcoesResponsavel()"
+      [(valor)]="responsavelId"
+    />
+  </form>
+
+  <div modal-rodape class="form__acoes">
+    <button appBotao type="button" variante="contorno" (click)="aberto.set(false)">Cancelar</button>
+    <button
+      appBotao
+      type="submit"
+      form="form-novo-negocio"
+      variante="invertido"
+      [carregando]="enviando()"
+    >
+      Criar negócio
+    </button>
+  </div>
+</app-modal>

@@ -1,0 +1,117 @@
+@let m = mensagem();
+@if (direcao() === 'SISTEMA') {
+  <p class="bolha-sistema">
+    <span [textContent]="m.texto || ''"></span>
+    <time class="bolha-sistema__hora" [attr.datetime]="iso()" [textContent]="hora()"></time>
+  </p>
+} @else {
+  <div class="bolha__linha">
+    @if (mostrarAvatar()) {
+      <app-avatar
+        class="bolha__avatar"
+        tamanho="sm"
+        decorativo
+        [nome]="autor() ?? 'Contato'"
+        [foto]="m.autor?.foto ?? null"
+      />
+    }
+    <div
+      class="bolha"
+      [class.bolha--midia]="arranjo() === 'midia'"
+      [class.bolha--linha]="arranjo() === 'linha'"
+      [class.bolha--figurinha]="figurinha()"
+    >
+      <span class="visualmente-oculto" [textContent]="prefixoFalado()"></span>
+      @if (direcao() === 'INTERNA') {
+        <p class="bolha__nota" aria-hidden="true">
+          <svg [lucideIcon]="icones.nota" [size]="14" />
+          <span [textContent]="autor() ? 'Nota interna · ' + autor() : 'Nota interna'"></span>
+        </p>
+      } @else if (mostrarNome()) {
+        <p class="bolha__autor" aria-hidden="true" [textContent]="autor()"></p>
+      }
+
+      @if (m.respondeA; as citada) {
+        <blockquote class="bolha__citacao">
+          @if (citada.autor) {
+            <span class="bolha__citacao-autor" [textContent]="citada.autor"></span>
+          }
+          <span
+            class="bolha__citacao-texto"
+            [textContent]="citada.texto || (citada.tipo ? rotuloTipoCitado(citada.tipo) : '')"
+          ></span>
+        </blockquote>
+      }
+
+      @if (m.excluida) {
+        <p class="bolha__excluida">Mensagem apagada</p>
+      } @else {
+        @if (m.anexo; as anexo) {
+          <app-previa-anexo class="bolha__anexo" [anexo]="anexo" [rotulo]="rotuloAnexo()" />
+        }
+        @if (rotuloTipo(); as tipo) {
+          <p class="bolha__tipo" [textContent]="tipo"></p>
+        }
+        @if (arranjo() === 'texto') {
+          <p class="bolha__texto">
+            @for (trecho of trechos(); track $index) {
+              @if (!trecho.link) {
+                <span [textContent]="trecho.texto"></span>
+              } @else if (trecho.externo) {
+                <a
+                  class="bolha__link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  [attr.href]="hrefDoTrecho(trecho)"
+                  [textContent]="trecho.texto"
+                ></a>
+              } @else {
+                <a
+                  class="bolha__link"
+                  [class.bolha__link--mencao]="trecho.tipo === 'mencao'"
+                  [routerLink]="rotaDoTrecho(trecho)"
+                  [textContent]="trecho.texto"
+                ></a>
+              }
+            }
+            <span
+              class="bolha__espaco"
+              aria-hidden="true"
+              [class.bolha__espaco--status]="direcao() === 'SAIDA' && m.status"
+              [textContent]="(m.editada ? 'editada ' : '') + hora()"
+            ></span>
+          </p>
+        }
+      }
+
+      <span class="bolha__meta">
+        @if (m.editada && !m.excluida) {
+          <span class="bolha__editada">editada</span>
+        }
+        <time [attr.datetime]="iso()" [textContent]="hora()"></time>
+        @if (direcao() === 'SAIDA' && m.status) {
+          <app-status-entrega [status]="m.status" />
+        }
+      </span>
+    </div>
+  </div>
+
+  @if (direcao() === 'SAIDA' && m.status === 'FALHOU') {
+    <div class="bolha__falha">
+      <p class="bolha__falha-motivo">
+        <svg [lucideIcon]="icones.alerta" [size]="16" aria-hidden="true" />
+        <span [textContent]="m.erro || 'Não foi possível enviar.'"></span>
+      </p>
+      <button
+        appBotao
+        type="button"
+        tamanho="sm"
+        variante="contorno"
+        [icone]="icones.tentar"
+        (click)="tentarDeNovo.emit(m)"
+      >
+        Tentar de novo
+      </button>
+    </div>
+  }
+}

@@ -1,0 +1,143 @@
+<header class="cabecalho">
+  <div class="cabecalho__texto">
+    <h1 class="cabecalho__titulo">
+      Visão geral&nbsp;<span class="tom-fraco">· </span
+      ><span class="tom-fraco sem-quebra">{{ mesAtual }}</span>
+    </h1>
+    <p class="cabecalho__frase">Da captação do lead ao sucesso do cliente, em um só lugar.</p>
+  </div>
+
+  <div class="cabecalho__lado">
+    <div class="cabecalho__acoes">
+      <div class="cabecalho__periodo">
+        <app-abas
+          #seletorPeriodo
+          rotulo="Período dos dados"
+          modo="opcoes"
+          tamanho="sm"
+          [abas]="periodos"
+          [(selecionada)]="periodo"
+        />
+        <span class="cabecalho__intervalo" [id]="idIntervalo">{{ intervalo() }}</span>
+      </div>
+      <div class="cabecalho__botoes">
+        @if (equipe().length > 1) {
+          <app-pilha-avatares [rotulo]="rotuloEquipe()" [pessoas]="equipe()" />
+        }
+        <!-- A partir de 600px: pílulas com o rótulo. -->
+        <button
+          appBotao
+          type="button"
+          class="cabecalho__pilula"
+          semCirculo
+          [icone]="iconeCompartilhar()"
+          (click)="compartilhar()"
+        >
+          {{ rotuloCompartilhar() }}
+        </button>
+        @if (perfil.ehAdmin()) {
+          <button
+            appBotao
+            type="button"
+            class="cabecalho__pilula"
+            variante="marca"
+            [icone]="icones.ia"
+            (click)="analiseAberta.set(true)"
+          >
+            Analisar com IA
+          </button>
+        }
+        <!-- Celular: botões-ícone na linha da equipe (o cabeçalho cabe na primeira tela). -->
+        <span class="cabecalho__icones">
+          <button
+            appBotaoIcone
+            type="button"
+            rotulo="Compartilhar"
+            [icone]="iconeCompartilhar()"
+            (click)="compartilhar()"
+          ></button>
+          @if (perfil.ehAdmin()) {
+            <button
+              appBotaoIcone
+              type="button"
+              variante="marca"
+              rotulo="Analisar com IA"
+              [icone]="icones.ia"
+              (click)="analiseAberta.set(true)"
+            ></button>
+          }
+        </span>
+      </div>
+    </div>
+    <p
+      class="cabecalho__retorno"
+      aria-live="polite"
+      [class.cabecalho__retorno--visivel]="avisoCompartilhamento()"
+    >
+      {{ avisoCompartilhamento() }}
+    </p>
+  </div>
+</header>
+
+<div class="grade">
+  <app-abas
+    class="grade__palco"
+    rotulo="Visões do painel"
+    variante="entalhe"
+    [abas]="abas()"
+    [(selecionada)]="aba"
+  >
+    <div class="palco">
+      @switch (abaVisivel()) {
+        @case ('atendimento') {
+          <app-inicio-atendimento
+            [resposta]="bi()?.atendimento ?? null"
+            [estado]="estadoBiAtendimento()"
+            [erro]="erroBi()"
+            [periodo]="dados().periodo"
+            (recarregar)="carregarBi()"
+          />
+        }
+        @case ('equipe') {
+          <app-inicio-equipe
+            [resposta]="bi()?.comercial ?? null"
+            [estado]="estadoBiComercial()"
+            [erro]="erroBi()"
+            [periodo]="dados().periodo"
+            (recarregar)="carregarBi()"
+          />
+        }
+        @default {
+          <app-inicio-jornada
+            [jornada]="jornada()"
+            [estado]="estadoJornada()"
+            [erro]="erroJornada()"
+            [periodo]="dados().periodo"
+            (recarregar)="carregarJornada()"
+          />
+        }
+      }
+    </div>
+  </app-abas>
+
+  <app-inicio-indicadores
+    class="grade__indicadores"
+    [dados]="dados()"
+    [reais]="indicadoresReais()"
+    [bi]="bi()"
+    [estado]="estadoJornada()"
+  />
+
+  <div class="grade__lateral">
+    <app-inicio-atividades />
+    <app-inicio-status />
+  </div>
+</div>
+
+@if (perfil.ehAdmin()) {
+  <app-analise-ia
+    [(aberto)]="analiseAberta"
+    [painel]="painelAnalise()"
+    [filtros]="filtrosAnalise()"
+  />
+}

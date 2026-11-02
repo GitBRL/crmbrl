@@ -1,0 +1,285 @@
+@use 'mixins' as m;
+
+// Cartão do negócio no kanban. O elemento do componente é o item arrastável do CDK: as classes
+// `cdk-drag-preview` (a cópia que segue o ponteiro, no <body>) e `cdk-drag-placeholder` (o
+// lugar onde ele vai cair) chegam nele. Só tokens.
+
+:host {
+  display: block;
+  border-radius: var(--raio-lg);
+}
+
+.cartao {
+  position: relative;
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-3) var(--esp-3) var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+  box-shadow: var(--sombra-cartao);
+  transition:
+    border-color var(--duracao) var(--curva),
+    background-color var(--duracao) var(--curva);
+
+  &:hover {
+    border-color: var(--cor-borda-forte);
+  }
+}
+
+// Parado: uma borda coral à esquerda, além do selo com o texto (nada depende só da cor).
+.cartao--parado {
+  border-inline-start: 3px solid var(--cor-destaque);
+  padding-inline-start: calc(var(--esp-4) - 2px);
+}
+
+// Pego pelo teclado: o mesmo "arrastando" do chip (vidro tingido de coral, borda coral, sombra).
+.cartao--pego {
+  border-color: var(--cor-destaque);
+  background: color-mix(in srgb, var(--cor-destaque) 14%, var(--cor-superficie-2));
+  box-shadow: var(--sombra-flutuante);
+}
+
+.cartao__topo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+}
+
+// O título é o link do cartão inteiro: o ::after estica a área clicável sobre o cartão; os
+// botões ficam por cima (z-index).
+.cartao__titulo {
+  flex: 1;
+  min-width: 0;
+  padding-top: var(--esp-1);
+  color: var(--cor-texto);
+  font: 500 0.9375rem / 1.35 var(--familia);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  &:focus-visible {
+    outline: none;
+
+    &::after {
+      outline: 2px solid var(--cor-foco);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.cartao__acoes {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--esp-1);
+  margin-top: calc(var(--esp-1) * -1);
+  margin-right: calc(var(--esp-1) * -1);
+}
+
+// Alça "Mover" (teclado: Espaço pega, setas movem). Com o mouse, arrasta-se o cartão todo.
+.cartao__mover {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  cursor: grab;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  @include m.area-toque(4px, 4px);
+
+  &:hover {
+    background: var(--cor-vidro-forte);
+    color: var(--cor-texto);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+// Com mouse, a alça aparece ao passar por cima ou com o foco (o cartão todo já arrasta); no
+// toque e no teclado ela fica sempre à vista.
+@media (hover: hover) and (pointer: fine) {
+  .cartao__mover {
+    opacity: 0;
+    transition:
+      opacity var(--duracao-rapida) var(--curva),
+      background-color var(--duracao) var(--curva),
+      color var(--duracao) var(--curva);
+  }
+
+  .cartao:hover .cartao__mover,
+  .cartao:focus-within .cartao__mover,
+  .cartao__mover--ativo {
+    opacity: 1;
+  }
+}
+
+.cartao__mover--ativo {
+  background: var(--cor-destaque);
+  color: var(--cor-sobre-destaque);
+
+  &:hover {
+    background: var(--cor-destaque);
+    color: var(--cor-sobre-destaque);
+  }
+}
+
+.cartao__resumo {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.cartao__quem {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  overflow-wrap: anywhere;
+}
+
+.cartao__valor {
+  color: var(--cor-texto);
+  font: 300 1.125rem / 1.2 var(--familia);
+  font-variant-numeric: tabular-nums;
+}
+
+.cartao__recorrente {
+  margin-left: var(--esp-1);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.cartao__etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cartao__proxima {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+  min-width: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+
+  svg {
+    flex: none;
+  }
+}
+
+.cartao__proxima--atrasada {
+  color: var(--cor-destaque-texto);
+  font-weight: 500;
+}
+
+.cartao__proxima-texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cartao__proxima-quando {
+  flex: none;
+  white-space: nowrap;
+}
+
+.cartao__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  min-height: var(--altura-sm);
+}
+
+.cartao__responsavel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.cartao__responsavel-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cartao__assumir {
+  position: relative;
+  z-index: 1;
+}
+
+.cartao__sem-responsavel {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+// Arrastando (a cópia que segue o ponteiro): inclinada, tingida de coral, com sombra. O CDK
+// posiciona a cópia pelo `transform` do elemento; a inclinação fica no cartão de dentro.
+:host(.cdk-drag-preview) {
+  box-sizing: border-box;
+  border-radius: var(--raio-lg);
+
+  .cartao {
+    border-color: var(--cor-destaque);
+    background: color-mix(in srgb, var(--cor-destaque) 18%, var(--cor-superficie-2));
+    box-shadow: var(--sombra-flutuante);
+    transform: rotate(-3deg);
+  }
+}
+
+// O lugar onde o cartão vai cair: tracejado, sem o conteúdo.
+:host(.cdk-drag-placeholder) {
+  border: 2px dashed var(--cor-destaque);
+  background: color-mix(in srgb, var(--cor-destaque) 8%, transparent);
+
+  .cartao {
+    visibility: hidden;
+  }
+}
+
+:host(.cdk-drag-animating) {
+  transition: transform var(--duracao-lenta) var(--curva);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host(.cdk-drag-preview) .cartao {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .cartao--parado,
+  .cartao--pego {
+    border-color: Highlight;
+  }
+}

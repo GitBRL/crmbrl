@@ -1,0 +1,279 @@
+<app-modal
+  [(aberto)]="aberto"
+  titulo="Configurar etapas"
+  [complemento]="'· ' + funil().nome"
+  largura="lg"
+>
+  <div class="config">
+    <p class="config__frase">
+      Arraste pela alça, ou use as setas, para mudar a ordem. O <strong>prazo-alvo</strong> é
+      quantos dias o negócio pode ficar na etapa antes de aparecer como parado; a
+      <strong>probabilidade</strong> é a chance de fechar a partir dela. Os dois são opcionais.
+    </p>
+
+    <ol
+      class="etapas"
+      cdkDropList
+      cdkDropListLockAxis="y"
+      aria-label="Etapas abertas, em ordem"
+      [cdkDropListData]="abertas()"
+      (cdkDropListDropped)="aoSoltar($event)"
+    >
+      @for (etapa of abertas(); track etapa.id; let i = $index, primeira = $first, ultima = $last) {
+        <li
+          class="etapa"
+          cdkDrag
+          cdkDragPreviewContainer="parent"
+          [attr.data-etapa]="etapa.id"
+          [cdkDragDisabled]="reordenando()"
+        >
+          <div class="etapa__lado">
+            <span
+              class="etapa__alca"
+              cdkDragHandle
+              aria-hidden="true"
+              title="Arraste para mudar a ordem"
+            >
+              <svg lucideGripVertical [size]="18" />
+            </span>
+            <span class="etapa__ordem numeros" aria-hidden="true">{{ i + 1 }}</span>
+          </div>
+
+          <form
+            class="etapa__campos"
+            novalidate
+            [attr.aria-label]="'Etapa ' + (i + 1) + ': ' + etapa.nome"
+            (submit)="$event.preventDefault(); salvarLinha(etapa)"
+          >
+            <app-campo-texto
+              class="etapa__nome"
+              rotulo="Nome"
+              [maximoCaracteres]="100"
+              [erro]="errosDe(etapa).nome ?? null"
+              [valor]="rascunho(etapa).nome"
+              (valorChange)="editar(etapa, 'nome', $event)"
+            />
+            <app-campo-texto
+              class="etapa__numero"
+              rotulo="Prazo-alvo"
+              tipo="number"
+              sufixo="dias"
+              [minimo]="1"
+              [maximo]="3650"
+              [passo]="1"
+              [erro]="errosDe(etapa).prazo ?? null"
+              [valor]="rascunho(etapa).prazo"
+              (valorChange)="editar(etapa, 'prazo', $event)"
+            />
+            <app-campo-texto
+              class="etapa__numero"
+              rotulo="Probabilidade"
+              tipo="number"
+              sufixo="%"
+              [minimo]="0"
+              [maximo]="100"
+              [erro]="errosDe(etapa).probabilidade ?? null"
+              [valor]="rascunho(etapa).probabilidade"
+              (valorChange)="editar(etapa, 'probabilidade', $event)"
+            />
+            @if (alterada(etapa)) {
+              <div class="etapa__salvar">
+                <button
+                  appBotao
+                  type="submit"
+                  tamanho="sm"
+                  variante="invertido"
+                  [carregando]="salvando().has(etapa.id)"
+                >
+                  Salvar
+                </button>
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  variante="contorno"
+                  (click)="descartar(etapa)"
+                >
+                  Descartar
+                </button>
+              </div>
+            }
+            @if (errosDe(etapa).geral; as geral) {
+              <p class="etapa__erro" role="alert">{{ geral }}</p>
+            }
+          </form>
+
+          <div class="etapa__rodape">
+            @if (motivoParaNaoRemover(etapa); as motivo) {
+              <p class="etapa__motivo" [id]="'motivo-' + etapa.id">{{ motivo }}</p>
+            } @else if (contagem(etapa) === 0) {
+              <p class="etapa__motivo">Nenhum negócio nesta etapa.</p>
+            }
+            <div class="etapa__acoes">
+              <button
+                appBotaoIcone
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                data-mover="subir"
+                [icone]="icones.subir"
+                [rotulo]="'Mover ' + etapa.nome + ' para cima'"
+                [disabled]="primeira"
+                (click)="mover(i, -1)"
+              ></button>
+              <button
+                appBotaoIcone
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                data-mover="descer"
+                [icone]="icones.descer"
+                [rotulo]="'Mover ' + etapa.nome + ' para baixo'"
+                [disabled]="ultima"
+                (click)="mover(i, 1)"
+              ></button>
+              <button
+                appBotaoIcone
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                class="etapa__remover"
+                [icone]="icones.remover"
+                [rotulo]="'Remover a etapa ' + etapa.nome"
+                [attr.aria-disabled]="motivoParaNaoRemover(etapa) ? 'true' : null"
+                [attr.aria-describedby]="motivoParaNaoRemover(etapa) ? 'motivo-' + etapa.id : null"
+                (click)="remover(etapa)"
+              ></button>
+            </div>
+          </div>
+        </li>
+      }
+    </ol>
+
+    <h3 class="config__subtitulo">Fim do funil</h3>
+    <ul class="etapas" aria-label="Etapas de ganho e de perda">
+      @for (etapa of fechadas(); track etapa.id) {
+        <li class="etapa etapa--fechada" [attr.data-etapa]="etapa.id">
+          <div class="etapa__lado">
+            <app-selo tamanho="sm" [variante]="etapa.tipo === 'GANHO' ? 'menta' : 'contorno'">
+              {{ etapa.tipo === 'GANHO' ? 'ganho' : 'perda' }}
+            </app-selo>
+          </div>
+          <form
+            class="etapa__campos"
+            novalidate
+            [attr.aria-label]="
+              'Etapa de ' + (etapa.tipo === 'GANHO' ? 'ganho' : 'perda') + ': ' + etapa.nome
+            "
+            (submit)="$event.preventDefault(); salvarLinha(etapa)"
+          >
+            <app-campo-texto
+              class="etapa__nome"
+              rotulo="Nome"
+              [maximoCaracteres]="100"
+              [dica]="
+                etapa.tipo === 'GANHO'
+                  ? 'Entrar aqui registra a data de ganho e dispara a passagem, se houver.'
+                  : 'Entrar aqui pede o motivo da perda.'
+              "
+              [erro]="errosDe(etapa).nome ?? null"
+              [valor]="rascunho(etapa).nome"
+              (valorChange)="editar(etapa, 'nome', $event)"
+            />
+            @if (alterada(etapa)) {
+              <div class="etapa__salvar">
+                <button
+                  appBotao
+                  type="submit"
+                  tamanho="sm"
+                  variante="invertido"
+                  [carregando]="salvando().has(etapa.id)"
+                >
+                  Salvar
+                </button>
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  variante="contorno"
+                  (click)="descartar(etapa)"
+                >
+                  Descartar
+                </button>
+              </div>
+            }
+            @if (errosDe(etapa).geral; as geral) {
+              <p class="etapa__erro" role="alert">{{ geral }}</p>
+            }
+          </form>
+          <div class="etapa__rodape">
+            <p class="etapa__motivo">
+              {{ motivoParaNaoRemover(etapa) }} Fica sempre no fim do quadro.
+            </p>
+          </div>
+        </li>
+      }
+    </ul>
+
+    <form class="nova" novalidate (submit)="$event.preventDefault(); adicionar()">
+      <h3 class="config__subtitulo">Adicionar etapa</h3>
+      <div class="nova__campos">
+        <app-campo-texto
+          class="etapa__nome"
+          rotulo="Nome da etapa nova"
+          placeholder="Ex.: Demonstração"
+          [maximoCaracteres]="100"
+          [erro]="errosNova().nome ?? null"
+          [valor]="nova().nome"
+          (valorChange)="editarNova('nome', $event)"
+        />
+        <app-campo-texto
+          class="etapa__numero"
+          rotulo="Prazo-alvo"
+          tipo="number"
+          sufixo="dias"
+          [minimo]="1"
+          [maximo]="3650"
+          [passo]="1"
+          [erro]="errosNova().prazo ?? null"
+          [valor]="nova().prazo"
+          (valorChange)="editarNova('prazo', $event)"
+        />
+        <app-campo-texto
+          class="etapa__numero"
+          rotulo="Probabilidade"
+          tipo="number"
+          sufixo="%"
+          [minimo]="0"
+          [maximo]="100"
+          [erro]="errosNova().probabilidade ?? null"
+          [valor]="nova().probabilidade"
+          (valorChange)="editarNova('probabilidade', $event)"
+        />
+      </div>
+      @if (errosNova().geral; as geral) {
+        <p class="etapa__erro" role="alert">{{ geral }}</p>
+      }
+      <div class="nova__rodape">
+        <p class="nova__dica">
+          A etapa nova entra antes do ganho e da perda; depois, mova para o lugar certo.
+        </p>
+        <button
+          appBotao
+          type="submit"
+          variante="contorno"
+          [icone]="icones.adicionar"
+          [carregando]="adicionando()"
+        >
+          Adicionar etapa
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div modal-rodape>
+    <button appBotao type="button" variante="invertido" (click)="aberto.set(false)">
+      Concluir
+    </button>
+  </div>
+</app-modal>

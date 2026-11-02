@@ -1,0 +1,211 @@
+<app-ds-secao ancora="listas" numero="13" titulo="Listas e tabelas" complemento="· e seus estados">
+  <p frase>
+    Filtros em pílula no topo, a tabela que vira cartões no celular e a paginação embaixo. Enquanto
+    carrega, esqueletos com a forma do conteúdo; sem nada, uma frase e a ação que resolve.
+  </p>
+
+  <app-ds-exemplo
+    titulo="Tabela, filtros e paginação"
+    seletor="app-tabela · app-filtros-pilula · app-paginacao"
+    quando="Listas de contatos, usuários, recebimentos. Clique numa linha para abrir o painel lateral; estreite a janela para ver a lista de cartões."
+  >
+    <div class="lista__barra">
+      <app-filtros-pilula
+        rotulo="Mostrar contatos"
+        [opcoes]="escopos"
+        [(selecionado)]="escopo"
+        (selecionadoChange)="aoMudarFiltro()"
+      />
+      <app-filtros-pilula
+        rotulo="Etiquetas"
+        multipla
+        [opcoes]="etiquetas"
+        [(selecionados)]="etiquetasMarcadas"
+        (selecionadosChange)="aoMudarFiltro()"
+      />
+    </div>
+    <div class="ds-linha">
+      <span class="ds-nota">Estado da lista</span>
+      <app-abas
+        rotulo="Estado da lista"
+        modo="opcoes"
+        tamanho="sm"
+        [abas]="estados"
+        [(selecionada)]="estado"
+      />
+    </div>
+
+    @if (estado() === 'erro') {
+      <app-estado-vazio
+        variante="erro"
+        titulo="Não conseguimos carregar os contatos"
+        texto="O servidor do CRM não respondeu. Tente de novo em instantes."
+        codigo="req-01J9Z3X7"
+      >
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="iconeAtualizar"
+          (click)="estado.set('dados')"
+        >
+          Tentar de novo
+        </button>
+      </app-estado-vazio>
+    } @else {
+      <app-tabela
+        rotulo="Contatos"
+        clicavel
+        [colunas]="colunas"
+        [linhas]="paginaAtual()"
+        [carregando]="estado() === 'carregando'"
+        [(ordenacao)]="ordenacao"
+        (abrir)="abrir($event)"
+      >
+        <ng-template appCelula="nome" [appCelulaDe]="paginaAtual()" let-contato>
+          <span class="lista__pessoa">
+            <app-avatar [nome]="contato.nome" tamanho="sm" decorativo />
+            {{ contato.nome }}
+          </span>
+        </ng-template>
+        <ng-template appCelula="origem" [appCelulaDe]="paginaAtual()" let-contato>
+          <app-selo [variante]="seloOrigem[contato.origem]">{{ contato.origem }}</app-selo>
+        </ng-template>
+        <ng-template appCelula="valor" [appCelulaDe]="paginaAtual()" let-contato>
+          {{ moeda.format(contato.valor) }}
+        </ng-template>
+        <ng-template appCelula="acoes" [appCelulaDe]="paginaAtual()" let-contato>
+          <app-menu-acoes
+            [rotulo]="'Ações de ' + contato.nome"
+            [itens]="acoesContato"
+            (escolher)="agir($event, contato)"
+          />
+        </ng-template>
+        <app-estado-vazio
+          tabela-vazio
+          compacto
+          variante="busca"
+          titulo="Nenhum contato com esses filtros"
+          texto="Tire uma etiqueta ou mostre os da equipe."
+        >
+          <button
+            appBotao
+            type="button"
+            tamanho="sm"
+            variante="contorno"
+            (click)="etiquetasMarcadas.set([]); estado.set('dados')"
+          >
+            Limpar filtros
+          </button>
+        </app-estado-vazio>
+      </app-tabela>
+      @if (estado() === 'dados') {
+        <app-paginacao
+          rotulo="Paginação dos contatos"
+          [total]="filtrados().length"
+          [opcoesPorPagina]="[5, 10]"
+          [(pagina)]="pagina"
+          [(porPagina)]="porPagina"
+        />
+      }
+    }
+    <p class="ds-nota" aria-live="polite">{{ ultimaAcao() }}</p>
+  </app-ds-exemplo>
+
+  <app-painel-lateral
+    [(aberto)]="painelAberto"
+    [titulo]="aberto()?.nome ?? 'Contato'"
+    [complemento]="aberto() ? '· ' + aberto()!.origem : null"
+    [descricao]="aberto()?.empresa ?? null"
+  >
+    <!-- Um bloco com um elemento só: assim ele vai para o slot [painel-acoes]. -->
+    @if (aberto(); as contato) {
+      <app-menu-acoes
+        painel-acoes
+        [rotulo]="'Ações de ' + contato.nome"
+        [itens]="acoesContato"
+        (escolher)="agir($event, contato)"
+      />
+    }
+    @if (aberto(); as contato) {
+      <dl class="lista__dados">
+        <div>
+          <dt>Responsável</dt>
+          <dd class="lista__pessoa">
+            <app-avatar [nome]="contato.responsavel" tamanho="sm" decorativo />
+            {{ contato.responsavel }}
+          </dd>
+        </div>
+        <div>
+          <dt>Valor em aberto</dt>
+          <dd>{{ moeda.format(contato.valor) }}</dd>
+        </div>
+        <div>
+          <dt>Origem</dt>
+          <dd>
+            <app-selo [variante]="seloOrigem[contato.origem]">{{ contato.origem }}</app-selo>
+          </dd>
+        </div>
+      </dl>
+      <p class="ds-nota">
+        Painel de exemplo: foco preso, Esc fecha e o foco volta para a linha. O menu "⋯" abre dentro
+        do painel.
+      </p>
+    }
+    <div painel-rodape class="ds-linha">
+      <button appBotao type="button" variante="contorno" (click)="painelAberto.set(false)">
+        Fechar
+      </button>
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeMais"
+        (click)="painelAberto.set(false)"
+      >
+        Nova atividade
+      </button>
+    </div>
+  </app-painel-lateral>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Esqueleto"
+      seletor="app-esqueleto"
+      quando="Enquanto carrega, com a forma do que vem (nunca um indicador girando sozinho). O brilho passa três vezes e para."
+    >
+      <div class="lista__esqueleto" aria-busy="true">
+        <p class="visualmente-oculto" role="status">Carregando o negócio…</p>
+        <div class="lista__esqueleto-topo">
+          <app-esqueleto forma="circulo" />
+          <app-esqueleto [linhas]="2" largura="60%" />
+        </div>
+        <app-esqueleto forma="bloco" altura="72px" />
+        <div class="ds-linha">
+          <app-esqueleto forma="pilula" largura="7rem" />
+          <app-esqueleto forma="pilula" largura="5rem" />
+        </div>
+      </div>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Estado vazio"
+      seletor="app-estado-vazio"
+      quando="Sem itens, busca sem resultado, erro ao carregar (com o código para o suporte) e sem acesso. Sempre uma frase e, se houver, a ação."
+    >
+      <div class="lista__estados">
+        <app-estado-vazio
+          compacto
+          titulo="Nenhuma atividade para hoje"
+          texto="Aproveite para planejar a semana."
+        />
+        <app-estado-vazio
+          compacto
+          variante="sem-acesso"
+          titulo="Sem acesso"
+          texto="Seu papel não vê a auditoria. Fale com o Admin."
+        />
+      </div>
+    </app-ds-exemplo>
+  </div>
+</app-ds-secao>

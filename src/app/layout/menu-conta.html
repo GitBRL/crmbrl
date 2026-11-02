@@ -1,0 +1,65 @@
+@if (sessao.usuario(); as usuario) {
+  <button
+    #botao
+    type="button"
+    class="conta__botao"
+    aria-haspopup="menu"
+    [attr.aria-expanded]="aberto()"
+    [attr.aria-controls]="aberto() ? idMenu : null"
+    (click)="alternar()"
+    (keydown)="aoTeclarNoBotao($event)"
+  >
+    <app-avatar
+      class="conta__avatar"
+      tamanho="sm"
+      decorativo
+      [nome]="usuario.nome"
+      [foto]="usuario.avatarUrl"
+    />
+    <span class="visualmente-oculto">Conta: {{ usuario.nome }}, {{ sessao.rotuloPapel() }}</span>
+    <svg lucideChevronDown class="conta__seta" [size]="16" />
+  </button>
+
+  @if (aberto()) {
+    <div class="conta__painel" (keydown)="aoTeclarNoMenu($event)">
+      <div class="conta__cabecalho" [id]="idQuem">
+        <app-avatar tamanho="lg" decorativo [nome]="usuario.nome" [foto]="usuario.avatarUrl" />
+        <div class="conta__quem">
+          <p class="conta__nome">{{ usuario.nome }}</p>
+          <p class="conta__papel">{{ sessao.rotuloPapel() }}</p>
+          <p class="conta__email">{{ usuario.email }}</p>
+        </div>
+      </div>
+
+      <div
+        class="conta__menu"
+        role="menu"
+        aria-label="Conta"
+        [id]="idMenu"
+        [attr.aria-describedby]="idQuem"
+      >
+        @for (item of itensConta; track item.id) {
+          @if (item.id === 'sair') {
+            <div class="conta__divisor" role="separator"></div>
+          }
+          <button
+            #item
+            type="button"
+            role="menuitem"
+            class="conta__item"
+            tabindex="-1"
+            [attr.aria-disabled]="saindo() || null"
+            (click)="saindo() || escolher(item)"
+          >
+            <span class="conta__item-circulo" aria-hidden="true">
+              <svg [lucideIcon]="item.icone" [size]="18" />
+            </span>
+            <span class="conta__item-nome">{{
+              item.id === 'sair' && saindo() ? 'Saindo…' : item.rotulo
+            }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+}

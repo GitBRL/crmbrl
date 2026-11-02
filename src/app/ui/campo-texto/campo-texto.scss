@@ -1,0 +1,28 @@
+@use '../campo/campo' as c;
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.controle {
+  @include c.controle;
+}
+
+.controle__campo {
+  @include c.nativo;
+
+  // Número sem as setinhas (as setas do teclado continuam funcionando).
+  -moz-appearance: textfield;
+  font-variant-numeric: tabular-nums;
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+}
+
+.controle__afixo {
+  @include c.afixo;
+}

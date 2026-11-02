@@ -1,0 +1,250 @@
+@use 'mixins' as m;
+
+:host {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.lista {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passo {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie);
+}
+
+.passo__cabeca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-3);
+  min-width: 0;
+}
+
+.passo__grupo {
+  flex: none;
+}
+
+// O título é o botão que abre e fecha o corpo: ocupa o espaço que sobra.
+.passo__resumo {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--esp-3);
+  min-width: 0;
+  min-height: var(--altura-sm);
+  padding: 0 var(--esp-2);
+  border: 0;
+  border-radius: var(--raio-md);
+  background: none;
+  color: var(--cor-texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cor-superficie-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+
+  @include m.toque {
+    min-height: var(--altura-md);
+  }
+}
+
+.passo__titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  font: var(--fonte-rotulo);
+}
+
+.passo__detalhe {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.passo__seta {
+  margin-left: auto;
+  color: var(--cor-texto-suave);
+  transition: transform var(--duracao) var(--curva);
+
+  &--aberta {
+    transform: rotate(180deg);
+  }
+}
+
+.passo__acoes {
+  display: flex;
+  gap: var(--esp-1);
+  margin-left: auto;
+
+  [aria-disabled='true'] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.passo__corpo {
+  display: grid;
+  gap: var(--esp-4);
+  padding: var(--esp-4);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+}
+
+.passo__descricao {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+// Ramos de uma condição: recuados, com uma linha à esquerda ligando ao passo.
+.passo__ramos {
+  display: grid;
+  gap: var(--esp-4);
+  margin-left: var(--esp-3);
+  padding-left: var(--esp-4);
+  border-left: 2px solid var(--cor-borda-forte);
+}
+
+.ramo {
+  display: grid;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.ramo__titulo {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+}
+
+// Adicionar passo ------------------------------------------------------------------------
+
+.adicionar {
+  display: grid;
+  gap: var(--esp-3);
+  justify-items: start;
+}
+
+.adicionar__menu {
+  display: grid;
+  gap: var(--esp-4);
+  width: 100%;
+  padding: var(--esp-4);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: var(--raio-lg);
+}
+
+.adicionar__grupo {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.adicionar__titulo {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+}
+
+.adicionar__itens {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: var(--esp-2);
+}
+
+.adicionar__item {
+  display: grid;
+  gap: 2px;
+  padding: var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--duracao) var(--curva),
+    background-color var(--duracao) var(--curva);
+
+  &:hover {
+    border-color: var(--cor-borda-forte);
+    background: var(--cor-superficie-3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.adicionar__nome {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  font: var(--fonte-rotulo);
+}
+
+.adicionar__descricao {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.passo__numero {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+  font-weight: 600;
+}
+
+.passo--erro {
+  border-color: var(--cor-erro);
+}
+
+.passo__problemas {
+  margin: 0;
+  padding-left: var(--esp-5);
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+}
+
+.ramos__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.adicionar__aviso {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}

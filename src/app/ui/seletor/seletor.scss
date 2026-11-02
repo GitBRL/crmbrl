@@ -1,0 +1,40 @@
+@use '../campo/campo' as c;
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.controle {
+  @include c.controle;
+
+  padding: 0;
+}
+
+// O <select> ocupa a pílula inteira (clique em qualquer ponto abre a lista); a seta fica
+// por cima, sem receber clique.
+.controle__campo {
+  @include c.nativo;
+
+  padding: 0 calc(c.$recuo + var(--esp-6)) 0 c.$recuo;
+  border-radius: var(--raio-pilula);
+  text-overflow: ellipsis;
+  cursor: pointer;
+
+  option {
+    background: var(--cor-flutuante);
+    color: var(--cor-texto);
+  }
+}
+
+// Sem escolha: o texto do placeholder em tom fraco, como nos outros campos.
+.controle--vazio .controle__campo {
+  color: var(--cor-texto-fraco);
+}
+
+.controle__seta {
+  position: absolute;
+  right: c.$recuo;
+  color: var(--cor-texto-suave);
+  pointer-events: none;
+}

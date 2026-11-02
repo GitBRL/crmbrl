@@ -1,0 +1,180 @@
+@use 'mixins' as m;
+
+// Barra superior: sobre o fundo da página (sem cartão), fixa no topo. As colunas seguem a
+// grade da casca (subgrid): a marca fica sobre a navegação e a busca começa junto do
+// conteúdo. Só tokens.
+
+:host {
+  display: contents;
+}
+
+.topo {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-cabecalho);
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  min-height: var(--casca-altura-topo);
+  padding-block: var(--esp-4);
+  background: var(--cor-fundo);
+
+  // O conteúdo que rola some num degradê sob a barra, sem corte seco.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 100% 0 auto;
+    height: var(--esp-4);
+    background: linear-gradient(var(--cor-fundo), transparent);
+    pointer-events: none;
+  }
+}
+
+.topo__inicio {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+// Navegação recolhida (desktop e tablet): o símbolo fica centrado sobre os círculos.
+@include m.acima(m.$md) {
+  .topo--compacto .topo__inicio {
+    justify-content: center;
+  }
+}
+
+.topo__fim {
+  grid-column: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+// A marca é um link: alvo de 44px mesmo quando mostra só o símbolo (28px).
+.topo__marca {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--altura-md);
+  min-height: var(--altura-md);
+  border-radius: var(--raio-sm);
+  text-decoration: none;
+}
+
+.topo__busca {
+  position: relative;
+  flex: 0 1 26rem;
+  min-width: 0;
+}
+
+// Aviso da busca: balão sob o campo. Fica sempre na árvore de acessibilidade (live region);
+// vazio, é só transparente.
+.topo__aviso {
+  position: absolute;
+  top: calc(100% + var(--esp-2));
+  left: 0;
+  z-index: var(--z-flutuante);
+  width: max-content;
+  max-width: min(26rem, calc(100vw - 32px));
+  padding: 10px var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto-suave);
+  box-shadow: var(--sombra-flutuante);
+  font: var(--fonte-legenda-lg, 400 0.8125rem/1.35 var(--familia));
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--duracao-opacidade) ease-out,
+    transform var(--duracao) var(--curva);
+
+  &:empty {
+    padding: 0;
+    border: 0;
+  }
+}
+
+.topo__aviso--visivel {
+  opacity: 1;
+  transform: none;
+}
+
+.topo__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  margin-left: auto;
+}
+
+// Só no mobile.
+.topo__menu,
+.topo__abrir-busca,
+.topo__secao {
+  display: none;
+}
+
+// Mobile ------------------------------------------------------------------------------------
+@include m.abaixo(m.$md) {
+  .topo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-2);
+    padding: var(--esp-3) var(--esp-4);
+  }
+
+  .topo__inicio {
+    flex: 1;
+    container-type: inline-size;
+  }
+
+  .topo__fim {
+    display: contents;
+  }
+
+  .topo__menu,
+  .topo__abrir-busca {
+    display: inline-grid;
+  }
+
+  // Título da seção: até duas linhas ("Contatos e / empresas") no espaço que sobra. Em
+  // telas muito estreitas ele sai (o título da página logo abaixo já diz onde se está).
+  .topo__secao {
+    display: -webkit-box;
+    min-width: 0;
+    margin-left: var(--esp-1);
+    overflow: hidden;
+    font: var(--fonte-rotulo);
+    line-height: 1.15;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  @container (max-width: 190px) {
+    .topo__secao {
+      display: none;
+    }
+  }
+
+  .topo__tema {
+    display: none;
+  }
+
+  // A busca abre numa linha própria, abaixo dos botões.
+  .topo__busca {
+    display: none;
+    flex: 1 0 100%;
+    order: 3;
+  }
+
+  .topo--busca-aberta .topo__busca {
+    display: block;
+  }
+}

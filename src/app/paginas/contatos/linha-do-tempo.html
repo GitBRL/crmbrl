@@ -1,0 +1,151 @@
+<div class="linha__topo">
+  <app-filtros-pilula
+    rotulo="Mostrar na linha do tempo"
+    [opcoes]="opcoes"
+    [selecionado]="filtro()"
+    (selecionadoChange)="escolher($event)"
+  />
+  <app-dica rotulo="Sobre a linha do tempo" [texto]="explicacao()" />
+</div>
+
+@if (registros().length === 0) {
+  @if (erro(); as falha) {
+    <app-estado-vazio
+      compacto
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos carregar a linha do tempo"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        tamanho="sm"
+        [icone]="icones.tentar"
+        (click)="recomecar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (carregando()) {
+    <div class="linha__carregando" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando a linha do tempo…</p>
+      @for (linha of [1, 2, 3, 4]; track linha) {
+        <div class="linha__esqueleto">
+          <app-esqueleto forma="circulo" largura="32px" altura="32px" />
+          <app-esqueleto [linhas]="2" [largura]="linha % 2 ? '70%' : '55%'" />
+        </div>
+      }
+    </div>
+  } @else {
+    <app-estado-vazio
+      compacto
+      [titulo]="filtro() === 'atividades' ? 'Nenhuma atividade ainda' : 'Nada por aqui ainda'"
+      texto="Alterações e atividades aparecem aqui assim que acontecem."
+    />
+  }
+} @else {
+  <ol class="linha" aria-label="Linha do tempo">
+    @for (dia of dias(); track dia.dia) {
+      <li class="linha__dia">
+        <h3 class="linha__data">{{ dia.rotulo }}</h3>
+        <ol class="linha__itens">
+          @for (item of dia.itens; track item.chave) {
+            <li class="item">
+              @if (item.registro.evento; as evento) {
+                <span class="item__icone" aria-hidden="true">
+                  <svg [lucideIcon]="iconeDoEvento(evento.acao)" [size]="16" />
+                </span>
+                <div class="item__corpo">
+                  <p class="item__texto">{{ item.resumo }}</p>
+                  <p class="item__meta">
+                    {{ ator(evento) }} ·
+                    <time [attr.datetime]="item.registro.ocorridoEm" [attr.title]="item.quando">{{
+                      item.hora
+                    }}</time>
+                  </p>
+                  @if (item.alteracoes.length) {
+                    <details class="item__detalhes">
+                      <summary>O que mudou</summary>
+                      <ul class="item__alteracoes">
+                        @for (alteracao of item.alteracoes; track alteracao.campo) {
+                          <li>
+                            <span class="item__campo">{{ alteracao.campo }}:</span>
+                            <span class="item__antes">{{ alteracao.antes }}</span>
+                            <span aria-hidden="true">→</span>
+                            <span class="visualmente-oculto">passou a ser</span>
+                            <span>{{ alteracao.depois }}</span>
+                          </li>
+                        }
+                      </ul>
+                    </details>
+                  }
+                </div>
+              } @else if (item.registro.atividade; as atividade) {
+                <span
+                  class="item__icone"
+                  aria-hidden="true"
+                  [class.item__icone--feita]="atividade.status === 'CONCLUIDA'"
+                  [class.item__icone--atrasada]="
+                    atividade.status === 'PENDENTE' && atividade.atrasada
+                  "
+                >
+                  <svg [lucideIcon]="iconeTipo[atividade.tipo]" [size]="16" />
+                </span>
+                <div class="item__corpo">
+                  <p class="item__texto">
+                    <span class="item__tipo">{{ rotuloTipo[atividade.tipo] }}</span>
+                    @if (atividade.tipo === 'NOTA') {
+                      {{ atividade.titulo }}
+                    } @else {
+                      <a
+                        class="item__link"
+                        routerLink="/atividades"
+                        [queryParams]="{ atividade: atividade.id }"
+                        >{{ atividade.titulo }}</a
+                      >
+                    }
+                  </p>
+                  @if (atividade.tipo === 'NOTA' && atividade.descricao) {
+                    <p class="item__nota">{{ atividade.descricao }}</p>
+                  }
+                  <p class="item__meta">
+                    <span
+                      [class.item__atrasada]="atividade.status === 'PENDENTE' && atividade.atrasada"
+                      >{{ situacao(atividade) }}</span
+                    >
+                    · {{ atividade.responsavel.nome }} ·
+                    <time [attr.datetime]="item.registro.ocorridoEm" [attr.title]="item.quando">{{
+                      item.hora
+                    }}</time>
+                  </p>
+                </div>
+              }
+            </li>
+          }
+        </ol>
+      </li>
+    }
+  </ol>
+
+  @if (erro(); as falha) {
+    <p class="linha__erro" role="alert">{{ falha.mensagem }}</p>
+  }
+  @if (temMais()) {
+    <div class="linha__mais">
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        tamanho="sm"
+        [carregando]="carregando()"
+        (click)="carregarMais()"
+      >
+        Carregar mais
+      </button>
+      <span class="item__meta">{{ registros().length }} de {{ total() }}</span>
+    </div>
+  }
+}

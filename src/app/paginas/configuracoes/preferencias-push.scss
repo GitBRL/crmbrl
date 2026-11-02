@@ -1,0 +1,62 @@
+// Só tokens.
+:host {
+  display: block;
+}
+
+.push__corpo {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+.push__bloco {
+  display: grid;
+  gap: var(--esp-3);
+}
+
+.push__subtitulo {
+  font: var(--fonte-h4, var(--fonte-h3));
+}
+
+.push__texto,
+.push__como p {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.875rem;
+}
+
+.push__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.push__como {
+  font-size: 0.875rem;
+
+  summary {
+    display: flex;
+    align-items: center;
+    width: fit-content;
+    min-height: 44px;
+    cursor: pointer;
+    color: var(--cor-texto-suave);
+  }
+}
+
+.push__tipos {
+  display: grid;
+  gap: var(--esp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.push__erro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0;
+  color: var(--cor-erro, var(--cor-texto));
+  font-size: 0.875rem;
+}

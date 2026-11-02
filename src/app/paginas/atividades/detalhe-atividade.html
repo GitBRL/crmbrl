@@ -1,0 +1,288 @@
+<app-painel-lateral
+  [aberto]="aberto()"
+  [titulo]="titulo()"
+  [complemento]="complemento()"
+  [descricao]="situacao()"
+  (fechado)="aoFechar()"
+>
+  @if (atividade() && !editando()) {
+    <app-menu-acoes
+      painel-acoes
+      [rotulo]="'Ações de ' + titulo()"
+      [itens]="acoes()"
+      (escolher)="agir($event.id)"
+    />
+  }
+
+  @switch (estado()) {
+    @case ('carregando') {
+      <div class="detalhe__carregando" aria-busy="true">
+        <span class="visualmente-oculto" role="status">Carregando a atividade…</span>
+        <app-esqueleto forma="pilula" largura="40%" />
+        <app-esqueleto [linhas]="3" />
+        <app-esqueleto forma="bloco" altura="7rem" />
+      </div>
+    }
+    @case ('erro') {
+      @if (erro(); as falha) {
+        @if (falha.ehNaoEncontrado) {
+          <app-estado-vazio
+            compacto
+            variante="busca"
+            titulo="Atividade não encontrada"
+            texto="Ela pode ter sido apagada ou não estar mais com você nem com a sua equipe."
+          />
+        } @else {
+          <app-estado-vazio
+            compacto
+            variante="erro"
+            [falha]="falha"
+            titulo="Não conseguimos abrir a atividade"
+            [texto]="falha.resumo"
+            [codigo]="falha.requisicaoId"
+          >
+            <button appBotao variante="invertido" type="button" (click)="tentarDeNovo()">
+              Tentar de novo
+            </button>
+          </app-estado-vazio>
+        }
+      }
+    }
+    @default {
+      @if (atividade(); as atividade) {
+        @if (editando()) {
+          <form
+            id="detalhe-atividade-formulario"
+            class="detalhe__formulario"
+            novalidate
+            [formGroup]="formulario"
+            (submit)="salvar($event)"
+          >
+            <app-grupo-opcoes
+              rotulo="Tipo"
+              disposicao="pilulas"
+              [opcoes]="opcoesTipo"
+              formControlName="tipo"
+            />
+            <app-campo-texto
+              rotulo="Título"
+              [maximoCaracteres]="200"
+              formControlName="titulo"
+              [mensagens]="{ required: 'Escreva o que precisa ser feito.' }"
+            />
+            <div
+              class="detalhe__datas"
+              [class.detalhe__datas--reuniao]="tipoEditado() === 'REUNIAO'"
+            >
+              <app-campo-data
+                tipo="data-hora"
+                [rotulo]="tipoEditado() === 'REUNIAO' ? 'Começa em' : 'Vence em'"
+                [opcional]="tipoEditado() !== 'REUNIAO'"
+                [dica]="tipoEditado() === 'REUNIAO' ? null : 'Apague a data para deixar sem prazo.'"
+                formControlName="quando"
+              />
+              @if (tipoEditado() === 'REUNIAO') {
+                <app-campo-data
+                  tipo="hora"
+                  rotulo="Termina às"
+                  dica="Sem hora, uma hora depois do início."
+                  formControlName="fim"
+                />
+              }
+            </div>
+            <app-grupo-opcoes
+              rotulo="Prioridade"
+              disposicao="pilulas"
+              [opcoes]="opcoesPrioridade"
+              formControlName="prioridade"
+            />
+            @if (podeTrocarResponsavel()) {
+              <app-seletor
+                rotulo="Responsável"
+                ajuda="A atividade passa para a pessoa escolhida, que é avisada pelo lembrete antes do prazo. Só aparecem pessoas ativas que você vê."
+                [opcoes]="opcoesResponsavel()"
+                formControlName="responsavelId"
+              />
+            }
+            <app-seletor-vinculo [vinculo]="vinculo()" (vinculoChange)="vinculo.set($event)" />
+            <app-area-texto
+              rotulo="Descrição"
+              opcional
+              [linhas]="4"
+              [maximoCaracteres]="10000"
+              formControlName="descricao"
+            />
+            @if (erroGeral(); as mensagem) {
+              <p class="detalhe__erro" role="alert">{{ mensagem }}</p>
+            }
+          </form>
+        } @else {
+          <div class="detalhe__conteudo">
+            <div class="detalhe__selos">
+              @switch (atividade.status) {
+                @case ('CONCLUIDA') {
+                  <app-selo variante="menta" [icone]="icones.concluir">Concluída</app-selo>
+                }
+                @case ('CANCELADA') {
+                  <app-selo variante="contorno">Cancelada</app-selo>
+                }
+                @default {
+                  @if (atividade.atrasada) {
+                    <app-selo variante="coral">Atrasada</app-selo>
+                  } @else {
+                    <app-selo>Pendente</app-selo>
+                  }
+                }
+              }
+              <app-selo variante="contorno">
+                Prioridade {{ rotuloPrioridade[atividade.prioridade].toLowerCase() }}
+              </app-selo>
+            </div>
+
+            @if (atividade.encaminhadaDe; as origem) {
+              <div class="detalhe__encaminhada">
+                <app-selo variante="ciano" [icone]="icones.encaminhada">
+                  Encaminhada de {{ origem.nome }}
+                </app-selo>
+                <p class="detalhe__encaminhada-texto">
+                  Recebida em {{ encaminhadaEm() }}, no desligamento de {{ origem.nome }}.
+                </p>
+                <app-dica
+                  rotulo="Por que a atividade foi encaminhada"
+                  texto="Quando alguém é desligado, as atividades pendentes dele vão para o líder (e as de um líder, para o C-level responsável). Quem recebe é avisado, e a atividade guarda de quem veio."
+                />
+              </div>
+            }
+
+            <dl class="detalhe__dados">
+              <div class="detalhe__dado">
+                <dt>Quando</dt>
+                <dd>{{ quandoExtenso() ?? 'Sem data' }}</dd>
+              </div>
+              <div class="detalhe__dado">
+                <dt>Responsável</dt>
+                <dd class="detalhe__pessoa">
+                  <app-avatar
+                    tamanho="sm"
+                    decorativo
+                    [nome]="atividade.responsavel.nome"
+                    [foto]="atividade.responsavel.avatarUrl ?? null"
+                  />
+                  {{ atividade.responsavel.nome }}
+                </dd>
+              </div>
+              <div class="detalhe__dado">
+                <dt>Criada</dt>
+                <dd>
+                  {{ criadaEm() }}
+                  @if (atividade.criadoPor; as autor) {
+                    por {{ autor.nome }}
+                  }
+                </dd>
+              </div>
+              @if (atividade.contato; as contato) {
+                <div class="detalhe__dado">
+                  <dt>Contato</dt>
+                  <dd>
+                    <a class="detalhe__link" [routerLink]="['/contatos', contato.id]">{{
+                      contato.nome
+                    }}</a>
+                  </dd>
+                </div>
+              }
+              @if (atividade.empresa; as empresa) {
+                <div class="detalhe__dado">
+                  <dt>Empresa</dt>
+                  <dd>
+                    <a class="detalhe__link" [routerLink]="['/empresas', empresa.id]">{{
+                      empresa.nome
+                    }}</a>
+                  </dd>
+                </div>
+              }
+              @if (atividade.negocio; as negocio) {
+                @if (linkNegocio(); as link) {
+                  <div class="detalhe__dado">
+                    <dt>Negócio</dt>
+                    <dd>
+                      <a
+                        class="detalhe__link"
+                        [routerLink]="link.rota"
+                        [queryParams]="link.query"
+                        >{{ negocio.titulo }}</a
+                      >
+                    </dd>
+                  </div>
+                }
+              }
+            </dl>
+
+            <section class="detalhe__descricao" aria-labelledby="detalhe-atividade-descricao">
+              <h3 id="detalhe-atividade-descricao" class="detalhe__subtitulo">Descrição</h3>
+              @if (atividade.descricao) {
+                <p class="detalhe__texto">{{ atividade.descricao }}</p>
+              } @else {
+                <p class="detalhe__vazio">Sem descrição.</p>
+              }
+            </section>
+          </div>
+        }
+      }
+    }
+  }
+
+  <!-- Sem atividade (carregando, erro), nada no rodapé: o painel o esconde. -->
+  @if (atividade(); as atividade) {
+    <div painel-rodape class="detalhe__rodape">
+      @if (editando()) {
+        <button
+          appBotao
+          type="submit"
+          variante="invertido"
+          form="detalhe-atividade-formulario"
+          [carregando]="salvando()"
+        >
+          Salvar
+        </button>
+        <button appBotao type="button" variante="contorno" (click)="desistirDeEditar()">
+          Cancelar edição
+        </button>
+      } @else {
+        @if (atividade.status === 'PENDENTE') {
+          <button
+            appBotao
+            type="button"
+            variante="invertido"
+            [icone]="icones.concluir"
+            [carregando]="ocupado()"
+            (click)="concluirOuReabrir()"
+          >
+            Concluir
+          </button>
+        } @else {
+          <button
+            appBotao
+            type="button"
+            variante="invertido"
+            [icone]="icones.reabrir"
+            [carregando]="ocupado()"
+            (click)="concluirOuReabrir()"
+          >
+            Reabrir
+          </button>
+        }
+        @if (atividade.status !== 'CANCELADA') {
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            [icone]="icones.editar"
+            (click)="editar()"
+          >
+            Editar
+          </button>
+        }
+      }
+    </div>
+  }
+</app-painel-lateral>

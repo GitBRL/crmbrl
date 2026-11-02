@@ -1,0 +1,106 @@
+// Peças comuns das telas de canal e de atendimento (não gera CSS sozinho).
+// Uso: `@use '../comum/tela-canal' as t;` e `@include t.tela;`, `@include t.formulario;`.
+@use 'mixins' as m;
+
+// A tela: coluna única com o espaço entre cartões.
+@mixin tela {
+  :host {
+    display: block;
+  }
+
+  .tela {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--esp-entre-cartoes);
+    min-width: 0;
+  }
+}
+
+// Formulário dentro de um cartão: campos empilhados, pares lado a lado, grupos com legenda e
+// as ações à esquerda (a principal invertida primeiro, §4.2).
+@mixin formulario {
+  .formulario {
+    display: grid;
+    gap: var(--esp-5);
+    min-width: 0;
+  }
+
+  .formulario__frase {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-corpo);
+  }
+
+  .formulario__par {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: var(--esp-5) var(--esp-4);
+    align-items: start;
+  }
+
+  .formulario__grupo {
+    display: grid;
+    gap: var(--esp-3);
+    min-width: 0;
+    margin: 0;
+    padding: var(--esp-5) 0 0;
+    border: 0;
+    border-top: 1px solid var(--cor-borda);
+  }
+
+  .formulario__legenda {
+    float: left;
+    width: 100%;
+    margin-bottom: var(--esp-2);
+    padding: 0;
+    font: var(--fonte-rotulo);
+    font-size: 1rem;
+
+    + * {
+      clear: both;
+    }
+  }
+
+  .formulario__legenda-frase {
+    margin-top: calc(-1 * var(--esp-2));
+    color: var(--cor-texto-suave);
+    font: var(--fonte-corpo-sm);
+  }
+
+  .formulario__recuo {
+    margin-left: calc(22px + var(--esp-3));
+  }
+
+  .formulario__nota {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-corpo-sm);
+
+    a {
+      color: var(--cor-texto);
+      font-weight: 500;
+    }
+  }
+
+  .formulario__erro {
+    color: var(--cor-erro);
+    font: var(--fonte-legenda-lg);
+    font-weight: 500;
+  }
+
+  .formulario__acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2) var(--esp-3);
+  }
+
+  .formulario__acoes-nota {
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda-lg);
+  }
+
+  @include m.abaixo(m.$sm) {
+    .formulario__recuo {
+      margin-left: 0;
+    }
+  }
+}

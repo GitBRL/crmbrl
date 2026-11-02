@@ -1,0 +1,73 @@
+:host {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--esp-1);
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-vidro-forte);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+// Cores de dado: texto preto e, no claro, a borda de 1px vira o contorno de dado (lima,
+// menta e ciano somem sobre o branco — WCAG 1.4.11); no escuro o token é transparente.
+:host(.selo--ciano),
+:host(.selo--menta),
+:host(.selo--lima),
+:host(.selo--coral) {
+  border-color: var(--cor-contorno-dado);
+  color: var(--pb-preto);
+}
+
+:host(.selo--ciano) {
+  background: var(--dado-1);
+}
+
+:host(.selo--menta) {
+  background: var(--dado-2);
+}
+
+:host(.selo--lima) {
+  background: var(--dado-3);
+}
+
+:host(.selo--coral) {
+  background: var(--dado-4);
+}
+
+:host(.selo--contorno) {
+  border-color: var(--cor-borda-forte);
+  background: transparent;
+}
+
+// Pequeno: listas densas, como o "em breve" ao lado de cada módulo da navegação.
+:host(.selo--sm) {
+  min-height: 20px;
+  padding-inline: 6px;
+  font: var(--fonte-micro);
+  line-height: 1;
+}
+
+// Ponto "ao vivo": a cor vem do contexto (`--selo-ponto`, ex.: --cor-sucesso com a API no
+// ar). Pulsa três vezes (~5 s) e para: animação automática que não para fere o WCAG 2.2.2.
+.selo__ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--selo-ponto, currentColor);
+  animation: pulsar 1.6s ease-in-out 3;
+}
+
+@keyframes pulsar {
+  50% {
+    opacity: 0.3;
+  }
+}

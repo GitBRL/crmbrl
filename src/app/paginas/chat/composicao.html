@@ -1,0 +1,128 @@
+@if (sugestoes(); as estado) {
+  <div class="sugestoes">
+    <p class="sugestoes__titulo" aria-hidden="true">
+      {{
+        estado.tipo === 'mencao' ? 'Mencionar alguém do canal' : 'Citar negócio, contato ou empresa'
+      }}
+    </p>
+    @if (opcoes().length) {
+      <ul
+        class="sugestoes__lista"
+        role="listbox"
+        [id]="idLista"
+        [attr.aria-label]="estado.tipo === 'mencao' ? 'Pessoas para mencionar' : 'Itens para citar'"
+      >
+        @for (opcao of opcoes(); track opcao.id; let i = $index) {
+          <li
+            class="sugestao"
+            role="option"
+            [id]="idLista + '-' + i"
+            [attr.aria-selected]="i === ativa()"
+            [class.sugestao--ativa]="i === ativa()"
+            (pointerdown)="$event.preventDefault()"
+            (pointerenter)="passar(i)"
+            (click)="escolher(opcao)"
+          >
+            @if (opcao.tipo === 'pessoa') {
+              <app-avatar
+                tamanho="sm"
+                decorativo
+                [nome]="opcao.membro.usuario.nome"
+                [foto]="opcao.membro.usuario.avatarUrl"
+              />
+              <span class="sugestao__textos">
+                <span class="sugestao__nome">{{ opcao.membro.usuario.nome }}</span>
+                <span class="sugestao__detalhe">
+                  {{ opcao.membro.usuario.rotuloPapel
+                  }}{{ opcao.membro.usuario.online ? ' · online' : '' }}
+                </span>
+              </span>
+            } @else {
+              <span class="sugestao__circulo" aria-hidden="true">
+                <svg [lucideIcon]="iconeReferencia(opcao.item.tipo)" [size]="16" />
+              </span>
+              <span class="sugestao__textos">
+                <span class="sugestao__nome">{{ opcao.item.titulo }}</span>
+                <span class="sugestao__detalhe">
+                  {{ rotuloReferencia(opcao.item.tipo)
+                  }}{{ opcao.item.detalhe ? ' · ' + opcao.item.detalhe : '' }}
+                </span>
+              </span>
+            }
+          </li>
+        }
+      </ul>
+    } @else if (avisoSugestoes(); as aviso) {
+      <p class="sugestoes__vazio">{{ aviso }}</p>
+    }
+  </div>
+}
+
+@if (editando()) {
+  <div class="faixa">
+    <span class="faixa__icone" aria-hidden="true">
+      <svg [lucideIcon]="icones.editar" [size]="16" />
+    </span>
+    <p class="faixa__texto">
+      <span class="faixa__titulo">Editando a mensagem</span
+      ><span class="visualmente-oculto">. </span>
+      <span class="faixa__detalhe">Enter salva · Esc cancela</span>
+    </p>
+    <button
+      appBotaoIcone
+      type="button"
+      tamanho="sm"
+      variante="contorno"
+      [icone]="icones.cancelar"
+      rotulo="Cancelar a edição"
+      (click)="cancelarModo()"
+    ></button>
+  </div>
+} @else if (citada(); as citada) {
+  <div class="faixa faixa--resposta">
+    <span class="faixa__icone" aria-hidden="true">
+      <svg [lucideIcon]="icones.responder" [size]="16" />
+    </span>
+    <p class="faixa__texto">
+      <span class="faixa__titulo">Respondendo a {{ citada.autor }}</span
+      ><span class="visualmente-oculto">: </span>
+      <span class="faixa__detalhe">{{ citada.texto }}</span>
+    </p>
+    <button
+      appBotaoIcone
+      type="button"
+      tamanho="sm"
+      variante="contorno"
+      [icone]="icones.cancelar"
+      rotulo="Cancelar a resposta"
+      (click)="cancelarModo()"
+    ></button>
+  </div>
+}
+
+<div class="composicao__campo">
+  <app-compositor
+    [texto]="texto()"
+    (textoChange)="aoMudarTexto($event)"
+    [rotulo]="rotulo()"
+    [placeholder]="placeholder()"
+    [permitirAnexos]="!editando()"
+    [permitirAudio]="!editando()"
+    [desabilitado]="!canal().podeEnviar"
+    [motivo]="canal().motivoSemEnvio"
+    [maximoCaracteres]="limite"
+    [maximoAnexos]="10"
+    (enviar)="aoEnviar($event)"
+    (digitando)="aoDigitando($event)"
+  />
+
+  @if (canal().podeEnviar && texto().length < limite * 0.75) {
+    <p class="composicao__dica">
+      <span class="composicao__dica-longa"
+        ><kbd>&#64;</kbd> chama alguém · <kbd>#</kbd> cita um negócio, contato ou empresa</span
+      ><span class="composicao__dica-curta"
+        ><kbd>&#64;</kbd> menciona · <kbd>#</kbd> cita um negócio ou contato</span
+      >
+    </p>
+  }
+</div>

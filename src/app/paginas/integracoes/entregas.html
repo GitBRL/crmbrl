@@ -1,0 +1,246 @@
+<div class="historico__barra">
+  <app-filtros-pilula
+    class="historico__filtros"
+    rotulo="Mostrar entregas"
+    [opcoes]="filtros"
+    [selecionado]="filtro()"
+    (selecionadoChange)="escolherFiltro($event)"
+  />
+  <button
+    appBotaoIcone
+    type="button"
+    variante="contorno"
+    tamanho="sm"
+    rotulo="Atualizar entregas"
+    [icone]="icones.atualizar"
+    (click)="carregar()"
+  ></button>
+</div>
+
+@if (erro(); as falha) {
+  <app-estado-vazio
+    variante="erro"
+    [falha]="falha"
+    compacto
+    titulo="Não conseguimos carregar as entregas"
+    [texto]="falha.resumo"
+    [codigo]="falha.requisicaoId"
+  >
+    <button appBotao type="button" variante="invertido" tamanho="sm" (click)="carregar()">
+      Tentar de novo
+    </button>
+  </app-estado-vazio>
+} @else if (carregando() && !resposta()) {
+  <div class="historico__carregando" aria-busy="true">
+    <p class="visualmente-oculto" role="status">Carregando…</p>
+    @for (linha of [1, 2, 3]; track linha) {
+      <app-esqueleto forma="bloco" altura="56px" />
+    }
+  </div>
+} @else if (!itens().length) {
+  @if (filtrado()) {
+    <app-estado-vazio
+      variante="busca"
+      compacto
+      [titulo]="tituloVazio()"
+      texto="Troque o filtro para ver as outras entregas."
+    >
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        tamanho="sm"
+        (click)="escolherFiltro('todas')"
+      >
+        Ver todas
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <app-estado-vazio
+      compacto
+      titulo="Nenhuma entrega ainda"
+      texto="Quando um dos eventos assinados acontecer no CRM, a entrega aparece aqui. Para conferir agora, use “Enviar teste”."
+    />
+  }
+} @else {
+  <ul class="historico__lista" [attr.aria-busy]="carregando() || null" aria-label="Entregas">
+    @for (entrega of itens(); track entrega.id) {
+      @let aberta_ = aberta() === entrega.id;
+      <li class="historico__item" [class.historico__item--aberto]="aberta_">
+        <button
+          type="button"
+          class="historico__resumo"
+          [attr.aria-expanded]="aberta_"
+          [attr.aria-controls]="'entrega-' + entrega.id"
+          (click)="alternar(entrega)"
+        >
+          <app-selo tamanho="sm" [variante]="seloStatus[entrega.status]">
+            {{ rotuloStatus[entrega.status] }}
+          </app-selo>
+          <span class="historico__texto">
+            <strong class="entrega__evento">{{ evento(entrega.evento) }}</strong>
+            <span class="entrega__resultado">
+              {{ resultado(entrega) }}
+              @if (entrega.tentativas > 1) {
+                · {{ entrega.tentativas }} tentativas
+              }
+              @if (entrega.status === 'PENDENTE' && entrega.proximaTentativaEm) {
+                · próxima às {{ hora(entrega.proximaTentativaEm) }}
+              }
+            </span>
+          </span>
+          <time
+            class="historico__meta"
+            [attr.datetime]="entrega.criadoEm"
+            [title]="dataHora(entrega.criadoEm)"
+            >{{ quando(entrega.criadoEm) }}</time
+          >
+          <svg lucideChevronDown class="historico__seta" [size]="18" />
+        </button>
+
+        @if (aberta_) {
+          <div class="historico__detalhe" [id]="'entrega-' + entrega.id">
+            <dl class="historico__dados">
+              <div>
+                <dt>Evento</dt>
+                <dd>
+                  <code>{{ entrega.evento }}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>Criada em</dt>
+                <dd>{{ dataHora(entrega.criadoEm) }}</dd>
+              </div>
+              <div>
+                <dt>Última tentativa</dt>
+                <dd>{{ dataHora(entrega.ultimaTentativaEm) }}</dd>
+              </div>
+              @if (entrega.entregueEm) {
+                <div>
+                  <dt>Entregue em</dt>
+                  <dd>{{ dataHora(entrega.entregueEm) }}</dd>
+                </div>
+              }
+              @if (entrega.proximaTentativaEm && entrega.status === 'PENDENTE') {
+                <div>
+                  <dt>Próxima tentativa</dt>
+                  <dd>{{ dataHora(entrega.proximaTentativaEm) }}</dd>
+                </div>
+              }
+              <div>
+                <dt>Id do evento</dt>
+                <dd>
+                  <code class="entrega__id">{{ entrega.eventoId }}</code>
+                </dd>
+              </div>
+            </dl>
+
+            @if (carregandoDetalhe() === entrega.id && !detalhes().get(entrega.id)) {
+              <div aria-busy="true">
+                <p class="visualmente-oculto" role="status">Carregando as tentativas…</p>
+                <app-esqueleto forma="bloco" altura="7rem" />
+              </div>
+            } @else if (detalhes().get(entrega.id); as detalhe) {
+              <div class="entrega__tentativas">
+                <table class="entrega__tabela">
+                  <caption class="entrega__legenda">
+                    Tentativas
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Nº</th>
+                      <th scope="col">Quando</th>
+                      <th scope="col">Resultado</th>
+                      <th scope="col">Resposta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (tentativa of detalhe.historicoTentativas; track tentativa.numero) {
+                      <tr>
+                        <td class="numeros">{{ tentativa.numero }}</td>
+                        <td class="sem-quebra">{{ dataHora(tentativa.criadoEm) }}</td>
+                        <td>
+                          <span class="entrega__resultado-tentativa">
+                            <app-selo
+                              tamanho="sm"
+                              [variante]="tentativa.sucesso ? 'menta' : 'coral'"
+                            >
+                              {{ tentativa.sucesso ? 'Aceita' : 'Falhou' }}
+                            </app-selo>
+                            {{ resultadoTentativa(tentativa) }}
+                          </span>
+                        </td>
+                        <td>
+                          @if (tentativa.trechoResposta) {
+                            <code class="entrega__trecho">{{ tentativa.trechoResposta }}</code>
+                          } @else {
+                            <span class="historico__motivo">—</span>
+                          }
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="4" class="historico__motivo">
+                          Nenhuma tentativa ainda: a entrega está na fila.
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <app-bloco-codigo
+                rotulo="Envelope enviado"
+                oQue="Envelope"
+                [codigo]="json(detalhe.payload)"
+              />
+            } @else if (erroDetalhe(); as falhaDetalhe) {
+              <p class="historico__nota" role="alert">
+                {{ falhaDetalhe.mensagem }}
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  (click)="carregarDetalhe(entrega.id)"
+                >
+                  Tentar de novo
+                </button>
+              </p>
+            }
+
+            <div class="historico__acoes">
+              <button
+                appBotao
+                type="button"
+                variante="invertido"
+                tamanho="sm"
+                [icone]="icones.reenviar"
+                [carregando]="reenviando() === entrega.id"
+                [disabled]="!!motivoSemReenvio()"
+                (click)="reenviar(entrega)"
+              >
+                Reenviar
+              </button>
+              @if (motivoSemReenvio(); as motivo) {
+                <span class="historico__motivo">{{ motivo }}</span>
+              } @else {
+                <span class="historico__motivo">
+                  Recomeça as tentativas com o mesmo envelope (mesmo id).
+                </span>
+              }
+            </div>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+  @if (total() > porPagina) {
+    <app-paginacao
+      rotulo="Paginação das entregas"
+      [total]="total()"
+      [porPagina]="porPagina"
+      [pagina]="pagina()"
+      (paginaChange)="pagina.set($event)"
+    />
+  }
+}

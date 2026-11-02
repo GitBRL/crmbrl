@@ -1,0 +1,37 @@
+// Proporções da assinatura oficial da BRL, em função da altura do símbolo (--logo-altura):
+// - maiúsculas com 79% da altura do símbolo e centralizadas nele (Urbanist: maiúscula = 0,703em,
+//   então a fonte é 1,129 × a altura; com line-height 1 o centro das maiúsculas cai no centro);
+// - do símbolo ao "B", a espessura de uma barra (21% da altura), descontado o recuo da letra;
+// - de "BRL" a "CRM", 19% da altura entre as tintas, descontados os recuos das letras.
+:host {
+  --logo-altura: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--logo-altura) * 0.156);
+  color: var(--cor-logo);
+  line-height: 1;
+}
+
+.logo__simbolo {
+  display: block;
+  flex: none;
+  fill: currentColor;
+}
+
+.logo__nome {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--logo-altura) * 0.107);
+  font-family: var(--familia);
+  font-size: calc(var(--logo-altura) * 1.129);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.logo__brl {
+  font-weight: 800;
+}
+
+.logo__produto {
+  font-weight: 300;
+}

@@ -1,0 +1,130 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+}
+
+.modelo {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.modelo__ferramentas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.modelo__variaveis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.modelo__sub {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.modelo__variavel {
+  min-height: var(--altura-sm);
+  padding: 0 var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
+  cursor: pointer;
+  transition:
+    border-color var(--duracao) var(--curva),
+    background-color var(--duracao) var(--curva);
+
+  &:hover {
+    border-color: var(--cor-borda-forte);
+    background: var(--cor-superficie-3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+
+  @include m.toque {
+    min-height: var(--altura-md);
+  }
+}
+
+.modelo__problemas {
+  display: grid;
+  gap: var(--esp-1);
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  list-style: none;
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+  box-shadow: inset 3px 0 0 var(--cor-erro);
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+}
+
+.modelo__previa {
+  display: grid;
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie-2);
+}
+
+.modelo__previa-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.modelo__previa-titulo {
+  margin-right: auto;
+  font: var(--fonte-h3);
+}
+
+.modelo__contato {
+  min-width: 180px;
+}
+
+// A bolha imita a mensagem recebida: canto reto no lado de quem fala.
+.modelo__bolha {
+  max-width: 52ch;
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg) var(--raio-lg) var(--raio-lg) var(--raio-sm);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+  font: var(--fonte-corpo);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.modelo__destaque {
+  padding: 0 4px;
+  border-radius: var(--raio-sm);
+  background: var(--cor-marca);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+  color: var(--cor-sobre-marca);
+
+  &--faltando {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--cor-erro);
+    color: var(--cor-erro);
+  }
+}
+
+.modelo__vazio,
+.modelo__nota {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}

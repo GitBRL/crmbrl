@@ -1,0 +1,126 @@
+@use 'mixins' as m;
+
+:host {
+  display: contents;
+}
+
+.modal__dialogo {
+  width: min(560px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-2xl);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  transition:
+    opacity var(--duracao-opacidade) ease-out,
+    transform var(--duracao) var(--curva),
+    display var(--duracao) allow-discrete,
+    overlay var(--duracao) allow-discrete;
+
+  &::backdrop {
+    background: var(--cor-veu);
+    backdrop-filter: blur(4px);
+    transition:
+      opacity var(--duracao-opacidade) ease-out,
+      display var(--duracao) allow-discrete,
+      overlay var(--duracao) allow-discrete;
+  }
+
+  &:not([open]) {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@starting-style {
+  .modal__dialogo[open] {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  .modal__dialogo[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.modal__dialogo--sm {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.modal__dialogo--lg {
+  width: min(720px, calc(100vw - 32px));
+}
+
+@include m.abaixo(m.$sm) {
+  .modal__dialogo,
+  .modal__dialogo--sm,
+  .modal__dialogo--lg {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+    border-radius: var(--raio-lg);
+  }
+}
+
+.modal__caixa {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+.modal__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--esp-4);
+  padding: var(--esp-8) var(--esp-8) var(--esp-5);
+}
+
+.modal__titulo {
+  font: var(--fonte-h2);
+  letter-spacing: var(--tracking-titulo);
+}
+
+.modal__fechar {
+  margin: -6px -6px 0 0;
+}
+
+.modal__corpo {
+  flex: 1;
+  min-height: 0;
+  padding: 0 var(--esp-8) var(--esp-8);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.modal__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--esp-3);
+  padding: var(--esp-5) var(--esp-8);
+  border-top: 1px solid var(--cor-borda);
+
+  &:empty {
+    display: none;
+  }
+}
+
+@include m.abaixo(m.$sm) {
+  .modal__cabecalho {
+    padding: var(--esp-6) var(--esp-5) var(--esp-4);
+  }
+
+  .modal__corpo {
+    padding: 0 var(--esp-5) var(--esp-6);
+  }
+
+  .modal__rodape {
+    padding: var(--esp-4) var(--esp-5);
+  }
+}

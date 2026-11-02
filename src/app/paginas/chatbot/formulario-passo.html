@@ -1,0 +1,543 @@
+@switch (passo().tipo) {
+  @case ('mensagem') {
+    <app-area-texto
+      rotulo="Mensagem do robô"
+      [dica]="dicaVariaveis"
+      [linhas]="3"
+      [obrigatorio]="true"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('texto')"
+      (valorChange)="mudarTexto('texto', $event)"
+    />
+  }
+
+  @case ('pergunta.opcoes') {
+    <app-area-texto
+      rotulo="Pergunta"
+      [dica]="dicaVariaveis"
+      [linhas]="2"
+      [obrigatorio]="true"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('texto')"
+      (valorChange)="mudarTexto('texto', $event)"
+    />
+    <fieldset class="opcoes">
+      <legend class="opcoes__titulo">Opções de resposta</legend>
+      <p class="opcoes__dica">
+        No WhatsApp e no e-mail as opções vão numeradas; no chat do site viram botões. Cada opção
+        abre o seu próprio caminho logo abaixo.
+      </p>
+      @for (opcao of opcoes(); track opcao.id; let i = $index) {
+        <div class="opcoes__linha">
+          <app-campo-texto
+            class="opcoes__campo"
+            [rotulo]="'Opção ' + (i + 1)"
+            rotuloOculto
+            placeholder="Texto da opção"
+            [maximoCaracteres]="60"
+            [desabilitado]="somenteLeitura()"
+            [valor]="opcao.rotulo"
+            (valorChange)="mudarOpcao(i, $event)"
+          />
+          @if (!somenteLeitura()) {
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              [icone]="iconeLixeira"
+              [rotulo]="'Remover a opção ' + (i + 1)"
+              [attr.aria-disabled]="opcoes().length <= 2 || null"
+              (click)="removerOpcao(i)"
+            ></button>
+          }
+        </div>
+      }
+      @if (!somenteLeitura()) {
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          [icone]="iconeMais"
+          [attr.aria-disabled]="opcoes().length >= maximoDeOpcoes || null"
+          (click)="adicionarOpcao()"
+        >
+          Adicionar opção
+        </button>
+        @if (opcoes().length >= maximoDeOpcoes) {
+          <p class="opcoes__dica">O máximo é {{ maximoDeOpcoes }} opções.</p>
+        }
+      }
+    </fieldset>
+    <app-campo-texto
+      rotulo="Guardar a escolha em"
+      opcional
+      dica="Nome da variável que guarda a opção escolhida. Use depois em condições e mensagens."
+      placeholder="assunto"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('variavel')"
+      (valorChange)="mudarTexto('variavel', $event)"
+    />
+    <div class="par">
+      <app-campo-texto
+        rotulo="Tentativas"
+        tipo="number"
+        [minimo]="1"
+        [maximo]="10"
+        dica="Quantas vezes o cliente pode errar antes de seguir."
+        [desabilitado]="somenteLeitura()"
+        [valor]="numero('tentativas')"
+        (valorChange)="mudarNumero('tentativas', $event)"
+      />
+      <app-campo-texto
+        rotulo="Aviso de resposta inválida"
+        opcional
+        placeholder="Não entendi. Responda com o número da opção."
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('mensagemInvalida')"
+        (valorChange)="mudarTexto('mensagemInvalida', $event)"
+      />
+    </div>
+    <ng-container *ngTemplateOutlet="tempoSemResposta" />
+    <div class="extras">
+      <app-alternador
+        rotulo="Caminho para quando o cliente não responder"
+        dica="Cria um caminho próprio abaixo. Precisa do tempo de espera acima."
+        [desabilitado]="somenteLeitura()"
+        [valor]="temSemResposta()"
+        (valorChange)="alternarExtra(RAMO_SEM_RESPOSTA, $event)"
+      />
+      <app-alternador
+        rotulo="Caminho para quando as tentativas acabarem"
+        dica="Cria um caminho próprio para respostas que não batem com nenhuma opção."
+        [desabilitado]="somenteLeitura()"
+        [valor]="temInvalida()"
+        (valorChange)="alternarExtra(RAMO_INVALIDA, $event)"
+      />
+    </div>
+  }
+
+  @case ('pergunta.aberta') {
+    <app-area-texto
+      rotulo="Pergunta"
+      [dica]="dicaVariaveis"
+      [linhas]="2"
+      [obrigatorio]="true"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('texto')"
+      (valorChange)="mudarTexto('texto', $event)"
+    />
+    <div class="par">
+      <app-campo-texto
+        rotulo="Guardar a resposta em"
+        [obrigatorio]="true"
+        placeholder="email"
+        [dica]="variaveisSugeridas() ?? dicaNomeVariavel"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('variavel')"
+        (valorChange)="mudarTexto('variavel', $event)"
+      />
+      <app-seletor
+        rotulo="Conferir se é"
+        permitirVazio
+        placeholder="Qualquer texto"
+        [opcoes]="validacoes"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('validacao') || null"
+        (valorChange)="mudar({ validacao: $event ?? undefined })"
+      />
+    </div>
+    <app-seletor
+      rotulo="Também salvar no contato"
+      permitirVazio
+      placeholder="Não salvar no contato"
+      dica="Atualiza o cadastro do contato com a resposta."
+      [opcoes]="camposDoContato"
+      [desabilitado]="somenteLeitura()"
+      [valor]="campoContatoAtual()"
+      (valorChange)="mudarCampoContato($event)"
+    />
+    @if (campoContatoAtual() === 'campos') {
+      <app-campo-texto
+        rotulo="Nome do campo personalizado"
+        placeholder="interesse"
+        [desabilitado]="somenteLeitura()"
+        [valor]="chaveDoCampoPersonalizado()"
+        (valorChange)="mudarChaveDoCampo('' + $event)"
+      />
+    }
+    <div class="par">
+      <app-campo-texto
+        rotulo="Tentativas"
+        tipo="number"
+        [minimo]="1"
+        [maximo]="10"
+        dica="Quantas vezes o cliente pode errar antes de seguir."
+        [desabilitado]="somenteLeitura()"
+        [valor]="numero('tentativas')"
+        (valorChange)="mudarNumero('tentativas', $event)"
+      />
+      <app-campo-texto
+        rotulo="Aviso de resposta inválida"
+        opcional
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('mensagemInvalida')"
+        (valorChange)="mudarTexto('mensagemInvalida', $event)"
+      />
+    </div>
+    <ng-container *ngTemplateOutlet="tempoSemResposta" />
+    <div class="extras">
+      <app-alternador
+        rotulo="Caminho para quando o cliente não responder"
+        [desabilitado]="somenteLeitura()"
+        [valor]="temSemResposta()"
+        (valorChange)="alternarExtra(RAMO_SEM_RESPOSTA, $event)"
+      />
+      <app-alternador
+        rotulo="Caminho para quando as tentativas acabarem"
+        [desabilitado]="somenteLeitura()"
+        [valor]="temInvalida()"
+        (valorChange)="alternarExtra(RAMO_INVALIDA, $event)"
+      />
+    </div>
+  }
+
+  @case ('condicao') {
+    <p class="aviso">
+      Cada caminho abaixo tem as suas condições. O robô segue pelo primeiro que bater; o caminho
+      “Senão” vale quando nenhum bater.
+    </p>
+  }
+
+  @case ('acao.etiquetar') {
+    <app-campo-texto
+      rotulo="Etiquetas a adicionar"
+      opcional
+      dica="Separe por vírgula. Etiquetas novas são criadas."
+      placeholder="Lead do chatbot, Interesse em planos"
+      [desabilitado]="somenteLeitura()"
+      [valor]="lista('adicionar')"
+      (valorChange)="mudarLista('adicionar', $event)"
+    />
+    <app-campo-texto
+      rotulo="Etiquetas a remover"
+      opcional
+      dica="Separe por vírgula."
+      [desabilitado]="somenteLeitura()"
+      [valor]="lista('remover')"
+      (valorChange)="mudarLista('remover', $event)"
+    />
+  }
+
+  @case ('acao.definir_campo') {
+    <app-campo-texto
+      rotulo="Campo do contato"
+      [obrigatorio]="true"
+      placeholder="campos.interesse"
+      dica="Use nome, email, telefone, cargo ou campos.<nome do campo personalizado>."
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('campo')"
+      (valorChange)="mudarTexto('campo', $event)"
+    />
+    <app-campo-texto
+      rotulo="Valor"
+      [obrigatorio]="true"
+      placeholder="{{ '{{variaveis.assunto}}' }}"
+      dica="Pode ser um texto fixo ou uma resposta do cliente, como {{ '{{variaveis.assunto}}' }}."
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('valor')"
+      (valorChange)="mudarTexto('valor', $event)"
+    />
+  }
+
+  @case ('acao.mover_fila') {
+    <app-seletor
+      rotulo="Fila"
+      [obrigatorio]="true"
+      placeholder="Escolha a fila"
+      [opcoes]="contexto.filas()"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('filaId') || null"
+      (valorChange)="mudar({ filaId: $event ?? undefined })"
+    />
+    <app-alternador
+      rotulo="Distribuir para uma pessoa da fila"
+      dica="Ligado, a conversa já vai para quem estiver livre na fila."
+      [desabilitado]="somenteLeitura()"
+      [valor]="config()['distribuir'] === true"
+      (valorChange)="mudar({ distribuir: $event })"
+    />
+  }
+
+  @case ('acao.atribuir') {
+    <app-seletor
+      rotulo="Pessoa"
+      [obrigatorio]="true"
+      placeholder="Escolha quem recebe a conversa"
+      [opcoes]="contexto.pessoas()"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('usuarioId') || null"
+      (valorChange)="mudar({ usuarioId: $event ?? undefined })"
+    />
+  }
+
+  @case ('acao.criar_negocio') {
+    <div class="par">
+      <app-seletor
+        rotulo="Funil"
+        permitirVazio
+        placeholder="Funil padrão da área"
+        [opcoes]="funis()"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('funilId') || null"
+        (valorChange)="mudarFunil($event)"
+      />
+      <app-seletor
+        rotulo="Etapa"
+        permitirVazio
+        placeholder="Primeira etapa"
+        [opcoes]="etapas()"
+        [desabilitado]="somenteLeitura() || !texto('funilId')"
+        [valor]="texto('etapaId') || null"
+        (valorChange)="mudar({ etapaId: $event ?? undefined })"
+      />
+    </div>
+    <app-campo-texto
+      rotulo="Título do negócio"
+      opcional
+      placeholder="{{ '{{contato.nome}}' }} — chatbot"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('titulo')"
+      (valorChange)="mudarTexto('titulo', $event)"
+    />
+    <div class="par">
+      <app-campo-texto
+        rotulo="Valor (R$)"
+        opcional
+        tipo="number"
+        [minimo]="0"
+        [desabilitado]="somenteLeitura()"
+        [valor]="numero('valor')"
+        (valorChange)="mudarNumero('valor', $event)"
+      />
+      <app-seletor
+        rotulo="Responsável"
+        permitirVazio
+        placeholder="Quem estiver com a conversa"
+        [opcoes]="contexto.pessoas()"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('responsavelFixoId') || null"
+        (valorChange)="mudar({ responsavelFixoId: $event ?? undefined })"
+      />
+    </div>
+  }
+
+  @case ('acao.criar_atividade') {
+    <app-campo-texto
+      rotulo="Título"
+      [obrigatorio]="true"
+      placeholder="Ligar para {{ '{{contato.nome}}' }}"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('titulo')"
+      (valorChange)="mudarTexto('titulo', $event)"
+    />
+    <div class="par">
+      <app-seletor
+        rotulo="Tipo"
+        [opcoes]="tiposAtividade"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('tipo') || 'TAREFA'"
+        (valorChange)="mudar({ tipo: $event ?? undefined })"
+      />
+      <app-seletor
+        rotulo="Prioridade"
+        permitirVazio
+        placeholder="Média"
+        [opcoes]="prioridades"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('prioridade') || null"
+        (valorChange)="mudar({ prioridade: $event ?? undefined })"
+      />
+    </div>
+    <div class="par">
+      <app-campo-texto
+        rotulo="Prazo (horas)"
+        tipo="number"
+        [minimo]="1"
+        dica="Quantas horas a pessoa tem para fazer."
+        [desabilitado]="somenteLeitura()"
+        [valor]="numero('prazoHoras')"
+        (valorChange)="mudarNumero('prazoHoras', $event)"
+      />
+      <app-seletor
+        rotulo="Responsável"
+        permitirVazio
+        placeholder="Quem estiver com a conversa"
+        [opcoes]="contexto.pessoas()"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('responsavelId') || null"
+        (valorChange)="mudar({ responsavelId: $event ?? undefined })"
+      />
+    </div>
+    <app-area-texto
+      rotulo="Descrição"
+      opcional
+      [linhas]="2"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('descricao')"
+      (valorChange)="mudarTexto('descricao', $event)"
+    />
+  }
+
+  @case ('acao.webhook') {
+    <app-campo-texto
+      rotulo="Endereço (URL)"
+      [obrigatorio]="true"
+      placeholder="https://exemplo.com/gancho"
+      dica="O robô envia os dados da conversa para este endereço. Não coloque usuário e senha na URL."
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('url')"
+      (valorChange)="mudarTexto('url', $event)"
+    />
+    <app-area-texto
+      rotulo="Cabeçalhos"
+      opcional
+      [linhas]="2"
+      monoespacado
+      dica="Um por linha, no formato Nome: valor."
+      placeholder="Authorization: Bearer …"
+      [desabilitado]="somenteLeitura()"
+      [valor]="cabecalhos()"
+      (valorChange)="mudarCabecalhos($event)"
+    />
+    <app-area-texto
+      rotulo="Dados extras (JSON)"
+      opcional
+      [linhas]="3"
+      monoespacado
+      dica="Campos a mais para enviar junto, em JSON."
+      [erro]="erroDoCorpo()"
+      [desabilitado]="somenteLeitura()"
+      [valor]="textoCorpo()"
+      (valorChange)="mudarCorpo($event)"
+    />
+    <app-campo-texto
+      rotulo="Guardar a resposta em"
+      opcional
+      dica="Nome de uma variável que recebe o começo da resposta do serviço."
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('salvarEm')"
+      (valorChange)="mudarTexto('salvarEm', $event)"
+    />
+  }
+
+  @case ('transferir') {
+    <div class="par">
+      <app-seletor
+        rotulo="Fila de atendimento"
+        permitirVazio
+        placeholder="Fila do canal"
+        [opcoes]="contexto.filas()"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('filaId') || null"
+        (valorChange)="mudar({ filaId: $event ?? undefined })"
+      />
+      <app-seletor
+        rotulo="Ou uma pessoa"
+        permitirVazio
+        placeholder="Quem estiver livre"
+        [opcoes]="contexto.pessoas()"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('usuarioId') || null"
+        (valorChange)="mudar({ usuarioId: $event ?? undefined })"
+      />
+    </div>
+    <app-area-texto
+      rotulo="Mensagem para o cliente"
+      opcional
+      [linhas]="2"
+      [dica]="dicaVariaveis"
+      placeholder="Vou chamar um atendente. Um momento!"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('mensagem')"
+      (valorChange)="mudarTexto('mensagem', $event)"
+    />
+    <app-alternador
+      rotulo="Deixar um resumo das respostas para o atendente"
+      dica="Cria uma nota interna na conversa com tudo o que o cliente respondeu ao robô."
+      [desabilitado]="somenteLeitura()"
+      [valor]="config()['incluirResumo'] !== false"
+      (valorChange)="mudar({ incluirResumo: $event })"
+    />
+  }
+
+  @case ('aguardar') {
+    <div class="par">
+      <app-campo-texto
+        rotulo="Esperar"
+        tipo="number"
+        [minimo]="1"
+        [obrigatorio]="true"
+        [desabilitado]="somenteLeitura()"
+        [valor]="numero('quantidade')"
+        (valorChange)="mudarNumero('quantidade', $event)"
+      />
+      <app-seletor
+        rotulo="Unidade"
+        [opcoes]="unidades"
+        [desabilitado]="somenteLeitura()"
+        [valor]="texto('unidade') || 'minutos'"
+        (valorChange)="mudar({ unidade: $event ?? 'minutos' })"
+      />
+    </div>
+  }
+
+  @case ('encerrar') {
+    <app-campo-texto
+      rotulo="Motivo"
+      opcional
+      dica="Anotação para o histórico. O robô para por aqui."
+      placeholder="concluida"
+      [desabilitado]="somenteLeitura()"
+      [valor]="texto('motivo')"
+      (valorChange)="mudarTexto('motivo', $event)"
+    />
+  }
+
+  @default {
+    <p class="aviso">Este tipo de passo não tem campos para editar.</p>
+  }
+}
+
+<ng-template #tempoSemResposta>
+  <fieldset class="opcoes">
+    <legend class="opcoes__titulo">Se o cliente demorar a responder</legend>
+    <p class="opcoes__dica">Deixe em branco para esperar sem limite.</p>
+    <div class="par">
+      <app-campo-texto
+        rotulo="Lembrar depois de (minutos)"
+        tipo="number"
+        [minimo]="1"
+        [desabilitado]="somenteLeitura()"
+        [valor]="valorDoTempo('lembreteAposMinutos')"
+        (valorChange)="mudarTempo('lembreteAposMinutos', $event, true)"
+      />
+      <app-campo-texto
+        rotulo="Encerrar depois de (minutos)"
+        tipo="number"
+        [minimo]="1"
+        [desabilitado]="somenteLeitura()"
+        [valor]="valorDoTempo('encerrarAposMinutos')"
+        (valorChange)="mudarTempo('encerrarAposMinutos', $event, true)"
+      />
+    </div>
+    <app-campo-texto
+      rotulo="Texto do lembrete"
+      opcional
+      placeholder="Ainda por aí? Escolha uma opção para continuarmos."
+      [desabilitado]="somenteLeitura()"
+      [valor]="valorDoTempo('lembrete')"
+      (valorChange)="mudarTempo('lembrete', $event, false)"
+    />
+  </fieldset>
+</ng-template>

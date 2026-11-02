@@ -1,0 +1,44 @@
+@use 'catalogo';
+
+// Seção de retorno e painéis do catálogo. Só tokens.
+
+:host {
+  display: block;
+}
+
+// Diff da auditoria: antes riscado em tom suave, depois em destaque.
+.diff {
+  width: 100%;
+  margin-bottom: var(--esp-5);
+  border-collapse: collapse;
+  font: var(--fonte-corpo-sm);
+
+  th,
+  td {
+    padding: var(--esp-3) var(--esp-2);
+    border-bottom: 1px solid var(--cor-borda);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  thead th {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-legenda);
+    font-weight: 500;
+  }
+
+  tbody th {
+    font-weight: 500;
+  }
+}
+
+.diff__antes {
+  color: var(--cor-texto-suave);
+  text-decoration: line-through;
+}
+
+.diff__depois {
+  padding: 2px var(--esp-2);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-vidro-forte);
+}

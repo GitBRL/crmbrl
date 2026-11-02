@@ -1,0 +1,50 @@
+:host {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.par {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--esp-4);
+}
+
+.opcoes {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+}
+
+.opcoes__titulo {
+  padding: 0 var(--esp-2);
+  font: var(--fonte-corpo-sm);
+  font-weight: 600;
+}
+
+.opcoes__dica,
+.aviso {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.opcoes__linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--esp-2);
+  align-items: center;
+}
+
+.opcoes__campo {
+  min-width: 0;
+}
+
+.extras {
+  display: grid;
+  gap: var(--esp-2);
+}

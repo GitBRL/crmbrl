@@ -1,0 +1,147 @@
+@use 'mixins' as m;
+@use '../campo/campo' as c;
+
+:host {
+  --_tamanho: 22px;
+
+  display: block;
+  min-width: 0;
+}
+
+:host(.caixa-selecao--lg) {
+  --_tamanho: 28px;
+}
+
+:host(.caixa-selecao--desabilitada) {
+  opacity: 0.5;
+}
+
+// Quadro à esquerda; rótulo (linha de 44px), descrição e erro à direita.
+.caixa {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--esp-3);
+}
+
+:host(.caixa-selecao--oculto) .caixa {
+  grid-template-columns: auto;
+  justify-content: start;
+}
+
+.caixa__quadro {
+  position: relative;
+  display: grid;
+  place-items: center;
+  grid-row: 1;
+  grid-column: 1;
+  min-height: var(--altura-md);
+  cursor: pointer;
+
+  // O quadro tem 22–28px de desenho e 44px de alvo.
+  @include m.area-toque(0px, calc((var(--altura-md) - var(--_tamanho)) / 2));
+}
+
+.caixa__input {
+  width: var(--_tamanho);
+  height: var(--_tamanho);
+  margin: 0;
+  // A borda em texto fraco dá ≥ 3:1 com a superfície nos dois temas (WCAG 1.4.11).
+  border: 1.5px solid var(--cor-texto-fraco);
+  border-radius: 30%;
+  background: var(--cor-superficie-2);
+  cursor: pointer;
+  appearance: none;
+  transition:
+    background-color var(--duracao) var(--curva),
+    border-color var(--duracao) var(--curva);
+
+  &:hover:not(:disabled) {
+    border-color: var(--cor-texto-suave);
+  }
+
+  // Marcada: invertida, como a aba ativa (destaca sem depender de cor).
+  &:checked,
+  &:indeterminate {
+    border-color: var(--cor-inverso);
+    background: var(--cor-inverso);
+  }
+
+  &[aria-invalid='true']:not(:checked) {
+    border-color: var(--cor-erro);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+:host(.caixa-selecao--circulo) .caixa__input {
+  border-radius: 50%;
+}
+
+.caixa__marca {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--cor-sobre-inverso);
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+  transition:
+    opacity var(--duracao-rapida) var(--curva),
+    transform var(--duracao) var(--curva);
+}
+
+.caixa__input:is(:checked, :indeterminate) + .caixa__marca {
+  opacity: 1;
+  transform: none;
+}
+
+.caixa__topo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  grid-column: 2;
+  min-height: var(--altura-md);
+}
+
+.caixa__rotulo {
+  color: var(--cor-texto);
+  font: var(--fonte-corpo);
+  cursor: pointer;
+}
+
+.caixa__dica,
+.caixa__erro {
+  grid-column: 2;
+  margin-top: calc(-1 * var(--esp-2));
+  padding-bottom: var(--esp-1);
+}
+
+.caixa__dica + .caixa__erro {
+  margin-top: 0;
+}
+
+.caixa__dica {
+  @include c.dica;
+
+  padding-inline-start: 0;
+}
+
+.caixa__erro {
+  @include c.erro;
+
+  padding-inline-start: 0;
+}
+
+@media (forced-colors: active) {
+  .caixa__input:is(:checked, :indeterminate) {
+    background: Highlight;
+  }
+
+  .caixa__marca {
+    color: HighlightText;
+  }
+}

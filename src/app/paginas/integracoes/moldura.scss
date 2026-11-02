@@ -1,0 +1,103 @@
+@use 'mixins' as m;
+
+// Moldura de Integrações e de Administração: título, frase, ação principal e seções.
+
+:host {
+  display: grid;
+  gap: var(--esp-6);
+  min-width: 0;
+}
+
+.moldura__cabecalho {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--esp-3) var(--esp-6);
+  align-items: start;
+}
+
+.moldura__titulos {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.moldura__frase {
+  max-width: 44rem;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-lead);
+}
+
+.moldura__acao {
+  align-self: end;
+}
+
+.moldura__flutuante {
+  display: none;
+}
+
+.moldura__secoes {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: var(--esp-2);
+  margin-top: var(--esp-2);
+}
+
+.moldura__secao {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: var(--altura-md);
+  padding: 0 var(--esp-5);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-controle);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  text-decoration: none;
+  transition:
+    background-color var(--duracao-rapida) var(--curva),
+    color var(--duracao-rapida) var(--curva);
+
+  &:hover {
+    background: var(--cor-superficie-3);
+    color: var(--cor-texto);
+  }
+}
+
+.moldura__secao--ativa,
+.moldura__secao--ativa:hover {
+  background: var(--cor-inverso);
+  box-shadow: none;
+  color: var(--cor-sobre-inverso);
+}
+
+@include m.abaixo(m.$md) {
+  // Espaço para o botão flutuante não cobrir o fim da lista.
+  :host:has(.moldura__flutuante) {
+    padding-bottom: calc(56px + var(--esp-6));
+  }
+
+  .moldura__cabecalho {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .moldura__acao {
+    display: none;
+  }
+
+  // Ação principal no celular: círculo flutuante no canto inferior direito.
+  .moldura__flutuante {
+    position: fixed;
+    right: var(--esp-4);
+    bottom: calc(var(--esp-4) + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-cabecalho);
+    display: inline-flex;
+    box-shadow: var(--sombra-flutuante);
+  }
+}
+
+@media (forced-colors: active) {
+  .moldura__secao--ativa {
+    outline: 2px solid CanvasText;
+  }
+}

@@ -1,0 +1,109 @@
+// Atividades do contato/empresa: lista com a caixa grande de concluir. Só tokens.
+
+:host {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.atividades__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.atividades {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.atividade {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--esp-3);
+  align-items: start;
+  padding: var(--esp-3) 0;
+  border-bottom: 1px solid var(--cor-borda);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.atividade__estado {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 8px;
+  border-radius: 50%;
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+}
+
+.atividade__estado--cancelada {
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto-suave);
+}
+
+.atividade__corpo {
+  display: grid;
+  gap: var(--esp-1);
+  min-width: 0;
+  padding-top: var(--esp-2);
+}
+
+.atividade__titulo {
+  width: fit-content;
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.atividade__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1) var(--esp-3);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+}
+
+.atividade__tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  color: var(--cor-texto-suave);
+}
+
+.atividade__atrasada {
+  color: var(--cor-destaque-texto);
+  font-weight: 500;
+}
+
+.atividade__negocio,
+.atividades__mais a {
+  color: var(--cor-texto-suave);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    color: var(--cor-texto);
+  }
+}
+
+.atividades__mais {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda-lg);
+}

@@ -1,0 +1,78 @@
+# CI do front (crmbrl): formatação, testes de unidade (Vitest), build de produção e build da
+# imagem Docker (Angular + Caddy). Sem push de imagem e sem deploy: a publicação é manual
+# (veja docs/DEPLOY.md no repositório crmbrl-api).
+name: CI
+
+on:
+  push:
+    branches: [main, fase-1]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24'
+  CI: 'true'
+  NG_CLI_ANALYTICS: 'false'
+
+jobs:
+  formatacao:
+    name: Formatação
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx prettier --check "src/**/*.{ts,html,scss}"
+
+  unidade:
+    name: Testes de unidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx ng test --watch=false
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx ng build
+      - name: Confere as saídas do build
+        run: test -f dist/crmbrl/browser/index.html
+
+  imagem:
+    name: Imagem Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: crmbrl-web:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

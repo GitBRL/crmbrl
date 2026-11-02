@@ -1,0 +1,116 @@
+// O painel é renderizado no overlay do CDK (fora do host), mas o modelo é deste componente:
+// as classes abaixo valem lá também.
+
+:host {
+  display: inline-flex;
+  flex: none;
+}
+
+.menu-acoes__seta {
+  margin-left: var(--esp-1);
+  vertical-align: -3px;
+  transition: transform var(--duracao) var(--curva);
+
+  [aria-expanded='true'] & {
+    transform: rotate(180deg);
+  }
+}
+
+.menu-acoes__painel {
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 2 * var(--esp-4)));
+  padding: var(--esp-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  font: var(--fonte-corpo-sm);
+  transition:
+    opacity var(--duracao-opacidade) ease-out,
+    transform var(--duracao) var(--curva);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.menu-acoes__item {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  width: 100%;
+  min-height: var(--altura-md);
+  margin: 0;
+  padding: var(--esp-1) var(--esp-4) var(--esp-1) var(--esp-1);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: inherit;
+  font: var(--fonte-rotulo);
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duracao) var(--curva);
+
+  &:hover,
+  &:focus {
+    outline: none;
+    background: var(--cor-vidro-forte);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: -2px;
+  }
+
+  &[aria-disabled='true'] {
+    border-radius: var(--raio-md);
+    cursor: not-allowed;
+
+    .menu-acoes__rotulo,
+    .menu-acoes__icone {
+      opacity: 0.45;
+    }
+  }
+}
+
+.menu-acoes__item--perigo {
+  color: var(--cor-erro);
+}
+
+.menu-acoes__icone {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--altura-md) - 10px);
+  height: calc(var(--altura-md) - 10px);
+}
+
+.menu-acoes__textos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-block: var(--esp-1);
+}
+
+// O motivo fica legível (texto suave, sem a opacidade do rótulo desabilitado).
+.menu-acoes__motivo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.menu-acoes__separador {
+  height: 1px;
+  margin: var(--esp-1) var(--esp-2);
+  background: var(--cor-borda);
+}
+
+@media (forced-colors: active) {
+  .menu-acoes__painel {
+    border: 1px solid CanvasText;
+  }
+}

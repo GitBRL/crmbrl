@@ -1,0 +1,223 @@
+<app-modal
+  largura="lg"
+  [(aberto)]="aberto"
+  [titulo]="editando() ? 'Editar contato' : 'Novo contato'"
+  [complemento]="editando() ? '· ' + (contato()?.nome ?? '') : null"
+>
+  <form class="formulario" novalidate [id]="idFormulario" [formGroup]="form" (ngSubmit)="salvar()">
+    @if (!editando()) {
+      <p class="formulario__frase">
+        Preencha o e-mail, o telefone ou os dois. Se a pessoa já estiver no CRM, avisamos antes de
+        salvar.
+      </p>
+    }
+
+    @if (erroGeral(); as mensagem) {
+      <p class="formulario__erro" role="alert">{{ mensagem }}</p>
+    }
+
+    <div class="formulario__grade">
+      <app-campo-texto
+        class="formulario__largo"
+        rotulo="Nome"
+        autocomplete="off"
+        formControlName="nome"
+        [maximoCaracteres]="200"
+      />
+      <app-campo-texto
+        rotulo="E-mail"
+        tipo="email"
+        autocomplete="off"
+        placeholder="nome@empresa.com.br"
+        formControlName="email"
+      />
+      <app-campo-texto
+        rotulo="Telefone"
+        tipo="tel"
+        autocomplete="off"
+        placeholder="(11) 98765-4321"
+        dica="Com DDD. Números do Brasil não precisam do +55."
+        formControlName="telefone"
+        [erro]="erroMeio()"
+      />
+    </div>
+
+    <div class="formulario__duplicados" aria-live="polite">
+      @for (item of existentes(); track item.contato.id) {
+        <div class="duplicado">
+          <div class="duplicado__texto">
+            <p class="duplicado__titulo">
+              <strong>{{ item.contato.nome }}</strong> já está no CRM com {{ item.motivo }}.
+            </p>
+            <p class="duplicado__meta">
+              {{ item.contato.empresa?.nome ?? 'Sem empresa' }} · Responsável:
+              {{ item.contato.responsavel?.nome ?? 'ninguém' }}
+            </p>
+            <p class="duplicado__meta">
+              @if (editando()) {
+                Dois contatos não podem ter o mesmo e-mail nem o mesmo telefone.
+              } @else {
+                Se você salvar, o CRM não cria outro contato: completa os dados que faltam nele e
+                registra esta nova entrada.
+              }
+            </p>
+          </div>
+          <a
+            appBotao
+            variante="contorno"
+            tamanho="sm"
+            [routerLink]="['/contatos', item.contato.id]"
+            (click)="fechar()"
+          >
+            Abrir contato
+          </a>
+        </div>
+      }
+      @if (outroContatoId(); as outro) {
+        <p class="duplicado__meta">
+          <a class="formulario__link" [routerLink]="['/contatos', outro]" (click)="fechar()">
+            Abrir o contato que já usa esse dado
+          </a>
+        </p>
+      }
+      @if (parecidos().length) {
+        <div class="parecidos">
+          <p class="parecidos__titulo">Pessoas com nome parecido — confira se não é uma delas:</p>
+          <ul class="parecidos__lista">
+            @for (parecido of parecidos(); track parecido.id) {
+              <li>
+                <a
+                  class="formulario__link"
+                  [routerLink]="['/contatos', parecido.id]"
+                  (click)="fechar()"
+                  >{{ parecido.nome }}</a
+                >
+                <span class="duplicado__meta">
+                  {{ parecido.email ?? parecido.empresa?.nome ?? '' }}
+                </span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+
+    <div class="formulario__grade">
+      <app-campo-texto rotulo="Cargo" opcional autocomplete="off" formControlName="cargo" />
+      <app-campo-empresa rotulo="Empresa" opcional formControlName="empresa" />
+      @if (mostrarResponsavel()) {
+        <app-seletor
+          rotulo="Responsável"
+          ajuda="Quem cuida deste contato. Líderes atribuem a alguém da equipe; Admin e C-level, a qualquer pessoa."
+          [opcoes]="opcoesResponsavel()"
+          formControlName="responsavelId"
+        />
+      }
+      @if (!editando()) {
+        <app-seletor
+          rotulo="Origem"
+          ajuda="De onde a pessoa veio. A primeira origem nunca muda; se ela voltar por outro canal, a última origem é atualizada."
+          [opcoes]="opcoesOrigem"
+          formControlName="origem"
+        />
+        <app-campo-texto
+          rotulo="Detalhe da origem"
+          opcional
+          placeholder="Ex.: indicação do cliente ACME"
+          formControlName="origemDetalhe"
+        />
+      }
+      <app-campo-etiquetas
+        class="formulario__largo"
+        rotulo="Etiquetas"
+        opcional
+        [sugestoes]="sugestoesEtiquetas()"
+        formControlName="etiquetas"
+      />
+    </div>
+
+    @if (!editando()) {
+      <details class="formulario__mais">
+        <summary>Campanha (UTM)</summary>
+        <div class="formulario__grade" formGroupName="utm">
+          @for (campo of camposUtm; track campo) {
+            <app-campo-texto
+              opcional
+              autocomplete="off"
+              [rotulo]="rotuloUtm[campo] + ' (utm_' + campo + ')'"
+              [formControlName]="campo"
+            />
+          }
+        </div>
+      </details>
+
+      <fieldset class="formulario__grupo">
+        <legend class="formulario__legenda">Privacidade (LGPD)</legend>
+        <app-caixa-selecao
+          rotulo="Não quer receber marketing (opt-out)"
+          dica="Fica fora de disparos e automações de marketing."
+          formControlName="optOutMarketing"
+        />
+        <app-caixa-selecao
+          rotulo="Deu consentimento para receber comunicações"
+          dica="Guardamos de onde veio e quando."
+          formControlName="temConsentimento"
+        />
+        @if (temConsentimento()) {
+          <app-campo-texto
+            rotulo="De onde veio o consentimento"
+            placeholder="Ex.: formulário do site"
+            formControlName="consentimentoOrigem"
+            [erro]="erroConsentimento()"
+          />
+        }
+      </fieldset>
+    } @else {
+      <fieldset class="formulario__grupo" formArrayName="campos">
+        <legend class="formulario__legenda">Campos personalizados</legend>
+        @for (linha of campos.controls; track linha; let i = $index) {
+          <div class="campo-livre" [formGroupName]="i">
+            <app-campo-texto rotulo="Nome do campo" autocomplete="off" formControlName="chave" />
+            <app-campo-texto rotulo="Valor" autocomplete="off" formControlName="valor" />
+            <button
+              appBotaoIcone
+              type="button"
+              variante="contorno"
+              class="campo-livre__remover"
+              [icone]="icones.remover"
+              [rotulo]="'Remover o campo ' + (linha.value.chave || i + 1)"
+              (click)="removerCampo(i)"
+            ></button>
+          </div>
+        } @empty {
+          <p class="duplicado__meta">Nenhum campo personalizado.</p>
+        }
+        <div>
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            tamanho="sm"
+            [icone]="icones.adicionar"
+            (click)="adicionarCampo()"
+          >
+            Adicionar campo
+          </button>
+        </div>
+      </fieldset>
+    }
+  </form>
+
+  <div modal-rodape>
+    <button appBotao type="button" variante="contorno" (click)="fechar()">Cancelar</button>
+    <button
+      appBotao
+      type="submit"
+      variante="invertido"
+      [attr.form]="idFormulario"
+      [carregando]="salvando()"
+    >
+      {{ editando() ? 'Salvar alterações' : 'Criar contato' }}
+    </button>
+  </div>
+</app-modal>

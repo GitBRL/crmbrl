@@ -1,0 +1,224 @@
+<section class="secao" aria-labelledby="usuarios-titulo">
+  <header class="secao__cabecalho">
+    <div class="secao__textos">
+      <h2 class="secao__titulo" id="usuarios-titulo">Usuários</h2>
+      <p class="secao__frase">
+        Quem usa o CRM, com o papel e o líder de cada um. Convide, ajuste, desligue e reative por
+        aqui.
+      </p>
+    </div>
+    <button
+      appBotao
+      type="button"
+      variante="invertido"
+      class="secao__acao"
+      [icone]="iconeConvidar"
+      (click)="convidar()"
+    >
+      <span class="secao__acao-texto">Convidar usuário</span>
+    </button>
+  </header>
+
+  @if (semLiderCerto().length > 0) {
+    <div class="faixa" role="status">
+      <svg lucideTriangleAlert class="faixa__icone" [size]="20" />
+      <div class="faixa__textos">
+        <p>
+          <strong>{{ tituloSemLider() }}.</strong>
+          {{ fraseSemLider() }}
+        </p>
+        <ul class="faixa__pessoas">
+          @for (pessoa of semLiderCerto(); track pessoa.id) {
+            <li>
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                (click)="editarPorId(pessoa.id)"
+              >
+                Escolher líder de {{ pessoa.nome }}
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  }
+
+  <div class="usuarios__barra">
+    <app-campo-busca
+      class="usuarios__busca"
+      rotulo="Buscar usuários"
+      placeholder="Buscar por nome ou e-mail"
+      [(valor)]="busca"
+      (buscar)="aplicarBusca($event)"
+    />
+    <app-filtros-pilula
+      class="usuarios__situacao"
+      rotulo="Situação"
+      [opcoes]="situacoes"
+      [(selecionado)]="situacao"
+      (selecionadoChange)="aoMudarFiltro()"
+    />
+    <app-seletor
+      class="usuarios__papel"
+      rotulo="Papel"
+      rotuloOculto
+      permitirVazio
+      placeholder="Todos os papéis"
+      [opcoes]="opcoesPapel"
+      [(valor)]="papel"
+      (valorChange)="aoMudarFiltro()"
+    />
+  </div>
+
+  @if (lista.erro(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar os usuários"
+      [texto]="erro.resumo"
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeTentar"
+        (click)="recarregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <app-tabela
+      rotulo="Usuários"
+      clicavel
+      [colunas]="colunas"
+      [linhas]="linhas()"
+      [carregando]="carregandoPrimeiraVez()"
+      [linhasEsqueleto]="6"
+      (abrir)="abrir($event)"
+    >
+      <ng-template appCelula="nome" [appCelulaDe]="linhas()" let-linha>
+        <span class="usuarios__pessoa">
+          <app-avatar
+            [nome]="linha.usuario.nome"
+            [foto]="linha.usuario.avatarUrl"
+            tamanho="sm"
+            decorativo
+          />
+          <span class="usuarios__nome">{{ linha.usuario.nome }}</span>
+          @if (linha.ehVoce) {
+            <app-selo tamanho="sm">você</app-selo>
+          }
+        </span>
+      </ng-template>
+      <ng-template appCelula="email" [appCelulaDe]="linhas()" let-linha>
+        <span class="usuarios__email">{{ linha.email[0] }}<wbr />{{ linha.email[1] }}</span>
+      </ng-template>
+      <ng-template appCelula="papel" [appCelulaDe]="linhas()" let-linha>
+        <app-selo>{{ linha.usuario.rotuloPapel }}</app-selo>
+      </ng-template>
+      <ng-template appCelula="lider" [appCelulaDe]="linhas()" let-linha>
+        @if (linha.usuario.lider; as lider) {
+          <span class="usuarios__lider">
+            <span class="usuarios__lider-nome">{{ lider.nome }}</span>
+            @if (linha.aguardaLider) {
+              <app-selo
+                tamanho="sm"
+                variante="lima"
+                title="Responde provisoriamente a quem recebeu a equipe de um líder desligado."
+                >provisório</app-selo
+              >
+            }
+          </span>
+        } @else if (linha.aguardaLider) {
+          <app-selo tamanho="sm" variante="lima">sem líder</app-selo>
+        } @else {
+          <span class="usuarios__vazio" aria-label="Sem líder">—</span>
+        }
+      </ng-template>
+      <ng-template appCelula="situacao" [appCelulaDe]="linhas()" let-linha>
+        <app-selo [variante]="linha.situacao.variante" [title]="linha.situacao.descricao">
+          @if (linha.situacao.rotulo === 'Ativo') {
+            <span class="usuarios__ponto" aria-hidden="true"></span>
+          }
+          {{ linha.situacao.rotulo }}
+        </app-selo>
+      </ng-template>
+      <ng-template appCelula="ultimoAcesso" [appCelulaDe]="linhas()" let-linha>
+        <span
+          class="usuarios__acesso"
+          [class.usuarios__acesso--nunca]="!linha.ultimoAcessoCompleto"
+          [attr.title]="linha.ultimoAcessoCompleto"
+          >{{ linha.ultimoAcesso }}</span
+        >
+      </ng-template>
+      <ng-template appCelula="acoes" [appCelulaDe]="linhas()" let-linha>
+        <app-menu-acoes
+          [rotulo]="'Ações de ' + linha.usuario.nome"
+          [itens]="linha.acoes"
+          (escolher)="agir($event.id, linha)"
+        />
+      </ng-template>
+
+      @if (temFiltro()) {
+        <app-estado-vazio
+          tabela-vazio
+          compacto
+          variante="busca"
+          titulo="Ninguém com esses filtros"
+          texto="Confira a busca ou mostre todos os papéis e situações."
+        >
+          <button appBotao type="button" tamanho="sm" variante="contorno" (click)="limparFiltros()">
+            Limpar filtros
+          </button>
+        </app-estado-vazio>
+      } @else {
+        <app-estado-vazio
+          tabela-vazio
+          compacto
+          titulo="Nenhum usuário ainda"
+          texto="Convide a primeira pessoa da equipe."
+        >
+          <button appBotao type="button" tamanho="sm" variante="invertido" (click)="convidar()">
+            Convidar usuário
+          </button>
+        </app-estado-vazio>
+      }
+    </app-tabela>
+
+    @if (total() > 0) {
+      <app-paginacao
+        rotulo="Paginação dos usuários"
+        [total]="total()"
+        [opcoesPorPagina]="[20, 50, 100]"
+        [(pagina)]="pagina"
+        [(porPagina)]="porPagina"
+      />
+    }
+  }
+</section>
+
+<app-formulario-usuario
+  [pedido]="formulario()"
+  (salvo)="recarregar()"
+  (fechado)="formulario.set(null)"
+/>
+<app-desligar-usuario
+  [usuario]="desligando()"
+  (desligado)="recarregar()"
+  (fechado)="desligando.set(null)"
+/>
+<app-reativar-usuario
+  [usuario]="reativando()"
+  (reativado)="recarregar()"
+  (fechado)="reativando.set(null)"
+/>
+<app-senha-temporaria
+  [usuario]="definindoSenha()"
+  (definida)="recarregar()"
+  (fechado)="definindoSenha.set(null)"
+/>

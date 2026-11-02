@@ -1,0 +1,200 @@
+// Estilos de base: reset enxuto, tipografia padrão, foco visível, movimento reduzido e o
+// link "Pular para o conteúdo" (DESIGN-SYSTEM.md §1, §2.8 e §8).
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scrollbar-color: var(--cor-superficie-3) transparent;
+  // A barra superior é fixa: ao rolar até um elemento focado (Tab, Shift+Tab) ou até uma
+  // âncora, o navegador desconta a altura dela e o degradê de 16px (WCAG 2.4.11).
+  scroll-padding-top: calc(var(--casca-altura-topo) + var(--esp-4));
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  font: var(--fonte-corpo);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+// Com um modal aberto, a página atrás não rola.
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+h1 {
+  font: var(--fonte-h1);
+  letter-spacing: var(--tracking-titulo);
+}
+
+h2 {
+  font: var(--fonte-h2);
+}
+
+h3 {
+  font: var(--fonte-h3);
+}
+
+h4,
+h5,
+h6 {
+  font: var(--fonte-rotulo);
+}
+
+ul[role='list'],
+ol[role='list'] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+img,
+picture,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+svg {
+  flex-shrink: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
+
+// Links dentro de texto corrido: sublinhado discreto, mais forte no hover.
+p a:not([class]),
+li a:not([class]) {
+  text-decoration: underline;
+  text-decoration-color: var(--cor-borda-forte);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}
+
+::selection {
+  background: var(--cor-marca);
+  color: var(--cor-sobre-marca);
+}
+
+// Foco sempre visível no teclado (§8): 2px na cor de foco, afastado 2px.
+:focus-visible {
+  outline: 2px solid var(--cor-foco);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// Movimento reduzido: as transições já usam os tokens de duração (que zeram); aqui
+// paramos animações e rolagens suaves que não dependem deles.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// Link "Pular para o conteúdo": primeiro elemento focável da casca, fora da tela até
+// receber foco. Aponta para o <main id="conteudo" tabindex="-1">.
+// Escondido, ele fica sem sombra e totalmente transparente: a sombra flutuante (40px de
+// desfoque) vazava para dentro da tela e aparecia como uma mancha atrás do logo.
+.link-pular {
+  position: fixed;
+  top: var(--esp-3);
+  left: var(--esp-3);
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--altura-md);
+  padding: 0 var(--esp-5);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+  font: var(--fonte-rotulo);
+  text-decoration: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(-100% - var(--esp-16)));
+  transition:
+    transform var(--duracao) var(--curva),
+    opacity var(--duracao-opacidade) ease-out;
+
+  &:focus,
+  &:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+    box-shadow: var(--sombra-flutuante);
+    transform: none;
+  }
+}
+
+// O alvo do link de pular (<main id="conteudo" tabindex="-1">) recebe foco por script;
+// não precisa de anel.
+#conteudo:focus {
+  outline: none;
+}
+
+// Partida: texto de carregamento dentro do <app-root> (index.html), visível até o Angular
+// montar a casca. O CSS global carrega antes do JS, então já vem no tema certo. Se o app
+// não montar em 15 s, o script do index.html troca o texto por um aviso.
+.partida {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  margin: 0;
+  padding: var(--esp-6);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  text-align: center;
+}

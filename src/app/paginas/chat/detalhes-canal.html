@@ -1,0 +1,220 @@
+@let c = canal();
+<app-painel-lateral [titulo]="c.nome" [complemento]="complemento()" [(aberto)]="aberto">
+  <div class="detalhes">
+    @if (c.tipo === 'DIRETO' && c.outraPessoa; as pessoa) {
+      <section class="detalhes__secao detalhes__pessoa" aria-label="Com quem é a conversa">
+        <span class="detalhes__avatar">
+          <app-avatar tamanho="lg" decorativo [nome]="pessoa.nome" [foto]="pessoa.avatarUrl" />
+          @if (pessoa.online) {
+            <span class="detalhes__online" aria-hidden="true"></span>
+          }
+        </span>
+        <div class="detalhes__pessoa-textos">
+          <p class="detalhes__pessoa-nome">{{ pessoa.nome }}</p>
+          <p class="detalhes__pessoa-papel">
+            {{ pessoa.rotuloPapel }} ·
+            {{ pessoa.ativo ? (pessoa.online ? 'online agora' : 'offline') : 'desligada do CRM' }}
+          </p>
+        </div>
+      </section>
+      <p class="detalhes__nota">
+        <svg class="detalhes__nota-icone" [lucideIcon]="icones.privado" [size]="16" />
+        Conversa privada: só vocês dois leem as mensagens — nem o Admin tem acesso.
+      </p>
+    } @else {
+      <section class="detalhes__secao" aria-labelledby="detalhes-sobre">
+        <h3 class="detalhes__titulo" id="detalhes-sobre">Sobre</h3>
+        @if (grupo() && c.podeGerenciar && !c.arquivadoEm) {
+          <form
+            class="detalhes__form"
+            novalidate
+            [formGroup]="formulario"
+            (ngSubmit)="salvarSobre()"
+          >
+            <app-campo-texto
+              rotulo="Nome do grupo"
+              autocomplete="off"
+              [maximoCaracteres]="limites.nome"
+              formControlName="nome"
+            />
+            <app-area-texto
+              rotulo="Descrição"
+              opcional
+              [linhas]="2"
+              [maximoLinhas]="5"
+              [maximoCaracteres]="limites.descricao"
+              formControlName="descricao"
+            />
+            @if (formulario.dirty) {
+              <div class="detalhes__botoes">
+                <button appBotao type="submit" variante="invertido" [carregando]="salvando()">
+                  Salvar
+                </button>
+                <button appBotao type="button" variante="contorno" (click)="descartarSobre()">
+                  Descartar
+                </button>
+              </div>
+            }
+          </form>
+        } @else {
+          <p class="detalhes__descricao">{{ c.descricao || 'Sem descrição.' }}</p>
+        }
+        <p class="detalhes__meta">
+          {{ grupo() ? 'Grupo criado em ' + criadoEm() : 'Canal mantido pelo CRM' }}
+          @if (c.arquivadoEm) {
+            · arquivado: só leitura
+          }
+        </p>
+      </section>
+    }
+
+    <section class="detalhes__secao" aria-labelledby="detalhes-avisos">
+      <h3 class="detalhes__titulo" id="detalhes-avisos">Avisos</h3>
+      <app-alternador
+        rotulo="Silenciar esta conversa"
+        [dica]="dicaSilenciar()"
+        [desabilitado]="silenciando()"
+        [valor]="c.silenciado"
+        (valorChange)="silenciar($event)"
+      />
+    </section>
+
+    @if (c.tipo !== 'DIRETO') {
+      <section class="detalhes__secao" aria-labelledby="detalhes-pessoas">
+        <div class="detalhes__cabecalho">
+          <h3 class="detalhes__titulo" id="detalhes-pessoas">
+            Pessoas
+            <span class="detalhes__contagem">
+              · {{ c.totalMembros }}{{ online() ? ', ' + online() + ' online' : '' }}
+            </span>
+          </h3>
+          @if (grupo() && c.podeGerenciar && !c.arquivadoEm && !escolhendo()) {
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              [icone]="icones.adicionar"
+              (click)="escolhendo.set(true)"
+            >
+              Adicionar pessoas
+            </button>
+          }
+        </div>
+
+        @if (!grupo()) {
+          <p class="detalhes__nota">
+            Quem participa é definido pelo papel de cada um no CRM: dá para silenciar, não para
+            sair.
+          </p>
+        }
+
+        @if (escolhendo()) {
+          <div class="detalhes__adicionar">
+            <app-chat-seletor-pessoas
+              multipla
+              rotulo="Buscar pessoas para adicionar"
+              [excluir]="jaNoGrupo()"
+              [(selecionados)]="novasPessoas"
+            />
+            @if (erroAdicionar(); as mensagem) {
+              <p class="detalhes__erro" role="alert">{{ mensagem }}</p>
+            }
+            <div class="detalhes__botoes">
+              <button
+                appBotao
+                type="button"
+                variante="invertido"
+                [carregando]="adicionando()"
+                (click)="adicionar()"
+              >
+                {{
+                  novasPessoas().length > 1
+                    ? 'Adicionar ' + novasPessoas().length + ' pessoas'
+                    : 'Adicionar'
+                }}
+              </button>
+              <button
+                appBotao
+                type="button"
+                variante="contorno"
+                (click)="escolhendo.set(false); novasPessoas.set([])"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (membros() === null) {
+          <div class="detalhes__esqueletos" aria-hidden="true">
+            @for (largura of [60, 44, 52]; track $index) {
+              <div class="detalhes__esqueleto">
+                <app-esqueleto forma="circulo" largura="32px" altura="32px" />
+                <app-esqueleto forma="texto" [linhas]="2" [largura]="largura + '%'" />
+              </div>
+            }
+          </div>
+        } @else {
+          <ul class="detalhes__membros" role="list">
+            @for (membro of membrosOrdenados(); track membro.usuario.id) {
+              @let pessoa = membro.usuario;
+              <li class="membro">
+                <span class="membro__avatar">
+                  <app-avatar
+                    tamanho="sm"
+                    decorativo
+                    [nome]="pessoa.nome"
+                    [foto]="pessoa.avatarUrl"
+                  />
+                  @if (pessoa.online) {
+                    <span class="membro__online" aria-hidden="true"></span>
+                  }
+                </span>
+                <span class="membro__textos">
+                  <span class="membro__nome">
+                    {{ pessoa.nome }}{{ pessoa.id === eu() ? ' (você)' : '' }}
+                  </span>
+                  <span class="membro__papel">
+                    {{ pessoa.rotuloPapel }}{{ pessoa.online ? ' · online' : '' }}
+                  </span>
+                </span>
+                @if (membro.administrador) {
+                  <app-selo tamanho="sm">administra</app-selo>
+                }
+                @if (grupo() && c.podeGerenciar && !c.arquivadoEm && pessoa.id !== eu()) {
+                  <app-menu-acoes
+                    [rotulo]="'Ações de ' + pessoa.nome"
+                    [itens]="acoesDoMembro(membro)"
+                    (escolher)="agirNoMembro(membro, $event)"
+                  />
+                }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </div>
+
+  @if (grupo() && (c.podeSair || c.podeGerenciar)) {
+    <ng-container painel-rodape>
+      @if (c.podeGerenciar) {
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          [icone]="c.arquivadoEm ? icones.desarquivar : icones.arquivar"
+          (click)="arquivar(!c.arquivadoEm)"
+        >
+          {{ c.arquivadoEm ? 'Desarquivar' : 'Arquivar' }}
+        </button>
+      }
+      @if (c.podeSair) {
+        <button appBotao type="button" variante="contorno" [icone]="icones.sair" (click)="sair()">
+          Sair do grupo
+        </button>
+      }
+    </ng-container>
+  }
+</app-painel-lateral>

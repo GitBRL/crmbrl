@@ -1,0 +1,273 @@
+<nav class="trilha" aria-label="Você está em">
+  <a
+    appBotaoIcone
+    routerLink="/contatos"
+    [queryParams]="{ aba: 'empresas' }"
+    variante="contorno"
+    tamanho="sm"
+    [icone]="icones.voltar"
+    rotulo="Voltar para as empresas"
+  ></a>
+  <a class="trilha__link" routerLink="/contatos" [queryParams]="{ aba: 'empresas' }"
+    >Contatos e empresas</a
+  >
+</nav>
+
+@if (erro(); as falha) {
+  @if (falha.ehNaoEncontrado) {
+    <app-estado-vazio
+      titulo="Empresa não encontrada"
+      texto="Ela pode ter sido removida, ou o link está incompleto."
+    >
+      <a appBotao variante="invertido" routerLink="/contatos" [queryParams]="{ aba: 'empresas' }"
+        >Ver todas as empresas</a
+      >
+    </app-estado-vazio>
+  } @else {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos abrir a empresa"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="icones.tentar"
+        (click)="recurso.reload()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  }
+} @else if (empresa(); as empresa) {
+  <app-cartao variante="palco" class="perfil">
+    <div class="perfil__topo">
+      <app-avatar
+        class="perfil__avatar"
+        forma="pilula"
+        tamanho="lg"
+        decorativo
+        [nome]="empresa.nome"
+      />
+      <div class="perfil__identidade">
+        <h1 class="perfil__nome">{{ empresa.nome }}</h1>
+        @if (empresa.segmento || local()) {
+          <p class="perfil__sub">
+            @if (empresa.segmento) {
+              <span>{{ empresa.segmento }}</span>
+            }
+            @if (empresa.segmento && local()) {
+              <span class="perfil__separador" aria-hidden="true">·</span>
+            }
+            @if (local(); as lugar) {
+              <span>{{ lugar }}</span>
+            }
+          </p>
+        }
+        <div class="perfil__selos">
+          @if (empresa.cnpjFormatado) {
+            <app-selo variante="contorno">CNPJ {{ empresa.cnpjFormatado }}</app-selo>
+          }
+          @for (etiqueta of empresa.etiquetas; track etiqueta) {
+            <app-selo>{{ etiqueta }}</app-selo>
+          }
+        </div>
+      </div>
+      <div class="perfil__acoes" [class.so-desktop]="empresa.podeEditar">
+        @if (empresa.podeEditar) {
+          <button
+            appBotao
+            type="button"
+            variante="invertido"
+            [icone]="icones.editar"
+            (click)="editando.set(true)"
+          >
+            Editar
+          </button>
+        } @else {
+          <p class="perfil__so-leitura">
+            Só leitura
+            <app-dica rotulo="Por que só leitura?" [texto]="motivoSemEdicao()" />
+          </p>
+        }
+      </div>
+    </div>
+
+    <div class="perfil__detalhes">
+      <div class="perfil__bloco">
+        <h2 class="perfil__rotulo">Contato</h2>
+        <app-meios-de-contato [email]="empresa.email" [telefone]="empresa.telefone" />
+        @if (empresa.site) {
+          <p class="perfil__pessoa">
+            <svg lucideGlobe [size]="18" aria-hidden="true" />
+            <a
+              class="perfil__link"
+              target="_blank"
+              rel="noopener noreferrer"
+              [href]="linkDoSite(empresa.site)"
+              >{{ empresa.site }}<span class="visualmente-oculto"> (abre em outra aba)</span></a
+            >
+          </p>
+        }
+      </div>
+      <div class="perfil__bloco">
+        <h2 class="perfil__rotulo">Responsável</h2>
+        @if (empresa.responsavel; as responsavel) {
+          <p class="perfil__pessoa">
+            <app-avatar [nome]="responsavel.nome" tamanho="sm" decorativo />
+            {{ responsavel.nome }}
+            @if (!responsavel.ativo) {
+              <app-selo tamanho="sm" variante="contorno">desligado</app-selo>
+            }
+          </p>
+        } @else {
+          <p class="perfil__vazio">Sem responsável</p>
+        }
+      </div>
+      <div class="perfil__bloco">
+        <h2 class="perfil__rotulo">Pessoas</h2>
+        <p class="perfil__texto numeros">
+          {{ empresa.quantidadeContatos }}
+          {{ empresa.quantidadeContatos === 1 ? 'contato ligado' : 'contatos ligados' }}
+        </p>
+      </div>
+    </div>
+  </app-cartao>
+
+  <div class="detalhe__grade">
+    <app-abas
+      class="detalhe__abas"
+      variante="entalhe"
+      rotulo="Seções da empresa"
+      [abas]="abas()"
+      [selecionada]="abaAtual()"
+      (selecionadaChange)="mudarAba($event)"
+    >
+      @switch (abaAtual()) {
+        @case ('pessoas') {
+          <app-pessoas-da-empresa [empresa]="empresa" />
+        }
+        @case ('negocios') {
+          <app-negocios-relacionados
+            dono="empresa"
+            [negocios]="negocios()"
+            [carregando]="carregandoNegocios()"
+            [erro]="erroNegocios()"
+            (tentarDeNovo)="recarregarNegocios()"
+          />
+        }
+        @case ('atividades') {
+          <app-atividades-relacionadas
+            dono="empresa"
+            [id]="empresa.id"
+            [nome]="empresa.nome"
+            (mudou)="aoMudarHistorico()"
+          />
+        }
+        @case ('dados') {
+          <div class="dados">
+            <dl class="dados__lista">
+              <div>
+                <dt>Nome</dt>
+                <dd>{{ empresa.nome }}</dd>
+              </div>
+              <div>
+                <dt>CNPJ</dt>
+                <dd class="numeros">{{ empresa.cnpjFormatado ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt>Segmento</dt>
+                <dd>{{ empresa.segmento ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt>Cidade e estado</dt>
+                <dd>{{ local() || '—' }}</dd>
+              </div>
+              <div>
+                <dt>Site</dt>
+                <dd>{{ empresa.site ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt>E-mail</dt>
+                <dd>{{ empresa.email ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt>Telefone</dt>
+                <dd class="numeros">{{ formatarTelefone(empresa.telefone) || '—' }}</dd>
+              </div>
+              <div>
+                <dt>Responsável</dt>
+                <dd>{{ empresa.responsavel?.nome ?? 'Sem responsável' }}</dd>
+              </div>
+              <div>
+                <dt>Cadastrada</dt>
+                <dd>
+                  {{ formatarDataHora(empresa.criadoEm) }}
+                  @if (empresa.criadoPor; as quem) {
+                    por {{ quem.nome }}
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>Última alteração</dt>
+                <dd>{{ formatarDataHora(empresa.atualizadoEm) }}</dd>
+              </div>
+            </dl>
+
+            <section class="dados__secao">
+              <h3 class="dados__titulo">Campos personalizados</h3>
+              @if (campos().length) {
+                <dl class="dados__lista">
+                  @for (campo of campos(); track campo.chave) {
+                    <div>
+                      <dt [attr.title]="campo.chave">{{ rotuloDoCampo(campo.chave) }}</dt>
+                      <dd>{{ campo.valor || '—' }}</dd>
+                    </div>
+                  }
+                </dl>
+              } @else {
+                <p class="dados__vazio">Nenhum campo personalizado.</p>
+              }
+            </section>
+          </div>
+        }
+        @default {
+          <app-linha-do-tempo dono="empresa" [id]="empresa.id" [versao]="versao()" />
+        }
+      }
+    </app-abas>
+  </div>
+
+  @if (empresa.podeEditar) {
+    <button
+      appBotaoIcone
+      type="button"
+      class="acao-flutuante"
+      variante="invertido"
+      tamanho="lg"
+      [icone]="icones.editar"
+      rotulo="Editar empresa"
+      (click)="editando.set(true)"
+    ></button>
+  }
+
+  <app-formulario-empresa [(aberto)]="editando" [empresa]="empresa" (salvo)="aoSalvar($event)" />
+} @else {
+  <div class="detalhe__carregando" aria-busy="true">
+    <p class="visualmente-oculto" role="status">Carregando a empresa…</p>
+    <div class="perfil perfil--esqueleto">
+      <div class="perfil__topo">
+        <app-esqueleto forma="circulo" largura="56px" altura="56px" />
+        <div class="perfil__identidade">
+          <app-esqueleto forma="texto" largura="16rem" altura="40px" />
+          <app-esqueleto forma="texto" largura="10rem" />
+        </div>
+      </div>
+      <app-esqueleto [linhas]="2" largura="50%" />
+    </div>
+    <app-esqueleto forma="bloco" altura="18rem" />
+  </div>
+}

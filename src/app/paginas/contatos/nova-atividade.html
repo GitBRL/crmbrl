@@ -1,0 +1,55 @@
+<app-modal titulo="Nova atividade" [complemento]="'· ' + nome()" [(aberto)]="aberto">
+  <form class="formulario" novalidate [id]="idFormulario" [formGroup]="form" (ngSubmit)="salvar()">
+    @if (erroGeral(); as mensagem) {
+      <p class="formulario__erro" role="alert">{{ mensagem }}</p>
+    }
+
+    <app-grupo-opcoes rotulo="Tipo" disposicao="pilulas" [opcoes]="tipos" formControlName="tipo" />
+
+    <app-campo-texto
+      rotulo="Título"
+      autocomplete="off"
+      [maximoCaracteres]="200"
+      formControlName="titulo"
+    />
+
+    @switch (tipo()) {
+      @case ('REUNIAO') {
+        <div class="formulario__grade">
+          <app-campo-data
+            rotulo="Início"
+            tipo="data-hora"
+            formControlName="inicio"
+            [erro]="erroPeriodo()"
+          />
+          <app-campo-data rotulo="Fim" tipo="data-hora" formControlName="fim" />
+        </div>
+      }
+      @case ('NOTA') {}
+      @default {
+        <app-campo-data rotulo="Vence em" tipo="data-hora" opcional formControlName="vence" />
+      }
+    }
+
+    <app-area-texto
+      [rotulo]="tipo() === 'NOTA' ? 'Texto da nota' : 'Descrição'"
+      [opcional]="tipo() !== 'NOTA'"
+      [linhas]="3"
+      formControlName="descricao"
+      [dica]="tipo() === 'NOTA' ? 'A nota já nasce concluída e fica na linha do tempo.' : null"
+    />
+  </form>
+
+  <div modal-rodape>
+    <button appBotao type="button" variante="contorno" (click)="fechar()">Cancelar</button>
+    <button
+      appBotao
+      type="submit"
+      variante="invertido"
+      [attr.form]="idFormulario"
+      [carregando]="salvando()"
+    >
+      {{ tipo() === 'NOTA' ? 'Registrar nota' : 'Criar atividade' }}
+    </button>
+  </div>
+</app-modal>

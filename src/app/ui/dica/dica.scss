@@ -1,0 +1,117 @@
+@use 'mixins' as m;
+
+:host {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  vertical-align: middle;
+}
+
+.dica__botao {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--cor-vidro-forte);
+  color: var(--cor-texto-suave);
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  // 28px de desenho, 44px de alvo.
+  @include m.area-toque(8px, 8px);
+
+  &:hover,
+  &[aria-expanded='true'] {
+    background: var(--cor-inverso);
+    color: var(--cor-sobre-inverso);
+  }
+}
+
+.dica__balao {
+  position: fixed;
+  inset: auto;
+  z-index: var(--z-flutuante);
+  width: max-content;
+  max-width: min(280px, calc(100vw - 16px));
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  overflow: visible;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  font: var(--fonte-corpo-sm);
+  text-align: left;
+  white-space: normal;
+
+  // Seta apontando para o botão.
+  &::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: calc(var(--dica-seta-x, 50%) - 5px);
+    width: 10px;
+    height: 10px;
+    border-top: 1px solid var(--cor-borda);
+    border-left: 1px solid var(--cor-borda);
+    background: inherit;
+    transform: rotate(45deg);
+  }
+}
+
+// O balão só recebe foco por clique (tabindex -1, para continuar aberto): sem anel.
+.dica__balao:focus-visible {
+  outline: none;
+}
+
+.dica__balao--acima::before {
+  top: auto;
+  bottom: -6px;
+  border: 0;
+  border-right: 1px solid var(--cor-borda);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+// Com a Popover API: entra com um leve fade.
+.dica__balao[popover] {
+  transition:
+    opacity var(--duracao-opacidade) ease-out,
+    display var(--duracao-opacidade) allow-discrete,
+    overlay var(--duracao-opacidade) allow-discrete;
+}
+
+.dica__balao[popover]:not(:popover-open) {
+  opacity: 0;
+}
+
+@starting-style {
+  .dica__balao[popover]:popover-open {
+    opacity: 0;
+  }
+}
+
+// Reserva (navegador sem Popover API): balão absoluto sob o botão.
+.dica__balao:not([popover]) {
+  position: absolute;
+  top: calc(100% + var(--esp-2));
+  left: 50%;
+  display: none;
+  transform: translateX(-50%);
+}
+
+.dica__balao--aberto:not([popover]) {
+  display: block;
+}
+
+.dica__titulo {
+  display: block;
+  margin-bottom: var(--esp-1);
+  font: var(--fonte-rotulo);
+}

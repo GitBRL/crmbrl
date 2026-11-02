@@ -1,0 +1,137 @@
+@use 'secao' as s;
+@use 'mixins' as m;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+
+.config,
+.config__bloco {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.config {
+  gap: var(--esp-entre-cartoes);
+  max-width: 48rem;
+}
+
+.config__titulo {
+  font: var(--fonte-h3);
+}
+
+.config__subtitulo {
+  font: var(--fonte-rotulo);
+  padding: 0;
+}
+
+.config__texto {
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.config__fraco {
+  font: var(--fonte-legenda);
+  color: var(--cor-texto-fraco);
+}
+
+.config__grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-4);
+
+  @include m.acima(m.$sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.config__alerta,
+.config__resultado {
+  padding: var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-vidro);
+  font: var(--fonte-corpo-sm);
+  overflow-wrap: anywhere;
+}
+
+.config__erro {
+  color: var(--cor-erro);
+  border-color: var(--cor-erro);
+}
+
+.config__estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  font: var(--fonte-corpo-sm);
+}
+
+.config__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
+
+.config__cabecalhos {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.cabecalho {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-2);
+  align-items: end;
+  padding: var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+
+  @include m.acima(m.$sm) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  &--removido {
+    opacity: 0.55;
+    text-decoration: line-through;
+  }
+}
+
+.cabecalho__nome {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cabecalho__valor {
+  font-family: var(--fonte-mono, ui-monospace, monospace);
+  color: var(--cor-texto-fraco);
+  overflow-wrap: anywhere;
+}
+
+.config__artigos {
+  summary {
+    cursor: pointer;
+    font: var(--fonte-corpo-sm);
+  }
+
+  ul {
+    margin: var(--esp-3) 0 0;
+    padding-inline-start: 1.25rem;
+    display: grid;
+    gap: var(--esp-1);
+    font: var(--fonte-corpo-sm);
+  }
+}

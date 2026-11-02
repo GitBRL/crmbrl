@@ -1,0 +1,135 @@
+:host {
+  // Largura do par número + unidades em "em" do próprio número. O componente mede o par e
+  // grava o valor dele aqui (estilo inline); até a medida (ou sem layout), vale a do maior
+  // número previsto: "R$ 42,4 mil" mede 3,79em no md (unidade a 0,7em) e 3,3em no sm (0,6em).
+  --_numero-em: 3.9;
+  // Largura mínima numa linha flex (onde o indicador não recebe largura do pai): a do maior
+  // número no tamanho cheio (3,9 × 56px).
+  --_largura-minima: 14rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+:host(.indicador--sm) {
+  --_numero-em: 3.4;
+  --_largura-minima: 8.5rem;
+}
+
+// Abaixo (padrão): o indicador ocupa a largura que a célula der (grade, cartão) e a linha do
+// número é um contêiner (container queries): o número encolhe de forma contínua (`cqi`) quando
+// a célula fica mais estreita que ele, e o par número + unidade nunca quebra. O contêiner é a linha do número, não o próprio indicador: assim o indicador continua
+// podendo ser um item de subgrid (legendas alinhadas entre células). Numa linha flex, a largura
+// mínima evita que ele encolha até a largura da legenda (um contêiner não mede o conteúdo).
+:host(:not(.indicador--lado)) {
+  min-inline-size: min(100%, var(--_largura-minima));
+}
+
+:host(:not(.indicador--lado)) .indicador__numero {
+  container-type: inline-size;
+}
+
+// Ao lado: legenda à direita do número, em até duas linhas (como no palco da referência).
+// Sem espaço, a legenda desce inteira para baixo do número; o número nunca quebra.
+:host(.indicador--lado) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--esp-3);
+  row-gap: var(--esp-2);
+}
+
+.indicador__numero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font: var(--fonte-numero);
+  letter-spacing: var(--tracking-display);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// Prefixo, número e unidade: um bloco só (.sem-quebra). No tamanho cheio (1em = o token) até
+// a célula ficar mais estreita que o par; daí em diante, o tamanho que faz o par ocupar a
+// célula inteira (100cqi ÷ largura do par em em). O peso continua o do token (300).
+.indicador__par {
+  letter-spacing: var(--tracking-display);
+}
+
+:host(:not(.indicador--lado)) .indicador__par {
+  font-size: min(1em, 100cqi / var(--_numero-em));
+}
+
+:host(.indicador--lado) .indicador__numero {
+  flex: none;
+  flex-wrap: nowrap;
+}
+
+:host(.indicador--sm) .indicador__numero {
+  font: var(--fonte-h1);
+  font-variant-numeric: tabular-nums;
+}
+
+// Unidade a 0,7 do número, com um vão de 0,3em (medido na referência: 0,66–0,88 da altura
+// do algarismo e vão de 0,28–0,43). No tamanho sm (cartões de KPI), 0,6 e 0,14em.
+.indicador__unidade {
+  margin-left: 0.3em;
+  font-size: 0.7em;
+  letter-spacing: 0;
+}
+
+.indicador__unidade--antes {
+  margin-right: 0.3em;
+  margin-left: 0;
+}
+
+:host(.indicador--sm) .indicador__unidade {
+  margin-left: 0.14em;
+  font-size: 0.6em;
+}
+
+:host(.indicador--sm) .indicador__unidade--antes {
+  margin-right: 0.14em;
+  margin-left: 0;
+}
+
+.indicador__variacao {
+  align-self: center;
+  margin-left: var(--esp-3);
+  letter-spacing: 0;
+}
+
+// `variacaoAbaixo`: a quebra (100% de largura, altura zero) leva o selo para a linha de baixo
+// sem esticá-lo.
+.indicador__quebra {
+  flex-basis: 100%;
+  height: 0;
+}
+
+:host(.indicador--variacao-abaixo) .indicador__variacao {
+  margin-top: var(--esp-1);
+  margin-left: 0;
+}
+
+.indicador__rodape {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+:host(.indicador--lado) .indicador__rodape {
+  flex: 1 1 0;
+  min-width: 7rem;
+}
+
+.indicador__legenda {
+  max-inline-size: 13em;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+:host(.indicador--lado) .indicador__legenda {
+  max-inline-size: 9em;
+}

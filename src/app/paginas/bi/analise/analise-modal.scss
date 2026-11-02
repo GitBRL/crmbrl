@@ -1,0 +1,242 @@
+:host {
+  display: contents;
+}
+
+.escopo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2) var(--esp-3);
+  margin: 0 0 var(--esp-5);
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.escopo__rotulo {
+  font: var(--fonte-legenda);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0 0 var(--esp-5);
+  color: var(--cor-texto-suave);
+}
+
+.caixa,
+.vazio {
+  display: grid;
+  gap: var(--esp-3);
+  justify-items: start;
+  padding: var(--esp-5);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: var(--raio-lg);
+  color: var(--cor-texto-suave);
+
+  p {
+    margin: 0;
+  }
+}
+
+.caixa--erro {
+  border-style: solid;
+  border-color: var(--cor-erro);
+  color: var(--cor-texto);
+}
+
+.caixa__titulo {
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+.caixa__nota {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.vazio {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--esp-4);
+  align-items: center;
+  justify-items: stretch;
+}
+
+.vazio__texto {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.vazio__simbolo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--altura-lg);
+  height: var(--altura-lg);
+  border-radius: 50%;
+  background: var(--cor-marca);
+  color: var(--cor-sobre-marca);
+}
+
+.giro {
+  flex: none;
+  animation: girar 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .giro {
+    animation-duration: 3s;
+  }
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.etapas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2) var(--esp-5);
+  margin: 0 0 var(--esp-5);
+  padding: 0;
+  list-style: none;
+}
+
+.etapa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+}
+
+.etapa--atual {
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+.etapa__marca {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 50%;
+  font: var(--fonte-legenda);
+}
+
+.etapa--feita .etapa__marca {
+  background: var(--cor-marca);
+  color: var(--cor-sobre-marca);
+  border-color: transparent;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0 0 var(--esp-4);
+  color: var(--cor-texto-suave);
+}
+
+.detalhes {
+  margin-top: var(--esp-6);
+  color: var(--cor-texto-suave);
+
+  summary {
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+}
+
+.detalhes__lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--esp-3);
+  margin: 0;
+
+  dt {
+    font: var(--fonte-legenda);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--cor-texto);
+    overflow-wrap: anywhere;
+  }
+}
+
+.detalhes__titulo {
+  margin: var(--esp-4) 0 var(--esp-2);
+  font: var(--fonte-legenda);
+}
+
+.detalhes__json {
+  max-height: 14rem;
+  margin: 0;
+  padding: var(--esp-4);
+  overflow: auto;
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  font-size: 0.8125rem;
+}
+
+.perguntas {
+  display: grid;
+  gap: var(--esp-5);
+  margin-top: var(--esp-8);
+  padding-top: var(--esp-6);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.perguntas__titulo {
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+}
+
+.turno {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.turno__pergunta {
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: var(--cor-vidro-forte);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pergunta {
+  display: grid;
+  gap: var(--esp-3);
+  justify-items: start;
+  margin-top: var(--esp-6);
+
+  app-area-texto {
+    width: 100%;
+  }
+}
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+  width: 100%;
+}
+
+.rodape__espaco {
+  flex: 1;
+}

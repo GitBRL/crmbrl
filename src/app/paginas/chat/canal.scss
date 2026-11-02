@@ -1,0 +1,179 @@
+@use 'mixins' as m;
+
+// Canal aberto: cabeçalho, mensagens (a lista ocupa o que sobrar da altura e rola por dentro)
+// e o compositor embaixo. O cartão em volta é da página (chat.scss). Só tokens.
+
+:host {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.canal__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: 76px;
+  padding: var(--esp-4) var(--esp-5) var(--esp-4) var(--esp-6);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+// "Voltar" só no celular (no desktop a lista está ao lado).
+.canal__voltar {
+  display: none;
+}
+
+.canal__circulo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+}
+
+.canal__avatar {
+  position: relative;
+  display: grid;
+  flex: none;
+}
+
+.canal__online {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--dado-2);
+  box-shadow:
+    0 0 0 2px var(--cor-superficie),
+    inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.canal__titulos {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.canal__nome {
+  overflow: hidden;
+  outline: none;
+  font: var(--fonte-h3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canal__meta {
+  overflow: hidden;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canal__acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.canal__pilha {
+  display: grid;
+  min-height: var(--altura-md);
+  padding: 0 var(--esp-2);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  cursor: pointer;
+  // A pilha usa um anel da cor do fundo da página; aqui ela está sobre o cartão.
+  --pilha-anel: var(--cor-superficie);
+
+  &:hover {
+    background: var(--cor-vidro);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.canal__esqueleto-cabecalho {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.canal__mensagens {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 var(--esp-3);
+}
+
+.canal__falha {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  padding: var(--esp-cartao);
+}
+
+.canal__composicao {
+  padding: var(--esp-2) var(--esp-4) var(--esp-4);
+}
+
+@include m.abaixo(m.$md) {
+  .canal__cabecalho {
+    gap: var(--esp-2);
+    min-height: 68px;
+    padding: var(--esp-3) var(--esp-3) var(--esp-3) var(--esp-2);
+  }
+
+  .canal__voltar {
+    display: inline-grid;
+  }
+
+  .canal__circulo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .canal__mensagens {
+    padding: 0 var(--esp-1);
+  }
+
+  .canal__composicao {
+    padding: var(--esp-2) var(--esp-2) var(--esp-3);
+  }
+}
+
+// Celular estreito: silenciar fica só nos detalhes (o nome do canal precisa do espaço).
+@include m.abaixo(m.$sm) {
+  .canal__silenciar {
+    display: none;
+  }
+}
+
+// Abaixo do desktop a coluna do canal fica estreita: a pilha sai (as pessoas ficam nos detalhes).
+@include m.abaixo(m.$lg) {
+  .canal__pilha {
+    display: none;
+  }
+}
+
+// O painel de detalhes abre na camada superior (<dialog>): fora do fluxo da coluna.
+app-chat-detalhes-canal {
+  position: absolute;
+}

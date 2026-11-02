@@ -1,0 +1,119 @@
+@use 'secao' as s;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+@include s.faixa;
+
+.passagens__lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr));
+  gap: var(--esp-entre-cartoes);
+  align-items: start;
+}
+
+.passagens__esqueleto {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.passagens__esqueleto-fluxo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-4);
+}
+
+.passagem {
+  container: passagem / inline-size;
+}
+
+.passagem__corpo {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+// Gatilho → destino: duas pontas com a seta entre elas (empilham no estreito).
+.passagem__fluxo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--esp-3);
+}
+
+.passagem__ponta {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+}
+
+.passagem__rotulo,
+.passagem__funil {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.passagem__etapa {
+  font: var(--fonte-rotulo);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.passagem__seta {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+}
+
+.passagem__detalhes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--esp-3) var(--esp-5);
+
+  dt {
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda);
+  }
+
+  dd {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-corpo-sm);
+  }
+}
+
+.passagem__ativa {
+  padding-top: var(--esp-3);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.passagem--inativa {
+  .passagem__ponta,
+  .passagem__seta {
+    opacity: 0.6;
+  }
+}
+
+@container passagem (width < 26rem) {
+  .passagem__fluxo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .passagem__seta {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+}

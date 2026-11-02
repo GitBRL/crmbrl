@@ -1,0 +1,63 @@
+<nav class="menu" aria-label="Principal" [class.menu--recolhido]="recolhida()">
+  @for (secao of secoes(); track secao.grupo?.id ?? 'topo') {
+    <div class="menu__secao">
+      @if (secao.grupo; as grupo) {
+        <p class="menu__grupo" [id]="idGrupo(grupo.id)">
+          <span [class.visualmente-oculto]="recolhida()">{{ grupo.rotulo }}</span>
+        </p>
+      }
+      <ul
+        class="menu__lista"
+        role="list"
+        [attr.aria-labelledby]="secao.grupo ? idGrupo(secao.grupo.id) : null"
+      >
+        @for (modulo of secao.modulos; track modulo.id) {
+          @let contagem = contagens()[modulo.id] ?? 0;
+          <li>
+            <a
+              class="menu__item"
+              [class.menu__item--ativo]="modulo.id === ativo()"
+              [attr.aria-current]="modulo.id === ativo() ? 'page' : null"
+              [routerLink]="modulo.rota"
+              [attr.aria-label]="rotuloAcessivel(modulo, contagem)"
+              (pointerenter)="mostrarDica($event, modulo)"
+              (pointerleave)="aoSairDoItem($event)"
+              (focus)="mostrarDica($event, modulo)"
+              (blur)="esconderDica()"
+              (keydown.escape)="esconderDica()"
+            >
+              <span class="menu__circulo" aria-hidden="true">
+                <svg [lucideIcon]="modulo.icone" [size]="20" />
+                @if (contagem > 0 && recolhida()) {
+                  <span class="menu__contagem menu__contagem--canto">{{
+                    textoContagem(contagem)
+                  }}</span>
+                }
+              </span>
+              <span class="menu__rotulo" [class.visualmente-oculto]="recolhida()">{{
+                modulo.rotulo
+              }}</span>
+              @if (modulo.status === 'em-breve' && !recolhida()) {
+                <app-selo tamanho="sm" aria-hidden="true">em breve</app-selo>
+              } @else if (contagem > 0 && !recolhida()) {
+                <span class="menu__contagem" aria-hidden="true">{{ textoContagem(contagem) }}</span>
+              }
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</nav>
+
+<span
+  #balao
+  class="menu__dica"
+  aria-hidden="true"
+  [class.menu__dica--visivel]="dica() !== null"
+  [style.top.px]="dica()?.topo"
+  [style.left.px]="dica()?.esquerda"
+  (pointerleave)="aoSairDaDica($event)"
+  (click)="dica()?.link?.click()"
+  >{{ dica()?.texto }}</span
+>

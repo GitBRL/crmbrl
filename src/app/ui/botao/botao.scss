@@ -1,0 +1,165 @@
+@use 'mixins' as m;
+
+:host {
+  --_altura: var(--altura-md);
+  --_fundo: var(--cor-superficie-2);
+  --_fundo-hover: color-mix(in srgb, var(--cor-texto) 7%, var(--_fundo));
+  --_texto: var(--cor-texto);
+  --_borda: var(--cor-borda);
+  --_circulo: var(--cor-superficie-3);
+  --_circulo-icone: var(--cor-texto);
+  --_circulo-contorno: transparent;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-3);
+  max-width: 100%;
+  min-height: var(--_altura);
+  margin: 0;
+  padding: 0 var(--esp-5);
+  border: 1px solid var(--_borda);
+  border-radius: var(--raio-pilula);
+  background: var(--_fundo);
+  color: var(--_texto);
+  font: var(--fonte-rotulo);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duracao) var(--curva),
+    border-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva),
+    transform var(--duracao-rapida) var(--curva);
+}
+
+:host(:hover:not(:disabled):not([aria-disabled='true'])) {
+  background: var(--_fundo-hover);
+}
+
+:host(:active:not(:disabled):not([aria-disabled='true'])) {
+  transform: scale(0.98);
+}
+
+:host(:disabled),
+:host([aria-disabled='true']:not([aria-busy='true'])) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+:host([aria-busy='true']) {
+  cursor: progress;
+}
+
+// Variantes ----------------------------------------------------------------------------
+:host(.botao--contorno) {
+  --_fundo: transparent;
+  --_borda: var(--cor-borda-forte);
+  --_circulo: var(--cor-superficie-2);
+}
+
+:host(.botao--invertido) {
+  --_fundo: var(--cor-inverso);
+  --_fundo-hover: color-mix(in srgb, var(--cor-sobre-inverso) 12%, var(--cor-inverso));
+  --_texto: var(--cor-sobre-inverso);
+  --_borda: transparent;
+  --_circulo: var(--cor-sobre-inverso);
+  --_circulo-icone: var(--cor-inverso);
+}
+
+:host(.botao--destaque) {
+  --_fundo: var(--cor-destaque);
+  --_fundo-hover: color-mix(in srgb, var(--cor-sobre-destaque) 10%, var(--cor-destaque));
+  --_texto: var(--cor-sobre-destaque);
+  --_borda: transparent;
+  --_circulo: var(--cor-sobre-destaque);
+  --_circulo-icone: var(--cor-destaque);
+}
+
+// Marca (IA): pílula neutra com o círculo lima e ícone preto, como a varinha da referência.
+// A borda forte define a pílula nos dois temas (o lima cheio sumia sobre o branco e pesava
+// demais sobre o preto). No claro, o círculo lima ganha o contorno de dado (1,1:1 sobre a
+// superfície-2 sem ele — WCAG 1.4.11); no escuro o token é transparente.
+:host(.botao--marca) {
+  --_fundo: var(--cor-superficie-2);
+  --_fundo-hover: color-mix(in srgb, var(--cor-texto) 7%, var(--cor-superficie-2));
+  --_texto: var(--cor-texto);
+  --_borda: var(--cor-borda-forte);
+  --_circulo: var(--cor-marca);
+  --_circulo-icone: var(--cor-sobre-marca);
+  --_circulo-contorno: var(--cor-contorno-dado);
+}
+
+// Item ativo: círculo invertido (branco no escuro), como "Layout" na referência.
+:host(.botao--ativo) {
+  --_circulo: var(--cor-inverso);
+  --_circulo-icone: var(--cor-sobre-inverso);
+  --_circulo-contorno: transparent;
+}
+
+// Tamanhos ---------------------------------------------------------------------------------
+:host(.botao--sm) {
+  --_altura: var(--altura-sm);
+  gap: var(--esp-2);
+  padding-inline: var(--esp-4);
+
+  @include m.area-toque(4px, 0px);
+}
+
+:host(.botao--lg) {
+  --_altura: var(--altura-lg);
+  gap: 14px;
+  padding-inline: var(--esp-6);
+  font-size: 0.9375rem;
+}
+
+// Com ícone em círculo: o círculo encosta na borda (altura − 8px, 4px de folga).
+:host(.botao--com-circulo) {
+  padding-left: var(--esp-1);
+}
+
+:host(.botao--com-circulo.botao--sm) {
+  padding-right: 14px;
+}
+
+:host(.botao--com-icone:not(.botao--com-circulo)) {
+  gap: 10px;
+  padding-left: var(--esp-4);
+}
+
+.botao__icone {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+:host(.botao--com-circulo) .botao__icone {
+  width: calc(var(--_altura) - 8px);
+  height: calc(var(--_altura) - 8px);
+  border-radius: 50%;
+  background: var(--_circulo);
+  color: var(--_circulo-icone);
+  box-shadow: inset 0 0 0 1px var(--_circulo-contorno);
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+}
+
+.botao__rotulo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.botao__giro {
+  animation: girar 0.9s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}

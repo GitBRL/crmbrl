@@ -1,0 +1,38 @@
+@use '../campo/campo' as c;
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.controle {
+  @include c.controle;
+
+  padding-right: var(--esp-2);
+}
+
+.controle__campo {
+  @include c.nativo;
+
+  font-variant-numeric: tabular-nums;
+
+  // O ícone do calendário/relógio do sistema, num círculo como os botões dentro de pílulas.
+  &::-webkit-calendar-picker-indicator {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    padding: 8px;
+    border-radius: 50%;
+    opacity: 0.7;
+    cursor: pointer;
+  }
+
+  &::-webkit-calendar-picker-indicator:hover {
+    background-color: var(--cor-superficie-3);
+    opacity: 1;
+  }
+}
+
+.controle--vazio .controle__campo {
+  color: var(--cor-texto-fraco);
+}

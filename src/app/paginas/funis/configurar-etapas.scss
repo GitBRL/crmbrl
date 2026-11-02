@@ -1,0 +1,222 @@
+@use 'mixins' as m;
+
+// Modal "Configurar etapas": uma linha por etapa (alça e ordem · campos · ações), as etapas
+// de ganho e perda no fim e o formulário da etapa nova. Só tokens.
+
+.config {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.config__frase {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  strong {
+    color: var(--cor-texto);
+    font-weight: 500;
+  }
+}
+
+.config__subtitulo {
+  font: var(--fonte-h3);
+}
+
+.etapas {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.etapa {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'lado campos'
+    'lado rodape';
+  gap: var(--esp-3);
+  align-items: start;
+  padding: var(--esp-4) var(--esp-4) var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+}
+
+.etapa__lado {
+  grid-area: lado;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-2);
+  // Alinha com o centro das pílulas (abaixo do rótulo).
+  padding-top: calc(var(--esp-6) + 4px);
+}
+
+.etapa--fechada .etapa__lado {
+  padding-top: calc(var(--esp-6) + 12px);
+}
+
+.etapa__alca {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--raio-sm);
+  color: var(--cor-texto-suave);
+  cursor: grab;
+
+  &:hover {
+    background: var(--cor-vidro-forte);
+    color: var(--cor-texto);
+  }
+}
+
+.etapa__ordem {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+  font: var(--fonte-micro);
+}
+
+.etapa__campos {
+  grid-area: campos;
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) 9rem 9rem;
+  gap: var(--esp-3);
+  align-items: start;
+  min-width: 0;
+}
+
+.etapa--fechada .etapa__campos {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.etapa__salvar {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: var(--esp-2);
+}
+
+.etapa__erro {
+  grid-column: 1 / -1;
+  padding-inline-start: var(--esp-4);
+  color: var(--cor-erro);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+}
+
+// Embaixo dos campos: o que impede remover (à esquerda) e as ações (à direita).
+.etapa__rodape {
+  grid-area: rodape;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2) var(--esp-3);
+  min-height: var(--altura-sm);
+}
+
+.etapa__acoes {
+  display: flex;
+  gap: var(--esp-1);
+  margin-left: auto;
+}
+
+.etapa__remover[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.etapa__motivo {
+  flex: 1 1 14rem;
+  padding-inline-start: var(--esp-4);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+// O CDK arrasta a própria linha dentro do modal (a cópia fica no mesmo <dialog>).
+.etapa.cdk-drag-preview {
+  border-color: var(--cor-destaque);
+  background: color-mix(in srgb, var(--cor-destaque) 14%, var(--cor-superficie-2));
+  box-shadow: var(--sombra-flutuante);
+}
+
+.etapa.cdk-drag-placeholder {
+  border: 2px dashed var(--cor-destaque);
+  background: transparent;
+
+  > * {
+    visibility: hidden;
+  }
+}
+
+.etapas.cdk-drop-list-dragging .etapa:not(.cdk-drag-placeholder) {
+  transition: transform var(--duracao-lenta) var(--curva);
+}
+
+.etapa.cdk-drag-animating {
+  transition: transform var(--duracao-lenta) var(--curva);
+}
+
+// Etapa nova.
+.nova {
+  display: grid;
+  gap: var(--esp-4);
+  padding: var(--esp-5);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: var(--raio-lg);
+}
+
+.nova__campos {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) 9rem 9rem;
+  gap: var(--esp-3);
+  align-items: start;
+}
+
+.nova__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.nova__dica {
+  flex: 1 1 16rem;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+// Estreito: os números descem para baixo do nome.
+@include m.abaixo(m.$md) {
+  .etapa__campos,
+  .nova__campos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .etapa__nome {
+    grid-column: 1 / -1;
+  }
+}
+
+@include m.abaixo(m.$sm) {
+  .etapa {
+    padding: var(--esp-3);
+  }
+
+  .etapa__motivo {
+    padding-inline-start: 0;
+  }
+
+  .nova {
+    padding: var(--esp-4);
+  }
+}

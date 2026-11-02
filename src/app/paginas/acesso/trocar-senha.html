@@ -1,0 +1,75 @@
+<app-moldura-acesso titulo="Trocar senha" [frase]="frase">
+  @if (obrigatoria) {
+    <app-aviso-acesso tipo="atencao" titulo="Por que trocar agora?">
+      <p>
+        A senha temporária foi criada pelo administrador, então outra pessoa a conhece. Com uma
+        senha só sua, ninguém mais entra em seu nome.
+      </p>
+    </app-aviso-acesso>
+  }
+
+  <form class="acesso-formulario" novalidate [formGroup]="formulario" (ngSubmit)="trocar()">
+    <!-- Para o gerenciador de senhas saber de qual conta é a senha nova. -->
+    <input type="email" name="username" autocomplete="username" hidden readonly [value]="email" />
+
+    @if (pedirSenhaAtual()) {
+      <app-campo-senha
+        #campoAtual
+        [rotulo]="obrigatoria ? 'Senha temporária' : 'Senha atual'"
+        [dica]="obrigatoria ? 'A senha que o administrador passou para você.' : null"
+        nome="senha-atual"
+        autocomplete="current-password"
+        formControlName="atual"
+        [mensagens]="mensagensAtual"
+      />
+    }
+    <app-campo-senha
+      #campoNova
+      rotulo="Nova senha"
+      nome="nova-senha"
+      autocomplete="new-password"
+      formControlName="nova"
+      [mensagens]="mensagensNova"
+    />
+    <app-campo-senha
+      #campoConfirmacao
+      rotulo="Confirmar nova senha"
+      nome="confirmar-senha"
+      autocomplete="new-password"
+      formControlName="confirmacao"
+      [mensagens]="mensagensConfirmacao"
+    />
+    <app-regras-senha [nova]="nova()" [confirmacao]="confirmacao()" [atual]="atualParaRegras()" />
+
+    @if (falha(); as problema) {
+      <app-aviso-acesso
+        [tipo]="problema.tipo"
+        [titulo]="problema.titulo ?? null"
+        [codigo]="problema.codigo ?? null"
+      >
+        <p>{{ problema.mensagem }}</p>
+      </app-aviso-acesso>
+    }
+
+    <div class="acesso-acoes">
+      <button appBotao type="submit" variante="invertido" tamanho="lg" [carregando]="enviando()">
+        {{ obrigatoria ? 'Trocar senha e continuar' : 'Trocar senha' }}
+      </button>
+      @if (obrigatoria) {
+        <div class="acesso-links">
+          <span class="acesso-nota">Não é {{ primeiroNome }}?</span>
+          <button type="button" class="acesso-link" (click)="sair()">Sair</button>
+        </div>
+      } @else {
+        <a appBotao variante="contorno" tamanho="lg" [routerLink]="destino()">Cancelar</a>
+      }
+    </div>
+
+    @if (!obrigatoria) {
+      <p class="acesso-nota">
+        Ao trocar, as suas outras sessões abertas (em outros navegadores e aparelhos) são
+        encerradas. Esta continua.
+      </p>
+    }
+  </form>
+</app-moldura-acesso>

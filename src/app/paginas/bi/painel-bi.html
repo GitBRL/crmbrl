@@ -1,0 +1,120 @@
+<p class="painel__periodo">
+  <span>{{ periodo().atual }}</span>
+  @if (periodo().anterior; as anterior) {
+    <span> · comparado com {{ anterior }}</span>
+  }
+  <span class="painel__hora"> · atualizado às {{ periodo().geradoEm }}</span>
+</p>
+
+@if (cartoes().periodo.length > 0) {
+  <section class="painel__secao" aria-labelledby="cartoes-periodo">
+    <h2 class="painel__subtitulo" id="cartoes-periodo">No período</h2>
+    <ul class="cartoes" role="list">
+      @for (item of cartoes().periodo; track item.cartao.chave) {
+        <li class="cartoes__item">
+          <app-indicador
+            tamanho="sm"
+            variacaoAbaixo
+            [valor]="item.valor"
+            [prefixo]="item.prefixo"
+            [unidade]="item.unidade"
+            [casas]="item.casas"
+            [legenda]="item.cartao.rotulo"
+            [variacao]="item.variacao"
+            [quedaEhBoa]="item.cartao.melhorQuando === 'menor'"
+            [dica]="item.cartao.dica"
+          />
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+@if (cartoes().agora.length > 0) {
+  <section class="painel__secao" aria-labelledby="cartoes-agora">
+    <h2 class="painel__subtitulo" id="cartoes-agora">
+      Agora <span class="painel__nota">· fotografia de hoje, sem comparação</span>
+    </h2>
+    <ul class="cartoes" role="list">
+      @for (item of cartoes().agora; track item.cartao.chave) {
+        <li class="cartoes__item">
+          <app-indicador
+            tamanho="sm"
+            variacaoAbaixo
+            [valor]="item.valor"
+            [prefixo]="item.prefixo"
+            [unidade]="item.unidade"
+            [casas]="item.casas"
+            [legenda]="item.cartao.rotulo"
+            [dica]="item.cartao.dica"
+          />
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+<div class="blocos">
+  @for (item of blocos(); track item.bloco.id) {
+    <app-cartao
+      class="bloco"
+      [class.bloco--inteiro]="item.bloco.inteiro"
+      [titulo]="item.titulo"
+      [nivel]="3"
+      [dica]="item.tabela.dica"
+      regiao
+    >
+      <div cartao-acoes class="bloco__acoes">
+        @if (item.grafico && !item.vazio) {
+          <app-abas
+            tamanho="sm"
+            modo="opcoes"
+            [rotulo]="'Como ver: ' + item.titulo"
+            [abas]="modos"
+            [selecionada]="modoDe(item.bloco.id)"
+            (selecionadaChange)="trocarModo(item.bloco.id, $event)"
+          />
+        }
+        <button
+          appBotaoIcone
+          type="button"
+          tamanho="sm"
+          [icone]="iconeBaixar"
+          [rotulo]="'Baixar ' + item.titulo + ' em CSV'"
+          (click)="baixarTabela.emit(item.bloco.tabela)"
+        ></button>
+      </div>
+
+      @if (item.vazio) {
+        <app-estado-vazio
+          compacto
+          titulo="Sem dados no período"
+          texto="Escolha um período maior ou tire algum filtro para ver os números."
+        />
+      } @else if (item.grafico && modoDe(item.bloco.id) === 'grafico') {
+        <app-grafico
+          [opcao]="item.grafico.opcao"
+          [rotulo]="item.grafico.descricao"
+          [altura]="item.bloco.grafico?.orientacao === 'barras' ? '15rem' : '16rem'"
+          (clique)="aoClicarNoGrafico(item, $event)"
+        />
+        @if (item.bloco.clique; as destino) {
+          <p class="bloco__ajuda">{{ textoDoClique(destino) }}</p>
+        }
+      } @else {
+        <app-tabela
+          densa
+          [rotulo]="item.titulo"
+          [colunas]="item.colunas"
+          [linhas]="item.linhas"
+          [chave]="chaveDaLinha"
+          [clicavel]="ehClicavel(item)"
+          (abrir)="aoAbrirLinha(item, $event)"
+        />
+        @if (item.bloco.clique; as destino) {
+          <p class="bloco__ajuda">{{ textoDoClique(destino) }}</p>
+        }
+      }
+    </app-cartao>
+  }
+</div>

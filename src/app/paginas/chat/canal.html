@@ -1,0 +1,157 @@
+@if (falhaCanal(); as erro) {
+  <div class="canal__falha">
+    <app-estado-vazio
+      variante="erro"
+      manterAcoes
+      [titulo]="
+        erro.ehNaoEncontrado ? 'Conversa não encontrada' : 'Não foi possível abrir a conversa'
+      "
+      [texto]="
+        erro.ehNaoEncontrado
+          ? 'Ela pode ter sido arquivada e removida, ou você não faz mais parte dela.'
+          : erro.resumo
+      "
+      [falha]="erro"
+      [codigo]="erro.requisicaoId"
+    >
+      <a appBotao routerLink="/chat" variante="contorno" [icone]="icones.voltar">
+        Voltar para as conversas
+      </a>
+      @if (!erro.ehNaoEncontrado) {
+        <button appBotao type="button" (click)="tentarDeNovo()">Tentar de novo</button>
+      }
+    </app-estado-vazio>
+  </div>
+} @else {
+  <header class="canal__cabecalho">
+    <a
+      appBotaoIcone
+      class="canal__voltar"
+      routerLink="/chat"
+      variante="contorno"
+      [icone]="icones.voltar"
+      rotulo="Voltar para as conversas"
+    ></a>
+
+    @if (canal(); as c) {
+      @if (c.tipo === 'DIRETO') {
+        <span class="canal__avatar" aria-hidden="true">
+          <app-avatar decorativo [nome]="c.nome" [foto]="c.outraPessoa?.avatarUrl ?? null" />
+          @if (c.outraPessoa?.online) {
+            <span class="canal__online"></span>
+          }
+        </span>
+      } @else {
+        <span class="canal__circulo" aria-hidden="true">
+          <svg [lucideIcon]="iconeDoCanal()" [size]="20" />
+        </span>
+      }
+      <div class="canal__titulos">
+        <h2 class="canal__nome" tabindex="-1">{{ c.nome }}</h2>
+        <p class="canal__meta">{{ meta() }}</p>
+      </div>
+      <div class="canal__acoes">
+        @if (c.tipo !== 'DIRETO' && pessoasDaPilha().length) {
+          <button
+            type="button"
+            class="canal__pilha"
+            [attr.aria-label]="'Ver as ' + c.totalMembros + ' pessoas da conversa'"
+            (click)="detalhesAberto.set(true)"
+          >
+            <app-pilha-avatares
+              tamanho="sm"
+              rotulo="Pessoas da conversa"
+              [pessoas]="pessoasDaPilha()"
+              [maximo]="3"
+            />
+          </button>
+        }
+        <button
+          appBotaoIcone
+          type="button"
+          class="canal__silenciar"
+          [icone]="c.silenciado ? icones.silenciado : icones.avisos"
+          [rotulo]="c.silenciado ? 'Conversa silenciada: ligar os avisos' : 'Silenciar a conversa'"
+          [attr.aria-pressed]="c.silenciado"
+          (click)="alternarSilencio(c)"
+        ></button>
+        <button
+          appBotaoIcone
+          type="button"
+          [icone]="icones.detalhes"
+          rotulo="Detalhes e pessoas"
+          (click)="detalhesAberto.set(true)"
+        ></button>
+      </div>
+    } @else {
+      <div class="canal__esqueleto-cabecalho" aria-hidden="true">
+        <app-esqueleto forma="circulo" largura="44px" altura="44px" />
+        <app-esqueleto forma="texto" [linhas]="2" largura="12rem" />
+      </div>
+    }
+  </header>
+
+  <div class="canal__mensagens">
+    @if (falhaMensagens(); as erro) {
+      <div class="canal__falha">
+        <app-estado-vazio
+          compacto
+          variante="erro"
+          titulo="Não foi possível carregar as mensagens"
+          [texto]="erro.resumo"
+          [falha]="erro"
+          [codigo]="erro.requisicaoId"
+        >
+          <button appBotao type="button" (click)="tentarDeNovo()">Tentar de novo</button>
+        </app-estado-vazio>
+      </div>
+    } @else {
+      <app-lista-mensagens
+        [nomes]="canal()?.tipo === 'DIRETO' ? 'nenhuma' : 'entrada'"
+        [avatares]="canal()?.tipo !== 'DIRETO'"
+        [mensagens]="mensagens()"
+        [carregando]="carregando()"
+        [temAnteriores]="temAnteriores()"
+        [carregandoAnteriores]="carregandoAnteriores()"
+        [digitando]="nomesDigitando()"
+        [rotulo]="'Mensagens de ' + (canal()?.nome ?? 'conversa')"
+        [textoVazio]="textoVazio()"
+        (carregarAnteriores)="carregarAnteriores()"
+        (tentarDeNovo)="reenviar($event)"
+      />
+      <app-chat-acoes-mensagem
+        [mensagens]="servidor()"
+        [eu]="estado.eu()"
+        [podeEnviar]="!!canal()?.podeEnviar"
+        (acao)="agir($event)"
+      />
+    }
+  </div>
+
+  @if (canal(); as c) {
+    <app-chat-composicao
+      class="canal__composicao"
+      [canal]="c"
+      [membros]="membros()"
+      [eu]="estado.eu()"
+      [rascunhoInicial]="rascunho()"
+      [(respondendo)]="respondendo"
+      [(editando)]="editando"
+      (enviar)="enviar($event)"
+      (salvarEdicao)="salvarEdicao($event)"
+      (editarUltima)="editarUltima()"
+      (digitando)="avisarDigitando($event)"
+      (rascunhoMudou)="estado.guardarRascunho(c.id, $event)"
+    />
+
+    <app-chat-detalhes-canal
+      [(aberto)]="detalhesAberto"
+      [canal]="c"
+      [membros]="membros()"
+      [eu]="estado.eu()"
+      (alterado)="estado.guardar($event)"
+      (membrosAlterados)="recarregarMembros()"
+      (saiu)="aoSair()"
+    />
+  }
+}

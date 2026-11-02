@@ -1,0 +1,61 @@
+@use 'mixins' as m;
+@use '../campo/campo' as c;
+
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.controle {
+  @include c.controle;
+
+  padding-right: var(--esp-1);
+}
+
+.controle__campo {
+  @include c.nativo;
+}
+
+// Botão de 36px dentro da pílula (altura − 8px, como o círculo do botão pílula), alvo de 44px.
+.controle__mostrar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--altura-md) - 10px);
+  height: calc(var(--altura-md) - 10px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  @include m.area-toque(5px, 5px);
+
+  &:hover:not(:disabled),
+  &[aria-pressed='true'] {
+    background: var(--cor-superficie-3);
+    color: var(--cor-texto);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.caps {
+  @include c.dica;
+
+  color: var(--cor-aviso);
+  font-weight: 500;
+
+  &:empty {
+    display: none;
+  }
+}

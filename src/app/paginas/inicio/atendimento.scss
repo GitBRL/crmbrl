@@ -1,0 +1,11 @@
+@use 'palco';
+
+.canais {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.canais__titulo {
+  font: var(--fonte-h3);
+  letter-spacing: var(--tracking-titulo);
+}

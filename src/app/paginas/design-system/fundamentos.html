@@ -1,0 +1,276 @@
+<!-- Sondas: o valor real de cada token em cada tema (os hex e transparências da página). -->
+<div #sondaEscuro data-tema="escuro" hidden></div>
+<div #sondaClaro data-tema="claro" hidden></div>
+
+<app-ds-secao ancora="cores" numero="01" titulo="Cores" complemento="· paleta e tokens">
+  <p frase>
+    Neutros estruturam a tela. Ciano, menta e lima são cores de dado; coral marca o que está ativo.
+    Sobre ciano, menta, lima e coral o texto é sempre preto. Nada de hex solto em componente: use o
+    token.
+  </p>
+
+  <div class="paleta" aria-hidden="true">
+    <!-- A faixa é sempre preta: o símbolo usa os tokens do tema escuro. -->
+    <div class="paleta__faixa paleta__faixa--preto" data-tema="escuro">
+      <app-logo somenteSimbolo [tamanho]="28" />
+      <span>{{ valor('--pb-preto') }}</span>
+    </div>
+    <div class="paleta__faixa paleta__faixa--dados">
+      <span class="paleta__seg paleta__seg--ciano">{{ valor('--pb-ciano') }}</span>
+      <span class="paleta__seg paleta__seg--menta">{{ valor('--pb-menta') }}</span>
+      <span class="paleta__seg paleta__seg--lima">{{ valor('--pb-lima') }}</span>
+    </div>
+    <div class="paleta__faixa paleta__faixa--claros">
+      <span class="paleta__seg paleta__seg--branco">{{ valor('--pb-branco') }}</span>
+      <span class="paleta__seg paleta__seg--coral">{{ valor('--pb-coral') }}</span>
+    </div>
+  </div>
+
+  <ul class="ds-grade ds-grade--base" role="list" aria-label="Paleta base">
+    @for (cor of paleta; track cor.token) {
+      <li class="cor-base">
+        <span class="cor-base__ponto" [style.background]="'var(' + cor.token + ')'"></span>
+        <span class="cor-base__texto">
+          <code class="ds-token">{{ cor.token }}</code>
+          <span class="cor-base__hex">{{ valor(cor.token) }}</span>
+          <span class="cor-base__papel">{{ cor.papel }}</span>
+        </span>
+      </li>
+    }
+  </ul>
+
+  @for (grupo of tokensCor; track grupo.titulo) {
+    <h3 class="ds-subtitulo">{{ grupo.titulo }}</h3>
+    <ul class="ds-grade" role="list">
+      @for (cor of grupo.tokens; track cor.token) {
+        <li class="token">
+          <span
+            class="token__amostra"
+            aria-hidden="true"
+            [class]="'token__amostra--' + cor.forma"
+            [style.--amostra]="'var(' + cor.token + ')'"
+            [style.--amostra-fundo]="cor.fundo ? 'var(' + cor.fundo + ')' : null"
+          >
+            @switch (cor.forma) {
+              @case ('texto') {
+                Aa
+              }
+              @case ('logo') {
+                <app-logo somenteSimbolo [tamanho]="32" />
+              }
+            }
+          </span>
+          <code class="ds-token">{{ cor.token }}</code>
+          <span class="token__valores">
+            <span>Escuro {{ valor(cor.token, 'escuro') }}</span
+            ><span>Claro {{ valor(cor.token, 'claro') }}</span>
+          </span>
+          <span class="token__uso">{{ cor.uso }}</span>
+        </li>
+      }
+    </ul>
+  }
+
+  <h3 class="ds-subtitulo">Dados e gradientes</h3>
+  <ul class="ds-grade" role="list">
+    <li class="token">
+      <span class="token__amostra token__amostra--series" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+      </span>
+      <code class="ds-token">--dado-1 … --dado-4</code>
+      <span class="token__uso"
+        >Séries de gráficos, sempre nesta ordem: ciano, menta, lima, coral.</span
+      >
+    </li>
+    <li class="token">
+      <span class="token__amostra token__amostra--gradiente-dados" aria-hidden="true"></span>
+      <code class="ds-token">--gradiente-dados</code>
+      <span class="token__uso">Destaques de dado (ciano → menta → lima).</span>
+    </li>
+    <li class="token">
+      <span class="token__amostra token__amostra--menta" aria-hidden="true"></span>
+      <code class="ds-token">--dado-2-gradiente</code>
+      <span class="token__uso">Preenchimento da série 2 dentro das barras de funil.</span>
+    </li>
+    <li class="token">
+      <span class="token__amostra token__amostra--palco" aria-hidden="true"></span>
+      <code class="ds-token">--gradiente-palco</code>
+      <span class="token__uso">Fundo do palco: dois brilhos radiais sobre a superfície.</span>
+    </li>
+    <li class="token">
+      <span class="token__amostra token__amostra--listras" aria-hidden="true"></span>
+      <code class="ds-token">--listras-destaque</code>
+      <span class="token__uso">Listras diagonais do cartão destaque, sobre o coral.</span>
+    </li>
+  </ul>
+</app-ds-secao>
+
+<app-ds-secao ancora="tipografia" numero="02" titulo="Tipografia" complemento="· Urbanist">
+  <p frase>
+    Urbanist variável (100–900), auto-hospedada. Números grandes e leves, em peso 300, com
+    algarismos tabulares e formato pt-BR. Os tokens estão no formato do atalho
+    <code class="ds-token">font</code>: <code class="ds-token">font: var(--fonte-h2)</code>.
+  </p>
+
+  <ul class="tipos" role="list">
+    @for (fonte of tipografia; track fonte.token) {
+      <li class="tipo">
+        <div class="tipo__meta">
+          <code class="ds-token">{{ fonte.token }}</code>
+          <span class="tipo__medida">{{ fonte.medida }}</span>
+          <span class="tipo__uso">{{ fonte.uso }}</span>
+        </div>
+        @let partes = partirTitulo(fonte.exemplo, fonte.complemento);
+        <p
+          class="tipo__exemplo numeros"
+          [style.font]="'var(' + fonte.token + ')'"
+          [style.letter-spacing]="fonte.tracking ? 'var(' + fonte.tracking + ')' : null"
+        >
+          {{ partes.principal }}<span class="tom-fraco">{{ partes.ponto }}</span
+          ><span class="tom-fraco sem-quebra">{{ partes.complemento }}</span>
+        </p>
+      </li>
+    }
+  </ul>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Título em dois tons"
+      seletor=".tom-fraco"
+      quando="No título de página, palco ou modal: a parte principal em texto e um complemento curto (até três palavras, sem listas) em texto fraco, no mesmo tamanho e peso. O · fica no fim da linha e o complemento desce inteiro."
+    >
+      <p class="texto-h1">
+        Jornada do cliente&nbsp;<span class="tom-fraco">· </span
+        ><span class="tom-fraco sem-quebra">outubro</span>
+      </p>
+    </app-ds-exemplo>
+    <app-ds-exemplo
+      titulo="Números"
+      seletor=".numeros"
+      quando="Toda métrica: algarismos tabulares, pt-BR (1.600 · 17 % · R$ 48,2 mil) e a unidade menor que o número."
+    >
+      <div class="ds-grade">
+        <app-indicador [valor]="17" unidade="%" legenda="Conversão total do funil" />
+        <app-indicador [valor]="48.2" prefixo="R$" unidade="mil" legenda="Receita ganha" />
+      </div>
+    </app-ds-exemplo>
+  </div>
+</app-ds-secao>
+
+<app-ds-secao ancora="forma" numero="03" titulo="Espaço e forma" complemento="· base de 4px">
+  <p frase>
+    Controles são pílulas ou círculos; cartões têm raio grande. Quase não há cantos vivos. Cartões
+    com 24px de padding e 16px entre si (20px e 12px no mobile).
+  </p>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo titulo="Espaçamento" seletor="--esp-*" quando="Todo padding, margem e gap.">
+      <ul class="espacos" role="list">
+        @for (n of espacos; track n) {
+          <li class="espaco">
+            <code class="ds-token">--esp-{{ n }}</code>
+            <span class="espaco__barra" [style.width]="'var(--esp-' + n + ')'"></span>
+            <span class="espaco__valor">{{ n * 4 }}px</span>
+          </li>
+        }
+      </ul>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo titulo="Raios" seletor="--raio-*" quando="Cantos de tudo. Círculos usam 50%.">
+      <ul class="raios" role="list">
+        @for (raio of raios; track raio.token) {
+          <li class="raio">
+            <span class="raio__forma" [style.border-radius]="'var(' + raio.token + ')'"></span>
+            <code class="ds-token">{{ raio.token }}</code>
+            <span class="raio__uso">{{ raio.valor }} · {{ raio.uso }}</span>
+          </li>
+        }
+      </ul>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Alturas de controle"
+      seletor="--altura-*"
+      quando="Botões, abas, campos e chips. O círculo de ícone dentro de uma pílula mede a altura dela menos 8px."
+    >
+      <ul class="alturas" role="list">
+        @for (altura of alturas; track altura.token) {
+          <li class="altura" [style.height]="'var(' + altura.token + ')'">
+            <code class="ds-token">{{ altura.token }}</code>
+            <span>{{ altura.valor }} · {{ altura.uso }}</span>
+          </li>
+        }
+      </ul>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Pontos de quebra"
+      seletor="m.abaixo · m.acima"
+      quando="Mudanças de layout pela largura da tela, sempre com os mixins de _mixins.scss (nunca media query à mão). Mobile abaixo de 900px; desktop a partir de 1200px."
+    >
+      <dl class="ds-tabela">
+        @for (ponto of pontosDeQuebra; track ponto.token) {
+          <div class="ds-tabela__linha">
+            <dt>
+              <code class="ds-token">m.${{ ponto.token }}</code>
+            </dt>
+            <dd>{{ ponto.valor }} · {{ ponto.uso }}</dd>
+          </div>
+        }
+      </dl>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Elevação"
+      seletor="--sombra-* · --z-*"
+      quando="No escuro quase não há sombra: a hierarquia vem do contraste. Sombra só no que flutua (menus, modal, item arrastado)."
+    >
+      <div class="sombras">
+        <div class="sombra sombra--cartao"><code class="ds-token">--sombra-cartao</code></div>
+        <div class="sombra sombra--flutuante"><code class="ds-token">--sombra-flutuante</code></div>
+      </div>
+      <dl class="ds-tabela">
+        @for (camada of camadas; track camada.token) {
+          <div class="ds-tabela__linha">
+            <dt>
+              <code class="ds-token">{{ camada.token }}</code>
+            </dt>
+            <dd>{{ camada.valor }} · {{ camada.uso }}</dd>
+          </div>
+        }
+      </dl>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Movimento"
+      seletor="--duracao-* · --curva"
+      quando="Toda transição usa estes tokens. Com movimento reduzido, as durações zeram (só o fade curto continua)."
+    >
+      <dl class="ds-tabela">
+        @for (item of movimento; track item.token) {
+          <div class="ds-tabela__linha">
+            <dt>
+              <code class="ds-token">{{ item.token }}</code>
+            </dt>
+            <dd>{{ item.valor }} · {{ item.uso }}</dd>
+          </div>
+        }
+      </dl>
+    </app-ds-exemplo>
+  </div>
+</app-ds-secao>
+
+<app-ds-secao ancora="icones" numero="04" titulo="Ícones" complemento="· Lucide">
+  <p frase>
+    &#64;lucide/angular, traço 1.75 (1.5 acima de 24px), 20px em controles médios, cor do texto.
+    Ícone decorativo fica oculto para leitores de tela; botão só com ícone exige rótulo.
+  </p>
+  <ul class="icones" role="list">
+    @for (modulo of modulos; track modulo.id) {
+      <li class="icone">
+        <span class="icone__circulo"><svg [lucideIcon]="modulo.icone" [size]="20" /></span>
+        <span class="icone__nome">{{ modulo.rotulo }}</span>
+      </li>
+    }
+  </ul>
+</app-ds-secao>

@@ -1,0 +1,143 @@
+@use 'mixins' as m;
+@use 'painel-suspenso' as p;
+
+// Menu da conta: quem está logado e as ações da conta. Só tokens.
+
+:host {
+  position: relative;
+  display: inline-flex;
+}
+
+.conta__botao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--altura-md);
+  margin: 0;
+  padding: 5px var(--esp-3) 5px 5px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  &:hover,
+  &[aria-expanded='true'] {
+    background: var(--cor-superficie-3);
+    color: var(--cor-texto);
+  }
+
+  &[aria-expanded='true'] .conta__seta {
+    transform: rotate(180deg);
+  }
+}
+
+.conta__seta {
+  transition: transform var(--duracao) var(--curva);
+}
+
+// Painel ------------------------------------------------------------------------------------
+.conta__painel {
+  @include p.painel-suspenso(336px);
+
+  gap: var(--esp-3);
+  padding: var(--esp-3);
+}
+
+// No mobile o botão é só o avatar, num círculo de 44px.
+@include m.abaixo(m.$md) {
+  .conta__botao {
+    padding: 5px;
+  }
+
+  .conta__seta {
+    display: none;
+  }
+}
+
+.conta__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-2) var(--esp-2) 0;
+}
+
+.conta__quem {
+  min-width: 0;
+}
+
+.conta__nome {
+  font: var(--fonte-h3);
+}
+
+// Papel e e-mail ficam sobre o painel opaco: o texto fraco passa (5,3:1).
+.conta__papel,
+.conta__email {
+  overflow: hidden;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  text-overflow: ellipsis;
+}
+
+.conta__papel {
+  color: var(--cor-texto-suave);
+}
+
+.conta__email {
+  white-space: nowrap;
+}
+
+.conta__menu {
+  display: grid;
+  gap: 2px;
+}
+
+.conta__divisor {
+  height: 1px;
+  margin: var(--esp-1) var(--esp-2);
+  background: var(--cor-borda);
+}
+
+// Item: pílula com o ícone num círculo, como na navegação.
+.conta__item {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  width: 100%;
+  min-height: var(--altura-md);
+  margin: 0;
+  padding: 3px var(--esp-3) 3px 3px;
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--cor-texto);
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duracao) var(--curva);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cor-vidro);
+  }
+
+  &[aria-disabled='true'] {
+    cursor: progress;
+  }
+}
+
+.conta__item-circulo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(var(--altura-md) - 8px);
+  height: calc(var(--altura-md) - 8px);
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+}
+
+.conta__item-nome {
+  font: var(--fonte-rotulo);
+}

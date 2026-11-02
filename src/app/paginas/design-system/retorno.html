@@ -1,0 +1,125 @@
+<app-ds-secao
+  ancora="retorno"
+  numero="14"
+  titulo="Retorno e painéis"
+  complemento="· avisos e menus"
+>
+  <p frase>
+    Toda ação dá retorno num aviso curto no canto de baixo. Ações secundárias moram num menu "⋯"; o
+    detalhe abre num painel lateral, sem tirar a pessoa da lista.
+  </p>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Avisos"
+      seletor="app-avisos"
+      quando="Retorno de toda ação. Sucesso some em 5 s (8 s com Desfazer); erro fica até fechar e mostra o código para o suporte. O tempo para com o mouse ou o foco em cima."
+    >
+      <div class="ds-linha">
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          [icone]="icones.sucesso"
+          (click)="mostrar('sucesso')"
+        >
+          Sucesso
+        </button>
+        <button appBotao type="button" tamanho="sm" (click)="mostrar('acao')">Com Desfazer</button>
+        <button appBotao type="button" tamanho="sm" (click)="mostrar('atencao')">Atenção</button>
+        <button appBotao type="button" tamanho="sm" (click)="mostrar('erro')">
+          Erro do servidor
+        </button>
+      </div>
+      <p class="ds-nota" aria-live="polite">{{ ultimaAcaoAviso() }}</p>
+      <app-avisos [avisos]="avisos()" (dispensar)="dispensar($event)" (agir)="agir($event)" />
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Menu de ações"
+      seletor="app-menu-acoes"
+      quando="Ações secundárias de uma linha ou de um painel. A desabilitada diz por quê; a destrutiva fica no fim, separada, e pede confirmação."
+    >
+      <div class="ds-linha">
+        <app-menu-acoes
+          rotulo="Ações de Pedro Alves"
+          [itens]="acoesUsuario"
+          (escolher)="escolhida.set($event.rotulo)"
+        />
+        <app-menu-acoes
+          rotulo="Ações do usuário"
+          texto="Ações"
+          [icone]="icones.configurar"
+          [itens]="acoesUsuario"
+          (escolher)="escolhida.set($event.rotulo)"
+        />
+      </div>
+      <p class="ds-nota" aria-live="polite">
+        @if (escolhida(); as acao) {
+          Você escolheu: {{ acao }}
+        } @else {
+          Abra com clique, Enter ou Espaço; setas navegam; Esc fecha.
+        }
+      </p>
+    </app-ds-exemplo>
+  </div>
+
+  <app-ds-exemplo
+    titulo="Painel lateral"
+    seletor="app-painel-lateral"
+    quando="Detalhe por cima da lista (negócio, diff da auditoria, entrega de webhook). Foco preso, Esc fecha, o foco volta para quem abriu; o título é lido ao abrir."
+  >
+    <div class="ds-linha">
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        [icone]="icones.ver"
+        (click)="painelAberto.set(true)"
+      >
+        Ver alteração da auditoria
+      </button>
+    </div>
+    <app-painel-lateral
+      [(aberto)]="painelAberto"
+      largura="lg"
+      titulo="Negócio alterado"
+      complemento="· há 5 min"
+      descricao="Ana Ribeiro moveu “Escola Horizonte” no funil Comercial."
+    >
+      <table class="diff">
+        <caption class="visualmente-oculto">
+          Campos alterados
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Campo</th>
+            <th scope="col">Antes</th>
+            <th scope="col">Depois</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (mudanca of mudancas; track mudanca.campo) {
+            <tr>
+              <th scope="row">{{ mudanca.campo }}</th>
+              <td>
+                <span class="diff__antes">{{ mudanca.antes }}</span>
+              </td>
+              <td>
+                <span class="diff__depois">{{ mudanca.depois }}</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <p class="ds-nota">
+        Requisição <app-selo tamanho="sm" variante="contorno">req-01J9Z3X7</app-selo>
+      </p>
+      <div painel-rodape class="ds-linha">
+        <button appBotao type="button" variante="invertido" (click)="painelAberto.set(false)">
+          Fechar
+        </button>
+      </div>
+    </app-painel-lateral>
+  </app-ds-exemplo>
+</app-ds-secao>

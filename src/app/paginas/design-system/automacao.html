@@ -1,0 +1,73 @@
+<app-ds-secao
+  ancora="automacao"
+  numero="16"
+  titulo="Campanhas e automações"
+  complemento="· editores"
+>
+  <p frase>
+    Os componentes que o Disparos, o Chatbot e as Automações compartilham (<code class="ds-token"
+      >ui/construtor-segmento</code
+    >, <code class="ds-token">editor-modelo</code>, <code class="ds-token">editor-passos</code>,
+    <code class="ds-token">seletor-janela-envio</code>,
+    <code class="ds-token">seletor-agenda</code>). Todos funcionam aqui; a contagem do segmento é
+    simulada.
+  </p>
+
+  <app-ds-exemplo
+    titulo="Construtor de segmento"
+    seletor="app-construtor-segmento"
+    quando="Escolher quem recebe uma campanha ou em quais contatos uma automação vale. Filtros em linguagem simples e a contagem de contatos muda enquanto a pessoa monta."
+  >
+    <app-construtor-segmento [campos]="campos" [contagem]="contar" [(valor)]="segmento" />
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Sem condições</p>
+      <app-construtor-segmento [campos]="campos" [contagem]="contar" [(valor)]="segmentoVazio" />
+    </div>
+  </app-ds-exemplo>
+
+  <app-ds-exemplo
+    titulo="Editor de modelo de mensagem"
+    seletor="app-editor-modelo"
+    quando="Escrever a mensagem de uma campanha, de uma automação ou de um fluxo. Os botões inserem variáveis e variações no cursor, e a prévia mostra como cada contato recebe."
+  >
+    <app-editor-modelo [(valor)]="modelo" />
+  </app-ds-exemplo>
+
+  <app-ds-exemplo
+    titulo="Editor de passos"
+    seletor="app-editor-passos"
+    quando="Montar o fluxo do chatbot ou uma automação: Quando (gatilho), Se (com ramos), Então (ações) e Aguardar. Arraste pela alça ou use as setas para reordenar; clique no passo para editar."
+  >
+    <app-editor-passos [definicoes]="definicoes" [(gatilho)]="gatilho" [(passos)]="passos" />
+  </app-ds-exemplo>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Janela de envio"
+      seletor="app-seletor-janela-envio"
+      quando="Limitar os dias e as horas em que a campanha ou a automação pode enviar mensagens (horário de Brasília)."
+    >
+      <app-seletor-janela-envio [(valor)]="janela" />
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Agenda de campanha"
+      seletor="app-seletor-agenda"
+      quando="Dizer quando a campanha sai: agora ou numa data e hora."
+    >
+      <app-seletor-agenda [modos]="['agora', 'data']" [(valor)]="agendaCampanha" />
+    </app-ds-exemplo>
+  </div>
+
+  <app-ds-exemplo
+    titulo="Agenda de automação"
+    seletor="app-seletor-agenda"
+    quando="Gatilhos de data: repetir todo dia, semana ou mês, ou rodar alguns dias antes ou depois de uma data do contato."
+  >
+    <app-seletor-agenda
+      [modos]="['recorrente', 'relativa']"
+      [camposData]="camposData"
+      [(valor)]="agendaAutomacao"
+    />
+  </app-ds-exemplo>
+</app-ds-secao>
