@@ -6,7 +6,8 @@ import { SECOES_ADMINISTRACAO } from './secoes';
 
 /**
  * Administração (`/administracao`, Admin e C-level) — TELAS-FASE1 §8: o título, a frase de
- * propósito, as abas que o papel acessa (auditoria, logs técnicos, dúvidas à IA) e a aba
+ * propósito, as abas que o papel acessa (auditoria, logs técnicos, dúvidas à IA, saúde do
+ * sistema) e a aba
  * aberta no `<router-outlet>`.
  */
 @Component({
@@ -16,9 +17,7 @@ import { SECOES_ADMINISTRACAO } from './secoes';
     <header class="moldura__cabecalho">
       <div class="moldura__titulos">
         <h1 class="texto-display">Administração</h1>
-        <p class="moldura__frase">
-          Quem fez o quê no CRM e a saúde do sistema, para conferir e investigar.
-        </p>
+        <p class="moldura__frase">{{ frase() }}</p>
       </div>
       <nav class="moldura__secoes rolagem-horizontal" aria-label="Seções da administração">
         @for (secao of secoes(); track secao.caminho) {
@@ -42,5 +41,10 @@ export class Administracao {
 
   protected readonly secoes = computed(() =>
     SECOES_ADMINISTRACAO.filter((secao) => this.sessao.permite(secao.permite)),
+  );
+  protected readonly frase = computed(() =>
+    this.secoes().some((secao) => secao.caminho === 'saude')
+      ? 'Quem fez o quê no CRM e a saúde do sistema, para conferir e investigar.'
+      : 'Quem fez o quê no CRM, para conferir e investigar.',
   );
 }

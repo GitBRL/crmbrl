@@ -1,3 +1,4 @@
+import { numeroCurtoDoChamado } from '../../../layout/ajuda/numero-chamado';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -87,6 +88,7 @@ const SELO_CATEGORIA: Readonly<Record<CategoriaAssistente, VarianteSelo>> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HistoricoDuvidas {
+  protected readonly numeroCurto = numeroCurtoDoChamado;
   private readonly api = inject(DuvidasApi);
   private readonly biApi = inject(BiApi);
   private readonly avisos = inject(AvisosService);

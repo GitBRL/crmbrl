@@ -42,6 +42,13 @@ describe('navegacao', () => {
     ]);
   });
 
+  it('R12: Marketing e o líder de Marketing não veem o Atendimento (a API recusa os dois)', () => {
+    const papeis = moduloPorId('atendimento')?.papeis ?? [];
+    expect(papeis).not.toContain('MARKETING');
+    expect(papeis).not.toContain('LIDER_MARKETING');
+    expect(papeis).toContain('LIDER_CS');
+  });
+
   it('lista papéis em português', () => {
     expect(listarPapeis(['ADMIN', 'C_LEVEL', 'LIDER_CS'])).toBe('Admin, C-level e Líder CS');
     expect(listarPapeis(['ADMIN'])).toBe('Admin');

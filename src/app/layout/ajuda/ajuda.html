@@ -176,8 +176,25 @@
                 </div>
 
                 @if (turno.chamado; as chamado) {
-                  <p class="ajuda__alerta" role="status" data-teste="chamado">
+                  <p
+                    class="ajuda__alerta"
+                    role="status"
+                    data-teste="chamado"
+                    [attr.title]="
+                      numeroCompleto(chamado) ? 'Chamado ' + numeroCompleto(chamado) : null
+                    "
+                  >
                     {{ situacaoDoChamado(chamado) }}
+                    @if (chamado.status === 'ENVIADO' && numeroCompleto(chamado)) {
+                      <button
+                        type="button"
+                        class="ajuda__link"
+                        data-teste="copiar-chamado"
+                        (click)="copiarNumero(chamado)"
+                      >
+                        Copiar número
+                      </button>
+                    }
                     @if (link(chamado); as endereco) {
                       <a [href]="endereco" target="_blank" rel="noopener noreferrer"
                         >Abrir no sistema de chamados</a

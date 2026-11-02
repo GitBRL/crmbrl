@@ -5,7 +5,7 @@ import { AtualizacaoService } from '../nucleo/pwa/atualizacao.service';
 import { RedeService } from '../nucleo/pwa/rede.service';
 import { FaixaPwa } from './faixa-pwa';
 
-describe('FaixaPwa', () => {
+describe('cenário 139 — FaixaPwa (sem conexão e nova versão)', () => {
   const online = signal(true);
   const disponivel = signal(false);
   const atualizar = vi.fn();

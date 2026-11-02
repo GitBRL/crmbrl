@@ -6,21 +6,26 @@ import { provideRouter } from '@angular/router';
 import { ErroApi } from '../api/erro-api';
 import { interceptarErros } from '../api/interceptor-erros';
 import { RECARREGAR_EM, SessaoService, voltarSeguro } from './sessao.service';
+import { PushService } from '../pwa/push.service';
 import { perfilDeTeste } from './sessao-de-teste';
 
 describe('SessaoService', () => {
   let http: HttpTestingController;
   let sessao: SessaoService;
   const recarregarEm = vi.fn();
+  const desativar = vi.fn(() => Promise.resolve());
 
   beforeEach(() => {
     recarregarEm.mockReset();
+    desativar.mockReset();
+    desativar.mockResolvedValue(undefined);
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         provideHttpClient(withInterceptors([interceptarErros])),
         provideHttpClientTesting(),
         { provide: RECARREGAR_EM, useValue: recarregarEm },
+        { provide: PushService, useValue: { desativar } },
       ],
     });
     http = TestBed.inject(HttpTestingController);
@@ -88,11 +93,30 @@ describe('SessaoService', () => {
   it('sair encerra na API e recarrega em /entrar (mesmo com a sessão já vencida)', async () => {
     sessao.definirPerfil(perfilDeTeste('CS'));
     const saindo = sessao.sair();
-    http
-      .expectOne((req) => req.method === 'POST' && req.url === '/api/v1/auth/sair')
-      .flush(null, { status: 401, statusText: 'Unauthorized' });
+    await vi.waitFor(() =>
+      http
+        .expectOne((req) => req.method === 'POST' && req.url === '/api/v1/auth/sair')
+        .flush(null, { status: 401, statusText: 'Unauthorized' }),
+    );
     await saindo;
     expect(sessao.autenticado()).toBe(false);
+    expect(recarregarEm).toHaveBeenCalledWith('/entrar');
+  });
+
+  it('sair remove a inscrição de push deste aparelho antes de encerrar a sessão (R26.1)', async () => {
+    sessao.definirPerfil(perfilDeTeste('CS'));
+    const saindo = sessao.sair();
+    await vi.waitFor(() => http.expectOne('/api/v1/auth/sair').flush(null));
+    await saindo;
+    expect(desativar).toHaveBeenCalledOnce();
+  });
+
+  it('sair sai mesmo se a remoção do push falhar', async () => {
+    desativar.mockRejectedValue(new Error('sem push'));
+    sessao.definirPerfil(perfilDeTeste('CS'));
+    const saindo = sessao.sair();
+    await vi.waitFor(() => http.expectOne('/api/v1/auth/sair').flush(null));
+    await saindo;
     expect(recarregarEm).toHaveBeenCalledWith('/entrar');
   });
 

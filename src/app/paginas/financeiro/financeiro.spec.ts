@@ -11,6 +11,7 @@ import { contrato, parcela } from './dados-de-teste';
 import { ModalBaixa } from './modais-parcela';
 import { Parcelas } from './parcelas';
 import { RiscoChurnCartao } from './risco-churn';
+import { ROTAS_FINANCEIRO } from './financeiro.routes';
 import { rotuloDoMarco, rotuloDoMes } from './financeiro.tipos';
 
 const texto = (e: Element | null | undefined) => e?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
@@ -216,5 +217,15 @@ describe('Financeiro (telas)', () => {
       await estabilizar(fixture);
       http.expectNone('/api/v1/financeiro/risco-churn/contatos/c1');
     });
+  });
+});
+
+describe('rotas do Financeiro', () => {
+  it('novo contrato e importar parcelas exigem o mesmo papel que mostra o botão', () => {
+    const filhas = ROTAS_FINANCEIRO[0].children ?? [];
+    const guardas = (caminho: string) =>
+      filhas.find((rota) => rota.path === caminho)?.canActivate?.length ?? 0;
+    expect(guardas('contratos/novo')).toBe(1);
+    expect(guardas('parcelas/importar')).toBe(1);
   });
 });

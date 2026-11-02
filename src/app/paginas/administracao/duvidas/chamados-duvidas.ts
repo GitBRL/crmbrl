@@ -10,6 +10,7 @@ import {
   type StatusChamado,
 } from '../../../layout/ajuda/ajuda.tipos';
 import { linkSeguro } from '../../../layout/ajuda/ajuda';
+import { numeroCurtoDoChamado } from '../../../layout/ajuda/numero-chamado';
 import { Botao } from '../../../ui/botao/botao';
 import { Cartao } from '../../../ui/cartao/cartao';
 import { CampoData } from '../../../ui/campo-data/campo-data';
@@ -118,7 +119,9 @@ const ROTULO_STATUS: Readonly<Record<StatusChamado, string>> = {
           </ng-template>
           <ng-template appCelula="detalhe" [appCelulaDe]="itens()" let-c>
             @if (c.status === 'ENVIADO') {
-              Nº {{ c.numero ?? '—' }}
+              <span [attr.title]="c.numero ? 'Chamado ' + c.numero : null"
+                >Nº {{ c.numero ? numeroCurto(c.numero) : '—' }}</span
+              >
               @if (link(c); as endereco) {
                 <a [href]="endereco" target="_blank" rel="noopener noreferrer">abrir</a>
               }
@@ -229,6 +232,10 @@ export class ChamadosDuvidas {
 
   protected dataHora(valor: string): string {
     return formatarDataHora(valor);
+  }
+
+  protected numeroCurto(numero: string | number | null): string {
+    return numeroCurtoDoChamado(numero);
   }
 
   protected link(chamado: ChamadoAdmin): string | null {

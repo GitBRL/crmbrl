@@ -188,13 +188,14 @@
         @if (p.chamado; as c) {
           <app-selo
             tamanho="sm"
+            [attr.title]="c.numero ? 'Chamado ' + c.numero : null"
             [variante]="
               c.status === 'ENVIADO' ? 'menta' : c.status === 'FALHOU' ? 'coral' : 'neutro'
             "
           >
             {{
               c.status === 'ENVIADO'
-                ? 'Nº ' + (c.numero ?? '')
+                ? 'Nº ' + numeroCurto(c.numero)
                 : c.status === 'FALHOU'
                   ? 'Falhou'
                   : 'Pendente'

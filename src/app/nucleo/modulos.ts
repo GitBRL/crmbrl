@@ -78,8 +78,8 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rotulo: 'Atendimento',
     rota: '/atendimento',
     grupo: null,
-    // R12: Marketing não acessa o Atendimento.
-    papeis: TODOS.filter((papel) => papel !== 'MARKETING'),
+    // R12: a área de Marketing (inclusive o líder) não usa o Atendimento — a API recusa.
+    papeis: TODOS.filter((papel) => papel !== 'MARKETING' && papel !== 'LIDER_MARKETING'),
     status: 'pronto',
     fase: null,
     descricao: 'Converse com clientes de todos os canais sem sair do CRM.',
@@ -303,14 +303,19 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     papeis: TODOS,
     status: 'pronto',
     fase: null,
-    descricao: 'Usuários, equipes, distribuição de leads, passagens e o seu perfil.',
+    descricao:
+      'Usuários, equipes, distribuição de leads, passagens, canais, atendimento, disparos, assistente e o seu perfil.',
     funcionalidades: [
       'Convites e acessos',
       'Papéis e lideranças',
       'Desligamento com encaminhamento de atividades',
       'Distribuição de leads (rodízio)',
       'Passagens entre funis',
-      'Meu perfil e troca de senha',
+      'Canais de atendimento (WhatsApp, Instagram, Messenger, e-mail e chat do site)',
+      'Filas, horários e respostas rápidas',
+      'Limites dos disparos',
+      'Assistente de ajuda',
+      'Meu perfil, troca de senha e notificações no celular',
     ],
   },
   {

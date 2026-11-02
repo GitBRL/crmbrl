@@ -250,7 +250,7 @@ describe('Ajuda (painel do assistente)', () => {
       api.chamado.mockResolvedValue({
         ...CHAMADO,
         status: 'ENVIADO',
-        numero: 42,
+        numero: '3f2a9c1e-7b4d-4e8a-9c15-0d6f2b8a41c7',
         link: 'https://t.exemplo/42',
       });
       await abrir();
@@ -272,7 +272,9 @@ describe('Ajuda (painel do assistente)', () => {
       await vi.advanceTimersByTimeAsync(3000);
       await esperar();
       const chamado = raiz.querySelector('[data-teste=chamado]');
-      expect(texto(chamado)).toContain('Chamado nº 42 aberto.');
+      expect(texto(chamado)).toContain('Chamado nº 3F2A9C1E aberto.');
+      expect(chamado?.getAttribute('title')).toBe('Chamado 3f2a9c1e-7b4d-4e8a-9c15-0d6f2b8a41c7');
+      expect(chamado?.querySelector('[data-teste=copiar-chamado]')).not.toBeNull();
       expect(chamado?.querySelector('a')?.getAttribute('href')).toBe('https://t.exemplo/42');
     } finally {
       vi.useRealTimers();

@@ -175,6 +175,11 @@ O CRM não emite boleto, Pix nem nota fiscal e não se conecta a bancos: a baixa
   Se o número desconectar, campanhas esperam e o Atendimento não envia até reconectar (leia o QR de novo).
 - **Chat do site, e-mail, Instagram e Messenger:** cadastre o canal e, no site, cole o trecho de instalação.
 - **Disparos (Admin e C-level):** limites e ritmo gerais.
+- **Atendimento (Admin, C-level e líderes de Comercial e CS):** filas, horários de atendimento e respostas
+  rápidas; fica na barra de seções de Configurações, ao lado de Canais.
+- **Assistente de ajuda (Admin):** quantas perguntas cada pessoa pode fazer por dia (0 desliga o assistente), o
+  orçamento mensal da IA e para onde vão os chamados (TicketHub, webhook ou nenhum). Segredos nunca aparecem na
+  tela depois de salvos.
 
 ## 12. Administração e Saúde do sistema (Admin)
 

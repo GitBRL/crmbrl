@@ -44,10 +44,19 @@
     border-color: var(--cor-erro);
   }
 
-  a {
+  a,
+  .ajuda__link {
     color: inherit;
     text-decoration: underline;
   }
+}
+
+.ajuda__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 .ajuda__exemplos,

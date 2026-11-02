@@ -20,6 +20,7 @@ export const ROTAS_FINANCEIRO: Routes = [
       {
         path: 'contratos/novo',
         title: 'Novo contrato',
+        canActivate: [exigirPapel('ADMIN', 'C_LEVEL', 'LIDER_CS', 'CS')],
         loadComponent: () => import('./contrato-novo').then((m) => m.ContratoNovo),
       },
       {
@@ -35,6 +36,7 @@ export const ROTAS_FINANCEIRO: Routes = [
       {
         path: 'parcelas/importar',
         title: 'Importar parcelas',
+        canActivate: [exigirPapel('ADMIN', 'C_LEVEL', 'LIDER_CS')],
         data: { tipo: 'PARCELAS' },
         loadComponent: () => import('../contatos/importar/importar').then((m) => m.Importar),
       },

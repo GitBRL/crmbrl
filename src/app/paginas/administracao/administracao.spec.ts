@@ -196,4 +196,16 @@ describe('Administracao (moldura)', () => {
     entrarComo('C_LEVEL');
     expect(abas()).toEqual(['Auditoria']);
   });
+
+  it('a frase só fala da saúde do sistema para quem vê essa aba', () => {
+    const frase = () => {
+      const fixture = TestBed.createComponent(Administracao);
+      fixture.detectChanges();
+      return (fixture.nativeElement as HTMLElement).querySelector('.moldura__frase')?.textContent;
+    };
+    entrarComo('ADMIN');
+    expect(frase()).toContain('saúde do sistema');
+    entrarComo('C_LEVEL');
+    expect(frase()).toBe('Quem fez o quê no CRM, para conferir e investigar.');
+  });
 });

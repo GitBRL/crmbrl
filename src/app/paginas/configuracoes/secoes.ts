@@ -1,5 +1,10 @@
 import { LIDERES } from '../../nucleo/papeis';
-import type { Perfil, Permissoes } from '../../nucleo/sessao/perfil';
+import {
+  podeConfigurarAtendimento,
+  podeGerenciarCanais,
+  type Perfil,
+  type Permissoes,
+} from '../../nucleo/sessao/perfil';
 
 /**
  * Seções de Configurações (TELAS-FASE1 §6), na ordem das abas. Cada uma diz quem a acessa:
@@ -26,6 +31,9 @@ export const SECOES_CONFIGURACOES: readonly SecaoConfiguracoes[] = [
     permite: (p) => p.configurarRodizio !== 'NENHUM',
   },
   { caminho: 'passagens', rotulo: 'Passagens entre funis', permite: (p) => p.configurarPassagens },
+  // Canais e Atendimento moram em subpastas (rotas em app.routes.ts) e a mesma regra libera a rota.
+  { caminho: 'canais', rotulo: 'Canais', permite: podeGerenciarCanais },
+  { caminho: 'atendimento', rotulo: 'Atendimento', permite: podeConfigurarAtendimento },
   {
     caminho: 'disparos',
     rotulo: 'Disparos',

@@ -43,29 +43,54 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     );
   }
 
-  it('Admin: usuários, distribuição, passagens, assistente e perfil', () => {
+  it('Admin: usuários, distribuição, passagens, canais, atendimento, assistente e perfil', () => {
     expect(secoesDe('ADMIN')).toEqual([
       'Usuários',
       'Distribuição de leads',
       'Passagens entre funis',
+      'Canais',
+      'Atendimento',
       'Disparos',
       'Assistente de ajuda',
       'Meu perfil',
     ]);
   });
 
-  it('C-level: equipe, distribuição, passagens e perfil', () => {
+  it('a frase de topo cita só as seções que o papel vê', () => {
+    entrarComo('ADMIN');
+    const admin = TestBed.createComponent(Configuracoes);
+    admin.detectChanges();
+    expect(
+      (admin.nativeElement as HTMLElement).querySelector('.configuracoes__frase')?.textContent,
+    ).toBe(
+      'Quem usa o CRM, a distribuição dos leads, as passagens entre funis, os canais de atendimento, as filas e os horários do atendimento, os limites dos disparos, o assistente de ajuda e o seu perfil.',
+    );
+    entrarComo('MARKETING');
+    const membro = TestBed.createComponent(Configuracoes);
+    membro.detectChanges();
+    expect(
+      (membro.nativeElement as HTMLElement).querySelector('.configuracoes__frase')?.textContent,
+    ).toBe('O seu acesso ao CRM.');
+  });
+
+  it('C-level: equipe, distribuição, passagens, atendimento e perfil', () => {
     expect(secoesDe('C_LEVEL')).toEqual([
       'Minha equipe',
       'Distribuição de leads',
       'Passagens entre funis',
+      'Atendimento',
       'Disparos',
       'Meu perfil',
     ]);
   });
 
   it('líder: equipe, distribuição e perfil; membro: só o perfil', () => {
-    expect(secoesDe('LIDER_CS')).toEqual(['Minha equipe', 'Distribuição de leads', 'Meu perfil']);
+    expect(secoesDe('LIDER_CS')).toEqual([
+      'Minha equipe',
+      'Distribuição de leads',
+      'Atendimento',
+      'Meu perfil',
+    ]);
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient()] });
     // Uma seção só: sem as pílulas de navegação.

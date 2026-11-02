@@ -27,7 +27,7 @@ import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { formatarDataHora, formatarEspera } from '../../nucleo/formatos';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
-import { AREAS, ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { AREAS, podeImportarContatos, ROTULO_AREA } from '../../nucleo/sessao/perfil';
 import { Alternador } from '../../ui/alternador/alternador';
 import { Botao } from '../../ui/botao/botao';
 import { CaixaSelecao } from '../../ui/caixa-selecao/caixa-selecao';
@@ -253,7 +253,11 @@ function numero(valor: string | number | null): number {
                   @if (importacoes.hasValue() && opcoesImportacao().length === 0) {
                     <p class="nota">
                       Nenhuma importação concluída ainda.
-                      <a routerLink="/contatos/importar">Importar contatos</a>
+                      @if (podeImportar()) {
+                        <a routerLink="/contatos/importar">Importar contatos</a>
+                      } @else {
+                        Peça ao líder da sua área para importar a lista.
+                      }
                     </p>
                   }
                 }
@@ -1065,6 +1069,7 @@ export class DisparoNovo {
   }));
   protected readonly numero = numero;
   protected readonly ehDiretoria = this.sessao.ehDiretoria;
+  protected readonly podeImportar = computed(() => this.sessao.permite(podeImportarContatos));
 
   // Estado do formulário -------------------------------------------------------------------
   protected readonly passo = signal(1);

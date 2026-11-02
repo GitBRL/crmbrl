@@ -20,6 +20,15 @@
         >
           Analisar com IA
         </button>
+        <a
+          appBotao
+          tamanho="sm"
+          variante="contorno"
+          routerLink="/bi/analises"
+          [icone]="icones.historico"
+        >
+          Histórico de análises
+        </a>
       }
       <button
         appBotao
@@ -57,6 +66,18 @@
         rotulo="Sobre a exportação"
         texto="A planilha traz uma aba para cada tabela da tela, com os mesmos filtros. O CSV traz só os indicadores. Cada tabela também tem o próprio botão de baixar em CSV."
       />
+    </div>
+  } @else if (ehAdmin()) {
+    <div class="cabecalho__acoes">
+      <a
+        appBotao
+        tamanho="sm"
+        variante="contorno"
+        routerLink="/bi/analises"
+        [icone]="icones.historico"
+      >
+        Histórico de análises
+      </a>
     </div>
   }
 </header>

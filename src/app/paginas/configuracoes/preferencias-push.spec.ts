@@ -15,7 +15,7 @@ const TIPOS: PreferenciasPush = {
   parcela_atrasada: false,
 };
 
-describe('CartaoPush', () => {
+describe('cenário 139 — CartaoPush (avisos no aparelho)', () => {
   const situacao = signal<SituacaoPush>('desativado');
   const preferencias = signal<PreferenciasPush | null>(TIPOS);
   const push = {

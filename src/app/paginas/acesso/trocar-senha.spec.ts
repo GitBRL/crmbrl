@@ -127,7 +127,7 @@ describe('TrocarSenha', () => {
       const sair = [...raiz.querySelectorAll('button')].find((botao) => texto(botao) === 'Sair');
       expect(sair).toBeDefined();
       sair?.click();
-      http.expectOne('/api/v1/auth/sair').flush(null);
+      await vi.waitFor(() => http.expectOne('/api/v1/auth/sair').flush(null));
       await assentar(fixture);
     });
   });

@@ -189,7 +189,7 @@ describe('EmBreve', () => {
     expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Atendimento · sem acesso');
     expect(raiz.textContent).toContain('O papel Marketing não acessa este módulo.');
     expect(raiz.textContent?.replace(/\s+/g, ' ')).toContain(
-      'Quem acessa: todos os papéis, menos Marketing.',
+      'Quem acessa: todos os papéis, menos Líder Marketing e Marketing.',
     );
     expect(raiz.textContent).not.toContain('Ver como');
     expect(raiz.querySelectorAll('app-chip').length).toBe(0);

@@ -94,7 +94,7 @@ describe('AtualizacaoService', () => {
   });
 });
 
-describe('PushService', () => {
+describe('cenário 139 — PushService', () => {
   const requestSubscription = vi.fn();
   const unsubscribe = vi.fn();
   let http: HttpTestingController;

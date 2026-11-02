@@ -14,6 +14,19 @@ import { SECOES_CONFIGURACOES } from './secoes';
 /** Folga entre a pílula da seção aberta e a borda da linha quando a linha rola até ela. */
 const FOLGA_ROLAGEM = 16;
 
+/** Como cada seção aparece na frase de topo, na ordem das abas. */
+const RESUMO_DA_SECAO: Readonly<Record<string, string>> = {
+  usuarios: 'quem usa o CRM',
+  equipe: 'a sua equipe',
+  distribuicao: 'a distribuição dos leads',
+  passagens: 'as passagens entre funis',
+  canais: 'os canais de atendimento',
+  atendimento: 'as filas e os horários do atendimento',
+  disparos: 'os limites dos disparos',
+  assistente: 'o assistente de ajuda',
+  perfil: 'o seu perfil',
+};
+
 /**
  * Configurações (`/configuracoes`) — TELAS-FASE1 §6: o título, as seções que o usuário acessa
  * (links em pílula; a aberta fica invertida, com `aria-current`) e a seção no `<router-outlet>`.
@@ -131,17 +144,14 @@ export class Configuracoes {
   );
   /** A frase de topo fala só do que o papel acessa. */
   protected readonly frase = computed(() => {
-    const caminhos = new Set(this.secoes().map((secao) => secao.caminho));
-    if (caminhos.has('usuarios')) {
-      return 'Quem usa o CRM, como os leads são distribuídos, as passagens entre funis e o seu perfil.';
+    const partes = this.secoes()
+      .map((secao) => RESUMO_DA_SECAO[secao.caminho])
+      .filter((parte): parte is string => !!parte);
+    if (partes.length <= 1) {
+      return 'O seu acesso ao CRM.';
     }
-    if (caminhos.has('passagens')) {
-      return 'A sua equipe, a distribuição dos leads, as passagens entre funis e o seu perfil.';
-    }
-    if (caminhos.has('distribuicao')) {
-      return 'A sua equipe, quem recebe os leads da sua área e o seu perfil.';
-    }
-    return 'O seu acesso ao CRM.';
+    const texto = `${partes.slice(0, -1).join(', ')} e ${partes[partes.length - 1]}.`;
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
   });
 
   /** A seção aberta mudou: a pílula dela vai para a área visível da linha (celular). */

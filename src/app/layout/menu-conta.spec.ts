@@ -119,9 +119,11 @@ describe('MenuConta', () => {
     itens()[2].click();
     fixture.detectChanges();
     expect(itens()[2].textContent?.trim()).toBe('Saindo…');
-    TestBed.inject(HttpTestingController)
-      .expectOne('/api/v1/auth/sair')
-      .flush(null, { status: 204, statusText: 'No Content' });
+    await vi.waitFor(() =>
+      TestBed.inject(HttpTestingController)
+        .expectOne('/api/v1/auth/sair')
+        .flush(null, { status: 204, statusText: 'No Content' }),
+    );
     await fixture.whenStable();
     expect(recarregarEm).toHaveBeenCalledWith('/entrar');
   });

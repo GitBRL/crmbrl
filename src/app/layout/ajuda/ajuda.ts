@@ -41,6 +41,8 @@ import {
   type ResumoConversa,
 } from './ajuda.tipos';
 import { MarkdownSimples } from './markdown';
+import { numeroCurtoDoChamado } from './numero-chamado';
+import { copiarTexto } from '../../nucleo/copiar';
 
 /** Aviso padrão quando o estado ainda não chegou. */
 export const AVISO_PADRAO =
@@ -553,7 +555,7 @@ export class Ajuda {
   protected situacaoDoChamado(chamado: ChamadoDto): string {
     if (chamado.status === 'ENVIADO') {
       return chamado.numero !== null && chamado.numero !== ''
-        ? `Chamado nº ${chamado.numero} aberto.`
+        ? `Chamado nº ${numeroCurtoDoChamado(chamado.numero)} aberto.`
         : 'Chamado aberto.';
     }
     if (chamado.status === 'FALHOU') {
@@ -562,6 +564,23 @@ export class Ajuda {
     return chamado.proximaTentativaEm
       ? `Não deu para enviar agora; tentando de novo às ${formatarHora(chamado.proximaTentativaEm)}.`
       : 'Enviando o chamado…';
+  }
+
+  /** Número completo do chamado (o selo mostra o curto): vai no `title` e na cópia. */
+  protected numeroCompleto(chamado: ChamadoDto): string | null {
+    return chamado.numero ? String(chamado.numero) : null;
+  }
+
+  protected async copiarNumero(chamado: ChamadoDto): Promise<void> {
+    const numero = this.numeroCompleto(chamado);
+    if (!numero) {
+      return;
+    }
+    if (await copiarTexto(numero)) {
+      this.avisos.sucesso('Número do chamado copiado.');
+    } else {
+      this.avisos.atencao(`Não deu para copiar. O número é ${numero}.`);
+    }
   }
 
   protected link(chamado: ChamadoDto): string | null {

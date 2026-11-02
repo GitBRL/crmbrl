@@ -9,8 +9,8 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { LucideDownload, LucideRefreshCw, LucideSparkles } from '@lucide/angular';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { LucideDownload, LucideHistory, LucideRefreshCw, LucideSparkles } from '@lucide/angular';
 import { map } from 'rxjs';
 
 import { erroDaApi, type ErroApi } from '../../nucleo/api/erro-api';
@@ -45,7 +45,17 @@ type EstadoPagina = 'carregando' | 'pronto' | 'erro' | 'sem-acesso';
  */
 @Component({
   selector: 'app-bi',
-  imports: [Abas, AnaliseIa, Botao, Dica, Esqueleto, EstadoVazio, FiltrosBiComponente, PainelBi],
+  imports: [
+    Abas,
+    AnaliseIa,
+    Botao,
+    Dica,
+    Esqueleto,
+    EstadoVazio,
+    FiltrosBiComponente,
+    PainelBi,
+    RouterLink,
+  ],
   templateUrl: './bi.html',
   styleUrl: './bi.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,6 +72,7 @@ export class Bi {
     baixar: LucideDownload,
     atualizar: LucideRefreshCw,
     ia: LucideSparkles,
+    historico: LucideHistory,
   };
   protected readonly ehAdmin = this.sessao.ehAdmin;
   protected readonly analiseAberta = signal(false);

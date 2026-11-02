@@ -4,6 +4,7 @@ import {
   DOCUMENT,
   inject,
   Injectable,
+  Injector,
   InjectionToken,
   signal,
   type Signal,
@@ -14,6 +15,7 @@ import { firstValueFrom } from 'rxjs';
 import { erroDaApi } from '../api/erro-api';
 import { urlApi } from '../api/api';
 import { moduloBasePorId, moduloBasePorRota, MODULOS_BASE, type ModuloBase } from '../modulos';
+import { PushService } from '../pwa/push.service';
 import { LIDERES, ROTULO_PAPEL, type Papel } from '../papeis';
 import type { ConsultaToken, Perfil, Permissoes, UsuarioDoPerfil } from './perfil';
 
@@ -67,6 +69,7 @@ const ROTAS_DE_ACESSO = [
 export class SessaoService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly injetor = inject(Injector);
   private readonly recarregarEm = inject(RECARREGAR_EM);
 
   private readonly _perfil = signal<Perfil | null>(null);
@@ -165,6 +168,13 @@ export class SessaoService {
    * descarta tudo o que estava na memória do usuário anterior. Sessão já vencida também sai.
    */
   async sair(): Promise<void> {
+    try {
+      // Remove a inscrição de push deste aparelho enquanto a sessão ainda vale (R26.1): quem
+      // usar o aparelho depois não recebe as notificações de quem saiu.
+      await this.injetor.get(PushService).desativar();
+    } catch {
+      // Sem push neste aparelho (ou API fora): sai do mesmo jeito.
+    }
     try {
       await firstValueFrom(
         this.http.post<void>(urlApi('auth', 'sair'), null, { context: semRedirecionar() }),

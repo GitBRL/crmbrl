@@ -34,7 +34,8 @@ RUN node -e ' \
     "default-src " + aspas("self"), \
     ["script-src", aspas("self"), ...hashes].join(" "), \
     "style-src " + aspas("self") + " " + aspas("unsafe-inline"), \
-    "img-src " + aspas("self") + " data:", \
+    "img-src " + aspas("self") + " data: blob:", \
+    "media-src " + aspas("self") + " blob:", \
     "font-src " + aspas("self"), \
     "connect-src " + aspas("self"), \
     "object-src " + aspas("none"), \
