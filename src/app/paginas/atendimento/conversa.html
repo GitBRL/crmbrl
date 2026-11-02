@@ -154,6 +154,15 @@
                 ></button>
               }
             }
+            <app-botao-ligar
+              [contato]="conversa.contato"
+              [canalId]="conversa.canal.id"
+              [conversaId]="conversa.id"
+              rotulo="Ligar para o cliente"
+              variante="contorno"
+              tamanho="sm"
+              somenteIcone
+            />
             @if (conversa.acoes.transferir) {
               <button
                 appBotaoIcone

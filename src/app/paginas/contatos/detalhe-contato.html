@@ -91,6 +91,21 @@
       <div class="perfil__bloco">
         <h2 class="perfil__rotulo">Contato</h2>
         <app-meios-de-contato [email]="contato.email" [telefone]="contato.telefone" />
+        @if (contato.telefone) {
+          <app-botao-ligar
+            class="perfil__ligar"
+            [contato]="{
+              id: contato.id,
+              nome: contato.nome,
+              telefone: contato.telefone,
+              empresa: contato.empresa?.nome,
+            }"
+            variante="contorno"
+            tamanho="sm"
+            verPermissao
+            coluna
+          />
+        }
       </div>
       <div class="perfil__bloco">
         <h2 class="perfil__rotulo">Responsável</h2>

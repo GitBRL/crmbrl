@@ -75,7 +75,15 @@ describe('Conversa (Atendimento)', () => {
     avisos = TestBed.inject(AvisosService);
     entrarComo('COMERCIAL');
   });
-  afterEach(() => http.verify());
+  afterEach(() => {
+    // O softphone (ligações) consulta a API ao conectar o tempo real: não é assunto desta tela.
+    http
+      .match((pedido) => pedido.url.startsWith('/api/v1/ligacoes'))
+      .forEach((p) =>
+        p.flush(p.request.url.endsWith('/ativas') ? { emAndamento: null, tocando: [] } : []),
+      );
+    http.verify();
+  });
 
   /** O painel do contato (ao lado, sem ResizeObserver no jsdom) carrega os dados dele. */
   function responderPainel(): void {

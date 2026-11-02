@@ -70,6 +70,13 @@ suas e as sem responsável da área). Marketing não acessa.
   lista de **templates** aprovados: escolha um, preencha as variáveis, confira a prévia e envie. Dentro da
   janela, o campo normal funciona e **Enviar template** fica como extra. Cada mensagem mostra enviada,
   entregue, lida ou o motivo da falha, com **Tentar de novo**.
+- **Ligações (WhatsApp oficial).** Quando um cliente liga, um aviso com **Atender** e **Recusar** aparece em
+  qualquer tela, com som (atalhos **Alt+A** e **Alt+R**). Durante a ligação, uma barra fixa mostra o nome, o
+  tempo, o **mudo** (Alt+M), o **Encerrar** (Alt+E) e os ajustes de microfone, alto-falante e anotação rápida;
+  navegar pelo CRM não derruba a ligação. Para **ligar**, use o botão **Ligar** no contato, na conversa ou na
+  atividade de ligação (inclui a régua de cobrança). A Meta só deixa ligar a quem permitiu: sem permissão, o
+  CRM oferece **Pedir permissão para ligar** e mostra os limites (1 pedido por dia e 2 por semana por
+  cliente). Ligação perdida vira a atividade "Retornar ligação". Artigo: `atendimento-ligacoes.md`.
 - **Painel do contato.** Ao lado da conversa estão os dados do contato, os negócios e o histórico.
 - **Configurar (líder, C-level, Admin).** Filas, prazos de SLA, horário de atendimento, satisfação e respostas
   rápidas ficam em Configurações; quando o prazo estoura, o líder é avisado pelo sino.
@@ -181,6 +188,9 @@ O CRM não emite boleto, Pix nem nota fiscal e não se conecta a bancos: a baixa
   do número, o ID da conta (WABA), o token e a chave secreta do app (a tela diz onde achar cada um e mostra os
   segredos só mascarados). Salve, use **Testar conexão**, copie o endereço e o token de verificação do
   **Webhook** para a Meta e clique em **Sincronizar templates**. Artigo: `configuracoes-canais-whatsapp-oficial.md`.
+  A aba **Ligações** do canal ativa as chamadas no número (a Meta confere os requisitos: número só na API
+  oficial, limite de 2.000 mensagens ou mais, forma de pagamento e o campo `calls` assinado no webhook), define
+  a fila, o horário, o tempo de toque, se grava e a mensagem para ligação perdida. Artigo: `atendimento-ligacoes.md`.
 - **Chat do site, e-mail, Instagram e Messenger:** cadastre o canal e, no site, cole o trecho de instalação.
 - **Disparos (Admin e C-level):** limites e ritmo gerais.
 - **Atendimento (Admin, C-level e líderes de Comercial e CS):** filas, horários de atendimento e respostas
@@ -242,12 +252,20 @@ rápidas para responder, registrar atividade e mover negócio.
 Sem internet, o CRM mostra o estado "sem conexão" (os dados nunca ficam guardados no aparelho). Quando sai uma
 versão nova, aparece um aviso com o botão para atualizar. Nas preferências de notificação você escolhe quais avisos chegam
 como notificação no aparelho (conversa atribuída, menção, atividade vencendo, SLA estourado, negócio atribuído,
-parcela atrasada).
+parcela atrasada, ligação recebida).
+
+**Ligações no celular.** Atender e ligar funcionam **com o CRM aberto** e a tela ligada. Com a **tela
+bloqueada** (ou o app em segundo plano) o navegador do celular suspende a página: a ligação **não toca**,
+só chega a notificação "Abrir ligação"; se você tocar nela a tempo, o aviso de atender aparece, e passado o
+tempo de toque a ligação vira perdida (atividade "Retornar ligação"). É uma limitação da plataforma, não do
+CRM: para não perder ligações, mantenha o CRM aberto ou atenda pelo computador.
 
 ## 14. O que o CRM não faz
 
 - Canais são WhatsApp (conexão própria por QR), WhatsApp oficial (API da Meta, com templates fora da janela de
-  24 horas), chat do site, e-mail, Instagram e Messenger; não há SMS, Telegram nem ligação.
+  24 horas), chat do site, e-mail, Instagram e Messenger; não há SMS nem Telegram. Ligações de voz existem
+  só pelo WhatsApp oficial, no navegador (com a permissão do cliente e o CRM aberto); não há transferência de
+  ligação nem ligação por telefone comum.
 - Disparos são graduais, não envio instantâneo em massa; quem pediu opt-out não recebe.
 - Não move negócio direto de um funil a outro (só pelas passagens) e não exclui os três funis.
 - Sem bancos, boleto, Pix ou nota fiscal; sem agenda externa (Google, Outlook); integrações só por webhooks.

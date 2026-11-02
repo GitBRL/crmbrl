@@ -29,6 +29,19 @@
   </header>
 
   <div class="painel__rolagem">
+    <!-- Ligar (WhatsApp oficial): mostra a permissão do cliente -->
+    <section class="secao secao--ligar" aria-label="Ligar para o cliente">
+      <app-botao-ligar
+        [contato]="conversa().contato"
+        [canalId]="conversa().canal.id"
+        [conversaId]="conversa().id"
+        variante="contorno"
+        tamanho="sm"
+        verPermissao
+        coluna
+      />
+    </section>
+
     <!-- Meios de contato -->
     <section class="secao" aria-labelledby="painel-contato-dados">
       <h4 id="painel-contato-dados" class="visualmente-oculto">Dados do contato</h4>

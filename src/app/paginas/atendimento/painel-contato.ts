@@ -30,6 +30,7 @@ import {
   formatarTempoRelativo,
 } from '../../nucleo/formatos';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
+import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
@@ -79,7 +80,17 @@ const ROTULO_ATIVIDADE: Readonly<Record<string, string>> = {
  */
 @Component({
   selector: 'app-painel-contato',
-  imports: [Avatar, Botao, BotaoIcone, Dica, Esqueleto, LucideDynamicIcon, RouterLink, Selo],
+  imports: [
+    Avatar,
+    Botao,
+    BotaoIcone,
+    BotaoLigar,
+    Dica,
+    Esqueleto,
+    LucideDynamicIcon,
+    RouterLink,
+    Selo,
+  ],
   templateUrl: './painel-contato.html',
   styleUrl: './painel-contato.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -141,6 +141,7 @@ describe('cenário 139 — PushService', () => {
     sla_estourado: true,
     negocio_atribuido: true,
     parcela_atrasada: false,
+    ligacao_recebida: false,
   };
 
   it('carregar: sem inscrição fica "desativado" e não pede permissão', async () => {

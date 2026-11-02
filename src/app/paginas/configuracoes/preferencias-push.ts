@@ -23,6 +23,10 @@ export const ROTULO_TIPO_PUSH: Readonly<Record<TipoPush, { rotulo: string; dica:
     rotulo: 'Parcela atrasada da carteira',
     dica: 'Um cliente seu está em atraso.',
   },
+  ligacao_recebida: {
+    rotulo: 'Ligação recebida',
+    dica: 'Um cliente está ligando, ou uma ligação ficou perdida. Vale também com o CRM em segundo plano.',
+  },
 };
 
 /**

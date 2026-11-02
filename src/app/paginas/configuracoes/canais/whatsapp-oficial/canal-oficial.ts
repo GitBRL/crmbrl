@@ -10,7 +10,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   LucideCheck,
   LucideChevronDown,
@@ -27,6 +28,7 @@ import { type ErroApi, erroDaApi } from '../../../../nucleo/api/erro-api';
 import { AvisosService } from '../../../../nucleo/avisos.service';
 import { ConfirmacaoService } from '../../../../nucleo/confirmacao.service';
 import { formatarDataHora, formatarTempoRelativo } from '../../../../nucleo/formatos';
+import { Abas, type ItemAba } from '../../../../ui/abas/abas';
 import { Botao } from '../../../../ui/botao/botao';
 import { CaixaSelecao } from '../../../../ui/caixa-selecao/caixa-selecao';
 import { CampoSenha } from '../../../../ui/campo-senha/campo-senha';
@@ -56,6 +58,7 @@ import type {
 } from '../canais.modelos';
 import { CabecalhoCanal } from '../comum/cabecalho-canal';
 import { AJUDA_FILA_PADRAO, FilasDisponiveis } from '../comum/filas';
+import { LigacoesCanal } from './ligacoes-canal';
 
 /** Ids da Meta: só dígitos, de 5 a 30 (crmbrl-api, `src/whatsapp-oficial`). */
 const ID_DA_META = /^\d{5,30}$/;
@@ -80,11 +83,13 @@ const CAMPOS_DA_API = [
 @Component({
   selector: 'app-canal-oficial',
   imports: [
+    NgTemplateOutlet,
     ReactiveFormsModule,
     RouterLink,
     LucideChevronDown,
     LucideClock,
     LucideDynamicIcon,
+    Abas,
     Botao,
     BotaoCopiar,
     CabecalhoCanal,
@@ -94,6 +99,7 @@ const CAMPOS_DA_API = [
     Cartao,
     Esqueleto,
     EstadoVazio,
+    LigacoesCanal,
     MenuAcoes,
     Selo,
     Seletor,
@@ -110,6 +116,7 @@ export class CanalOficial {
   private readonly avisos = inject(AvisosService);
   private readonly confirmacao = inject(ConfirmacaoService);
   private readonly router = inject(Router);
+  private readonly rota = inject(ActivatedRoute);
 
   protected readonly icones = {
     tentar: LucideRefreshCw,
@@ -131,6 +138,15 @@ export class CanalOficial {
       separarAntes: true,
     },
   ];
+
+  protected readonly abas: readonly ItemAba[] = [
+    { id: 'conexao', rotulo: 'Conexão' },
+    { id: 'ligacoes', rotulo: 'Ligações' },
+  ];
+  /** `?aba=ligacoes` abre direto nas ligações. */
+  protected readonly aba = signal<'conexao' | 'ligacoes'>(
+    this.rota.snapshot.queryParamMap.get('aba') === 'ligacoes' ? 'ligacoes' : 'conexao',
+  );
 
   protected readonly canal = new Carregamento<Canal>();
   protected readonly filas = new FilasDisponiveis(this.api);
@@ -185,6 +201,17 @@ export class CanalOficial {
     effect(() => {
       this.id();
       untracked(() => this.abrir());
+    });
+  }
+
+  protected mudarAba(aba: string | null): void {
+    const nova = aba === 'ligacoes' ? 'ligacoes' : 'conexao';
+    this.aba.set(nova);
+    void this.router.navigate([], {
+      relativeTo: this.rota,
+      queryParams: { aba: nova === 'conexao' ? null : nova },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
     });
   }
 

@@ -43,6 +43,7 @@ import {
   digitandoEm,
 } from '../../nucleo/tempo-real/auxiliares';
 import { TempoRealService } from '../../nucleo/tempo-real/tempo-real.service';
+import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
@@ -121,6 +122,7 @@ interface Pendente {
     Avatar,
     Botao,
     BotaoIcone,
+    BotaoLigar,
     Compositor,
     CriarNegocio,
     Dica,

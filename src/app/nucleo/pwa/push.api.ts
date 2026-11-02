@@ -12,6 +12,7 @@ export const TIPOS_PUSH = [
   'sla_estourado',
   'negocio_atribuido',
   'parcela_atrasada',
+  'ligacao_recebida',
 ] as const;
 export type TipoPush = (typeof TIPOS_PUSH)[number];
 export type PreferenciasPush = Readonly<Record<TipoPush, boolean>>;
