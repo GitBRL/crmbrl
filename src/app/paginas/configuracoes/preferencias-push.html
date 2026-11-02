@@ -1,0 +1,135 @@
+<app-cartao
+  class="push__cartao"
+  regiao
+  [nivel]="3"
+  titulo="No celular"
+  dica="Instale o CRM como aplicativo e receba avisos mesmo com o CRM fechado."
+>
+  <div class="push__corpo">
+    <section class="push__bloco" aria-labelledby="push-instalar">
+      <h3 class="push__subtitulo" id="push-instalar">Aplicativo</h3>
+      @if (instalacao.instalado()) {
+        <p class="push__texto">O CRM está instalado neste aparelho.</p>
+      } @else {
+        @if (instalacao.podeInstalar()) {
+          <div class="push__acoes">
+            <button appBotao type="button" variante="contorno" (click)="instalar()">
+              Instalar o app
+            </button>
+          </div>
+        }
+        <details class="push__como">
+          <summary>Como instalar</summary>
+          @switch (instalacao.plataforma) {
+            @case ('ios') {
+              <p>
+                No iPhone ou iPad, abra o CRM no Safari, toque em Compartilhar e escolha “Adicionar
+                à Tela de Início”. Os avisos só funcionam pelo app instalado (iOS 16.4 ou mais
+                novo).
+              </p>
+            }
+            @case ('android') {
+              <p>
+                No Android, abra o menu do Chrome (três pontos) e toque em “Instalar app” ou
+                “Adicionar à tela inicial”.
+              </p>
+            }
+            @default {
+              <p>
+                No Android: menu do Chrome, “Instalar app”. No iPhone: Safari, Compartilhar,
+                “Adicionar à Tela de Início”. No computador: ícone de instalação na barra de
+                endereço.
+              </p>
+            }
+          }
+        </details>
+      }
+    </section>
+
+    <section class="push__bloco" aria-labelledby="push-avisos">
+      <h3 class="push__subtitulo" id="push-avisos">Avisos no aparelho (push)</h3>
+      @switch (push.situacao()) {
+        @case ('carregando') {
+          <p class="push__texto" role="status">Verificando…</p>
+        }
+        @case ('nao-suportado') {
+          <p class="push__texto">
+            Este navegador não oferece avisos push aqui. Instale o app (acima) ou use o Chrome ou o
+            Safari atualizados, no endereço de produção do CRM.
+          </p>
+        }
+        @case ('nao-configurado') {
+          <p class="push__texto">
+            Os avisos push ainda não foram configurados no servidor. Peça ao Admin para ativá-los.
+          </p>
+        }
+        @case ('bloqueado') {
+          <p class="push__texto">
+            O navegador está bloqueando os avisos deste site. Libere nas permissões do site (ícone
+            de cadeado, ao lado do endereço) e recarregue a página.
+          </p>
+        }
+        @default {
+          @if (!ativo()) {
+            <p class="push__texto">
+              Receba um aviso no aparelho quando algo precisar de você. O navegador vai pedir a sua
+              permissão ao clicar.
+            </p>
+            <div class="push__acoes">
+              <button
+                appBotao
+                type="button"
+                variante="invertido"
+                [carregando]="push.ocupado()"
+                (click)="ativar()"
+              >
+                Ativar avisos neste aparelho
+              </button>
+            </div>
+          } @else {
+            <p class="push__texto">
+              Os avisos estão ativos neste aparelho. Escolha quais quer receber.
+            </p>
+            @if (push.preferencias(); as preferencias) {
+              <ul class="push__tipos" aria-label="Tipos de aviso">
+                @for (tipo of tipos; track tipo) {
+                  <li>
+                    <app-caixa-selecao
+                      [rotulo]="textos[tipo].rotulo"
+                      [dica]="textos[tipo].dica"
+                      [valor]="preferencias[tipo]"
+                      [desabilitado]="salvando() === tipo"
+                      (valorChange)="alternar(tipo, $event)"
+                    />
+                  </li>
+                }
+              </ul>
+            }
+            <div class="push__acoes">
+              <button
+                appBotao
+                type="button"
+                variante="contorno"
+                [carregando]="testando()"
+                (click)="testar()"
+              >
+                Enviar um aviso de teste
+              </button>
+              <button appBotao type="button" [carregando]="push.ocupado()" (click)="desativar()">
+                Desativar neste aparelho
+              </button>
+            </div>
+          }
+        }
+      }
+      @if (erro(); as mensagem) {
+        <p class="push__erro" role="alert">
+          {{ mensagem }}
+          <button appBotao type="button" tamanho="sm" variante="contorno" (click)="carregar()">
+            Tentar de novo
+          </button>
+        </p>
+      }
+    </section>
+  </div>
+</app-cartao>

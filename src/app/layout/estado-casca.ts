@@ -49,6 +49,26 @@ export class EstadoCasca {
   readonly sobreposta = computed(() => this.ehTablet() && this.expandidaNoTablet());
   readonly gavetaAberta = this.gaveta.asReadonly();
 
+  private readonly _pedidoNotificacoes = signal(0);
+  private fechouNotificacoesEm = 0;
+  /** Sobe a cada pedido para abrir o painel de notificações (navegação inferior do celular). */
+  readonly pedidoNotificacoes = this._pedidoNotificacoes.asReadonly();
+
+  /** Pede ao sino da barra superior que abra o painel de notificações. */
+  pedirNotificacoes(): void {
+    this._pedidoNotificacoes.update((n) => n + 1);
+  }
+
+  /** O painel de notificações acabou de fechar (toque fora, Esc): serve para o toque no botão
+   * que o abre não reabrir o painel que esse mesmo toque fechou. */
+  notificacoesFecharam(): void {
+    this.fechouNotificacoesEm = Date.now();
+  }
+
+  fechouNotificacoesAgora(): boolean {
+    return Date.now() - this.fechouNotificacoesEm < 500;
+  }
+
   /** O botão «/»: no desktop recolhe/expande (salvo); no tablet abre/fecha por cima. */
   alternarNavegacao(): void {
     if (this.ehTablet()) {

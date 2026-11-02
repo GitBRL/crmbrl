@@ -10,7 +10,7 @@
   grid-template-rows: auto minmax(0, 1fr);
   gap: var(--esp-6);
   min-width: 0;
-  height: calc(100dvh - var(--casca-altura-topo) - var(--esp-4) - var(--esp-6));
+  height: calc(100dvh - var(--casca-reservado) - var(--esp-4) - var(--esp-6));
   min-height: 34rem;
   margin-bottom: calc(var(--esp-6) - var(--esp-16));
 }
@@ -93,7 +93,7 @@ app-chat-nova-direta {
 @include m.abaixo(m.$md) {
   :host {
     gap: var(--esp-4);
-    height: calc(100dvh - var(--casca-altura-topo) - var(--esp-2) - var(--esp-4));
+    height: calc(100dvh - var(--casca-reservado) - var(--esp-2) - var(--esp-4));
     min-height: 28rem;
     margin-bottom: calc(var(--esp-4) - var(--esp-16));
   }

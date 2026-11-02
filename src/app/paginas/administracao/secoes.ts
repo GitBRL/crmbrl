@@ -19,6 +19,11 @@ export const SECOES_ADMINISTRACAO: readonly SecaoAdministracao[] = [
     rotulo: 'Dúvidas à IA',
     permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN',
   },
+  {
+    caminho: 'saude',
+    rotulo: 'Saúde do sistema',
+    permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN',
+  },
 ];
 
 export function secaoAdministracao(caminho: string): SecaoAdministracao {

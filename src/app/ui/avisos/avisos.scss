@@ -33,7 +33,9 @@
 
 @include m.abaixo(m.$sm) {
   :host {
-    inset: auto calc(var(--esp-3) - var(--_folga)) calc(var(--esp-3) - var(--_folga));
+    // Acima da navegação inferior do celular, quando ela existe.
+    inset: auto calc(var(--esp-3) - var(--_folga))
+      calc(var(--esp-3) - var(--_folga) + var(--casca-nav-inferior, 0px));
     width: auto;
   }
 }

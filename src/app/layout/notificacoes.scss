@@ -1,3 +1,4 @@
+@use 'mixins' as m;
 @use 'painel-suspenso' as p;
 
 // Sino e painel de notificações. Só tokens.
@@ -16,6 +17,13 @@
 
   gap: var(--esp-3);
   padding: var(--esp-4);
+
+  // Celular: a navegação inferior fica por baixo do painel.
+  @include m.abaixo(m.$md) {
+    max-height: calc(
+      100dvh - var(--casca-altura-topo) - var(--casca-nav-inferior, 0px) - var(--esp-5)
+    );
+  }
 }
 
 .notificacoes__cabecalho {

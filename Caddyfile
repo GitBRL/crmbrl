@@ -34,6 +34,9 @@
 	# Só valem se existirem — um chunk antigo que sumiu não ganha cache longo.
 	@comHash {
 		path *.js *.css /media/*
+		# O service worker e o script que ele importa nunca ficam em cache longo: a atualização
+		# do app depende de o navegador enxergar a versão nova na hora.
+		not path /sw-crm.js /ngsw-worker.js
 		file
 	}
 

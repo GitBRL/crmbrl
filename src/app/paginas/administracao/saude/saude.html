@@ -1,0 +1,348 @@
+<section class="saude__topo" aria-label="Resumo da saúde do sistema">
+  @if (dados(); as d) {
+    <div class="saude__resumo">
+      <app-selo [variante]="varianteSituacao(d.situacao)" ponto>{{
+        rotuloSituacao[d.situacao]
+      }}</app-selo>
+      <span class="saude__quando" [title]="atualizadoEmCompleto()">
+        Atualizado {{ atualizadoEm() }} · renova sozinho a cada 30 segundos
+      </span>
+    </div>
+  } @else {
+    <span class="saude__quando">Conferindo o sistema…</span>
+  }
+  <button
+    appBotao
+    variante="contorno"
+    type="button"
+    [icone]="iconeAtualizar"
+    [carregando]="carregando()"
+    (click)="carregar()"
+  >
+    Atualizar agora
+  </button>
+</section>
+
+@if (erro(); as falha) {
+  @if (dados() === null) {
+    <app-estado-vazio
+      variante="erro"
+      titulo="Não conseguimos carregar a saúde do sistema"
+      [falha]="falha"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao variante="invertido" type="button" (click)="carregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <p class="saude__aviso-falha" role="status">
+      Não foi possível atualizar agora ({{ falha.resumo }}). Mostrando a última consulta.
+    </p>
+  }
+}
+
+@if (dados() === null && carregando()) {
+  <div class="saude__grade" aria-busy="true" aria-label="Carregando a saúde do sistema">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <app-esqueleto altura="9rem" />
+    }
+  </div>
+} @else if (dados(); as d) {
+  <app-cartao
+    titulo="O que precisa de atenção"
+    dica="Os alertas críticos também vão por e-mail para os Admins (um aviso na hora e um lembrete a cada 6 horas enquanto o problema continuar). Quando o problema some, o alerta some daqui."
+  >
+    @if (d.alertas.length === 0) {
+      <app-estado-vazio
+        compacto
+        titulo="Nenhum alerta"
+        texto="Filas andando, números conectados e backup em dia."
+      />
+    } @else {
+      <ul class="alertas" aria-label="Alertas">
+        @for (alerta of d.alertas; track alerta.chave) {
+          <li class="alerta" [class.alerta--critico]="alerta.gravidade === 'critico'">
+            <div class="alerta__titulo">
+              <app-selo
+                tamanho="sm"
+                [variante]="alerta.gravidade === 'critico' ? 'coral' : 'lima'"
+                >{{ alerta.gravidade === 'critico' ? 'Crítico' : 'Aviso' }}</app-selo
+              >
+              <strong>{{ alerta.titulo }}</strong>
+              @if (alerta.porEmail && d.emailConfigurado) {
+                <span class="alerta__email">avisado por e-mail</span>
+              }
+            </div>
+            <p class="alerta__detalhe">{{ alerta.detalhe }}</p>
+            <p class="alerta__dica"><strong>O que fazer:</strong> {{ alerta.dica }}</p>
+          </li>
+        }
+      </ul>
+    }
+    @if (!d.emailConfigurado) {
+      <p class="saude__nota">
+        O envio de e-mail (SMTP) não está configurado: os alertas aparecem só aqui. Configure o SMTP
+        para receber também por e-mail.
+      </p>
+    }
+  </app-cartao>
+
+  <div class="saude__grade">
+    <app-cartao
+      titulo="WhatsApp"
+      dica="O gateway é o serviço que mantém os números conectados ao WhatsApp. Se ele cair, ninguém envia nem recebe mensagens até ele voltar."
+    >
+      <p class="linha-resumo">
+        Gateway
+        <app-selo [variante]="varianteGateway(d.gateway.status)" ponto>{{
+          rotuloGateway(d.gateway.status)
+        }}</app-selo>
+        @if (d.gateway.simulado) {
+          <app-selo variante="contorno" tamanho="sm">simulado</app-selo>
+        }
+      </p>
+      @if (d.numeros.length === 0) {
+        <app-estado-vazio
+          compacto
+          titulo="Nenhum número cadastrado"
+          texto="Cadastre um número em Configurações > Canais > WhatsApp."
+        />
+      } @else {
+        <app-tabela
+          rotulo="Números de WhatsApp"
+          densa
+          colunaPrincipal="nome"
+          [colunas]="colunasNumeros"
+          [linhas]="d.numeros"
+        >
+          <ng-template appCelula="nome" [appCelulaDe]="d.numeros" let-n>{{ n.nome }}</ng-template>
+          <ng-template appCelula="telefone" [appCelulaDe]="d.numeros" let-n>{{
+            n.telefone ?? '—'
+          }}</ng-template>
+          <ng-template appCelula="status" [appCelulaDe]="d.numeros" let-n>
+            <app-selo tamanho="sm" [variante]="varianteNumero(n)">{{
+              rotuloNumero(n.status)
+            }}</app-selo>
+            @if (n.pausado) {
+              <app-selo tamanho="sm" variante="contorno">pausado</app-selo>
+            }
+          </ng-template>
+          <ng-template appCelula="motivo" [appCelulaDe]="d.numeros" let-n>{{
+            n.motivo ?? '—'
+          }}</ng-template>
+        </app-tabela>
+        @if (numerosComProblema() > 0) {
+          <p class="saude__nota">
+            Para reconectar, abra
+            <a routerLink="/configuracoes/canais">Configurações &gt; Canais</a> e leia o QR de novo.
+          </p>
+        }
+      }
+    </app-cartao>
+
+    <app-cartao
+      titulo="Backup e disco"
+      dica="O serviço de backup grava um arquivo por dia e registra o resultado. O espaço medido é o do volume onde ficam os backups (o mesmo disco dos dados)."
+    >
+      <dl class="fatos">
+        <div>
+          <dt>Último backup</dt>
+          <dd>
+            <app-selo [variante]="varianteBackup(d.backup.situacao)" ponto>{{
+              rotuloBackup(d.backup.situacao)
+            }}</app-selo>
+          </dd>
+        </div>
+        @if (d.backup.ultimo; as ultimo) {
+          <div>
+            <dt>Terminou</dt>
+            <dd [title]="dataHora(ultimo.fim)">{{ quando(ultimo.fim) }}</dd>
+          </div>
+          <div>
+            <dt>Arquivo</dt>
+            <dd>
+              {{ ultimo.arquivo ?? '—' }}
+              @if (ultimo.tamanhoBytes !== null) {
+                ({{ bytes(ultimo.tamanhoBytes) }})
+              }
+            </dd>
+          </div>
+          @if (ultimo.erro) {
+            <div>
+              <dt>Erro</dt>
+              <dd>{{ ultimo.erro }}</dd>
+            </div>
+          }
+        } @else {
+          <div>
+            <dt>Registro</dt>
+            <dd>
+              @if (d.backup.situacao === 'nenhum') {
+                Nenhum backup registrado.
+              } @else {
+                Não foi possível ler o registro.
+              }
+            </dd>
+          </div>
+        }
+        @if (d.disco; as disco) {
+          <div>
+            <dt>Espaço livre</dt>
+            <dd>
+              <app-selo [variante]="varianteDisco(disco.situacao)" ponto
+                >{{ disco.livrePercentual }}%</app-selo
+              >
+              {{ bytes(disco.livreBytes) }} de {{ bytes(disco.totalBytes) }}
+            </dd>
+          </div>
+          <div>
+            <dt>Tamanho do banco</dt>
+            <dd>{{ bytes(disco.bancoBytes) }}</dd>
+          </div>
+        } @else {
+          <div>
+            <dt>Espaço livre</dt>
+            <dd>Não foi possível medir.</dd>
+          </div>
+        }
+      </dl>
+    </app-cartao>
+  </div>
+
+  <app-cartao
+    titulo="Filas de trabalho"
+    dica="As filas guardam o que o CRM faz em segundo plano (enviar mensagens, webhooks, lembretes). Uma fila está travada quando há trabalho esperando há mais de 10 minutos, ou um trabalho rodando há mais de 1 hora."
+  >
+    @if (!d.filas.disponivel) {
+      <app-estado-vazio
+        compacto
+        variante="erro"
+        titulo="Filas indisponíveis"
+        texto="Não foi possível consultar as filas agora. Confira se o banco está de pé."
+      />
+    } @else {
+      <p class="linha-resumo">
+        <span>{{ d.filas.totalPendentes }} esperando</span> ·
+        <span>{{ d.filas.totalAtivas }} em andamento</span> ·
+        <span>{{ d.filas.totalFalhasRecentes }} falhas nas últimas 24 h</span>
+        @if (d.filas.maisAntigaParadaSegundos !== null) {
+          · <span>mais antiga parada há {{ parada(d.filas.maisAntigaParadaSegundos) }}</span>
+        }
+      </p>
+      @if (filasAtivas().length === 0) {
+        <app-estado-vazio
+          compacto
+          titulo="Todas as filas estão vazias"
+          texto="Nada esperando nem falhando."
+        />
+      } @else {
+        <app-tabela
+          rotulo="Filas com movimento"
+          densa
+          colunaPrincipal="nome"
+          [colunas]="colunasFilas"
+          [linhas]="filasAtivas()"
+        >
+          <ng-template appCelula="nome" [appCelulaDe]="filasAtivas()" let-f>
+            {{ f.nome }}
+            @if (f.travada) {
+              <app-selo tamanho="sm" variante="coral">travada</app-selo>
+            }
+          </ng-template>
+          <ng-template appCelula="pendentes" [appCelulaDe]="filasAtivas()" let-f>{{
+            f.pendentes
+          }}</ng-template>
+          <ng-template appCelula="ativas" [appCelulaDe]="filasAtivas()" let-f>{{
+            f.ativas
+          }}</ng-template>
+          <ng-template appCelula="falhas" [appCelulaDe]="filasAtivas()" let-f>{{
+            f.falhasRecentes
+          }}</ng-template>
+          <ng-template appCelula="parada" [appCelulaDe]="filasAtivas()" let-f>{{
+            parada(f.maisAntigaParadaSegundos)
+          }}</ng-template>
+        </app-tabela>
+      }
+      @if (filasOciosas() > 0) {
+        <p class="saude__nota">
+          Mais {{ filasOciosas() }} {{ filasOciosas() === 1 ? 'fila' : 'filas' }} sem movimento.
+        </p>
+      }
+    }
+  </app-cartao>
+
+  <app-cartao
+    titulo="Canais"
+    dica="Canais de e-mail, Instagram, Messenger e chat do site. O último erro de cada um aparece aqui; erros com mais de 24 horas deixam de contar como alerta."
+  >
+    @if (canaisDeOutrosTipos().length === 0) {
+      <app-estado-vazio
+        compacto
+        titulo="Nenhum outro canal configurado"
+        texto="Os números de WhatsApp estão no cartão ao lado."
+      />
+    } @else {
+      <app-tabela
+        rotulo="Canais"
+        densa
+        colunaPrincipal="nome"
+        [colunas]="colunasCanais"
+        [linhas]="canaisDeOutrosTipos()"
+      >
+        <ng-template appCelula="nome" [appCelulaDe]="canaisDeOutrosTipos()" let-c>{{
+          c.nome
+        }}</ng-template>
+        <ng-template appCelula="tipo" [appCelulaDe]="canaisDeOutrosTipos()" let-c>{{
+          rotuloTipo(c.tipo)
+        }}</ng-template>
+        <ng-template appCelula="situacao" [appCelulaDe]="canaisDeOutrosTipos()" let-c>
+          @if (!c.ativo) {
+            <app-selo tamanho="sm" variante="contorno">Desligado</app-selo>
+          } @else if (c.comErroRecente) {
+            <app-selo tamanho="sm" variante="lima">Com erro</app-selo>
+          } @else {
+            <app-selo tamanho="sm" variante="menta">Sem erro</app-selo>
+          }
+        </ng-template>
+        <ng-template appCelula="erro" [appCelulaDe]="canaisDeOutrosTipos()" let-c>
+          @if (c.ultimoErro) {
+            {{ c.ultimoErro }} ({{ quando(c.ultimoErroEm) }})
+          } @else {
+            —
+          }
+        </ng-template>
+      </app-tabela>
+    }
+  </app-cartao>
+
+  <app-cartao
+    titulo="Erros recentes"
+    [complemento]="d.erros.total24h + (d.erros.total24h === 1 ? ' erro em 24 h' : ' erros em 24 h')"
+    dica="Os erros mais novos dos logs técnicos. Para ver a pilha e o contexto, abra os logs técnicos e busque pelo texto do erro."
+  >
+    @if (d.erros.recentes.length === 0) {
+      <app-estado-vazio
+        compacto
+        titulo="Nenhum erro registrado"
+        texto="O sistema não registrou erros recentemente."
+      />
+    } @else {
+      <ul class="erros" aria-label="Erros recentes">
+        @for (e of d.erros.recentes; track e.id) {
+          <li>
+            <span class="erros__quando" [title]="dataHora(e.criadoEm)">{{
+              quando(e.criadoEm)
+            }}</span>
+            <span class="erros__origem">{{ e.contexto }}</span>
+            <span class="erros__mensagem">{{ e.mensagem }}</span>
+          </li>
+        }
+      </ul>
+      <p class="saude__nota">
+        <a routerLink="/administracao/logs">Abrir os logs técnicos</a>
+      </p>
+    }
+  </app-cartao>
+}

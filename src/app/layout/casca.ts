@@ -42,8 +42,10 @@ import { Logo } from '../ui/logo/logo';
 import { BarraSuperior } from './barra-superior';
 import { Confirmacao } from './confirmacao';
 import { EstadoCasca } from './estado-casca';
+import { FaixaPwa } from './faixa-pwa';
 import { provideIcones } from './icones';
 import { MenuLateral } from './menu-lateral';
+import { NavegacaoInferior } from './navegacao-inferior';
 import { ancestralRolavel, RolagemEsmaecida, trazerParaVista } from './rolagem';
 
 /** Para onde o foco vai quando a gaveta fecha. */
@@ -86,6 +88,8 @@ const FOCAVEIS =
     MenuLateral,
     Avisos,
     Confirmacao,
+    FaixaPwa,
+    NavegacaoInferior,
     BotaoIcone,
     Logo,
     LucideDynamicIcon,

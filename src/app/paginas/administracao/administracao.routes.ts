@@ -40,6 +40,7 @@ export const ROTAS_ADMINISTRACAO: Routes = [
       secao('logs', () => import('./logs-tecnicos').then((m) => m.LogsTecnicos)),
       { path: 'ia', redirectTo: 'duvidas' },
       secao('duvidas', () => import('./duvidas/duvidas').then((m) => m.Duvidas)),
+      secao('saude', () => import('./saude/saude').then((m) => m.Saude)),
     ],
   },
 ];

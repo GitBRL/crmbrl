@@ -187,9 +187,9 @@ describe('Administracao (moldura)', () => {
     );
   }
 
-  it('Admin vê auditoria, logs técnicos e dúvidas à IA', () => {
+  it('Admin vê auditoria, logs técnicos, dúvidas à IA e saúde do sistema', () => {
     entrarComo('ADMIN');
-    expect(abas()).toEqual(['Auditoria', 'Logs técnicos', 'Dúvidas à IA']);
+    expect(abas()).toEqual(['Auditoria', 'Logs técnicos', 'Dúvidas à IA', 'Saúde do sistema']);
   });
 
   it('C-level não vê os logs técnicos nem as dúvidas à IA (só o Admin)', () => {

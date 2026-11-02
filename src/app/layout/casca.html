@@ -10,6 +10,7 @@
   class="casca"
   [class.casca--recolhida]="estado.recolhida()"
   [class.casca--sobreposta]="estado.sobreposta()"
+  [class.casca--nav-inferior]="estado.ehMobile()"
 >
   <app-barra-superior />
 
@@ -84,6 +85,10 @@
   </div>
 </dialog>
 
+@if (estado.ehMobile()) {
+  <app-navegacao-inferior />
+}
+<app-faixa-pwa />
 <app-confirmacao />
 <app-avisos
   [avisos]="avisos.lista()"

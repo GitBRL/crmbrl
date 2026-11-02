@@ -1,0 +1,81 @@
+<div class="nav-inf__acoes" (keydown)="aoTeclar($event)">
+  @if (acoes().length && mostrarAcoes()) {
+    <button
+      type="button"
+      class="nav-inf__mais"
+      aria-haspopup="true"
+      aria-controls="acoes-rapidas"
+      [attr.aria-expanded]="menuAberto()"
+      (click)="alternarMenu()"
+    >
+      <svg
+        [lucideIcon]="menuAberto() ? icones.fechar : icones.mais"
+        [size]="20"
+        aria-hidden="true"
+      />
+      <span>Ações rápidas</span>
+    </button>
+    @if (menuAberto()) {
+      <ul id="acoes-rapidas" class="nav-inf__menu" aria-label="Ações rápidas">
+        @for (acao of acoes(); track acao.id) {
+          <li>
+            <button type="button" class="nav-inf__acao" (click)="executar(acao)">
+              <span class="nav-inf__acao-icone" aria-hidden="true">
+                <svg [lucideIcon]="acao.icone" [size]="20" />
+              </span>
+              <span class="nav-inf__acao-textos">
+                <strong>{{ acao.rotulo }}</strong>
+                <small>{{ acao.dica }}</small>
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>
+
+<nav class="nav-inf" aria-label="Navegação principal">
+  <ul class="nav-inf__lista">
+    @for (item of itens(); track item.id) {
+      <li class="nav-inf__li">
+        <a
+          class="nav-inf__item"
+          [class.nav-inf__item--ativo]="ativo(item)"
+          [routerLink]="item.rota"
+          [attr.aria-current]="ativo(item) ? 'page' : null"
+          [attr.aria-label]="
+            item.contagem > 0 ? item.rotulo + ', ' + item.contagem + ' não lidas' : null
+          "
+        >
+          <span class="nav-inf__icone" aria-hidden="true">
+            <svg [lucideIcon]="item.icone" [size]="22" />
+            @if (item.contagem > 0) {
+              <span class="nav-inf__contagem">{{
+                item.contagem > 99 ? '99+' : item.contagem
+              }}</span>
+            }
+          </span>
+          <span class="nav-inf__rotulo">{{ item.rotulo }}</span>
+        </a>
+      </li>
+    }
+    <li class="nav-inf__li">
+      <button
+        type="button"
+        class="nav-inf__item"
+        aria-haspopup="true"
+        [attr.aria-label]="rotuloNotificacoes()"
+        (click)="abrirNotificacoes()"
+      >
+        <span class="nav-inf__icone" aria-hidden="true">
+          <svg [lucideIcon]="icones.sino" [size]="22" />
+          @if (naoLidas() > 0) {
+            <span class="nav-inf__contagem">{{ naoLidas() > 99 ? '99+' : naoLidas() }}</span>
+          }
+        </span>
+        <span class="nav-inf__rotulo">Notificações</span>
+      </button>
+    </li>
+  </ul>
+</nav>

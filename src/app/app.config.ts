@@ -4,6 +4,7 @@ import localePt from '@angular/common/locales/pt';
 import {
   type ApplicationConfig,
   DEFAULT_CURRENCY_CODE,
+  isDevMode,
   LOCALE_ID,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
@@ -16,6 +17,8 @@ import {
   withPreloading,
   withRouterConfig,
 } from '@angular/router';
+
+import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
 import { interceptarErros } from './nucleo/api/interceptor-erros';
@@ -45,6 +48,12 @@ export const appConfig: ApplicationConfig = {
     provideLimpezaDaRecarga(),
     // Falhas de /api/v1 viram ErroApi; 401 leva a /entrar e a troca pendente a /trocar-senha.
     provideHttpClient(withFetch(), withInterceptors([interceptarErros])),
+    // Service worker (só no build de produção): app shell em cache; /api e o socket nunca (ngsw-config.json).
+    // `sw-crm.js` = ngsw-worker.js + o tratamento do push (public/sw-crm.js).
+    provideServiceWorker('sw-crm.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
     { provide: LOCALE_ID, useValue: 'pt-BR' },
     { provide: DEFAULT_CURRENCY_CODE, useValue: 'BRL' },
     { provide: TitleStrategy, useClass: TituloPagina },

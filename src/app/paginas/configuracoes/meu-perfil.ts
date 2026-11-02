@@ -29,6 +29,7 @@ import { CampoTexto } from '../../ui/campo-texto/campo-texto';
 import { Cartao } from '../../ui/cartao/cartao';
 import { Selo } from '../../ui/selo/selo';
 import { ConfiguracoesApi } from './configuracoes.api';
+import { CartaoPush } from './preferencias-push';
 import { formatarTelefone } from './textos';
 
 /**
@@ -37,7 +38,7 @@ import { formatarTelefone } from './textos';
  */
 @Component({
   selector: 'app-meu-perfil',
-  imports: [ReactiveFormsModule, Avatar, Botao, CampoSenha, CampoTexto, Cartao, Selo],
+  imports: [ReactiveFormsModule, Avatar, Botao, CampoSenha, CampoTexto, Cartao, CartaoPush, Selo],
   templateUrl: './meu-perfil.html',
   styleUrl: './meu-perfil.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

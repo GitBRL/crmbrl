@@ -41,6 +41,7 @@ import {
 import { Botao } from '../ui/botao/botao';
 import { BotaoIcone } from '../ui/botao-icone/botao-icone';
 import { gerarId } from '../ui/tipos';
+import { EstadoCasca } from './estado-casca';
 import { fecharAoTocarFora, focoSaiuDe } from './suspenso';
 
 /** Ícone de cada tipo de notificação (os mesmos dos módulos, para reconhecer de relance). */
@@ -114,6 +115,7 @@ export class Notificacoes {
   private readonly avisos = inject(AvisosService);
   private readonly anunciador = inject(LiveAnnouncer);
   private readonly router = inject(Router);
+  private readonly estadoCasca = inject(EstadoCasca, { optional: true });
 
   protected readonly icones = { sino: LucideBell, recarregar: LucideRefreshCw };
   protected readonly aberto = signal(false);
@@ -148,6 +150,18 @@ export class Notificacoes {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.pararDeOuvir?.());
+
+    // A navegação inferior (celular) pede para abrir o painel.
+    let pedidoVisto = this.estadoCasca?.pedidoNotificacoes() ?? 0;
+    effect(() => {
+      const pedido = this.estadoCasca?.pedidoNotificacoes() ?? 0;
+      untracked(() => {
+        if (pedido !== pedidoVisto && !this.aberto()) {
+          this.alternar();
+        }
+        pedidoVisto = pedido;
+      });
+    });
 
     // Chegaram notificações novas (a contagem subiu numa atualização): avisa o leitor de tela.
     let anterior: number | null = null;
@@ -184,6 +198,7 @@ export class Notificacoes {
       return;
     }
     this.aberto.set(false);
+    this.estadoCasca?.notificacoesFecharam();
     this.pararDeOuvir?.();
     this.pararDeOuvir = null;
     if (devolverFoco) {
