@@ -1,0 +1,18 @@
+@use 'catalogo';
+
+:host {
+  display: block;
+}
+
+.ds-demo {
+  display: grid;
+  gap: var(--esp-3);
+  margin-top: var(--esp-4);
+  padding-top: var(--esp-4);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.ds-demo__rotulo {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}

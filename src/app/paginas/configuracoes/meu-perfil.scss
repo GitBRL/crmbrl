@@ -1,0 +1,86 @@
+@use 'secao' as s;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+
+.perfil__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  gap: var(--esp-entre-cartoes);
+  align-items: start;
+  max-width: 64rem;
+}
+
+.perfil__corpo {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.perfil__identidade {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-4);
+}
+
+.perfil__quem {
+  display: grid;
+  justify-items: start;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.perfil__nome {
+  font: var(--fonte-h3);
+}
+
+.perfil__email {
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.perfil__dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--esp-4) var(--esp-5);
+  padding-top: var(--esp-4);
+  border-top: 1px solid var(--cor-borda);
+
+  dt {
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda);
+  }
+
+  dd {
+    font: var(--fonte-corpo-sm);
+  }
+}
+
+.perfil__formulario {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.perfil__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
+
+.perfil__nota {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.perfil__erro {
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+}

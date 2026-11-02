@@ -1,0 +1,95 @@
+@use 'secao' as s;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+
+.config,
+.config__bloco,
+.config__esqueleto {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.config {
+  gap: var(--esp-entre-cartoes);
+  max-width: 48rem;
+}
+
+.config__titulo {
+  font: var(--fonte-h3);
+}
+
+.config__texto {
+  color: var(--cor-texto-suave);
+}
+
+.config__palavras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.config__palavra {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 36px;
+  padding: 0 var(--esp-2) 0 var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  font: var(--fonte-rotulo);
+}
+
+.config__remover {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cor-fundo);
+  }
+}
+
+.config__nova {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--esp-3);
+
+  app-campo-texto {
+    flex: 1 1 14rem;
+  }
+
+  button {
+    margin-block-start: 1.6rem;
+  }
+}
+
+.config__erro {
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+}
+
+.config__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-3);
+}

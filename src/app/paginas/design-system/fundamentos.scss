@@ -1,0 +1,389 @@
+@use 'mixins' as m;
+@use 'catalogo';
+
+// Fundamentos do catálogo: cores, tipografia, espaço e forma, ícones.
+
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-16);
+}
+
+.ds-subtitulo {
+  margin-top: var(--esp-4);
+  font: var(--fonte-h3);
+}
+
+.token__valores,
+.tipo__medida,
+.raio__uso,
+.cor-base__papel {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.ds-grade--base {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+// Cores -----------------------------------------------------------------------------------
+.paleta {
+  display: grid;
+  gap: var(--esp-3);
+  font: var(--fonte-rotulo);
+}
+
+.paleta__faixa {
+  display: flex;
+  align-items: center;
+  min-height: 64px;
+  border-radius: var(--raio-pilula);
+}
+
+.paleta__faixa--preto {
+  justify-content: space-between;
+  padding: 0 var(--esp-8) 0 var(--esp-5);
+  border: 1px solid var(--cor-borda-forte);
+  background: var(--pb-preto);
+  color: var(--pb-branco);
+}
+
+.paleta__faixa--dados {
+  width: 76%;
+}
+
+.paleta__faixa--claros {
+  width: 52%;
+  margin-left: auto;
+}
+
+// Segmentos de cor: no claro, o contorno de dado (ciano, menta e lima somem no branco).
+.paleta__seg {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 64px;
+  padding: 0 var(--esp-6);
+  border-radius: var(--raio-pilula);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+  color: var(--pb-preto);
+
+  & + & {
+    margin-left: -64px;
+  }
+}
+
+.paleta__seg--ciano {
+  flex: 0 0 46%;
+  background: var(--pb-ciano);
+}
+
+.paleta__seg--menta,
+.paleta__seg--coral {
+  z-index: 1;
+  flex: 0 0 30%;
+  justify-content: flex-end;
+  background: var(--dado-2-gradiente);
+}
+
+.paleta__seg--lima {
+  flex: 1;
+  justify-content: flex-end;
+  background: var(--pb-lima);
+}
+
+.paleta__seg--branco {
+  flex: 1;
+  border: 1px solid var(--cor-borda);
+  background: var(--pb-branco);
+}
+
+.paleta__seg--coral {
+  flex-basis: 52%;
+  background: var(--pb-coral);
+}
+
+@include m.abaixo(m.$md) {
+  .paleta__faixa--dados,
+  .paleta__faixa--claros {
+    width: 100%;
+  }
+}
+
+.cor-base,
+.token,
+.icone {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-3);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.cor-base__ponto {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 50%;
+}
+
+.cor-base__texto,
+.tipo__meta,
+.raio {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+
+.cor-base__hex {
+  font: var(--fonte-rotulo);
+}
+
+.token {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: var(--esp-4);
+}
+
+.token__amostra {
+  display: grid;
+  place-items: center;
+  height: 72px;
+  margin-bottom: var(--esp-2);
+  overflow: hidden;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+  font: var(--fonte-h2);
+}
+
+.token__amostra--fundo {
+  background: var(--amostra);
+}
+
+// Texto "Aa" na cor do token; os tokens "sobre-*" aparecem sobre a cor que acompanham.
+.token__amostra--texto {
+  background: var(--amostra-fundo, var(--cor-superficie-2));
+  color: var(--amostra);
+}
+
+.token__amostra--borda {
+  box-shadow: inset 0 0 0 2px var(--amostra);
+}
+
+// Amostras de dado: a borda vira o contorno de dado (no claro; transparente no escuro).
+.token__amostra--series,
+.token__amostra--gradiente-dados,
+.token__amostra--menta {
+  border-color: var(--cor-contorno-dado);
+}
+
+.token__amostra--series {
+  display: flex;
+
+  span {
+    flex: 1;
+    align-self: stretch;
+    background: var(--dado-1);
+
+    &:nth-child(2) {
+      background: var(--dado-2);
+    }
+
+    &:nth-child(3) {
+      background: var(--dado-3);
+    }
+
+    &:nth-child(4) {
+      background: var(--dado-4);
+    }
+  }
+}
+
+.token__amostra--gradiente-dados {
+  background: var(--gradiente-dados);
+}
+
+.token__amostra--menta {
+  background: var(--dado-2-gradiente);
+}
+
+.token__amostra--palco {
+  background: var(--gradiente-palco);
+}
+
+.token__amostra--listras {
+  background: var(--listras-destaque), var(--cor-destaque);
+}
+
+.token__valores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--esp-3);
+}
+
+// Celular: amostra de 56px à esquerda e o texto ao lado (cada token cai de ~190 para ~90px;
+// a seção Cores tinha 6.118px de altura em 390px).
+@include m.abaixo(m.$sm) {
+  .token {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: center;
+    gap: 2px var(--esp-3);
+  }
+
+  .token__amostra {
+    grid-row: 1 / span 3;
+    width: 56px;
+    height: 56px;
+    margin: 0;
+    font: var(--fonte-h3);
+  }
+}
+
+.token__uso,
+.tipo__uso {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+// Tipografia ------------------------------------------------------------------------------
+.tipos {
+  display: grid;
+  padding: 0 var(--esp-cartao);
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.tipo {
+  display: grid;
+  grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3) var(--esp-8);
+  padding: var(--esp-5) 0;
+
+  & + & {
+    border-top: 1px solid var(--cor-borda);
+  }
+
+  @include m.abaixo(m.$md) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tipo__exemplo {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+// Espaço e forma --------------------------------------------------------------------------
+.espacos,
+.alturas,
+.ds-tabela {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.espaco {
+  display: grid;
+  grid-template-columns: 4.5rem auto 1fr;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.espaco__barra {
+  height: 12px;
+  border-radius: 3px;
+  background: var(--dado-1);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.raios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--esp-4);
+}
+
+.raio__forma {
+  height: 96px;
+  margin-bottom: var(--esp-2);
+  border: 1px solid var(--cor-borda-forte);
+  background: var(--cor-superficie-2);
+}
+
+.altura {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  width: fit-content;
+  padding: 0 var(--esp-5);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  font: var(--fonte-legenda);
+}
+
+.sombras {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-4);
+}
+
+.sombra {
+  display: grid;
+  place-items: center;
+  height: 88px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie);
+}
+
+.sombra--cartao {
+  box-shadow: var(--sombra-cartao);
+}
+
+.sombra--flutuante {
+  background: var(--cor-flutuante);
+  box-shadow: var(--sombra-flutuante);
+}
+
+.ds-tabela__linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--esp-3);
+  font-size: 0.875rem;
+
+  dd {
+    color: var(--cor-texto-suave);
+  }
+}
+
+// Ícones ----------------------------------------------------------------------------------
+.icones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: var(--esp-2);
+}
+
+.icone {
+  padding: 6px;
+  border-radius: var(--raio-pilula);
+}
+
+.icone__circulo {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+}
+
+.icone__nome {
+  font: var(--fonte-rotulo);
+  font-weight: 400;
+}

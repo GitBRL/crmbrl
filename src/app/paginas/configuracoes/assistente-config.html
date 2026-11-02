@@ -1,0 +1,339 @@
+<section class="secao" aria-labelledby="assistente-titulo">
+  <header class="secao__cabecalho">
+    <div class="secao__textos">
+      <h2 class="secao__titulo" id="assistente-titulo">Assistente de ajuda</h2>
+      <p class="secao__frase">
+        Quanto cada pessoa pode perguntar, o orçamento da IA e para onde vão os chamados.
+      </p>
+    </div>
+  </header>
+
+  @if (erro(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      titulo="Não conseguimos carregar a configuração do assistente"
+      [falha]="falha"
+      [texto]="falha.resumo"
+      [codigo]="falha.ehFalhaDoServidor ? falha.requisicaoId : null"
+    >
+      <button appBotao type="button" variante="invertido" (click)="carregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (config(); as c) {
+    @for (r of [revisao()]; track r) {
+      <form class="config" (submit)="$event.preventDefault(); salvar()">
+        <app-cartao>
+          <div class="config__bloco">
+            <h3 class="config__titulo">Limites</h3>
+            <div class="config__grade">
+              <app-campo-texto
+                rotulo="Perguntas por pessoa por dia"
+                tipo="number"
+                [minimo]="0"
+                [maximo]="1000"
+                dica="Com 0, o assistente fica desligado para todos."
+                [erro]="erroPorDia() ?? erroDoCampo('perguntasPorDia')"
+                [(valor)]="porDia"
+              />
+              <app-campo-texto
+                rotulo="Orçamento mensal de tokens"
+                tipo="number"
+                [minimo]="0"
+                dica="Em branco, sem limite. Ao esgotar, o assistente para até o mês seguinte."
+                [erro]="erroOrcamento() ?? erroDoCampo('orcamentoMensalTokens')"
+                [(valor)]="orcamento"
+              />
+            </div>
+            @if (desligado()) {
+              <p class="config__alerta" role="status">O assistente ficará desligado para todos.</p>
+            }
+            <p class="config__texto" role="status">
+              Uso: {{ formatarNumero(c.uso.tokensNoMes) }} tokens no mês
+              @if (percentualDoMes() !== null) {
+                ({{ percentualDoMes() }}% do orçamento)
+              }
+              · {{ c.uso.perguntasHoje }} perguntas hoje · {{ c.uso.perguntasNoMes }} no mês.
+            </p>
+          </div>
+        </app-cartao>
+
+        <app-cartao>
+          <div class="config__bloco">
+            <h3 class="config__titulo">Destino dos chamados</h3>
+            <p class="config__texto">
+              Quando o assistente não resolve (pedido de funcionalidade ou erro), a pessoa pode
+              abrir um chamado depois de confirmar. Ele vai para o destino abaixo.
+            </p>
+            <app-seletor rotulo="Enviar chamados para" [opcoes]="destinos" [(valor)]="destino" />
+            <p class="config__estado" role="status">
+              @if (c.destino === 'NENHUM') {
+                <app-selo variante="neutro" tamanho="sm">sem destino</app-selo>
+              } @else if (c.destinoPronto) {
+                <app-selo variante="menta" tamanho="sm">pronto</app-selo>
+              } @else {
+                <app-selo variante="coral" tamanho="sm">incompleto</app-selo>
+                {{ c.motivoDestino }}
+              }
+            </p>
+          </div>
+        </app-cartao>
+
+        @if (destino() === 'TICKETHUB') {
+          <app-cartao>
+            <div class="config__bloco">
+              <h3 class="config__titulo">TicketHub</h3>
+              <p class="config__texto">
+                O CRM entra no TicketHub com uma conta de serviço e abre o chamado. Em branco, vale
+                o que o servidor já tem configurado.
+              </p>
+              <div class="config__grade">
+                <app-campo-texto
+                  rotulo="Endereço do TicketHub"
+                  tipo="url"
+                  [dica]="origem(c.ticketHub.origem.url)"
+                  [erro]="erroDoCampo('ticketHub.url')"
+                  [(valor)]="thUrl"
+                />
+                <app-campo-texto
+                  rotulo="Endereço público (link do chamado)"
+                  tipo="url"
+                  dica="Opcional: o endereço que as pessoas abrem no navegador."
+                  [erro]="erroDoCampo('ticketHub.urlPublica')"
+                  [(valor)]="thUrlPublica"
+                />
+                <app-campo-texto
+                  rotulo="E-mail da conta de serviço"
+                  tipo="email"
+                  [dica]="origem(c.ticketHub.origem.email)"
+                  [erro]="erroDoCampo('ticketHub.email')"
+                  [(valor)]="thEmail"
+                />
+                <app-campo-senha
+                  rotulo="Senha da conta de serviço"
+                  autocomplete="new-password"
+                  [placeholder]="
+                    c.ticketHub.senhaDefinida ? 'Definida (digite para trocar)' : 'Não definida'
+                  "
+                  [dica]="
+                    thSenhaDoServidor()
+                      ? 'Vai usar a senha do servidor.'
+                      : c.ticketHub.senhaDefinida
+                        ? 'Em branco, mantém a atual (' +
+                          (origem(c.ticketHub.origem.senha) ?? '') +
+                          ').'
+                        : null
+                  "
+                  [erro]="erroDoCampo('ticketHub.senha')"
+                  [(valor)]="thSenha"
+                />
+                <app-seletor rotulo="Prioridade" [opcoes]="prioridades" [(valor)]="thPrioridade" />
+                <app-campo-texto
+                  rotulo="Número do sistema no TicketHub"
+                  tipo="number"
+                  [minimo]="1"
+                  dica="Opcional."
+                  [erro]="erroDoCampo('ticketHub.sistemaId')"
+                  [(valor)]="thSistemaId"
+                />
+              </div>
+              @if (c.ticketHub.origem.senha === 'admin') {
+                <div>
+                  <button
+                    appBotao
+                    type="button"
+                    variante="contorno"
+                    tamanho="sm"
+                    [ativo]="thSenhaDoServidor()"
+                    [attr.aria-pressed]="thSenhaDoServidor()"
+                    (click)="thSenhaDoServidor.set(!thSenhaDoServidor())"
+                  >
+                    {{
+                      thSenhaDoServidor()
+                        ? 'Vai voltar à senha do servidor'
+                        : 'Voltar à senha do servidor'
+                    }}
+                  </button>
+                </div>
+              }
+            </div>
+          </app-cartao>
+        }
+
+        @if (destino() === 'WEBHOOK') {
+          <app-cartao>
+            <div class="config__bloco">
+              <h3 class="config__titulo">Webhook</h3>
+              <p class="config__texto">
+                O CRM envia um POST em JSON, assinado com HMAC quando há segredo. Valores de
+                cabeçalhos e o segredo nunca são mostrados de volta.
+              </p>
+              <app-campo-texto
+                rotulo="Endereço do webhook"
+                tipo="url"
+                [erro]="erroDoCampo('webhook.url')"
+                [(valor)]="whUrl"
+              />
+              <app-campo-senha
+                rotulo="Segredo da assinatura"
+                autocomplete="new-password"
+                [placeholder]="
+                  c.webhook.segredoDefinido
+                    ? 'Definido ' + (c.webhook.segredoMascarado ?? '')
+                    : 'Não definido'
+                "
+                [erro]="erroSegredo() ?? erroDoCampo('webhook.segredo')"
+                [(valor)]="whSegredo"
+              />
+
+              <fieldset class="config__cabecalhos">
+                <legend class="config__subtitulo">Cabeçalhos</legend>
+                @for (h of c.webhook.cabecalhos; track h.nome) {
+                  <div class="cabecalho" [class.cabecalho--removido]="whRemovidos().has(h.nome)">
+                    <span class="cabecalho__nome">{{ h.nome }}</span>
+                    <span class="cabecalho__valor">{{ h.valorMascarado }}</span>
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      [icone]="icones.lixo"
+                      [attr.aria-pressed]="whRemovidos().has(h.nome)"
+                      (click)="alternarRemocao(h.nome)"
+                    >
+                      {{ whRemovidos().has(h.nome) ? 'Desfazer' : 'Remover' }}
+                      <span class="visualmente-oculto"> o cabeçalho {{ h.nome }}</span>
+                    </button>
+                  </div>
+                }
+                @for (n of whNovos(); track n.id; let i = $index) {
+                  <div class="cabecalho cabecalho--novo">
+                    <app-campo-texto
+                      [rotulo]="'Nome do cabeçalho ' + (i + 1)"
+                      [valor]="n.nome"
+                      (valorChange)="mudarCabecalho(n.id, 'nome', $event)"
+                    />
+                    <app-campo-senha
+                      [rotulo]="'Valor do cabeçalho ' + (i + 1)"
+                      autocomplete="off"
+                      [valor]="n.valor"
+                      (valorChange)="mudarCabecalho(n.id, 'valor', $event)"
+                    />
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      [icone]="icones.lixo"
+                      (click)="removerCabecalhoNovo(n.id)"
+                    >
+                      Remover
+                      <span class="visualmente-oculto"> o cabeçalho {{ i + 1 }}</span>
+                    </button>
+                  </div>
+                }
+                @if (erroDoCampo('webhook.cabecalhos'); as problema) {
+                  <p class="config__erro" role="alert">{{ problema }}</p>
+                }
+                <div>
+                  <button
+                    appBotao
+                    type="button"
+                    variante="contorno"
+                    tamanho="sm"
+                    [icone]="icones.mais"
+                    (click)="adicionarCabecalho()"
+                  >
+                    Adicionar cabeçalho
+                  </button>
+                </div>
+              </fieldset>
+
+              <app-area-texto
+                rotulo="Modelo do corpo (JSON)"
+                monoespacado
+                [linhas]="6"
+                [maximoLinhas]="16"
+                placeholder="Em branco, usa o modelo padrão"
+                [dica]="dicaModelo"
+                [erro]="erroModelo() ?? erroDoCampo('webhook.modeloCorpo')"
+                [(valor)]="whModelo"
+              />
+              <div>
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  (click)="usarModeloPadrao()"
+                >
+                  Usar o modelo padrão
+                </button>
+              </div>
+            </div>
+          </app-cartao>
+        }
+
+        @if (erroSalvar(); as falha) {
+          <p class="config__erro" role="alert">{{ falha.resumo }}</p>
+        }
+
+        <div class="config__acoes">
+          <button
+            appBotao
+            type="submit"
+            variante="invertido"
+            [icone]="icones.salvar"
+            [carregando]="salvando()"
+            [disabled]="!podeSalvar()"
+          >
+            Salvar configuração
+          </button>
+          @if (c.destino !== 'NENHUM') {
+            <button
+              appBotao
+              type="button"
+              variante="contorno"
+              [carregando]="testando()"
+              [disabled]="!c.destinoPronto"
+              (click)="testar()"
+            >
+              Testar o destino
+            </button>
+          }
+        </div>
+        @if (resultadoTeste(); as t) {
+          <p class="config__resultado" [class.config__erro]="!t.ok" role="status">
+            {{ t.ok ? 'Deu certo: ' : 'Não deu certo: ' }}{{ t.mensagem }}
+          </p>
+        }
+      </form>
+    }
+
+    <app-cartao titulo="Base de conhecimento">
+      <div class="config__bloco">
+        <p class="config__texto">
+          O assistente responde com estes {{ c.baseDeConhecimento.artigos.length }} artigos, lidos
+          quando o sistema inicia (pasta <code>docs/ajuda</code>).
+        </p>
+        @for (aviso of c.baseDeConhecimento.avisos; track aviso) {
+          <p class="config__alerta" role="status">{{ aviso }}</p>
+        }
+        <details class="config__artigos">
+          <summary>Ver a lista de artigos</summary>
+          <ul>
+            @for (a of c.baseDeConhecimento.artigos; track a.arquivo) {
+              <li>
+                {{ a.titulo }} <span class="config__fraco">{{ a.arquivo }}</span>
+              </li>
+            }
+          </ul>
+        </details>
+      </div>
+    </app-cartao>
+  } @else {
+    <app-cartao>
+      <p class="config__texto" role="status" aria-busy="true">Carregando a configuração…</p>
+    </app-cartao>
+  }
+</section>

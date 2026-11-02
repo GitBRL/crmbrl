@@ -1,0 +1,149 @@
+@use 'mixins' as m;
+
+:host {
+  display: contents;
+}
+
+.formulario {
+  display: grid;
+  gap: var(--esp-5);
+  min-width: 0;
+}
+
+.formulario__frase {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo);
+}
+
+// Recebe o foco quando o segredo aparece (para o leitor de tela ler a frase); sem anel no
+// clique, com anel no teclado.
+.formulario__resultado {
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 4px;
+    border-radius: var(--raio-sm);
+  }
+}
+
+.formulario__nota {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.formulario__alerta {
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-erro);
+  border-radius: var(--raio-md);
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+}
+
+.formulario__erro {
+  color: var(--cor-erro);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+}
+
+.formulario__grupo {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--esp-4) var(--esp-5) var(--esp-5);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+}
+
+.formulario__legenda {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  padding: 0 var(--esp-2);
+  font: var(--fonte-rotulo);
+}
+
+.formulario__opcional {
+  color: var(--cor-texto-suave);
+  font-weight: 400;
+}
+
+.formulario__todos {
+  padding-bottom: var(--esp-2);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.formulario__lista-eventos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-2) var(--esp-5);
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.formulario__carregando {
+  display: grid;
+}
+
+code {
+  font-family: var(--familia-mono);
+  font-size: 0.92em;
+}
+
+.cabecalho {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: var(--esp-2) var(--esp-3);
+  align-items: start;
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    > :nth-child(2) {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+}
+
+.cabecalho--salvo {
+  align-items: center;
+  min-height: var(--altura-md);
+  padding: var(--esp-1) var(--esp-1) var(--esp-1) var(--esp-4);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+
+  @include m.abaixo(m.$sm) {
+    border-radius: var(--raio-lg);
+  }
+}
+
+.cabecalho--removido {
+  .cabecalho__nome,
+  .cabecalho__valor {
+    color: var(--cor-texto-fraco);
+    text-decoration: line-through;
+  }
+}
+
+.cabecalho__nome {
+  overflow-wrap: anywhere;
+}
+
+.cabecalho__valor {
+  color: var(--cor-texto-suave);
+}
+
+.cabecalho__aviso {
+  grid-column: 1 / -1;
+}
+
+.formulario__rodape {
+  display: contents;
+}

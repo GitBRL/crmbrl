@@ -1,0 +1,67 @@
+<header class="cabecalho">
+  <div class="cabecalho__texto">
+    <h1 class="cabecalho__titulo">Contatos e empresas</h1>
+    <p class="cabecalho__frase">
+      Todas as pessoas e empresas, com o histórico completo de cada uma.
+    </p>
+  </div>
+  <div class="cabecalho__acoes">
+    @if (podeImportar()) {
+      <a
+        appBotao
+        class="so-desktop"
+        variante="contorno"
+        routerLink="/contatos/importar"
+        [icone]="icones.importar"
+      >
+        Importar planilha
+      </a>
+    }
+    <button
+      appBotao
+      type="button"
+      class="so-desktop"
+      variante="invertido"
+      [icone]="icones.novo"
+      (click)="abrirCadastro()"
+    >
+      {{ rotuloNovo() }}
+    </button>
+  </div>
+</header>
+
+<app-abas
+  variante="entalhe"
+  rotulo="Pessoas ou empresas"
+  [abas]="abas"
+  [selecionada]="abaAtual()"
+  (selecionadaChange)="mudarAba($event)"
+>
+  @if (abaAtual() === 'empresas') {
+    <app-lista-empresas
+      [consulta]="consulta()"
+      (mudar)="mudarConsulta($event)"
+      (novo)="cadastroDeEmpresa.set(true)"
+    />
+  } @else {
+    <app-lista-pessoas
+      [consulta]="consulta()"
+      (mudar)="mudarConsulta($event)"
+      (novo)="cadastroDeContato.set(true)"
+    />
+  }
+</app-abas>
+
+<button
+  appBotaoIcone
+  type="button"
+  class="acao-flutuante"
+  variante="invertido"
+  tamanho="lg"
+  [icone]="icones.novo"
+  [rotulo]="rotuloNovo()"
+  (click)="abrirCadastro()"
+></button>
+
+<app-formulario-contato [(aberto)]="cadastroDeContato" (salvo)="aoCriarContato($event)" />
+<app-formulario-empresa [(aberto)]="cadastroDeEmpresa" (salvo)="aoCriarEmpresa($event)" />

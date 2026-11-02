@@ -1,0 +1,122 @@
+<app-moldura-acesso
+  [titulo]="cabecalho().titulo"
+  [frase]="cabecalho().frase"
+  [icone]="cabecalho().icone"
+  [tomIcone]="cabecalho().tom"
+>
+  @switch (situacao()) {
+    @case ('carregando') {
+      <div class="acesso-bloco" aria-busy="true">
+        <p class="visualmente-oculto" role="status">Conferindo o link…</p>
+        <app-esqueleto forma="bloco" altura="3rem" />
+        <app-esqueleto forma="texto" largura="35%" />
+        <app-esqueleto forma="pilula" />
+        <app-esqueleto forma="texto" largura="50%" />
+        <app-esqueleto forma="pilula" />
+        <app-esqueleto forma="pilula" />
+      </div>
+    }
+    @case ('erro') {
+      <div class="acesso-bloco">
+        <app-aviso-acesso
+          tipo="erro"
+          titulo="Não conseguimos conferir o link"
+          [codigo]="erroConsulta()?.requisicaoId ?? null"
+        >
+          <p>{{ erroConsulta()?.resumo }}</p>
+        </app-aviso-acesso>
+        <div class="acesso-acoes">
+          <button appBotao type="button" variante="invertido" tamanho="lg" (click)="tentarDeNovo()">
+            Tentar de novo
+          </button>
+        </div>
+      </div>
+    }
+    @case ('invalido') {
+      <div class="acesso-bloco">
+        @if (convite()) {
+          <ul class="acesso-lista">
+            <li>Se você já criou a sua senha, é só entrar com ela.</li>
+            <li>Se ainda não, peça ao administrador do CRM um convite novo.</li>
+          </ul>
+          <div class="acesso-acoes">
+            <a appBotao routerLink="/entrar" variante="invertido" tamanho="lg">Ir para entrar</a>
+          </div>
+        } @else {
+          <ul class="acesso-lista">
+            <li>Peça um link novo: ele chega no seu e-mail em instantes.</li>
+            <li>Se você já redefiniu a senha, é só entrar com ela.</li>
+          </ul>
+          <div class="acesso-acoes">
+            <a appBotao routerLink="/esqueci-senha" variante="invertido" tamanho="lg">
+              Pedir um link novo
+            </a>
+            <div class="acesso-links">
+              <a class="acesso-link" routerLink="/entrar">Voltar para entrar</a>
+            </div>
+          </div>
+        }
+      </div>
+    }
+    @default {
+      <form class="acesso-formulario" novalidate [formGroup]="formulario" (ngSubmit)="definir()">
+        <div class="acesso-email">
+          <span class="acesso-email__rotulo">Conta: </span>
+          <strong>{{ email() }}</strong>
+        </div>
+        <!-- Para o gerenciador de senhas guardar a senha nova na conta certa. -->
+        <input
+          type="email"
+          name="username"
+          autocomplete="username"
+          hidden
+          readonly
+          [value]="email()"
+        />
+
+        <app-campo-senha
+          #campoNova
+          rotulo="Nova senha"
+          nome="nova-senha"
+          autocomplete="new-password"
+          formControlName="nova"
+          [mensagens]="mensagensNova"
+        />
+        <app-campo-senha
+          #campoConfirmacao
+          rotulo="Confirmar nova senha"
+          nome="confirmar-senha"
+          autocomplete="new-password"
+          formControlName="confirmacao"
+          [mensagens]="mensagensConfirmacao"
+        />
+        <app-regras-senha [nova]="nova()" [confirmacao]="confirmacao()" />
+
+        @if (falha(); as problema) {
+          <app-aviso-acesso tipo="erro" [codigo]="problema.codigo">
+            <p>{{ problema.mensagem }}</p>
+          </app-aviso-acesso>
+        }
+
+        <div class="acesso-acoes">
+          <button
+            appBotao
+            type="submit"
+            variante="invertido"
+            tamanho="lg"
+            [carregando]="enviando()"
+          >
+            {{ convite() ? 'Criar senha e entrar' : 'Salvar senha e entrar' }}
+          </button>
+          @if (validoAte(); as ate) {
+            <p class="acesso-nota">
+              {{ convite() ? 'Este convite' : 'Este link' }} vale até
+              <span class="numeros">{{ ate }}</span
+              >.
+            </p>
+          }
+        </div>
+      </form>
+    }
+  }
+</app-moldura-acesso>

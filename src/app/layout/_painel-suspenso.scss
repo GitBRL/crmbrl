@@ -1,0 +1,39 @@
+@use 'mixins' as m;
+
+// Painel suspenso da barra superior (menu da conta, notificações): cartão flutuante logo
+// abaixo do botão, alinhado à direita e com rolagem própria. No mobile, fixo sob a barra
+// superior, com a largura da tela. Não gera CSS sozinho: use
+// `@use 'painel-suspenso' as p;` e `@include p.painel-suspenso(360px);` na regra do painel.
+@mixin painel-suspenso($largura) {
+  position: absolute;
+  top: calc(100% + var(--esp-2));
+  right: 0;
+  z-index: var(--z-flutuante);
+  display: grid;
+  width: $largura;
+  max-height: calc(100dvh - var(--casca-altura-topo) - var(--esp-5));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-xl);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  transition:
+    opacity var(--duracao-opacidade) ease-out,
+    transform var(--duracao) var(--curva);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  @include m.abaixo(m.$md) {
+    position: fixed;
+    top: calc(var(--casca-altura-topo) + var(--esp-1));
+    right: var(--esp-3);
+    left: var(--esp-3);
+    width: auto;
+    max-height: calc(100dvh - var(--casca-altura-topo) - var(--esp-4));
+  }
+}

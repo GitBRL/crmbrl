@@ -1,0 +1,40 @@
+@use '../campo/campo' as c;
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+// A mesma pílula do campo de texto, com o raio dos campos multilinha (--raio-md).
+.area {
+  @include c.controle;
+
+  align-items: stretch;
+  padding: var(--esp-3) var(--esp-1) var(--esp-3) c.$recuo;
+  border-radius: var(--raio-md);
+}
+
+.area__campo {
+  @include c.nativo;
+
+  min-height: calc(var(--_linhas, 4) * 1.5em);
+  max-height: calc(var(--_max-linhas, 12) * 1.5em);
+  padding-right: var(--esp-3);
+  overflow-y: auto;
+  resize: vertical;
+  field-sizing: content;
+  line-height: 1.5;
+}
+
+.area__campo--mono {
+  font-family: var(--familia-mono);
+  font-size: 0.8125rem;
+}
+
+.area__contagem {
+  @include c.dica;
+
+  justify-self: end;
+  padding-inline-end: c.$recuo;
+  font-variant-numeric: tabular-nums;
+}

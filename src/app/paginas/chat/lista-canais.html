@@ -1,0 +1,206 @@
+<div class="lista__topo">
+  <div class="lista__cabecalho">
+    <h2 class="lista__titulo" tabindex="-1">Conversas</h2>
+    <div class="lista__acoes-celular">
+      <button
+        appBotaoIcone
+        type="button"
+        variante="contorno"
+        [icone]="icones.direta"
+        rotulo="Iniciar uma conversa direta"
+        (click)="novaDireta.emit()"
+      ></button>
+      <button
+        appBotaoIcone
+        type="button"
+        variante="invertido"
+        [icone]="icones.grupo"
+        rotulo="Criar um grupo"
+        (click)="novoGrupo.emit()"
+      ></button>
+    </div>
+  </div>
+  <app-campo-busca
+    rotulo="Buscar conversas e mensagens"
+    placeholder="Buscar conversas e mensagens"
+    [(valor)]="busca"
+  />
+</div>
+
+<div class="lista__rolagem" appRolagemEsmaecida>
+  <div class="lista__conteudo">
+    @if (canais() === null) {
+      @if (falha(); as erro) {
+        <app-estado-vazio
+          compacto
+          variante="erro"
+          titulo="Não foi possível abrir as conversas"
+          [texto]="erro.resumo"
+          [falha]="erro"
+          [codigo]="erro.requisicaoId"
+        >
+          <button appBotao type="button" (click)="tentarDeNovo.emit()">Tentar de novo</button>
+        </app-estado-vazio>
+      } @else {
+        <div class="lista__esqueletos" aria-hidden="true">
+          @for (largura of esqueletos; track $index) {
+            <div class="lista__esqueleto">
+              <app-esqueleto forma="circulo" largura="36px" altura="36px" />
+              <app-esqueleto forma="texto" [linhas]="2" [largura]="largura + '%'" />
+            </div>
+          }
+        </div>
+        <p class="visualmente-oculto" role="status">Carregando as conversas…</p>
+      }
+    } @else {
+      @for (secao of secoes(); track secao.id) {
+        <section class="lista__secao" [attr.aria-labelledby]="'secao-' + secao.id">
+          <h3 class="lista__secao-titulo" [id]="'secao-' + secao.id">{{ secao.rotulo }}</h3>
+          <ul class="lista__itens" role="list">
+            @for (canal of secao.canais; track canal.id) {
+              @let aberto = canal.id === ativo();
+              @let pendentes = naoLidas(canal);
+              @let marcacoes = mencoes(canal);
+              <li>
+                <a
+                  class="item"
+                  [class.item--ativo]="aberto"
+                  [class.item--nao-lido]="pendentes > 0 || marcacoes > 0"
+                  [class.item--silenciado]="canal.silenciado"
+                  [routerLink]="['/chat', canal.id]"
+                  [attr.aria-current]="aberto ? 'page' : null"
+                  [attr.aria-label]="rotulo(canal)"
+                >
+                  @if (canal.tipo === 'DIRETO') {
+                    <span class="item__avatar" aria-hidden="true">
+                      <app-avatar
+                        tamanho="sm"
+                        decorativo
+                        [nome]="canal.nome"
+                        [foto]="canal.outraPessoa?.avatarUrl ?? null"
+                      />
+                      @if (canal.outraPessoa?.online) {
+                        <span class="item__online"></span>
+                      }
+                    </span>
+                  } @else {
+                    <span class="item__circulo" aria-hidden="true">
+                      <svg [lucideIcon]="iconeDoCanal(canal)" [size]="18" />
+                    </span>
+                  }
+                  <span class="item__textos" aria-hidden="true">
+                    <span class="item__linha">
+                      <span class="item__nome">{{ canal.nome }}</span>
+                      @if (canal.silenciado) {
+                        <svg
+                          class="item__silenciado"
+                          [lucideIcon]="icones.silenciado"
+                          [size]="14"
+                        />
+                      }
+                      <time class="item__quando" [attr.datetime]="canal.ultimaMensagemEm">{{
+                        quando(canal)
+                      }}</time>
+                    </span>
+                    <span class="item__linha">
+                      <span class="item__previa">{{ previa(canal) }}</span>
+                      @if (marcacoes > 0) {
+                        <span class="item__mencao" title="Menções a você">@</span>
+                      }
+                      @if (pendentes > 0) {
+                        <span class="item__contagem">{{ contagem(pendentes) }}</span>
+                      }
+                    </span>
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        </section>
+      } @empty {
+        @if (!buscandoMensagens()) {
+          <app-estado-vazio
+            compacto
+            variante="busca"
+            titulo="Nenhuma conversa com esse nome"
+            texto="Confira a grafia ou limpe a busca para ver todas as conversas."
+          >
+            <button appBotao type="button" variante="contorno" (click)="limparBusca()">
+              Limpar a busca
+            </button>
+          </app-estado-vazio>
+        }
+      }
+
+      @if (buscandoMensagens()) {
+        <section class="lista__secao" aria-labelledby="secao-mensagens">
+          <h3 class="lista__secao-titulo" id="secao-mensagens">
+            Mensagens
+            @if (resultados(); as itens) {
+              <span class="lista__secao-total">· {{ totalResultados() }}</span>
+            }
+          </h3>
+          @if (resultados(); as itens) {
+            @if (falhaBusca()) {
+              <p class="lista__aviso" role="status">
+                Não foi possível buscar nas mensagens agora. Tente de novo em instantes.
+              </p>
+            } @else if (!itens.length) {
+              <p class="lista__aviso" role="status">Nenhuma mensagem com “{{ busca().trim() }}”.</p>
+            } @else {
+              <p class="visualmente-oculto" role="status">
+                {{
+                  totalResultados() === 1
+                    ? '1 mensagem encontrada.'
+                    : totalResultados() + ' mensagens encontradas.'
+                }}
+              </p>
+              <ul class="lista__itens" role="list">
+                @for (resultado of itens; track resultado.mensagem.id) {
+                  <li>
+                    <a
+                      class="resultado"
+                      [routerLink]="['/chat', resultado.canal.id]"
+                      [queryParams]="{ mensagem: resultado.mensagem.id }"
+                    >
+                      <span class="resultado__linha">
+                        <span class="resultado__canal">{{ resultado.canal.nome }}</span>
+                        <time class="item__quando" [attr.datetime]="resultado.mensagem.criadaEm">{{
+                          quandoResultado(resultado)
+                        }}</time>
+                      </span>
+                      <span class="resultado__texto">
+                        <span class="resultado__autor">{{
+                          autorDoResultado(resultado) + ': '
+                        }}</span>
+                        @for (pedaco of trechosDoResultado(resultado); track $index) {
+                          @if (pedaco.destaque) {
+                            <mark class="resultado__destaque">{{ pedaco.texto }}</mark>
+                          } @else {
+                            <span>{{ pedaco.texto }}</span>
+                          }
+                        }
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ul>
+              @if (totalResultados() > itens.length) {
+                <p class="lista__aviso">
+                  Mostrando as {{ itens.length }} mais recentes. Use mais palavras para achar as
+                  outras.
+                </p>
+              }
+            }
+          } @else {
+            <div class="lista__esqueletos lista__esqueletos--busca" aria-hidden="true">
+              <app-esqueleto forma="texto" [linhas]="2" largura="80%" />
+              <app-esqueleto forma="texto" [linhas]="2" largura="64%" />
+            </div>
+            <p class="visualmente-oculto" role="status">Buscando nas mensagens…</p>
+          }
+        </section>
+      }
+    }
+  </div>
+</div>

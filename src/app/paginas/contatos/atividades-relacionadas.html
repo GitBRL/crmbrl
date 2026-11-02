@@ -1,0 +1,148 @@
+<div class="atividades__topo">
+  <app-filtros-pilula
+    rotulo="Quais atividades"
+    [opcoes]="opcoes"
+    [selecionado]="visao()"
+    (selecionadoChange)="escolher($event)"
+  />
+  <button
+    appBotao
+    type="button"
+    variante="contorno"
+    tamanho="sm"
+    [icone]="icones.nova"
+    (click)="criando.set(true)"
+  >
+    Nova atividade
+  </button>
+</div>
+
+@if (erro(); as falha) {
+  <app-estado-vazio
+    compacto
+    variante="erro"
+    [falha]="falha"
+    titulo="Não conseguimos carregar as atividades"
+    [texto]="falha.resumo"
+    [codigo]="falha.requisicaoId"
+  >
+    <button
+      appBotao
+      type="button"
+      variante="invertido"
+      tamanho="sm"
+      [icone]="icones.tentar"
+      (click)="dados.reload()"
+    >
+      Tentar de novo
+    </button>
+  </app-estado-vazio>
+} @else if (dados.isLoading() && !dados.hasValue()) {
+  <div class="atividades" aria-busy="true">
+    <p class="visualmente-oculto" role="status">Carregando as atividades…</p>
+    @for (linha of [1, 2, 3]; track linha) {
+      <div class="atividade">
+        <app-esqueleto forma="circulo" largura="28px" altura="28px" />
+        <app-esqueleto [linhas]="2" largura="60%" />
+      </div>
+    }
+  </div>
+} @else if (itens().length === 0) {
+  <app-estado-vazio
+    compacto
+    [titulo]="
+      visao() === 'pendentes' ? 'Nenhuma atividade pendente' : 'Nenhuma atividade concluída'
+    "
+    [texto]="
+      visao() === 'pendentes'
+        ? 'Combine o próximo passo: uma ligação, uma reunião, um e-mail.'
+        : 'As atividades concluídas ou canceladas aparecem aqui.'
+    "
+  >
+    @if (visao() === 'pendentes') {
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        tamanho="sm"
+        [icone]="icones.nova"
+        (click)="criando.set(true)"
+      >
+        Nova atividade
+      </button>
+    }
+  </app-estado-vazio>
+} @else {
+  <ul class="atividades" [attr.aria-busy]="dados.isLoading() || null">
+    @for (atividade of itens(); track atividade.id) {
+      <li class="atividade">
+        @if (atividade.status === 'PENDENTE') {
+          <app-caixa-selecao
+            class="atividade__concluir"
+            rotuloOculto
+            tamanho="lg"
+            forma="circulo"
+            [rotulo]="'Concluir: ' + atividade.titulo"
+            [valor]="false"
+            (valorChange)="$event && concluir(atividade)"
+          />
+        } @else {
+          <span
+            class="atividade__estado"
+            [class.atividade__estado--cancelada]="atividade.status === 'CANCELADA'"
+            aria-hidden="true"
+          >
+            <svg
+              [lucideIcon]="atividade.status === 'CANCELADA' ? icones.cancelada : icones.concluida"
+              [size]="16"
+            />
+          </span>
+        }
+        <div class="atividade__corpo">
+          <a
+            class="atividade__titulo"
+            routerLink="/atividades"
+            [queryParams]="{ atividade: atividade.id }"
+            >{{ atividade.titulo }}</a
+          >
+          <p class="atividade__meta">
+            <span class="atividade__tipo">
+              <svg [lucideIcon]="iconeTipo[atividade.tipo]" [size]="14" />
+              {{ rotuloTipo[atividade.tipo] }}
+            </span>
+            <span
+              [class.atividade__atrasada]="atividade.status === 'PENDENTE' && atividade.atrasada"
+              >{{ descreverPrazo(atividade) }}</span
+            >
+            <span>{{ atividade.responsavel.nome }}</span>
+            @if (atividade.negocio; as negocio) {
+              <a
+                class="atividade__negocio"
+                [routerLink]="['/funis', negocio.funilId]"
+                [queryParams]="{ negocio: negocio.id }"
+                >{{ negocio.titulo }}</a
+              >
+            }
+          </p>
+          @if (atividade.encaminhadaDe; as de) {
+            <app-selo tamanho="sm" variante="contorno">Encaminhada de {{ de.nome }}</app-selo>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+  @if (total() > itens().length + concluindo().size) {
+    <p class="atividades__mais">
+      Mostrando {{ itens().length }} de {{ total() }}.
+      <a routerLink="/atividades">Ver todas em Atividades</a>
+    </p>
+  }
+}
+
+<app-nova-atividade
+  [(aberto)]="criando"
+  [dono]="dono()"
+  [id]="id()"
+  [nome]="nome()"
+  (criada)="aoCriar()"
+/>

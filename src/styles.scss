@@ -1,1 +1,5 @@
-/* You can add global styles to this file, and also import other style files */
+// Estilos globais do BRL CRM. A especificação está em docs/DESIGN-SYSTEM.md.
+@use 'styles/fontes';
+@use 'styles/tokens';
+@use 'styles/base';
+@use 'styles/utilitarios';

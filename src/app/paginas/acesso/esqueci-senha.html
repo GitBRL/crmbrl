@@ -1,0 +1,91 @@
+<app-moldura-acesso
+  [titulo]="cabecalho().titulo"
+  [frase]="cabecalho().frase"
+  [icone]="cabecalho().icone"
+  [tomIcone]="cabecalho().tom"
+>
+  @switch (etapa()) {
+    @case ('enviado') {
+      <div class="acesso-bloco">
+        <p class="acesso-email">
+          <span class="acesso-email__rotulo">Pedido para: </span>
+          <strong>{{ emailPedido() }}</strong>
+        </p>
+        <ul class="acesso-lista">
+          <li>O link vale por 24 horas e só pode ser usado uma vez.</li>
+          <li>Não chegou em alguns minutos? Confira a caixa de spam ou de lixo eletrônico.</li>
+          <li>Pedir de novo cancela o link anterior: use sempre o mais recente.</li>
+        </ul>
+        <div class="acesso-acoes">
+          <a appBotao routerLink="/entrar" variante="invertido" tamanho="lg">Voltar para entrar</a>
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            tamanho="lg"
+            [carregando]="enviando()"
+            [disabled]="esperaReenvio() > 0"
+            (click)="enviarDeNovo()"
+          >
+            @if (esperaReenvio() > 0) {
+              Enviar de novo em <span class="numeros">{{ esperaReenvioTexto() }}</span>
+            } @else {
+              Enviar de novo
+            }
+          </button>
+          <div class="acesso-links">
+            <button type="button" class="acesso-link" (click)="usarOutroEmail()">
+              Usar outro e-mail
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+    @case ('indisponivel') {
+      <div class="acesso-bloco">
+        <ul class="acesso-lista">
+          <li>Fale com o administrador do CRM: ele define uma senha temporária para você.</li>
+          <li>Entre com ela; no primeiro acesso, você escolhe uma senha só sua.</li>
+        </ul>
+        <div class="acesso-acoes">
+          <a appBotao routerLink="/entrar" variante="invertido" tamanho="lg">Voltar para entrar</a>
+        </div>
+      </div>
+    }
+    @default {
+      <form class="acesso-formulario" novalidate [formGroup]="formulario" (ngSubmit)="enviar()">
+        <app-campo-texto
+          #campoEmail
+          rotulo="E-mail"
+          tipo="email"
+          nome="email"
+          autocomplete="username"
+          placeholder="nome@empresa.com.br"
+          formControlName="email"
+          [mensagens]="{ required: 'Digite o e-mail da sua conta.' }"
+        />
+
+        @if (falha(); as problema) {
+          <app-aviso-acesso tipo="erro" [codigo]="problema.codigo">
+            <p>{{ problema.mensagem }}</p>
+          </app-aviso-acesso>
+        }
+
+        <div class="acesso-acoes">
+          <button
+            appBotao
+            type="submit"
+            variante="invertido"
+            tamanho="lg"
+            [carregando]="enviando()"
+          >
+            Enviar link
+          </button>
+          <div class="acesso-links">
+            <a class="acesso-link" routerLink="/entrar">Voltar para entrar</a>
+          </div>
+        </div>
+      </form>
+    }
+  }
+</app-moldura-acesso>

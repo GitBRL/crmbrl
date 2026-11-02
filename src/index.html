@@ -1,13 +1,67 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Crmbrl</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-</head>
-<body>
-  <app-root></app-root>
-</body>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>BRL CRM</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="CRM da BRL: marketing, comercial e customer success em um só lugar."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icones/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="BRL CRM" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link
+      rel="preload"
+      href="fonts/urbanist/urbanist-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <script>
+      // Aplica o tema antes da primeira pintura (sem clarão do tema errado).
+      // Mesma regra do TemaService: escolha salva > preferência do sistema > escuro.
+      // Também vigia a partida: se o app não montar em 15 s (rede lenta, arquivo que não
+      // chegou), o "Carregando o CRM…" vira um aviso. Fica neste mesmo script de propósito:
+      // um só script inline (um só hash numa CSP).
+      (function () {
+        var tema = null;
+        try {
+          tema = localStorage.getItem('crmbrl.tema');
+        } catch (e) {}
+        if (tema !== 'claro' && tema !== 'escuro') {
+          var claro = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
+          tema = claro && claro.matches ? 'claro' : 'escuro';
+        }
+        var raiz = document.documentElement;
+        raiz.setAttribute('data-tema', tema);
+        raiz.style.colorScheme = tema === 'claro' ? 'light' : 'dark';
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', tema === 'claro' ? '#efefec' : '#000000');
+        setTimeout(function () {
+          // O Angular troca o conteúdo do <app-root> ao montar: se o texto continua, não montou.
+          var partida = document.querySelector('app-root > .partida');
+          if (partida) {
+            partida.textContent =
+              'Não conseguimos abrir o CRM. Verifique a internet e recarregue a página.';
+          }
+        }, 15000);
+      })();
+    </script>
+  </head>
+  <body>
+    <app-root><p class="partida" role="status">Carregando o CRM…</p></app-root>
+    <noscript>
+      <p style="padding: 24px; font-family: system-ui, sans-serif">
+        O BRL CRM precisa de JavaScript para funcionar. Ative-o no navegador e recarregue a página.
+      </p>
+    </noscript>
+  </body>
 </html>

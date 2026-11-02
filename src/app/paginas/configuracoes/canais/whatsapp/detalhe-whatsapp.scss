@@ -1,0 +1,147 @@
+@use 'mixins' as m;
+@use '../../secao' as s;
+@use '../comum/tela-canal' as t;
+
+@include t.tela;
+@include s.faixa;
+@include t.formulario;
+
+.faixa {
+  align-items: center;
+
+  p {
+    flex: 1;
+  }
+}
+
+.faixa__acao {
+  flex: none;
+}
+
+// Conexão (palco) à esquerda, os números de hoje à direita.
+.tela__grade {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--esp-entre-cartoes);
+  align-items: start;
+
+  @include m.abaixo(m.$lg) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tela__lado {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+
+  @include m.abaixo(m.$lg) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    align-items: start;
+  }
+}
+
+.tela__formularios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+  gap: var(--esp-entre-cartoes);
+  align-items: start;
+}
+
+.tela__carregando {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.tela__erro-curto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.hoje {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.hoje__barra {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-3);
+}
+
+.hoje__barra-cheia {
+  display: block;
+  height: 100%;
+  min-inline-size: 4px;
+  border-radius: inherit;
+  background: var(--dado-1);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.hoje__fatos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-3);
+  margin: 0;
+
+  div {
+    display: grid;
+    gap: 2px;
+  }
+
+  dt {
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda);
+  }
+
+  dd {
+    margin: 0;
+    font: var(--fonte-corpo-sm);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.aquecimento {
+  display: grid;
+  gap: var(--esp-3);
+}
+
+.aquecimento__resumo {
+  font: var(--fonte-corpo);
+}
+
+// Um pedacinho por dia do aquecimento: os que passaram em lima, hoje com o anel.
+.aquecimento__dias {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aquecimento__dia {
+  height: 12px;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-3);
+}
+
+.aquecimento__dia--feito {
+  background: var(--dado-3);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.aquecimento__dia--hoje {
+  outline: 2px solid var(--cor-texto);
+  outline-offset: 1px;
+}
+
+.aquecimento__fim {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}

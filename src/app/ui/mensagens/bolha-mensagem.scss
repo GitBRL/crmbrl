@@ -1,0 +1,263 @@
+@use 'mixins' as m;
+@use 'conversa' as c;
+
+// Bolha de mensagem (DESIGN-SYSTEM.md §4.6). O espaço entre as bolhas é padding do host (a
+// lista virtual mede a altura de cada item). Só tokens.
+
+:host {
+  --_raio: 20px;
+  --_canto: 6px;
+  --_avatar: 32px;
+
+  display: grid;
+  gap: var(--esp-1);
+  padding-top: var(--esp-3);
+}
+
+:host(.bolha-mensagem--continuacao) {
+  padding-top: 2px;
+}
+
+.bolha__linha {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--esp-2);
+}
+
+:host(.bolha-mensagem--saida) .bolha__linha,
+:host(.bolha-mensagem--nota) .bolha__linha {
+  justify-content: flex-end;
+}
+
+// Sem avatar nesta (o grupo continua), a bolha fica alinhada com as que têm.
+:host(.bolha-mensagem--recuo) .bolha__linha {
+  padding-left: calc(var(--_avatar) + var(--esp-2));
+}
+
+.bolha__avatar {
+  flex: none;
+}
+
+.bolha {
+  position: relative;
+  display: grid;
+  // A coluna pode encolher: uma miniatura de 280px cabe na bolha estreita do celular em vez de
+  // alargar a lista inteira.
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-1);
+  min-width: 4.5rem;
+  max-width: min(78%, 36rem);
+  padding: 8px 12px 6px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--_raio);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  overflow-wrap: anywhere;
+
+  @include m.abaixo(m.$sm) {
+    max-width: 86%;
+  }
+}
+
+// O canto do lado de quem fala fica menor no começo de cada grupo (direção da conversa).
+:host(.bolha-mensagem--entrada:not(.bolha-mensagem--continuacao)) .bolha {
+  border-top-left-radius: var(--_canto);
+}
+
+:host(.bolha-mensagem--saida:not(.bolha-mensagem--continuacao)) .bolha,
+:host(.bolha-mensagem--nota:not(.bolha-mensagem--continuacao)) .bolha {
+  border-top-right-radius: var(--_canto);
+}
+
+:host(.bolha-mensagem--saida) .bolha {
+  @include c.tons-saida;
+}
+
+:host(.bolha-mensagem--nota) .bolha {
+  @include c.tons-nota;
+
+  border-color: transparent;
+}
+
+.bolha--midia {
+  padding: 4px;
+}
+
+.bolha--figurinha {
+  --previa-maximo: 128px;
+
+  padding: 0;
+  border-color: transparent;
+  background: none;
+}
+
+.bolha__autor,
+.bolha__nota {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  font-weight: 600;
+}
+
+.bolha--midia .bolha__autor,
+.bolha--midia .bolha__nota,
+.bolha--midia .bolha__citacao {
+  margin: 4px 8px 2px;
+}
+
+.bolha__nota {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+  color: var(--cor-texto);
+}
+
+.bolha__citacao {
+  display: grid;
+  margin: 2px 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--cor-info);
+  border-radius: var(--raio-sm);
+  background: var(--cor-vidro);
+  font: var(--fonte-legenda-lg);
+}
+
+.bolha__citacao-autor {
+  font-weight: 600;
+}
+
+.bolha__citacao-texto {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--cor-texto-suave);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.bolha__tipo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.bolha__texto {
+  font: var(--fonte-corpo);
+  white-space: pre-wrap;
+}
+
+.bolha__link {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.bolha__link--mencao {
+  padding: 0 4px;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-vidro-forte);
+  text-decoration: none;
+}
+
+.bolha__excluida {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+  font-style: italic;
+}
+
+// A hora e o status: no fim da última linha do texto (o espaço invisível reserva o lugar),
+// por cima da mídia ou numa linha própria (áudio, documento).
+.bolha__espaco {
+  display: inline-block;
+  padding-left: var(--esp-3);
+  font: var(--fonte-legenda);
+  visibility: hidden;
+}
+
+.bolha__espaco--status {
+  padding-right: 20px;
+}
+
+.bolha__meta {
+  position: absolute;
+  right: 10px;
+  bottom: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bolha--linha .bolha__meta {
+  position: static;
+  justify-self: end;
+}
+
+.bolha--midia .bolha__meta {
+  right: 10px;
+  bottom: 10px;
+  padding: 2px 8px;
+  border-radius: var(--raio-pilula);
+  background: color-mix(in srgb, var(--pb-preto) 55%, transparent);
+  color: var(--pb-branco);
+
+  --cor-info: var(--pb-ciano);
+}
+
+// Falha no envio: o motivo e "Tentar de novo", embaixo da bolha, do lado dela.
+.bolha__falha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--esp-2);
+  color: var(--cor-erro);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+}
+
+// O ícone fica junto da primeira linha do motivo (não quebra sozinho no celular).
+.bolha__falha-motivo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-1);
+  min-width: 0;
+  text-align: right;
+
+  svg {
+    flex: none;
+    margin-top: 1px;
+  }
+}
+
+// Sistema: uma linha suave no meio.
+.bolha-sistema {
+  justify-self: center;
+  max-width: 90%;
+  padding: 4px var(--esp-3);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-vidro);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  text-align: center;
+}
+
+.bolha-sistema__hora {
+  margin-left: var(--esp-2);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+@media (forced-colors: active) {
+  .bolha {
+    border: 1px solid CanvasText;
+  }
+
+  :host(.bolha-mensagem--nota) .bolha {
+    border: 2px dashed CanvasText;
+  }
+}

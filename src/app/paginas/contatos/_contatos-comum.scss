@@ -1,0 +1,130 @@
+@use 'mixins' as m;
+
+// Peças visuais comuns às telas de contatos e empresas (TELAS-FASE1 §4). Não gera CSS:
+// `@use 'contatos-comum' as c;` (relativo à pasta) e `@include c.cabecalho;` na regra do componente.
+// Só tokens.
+
+// Cabeçalho da página: título display, frase e a ação principal à direita (no celular ela
+// vira o botão flutuante, `acao-flutuante`).
+@mixin cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-4) var(--esp-6);
+
+  .cabecalho__texto {
+    display: grid;
+    gap: var(--esp-3);
+    min-width: 0;
+  }
+
+  .cabecalho__titulo {
+    font: var(--fonte-display);
+    letter-spacing: var(--tracking-display);
+    overflow-wrap: anywhere;
+  }
+
+  .cabecalho__frase {
+    max-width: 60ch;
+    color: var(--cor-texto-suave);
+    font: var(--fonte-lead);
+  }
+
+  .cabecalho__acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-3);
+    margin-left: auto;
+  }
+}
+
+// Botão circular fixo no canto inferior direito (mobile < 900px): a ação principal.
+@mixin acao-flutuante {
+  display: none;
+
+  @include m.abaixo(m.$md) {
+    position: fixed;
+    right: max(var(--esp-4), env(safe-area-inset-right));
+    bottom: max(var(--esp-5), env(safe-area-inset-bottom));
+    z-index: var(--z-cabecalho);
+    display: inline-flex;
+    box-shadow: var(--sombra-flutuante);
+  }
+}
+
+// A pílula da ação principal some no celular (fica o botão flutuante).
+@mixin so-desktop {
+  @include m.abaixo(m.$md) {
+    display: none;
+  }
+}
+
+// Avatar + nome + linha secundária (célula da tabela, item de lista).
+@mixin pessoa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-width: 0;
+
+  .pessoa__texto {
+    display: grid;
+    min-width: 0;
+  }
+
+  .pessoa__nome {
+    overflow: hidden;
+    font: var(--fonte-rotulo);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pessoa__sub {
+    overflow: hidden;
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// Lista de selos (etiquetas) que quebra a linha.
+@mixin selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+// Lista de definições "rótulo / valor" em grade.
+@mixin dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: var(--esp-5) var(--esp-6);
+  margin: 0;
+
+  > div {
+    display: grid;
+    align-content: start;
+    gap: var(--esp-1);
+    min-width: 0;
+  }
+
+  dt {
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda);
+  }
+
+  dd {
+    margin: 0;
+    font: var(--fonte-corpo);
+    overflow-wrap: anywhere;
+  }
+}
+
+// Texto suave pequeno (metadados).
+@mixin meta {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}

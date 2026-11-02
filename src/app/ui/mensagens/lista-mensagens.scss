@@ -1,0 +1,93 @@
+// Lista de mensagens (DESIGN-SYSTEM.md §4.6): a área que rola ocupa a altura que o pai der.
+// Só tokens.
+
+:host {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.lista__area {
+  flex: 1;
+  min-height: 0;
+  // Conversa só rola na vertical (nada de barra lateral se um item passar da largura).
+  overflow-x: hidden;
+  // A âncora de rolagem é da estratégia (o navegador não deve compensar por conta própria).
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  border-radius: var(--raio-md);
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: -2px;
+  }
+}
+
+// O respiro lateral fica nos itens (a lista virtual mede cada um).
+.lista__item {
+  padding-inline: var(--esp-2);
+}
+
+.lista__item:last-child {
+  padding-bottom: var(--esp-3);
+}
+
+.lista__topo {
+  display: flex;
+  justify-content: center;
+  padding-block: var(--esp-3) var(--esp-1);
+}
+
+.lista__inicio {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.lista__estado {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  padding: var(--esp-4);
+  pointer-events: none;
+}
+
+.lista__esqueletos {
+  display: grid;
+  gap: var(--esp-3);
+  align-self: end;
+}
+
+.lista__esqueleto-saida {
+  justify-self: end;
+}
+
+.lista__vazia {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+  text-align: center;
+}
+
+.lista__digitando {
+  flex: none;
+  padding: 0 var(--esp-2);
+
+  &:not(:empty) {
+    padding-block: var(--esp-1) var(--esp-2);
+  }
+}
+
+// "↓" para voltar ao fim: círculo invertido flutuando sobre o canto da lista, com a contagem
+// das mensagens novas.
+.lista__ir-ao-fim {
+  position: absolute;
+  right: var(--esp-4);
+  bottom: calc(var(--esp-4) + 28px);
+  z-index: 1;
+  box-shadow: var(--sombra-flutuante);
+
+  --botao-icone-anel: var(--cor-superficie);
+}

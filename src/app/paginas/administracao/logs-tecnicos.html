@@ -1,0 +1,305 @@
+<app-cartao
+  titulo="Registros técnicos"
+  dica="Erros do servidor, avisos e falhas de tarefas automáticas (filas, e-mails, webhooks), para a TI investigar. Ficam guardados por 90 dias. As requisições comuns não aparecem aqui."
+>
+  <div class="filtros">
+    <app-filtros-pilula
+      rotulo="Níveis"
+      multipla
+      [opcoes]="niveis"
+      [selecionados]="niveisMarcados()"
+      (selecionadosChange)="niveisMarcados.set($event)"
+    />
+    <div class="filtros__topo">
+      <app-campo-busca
+        class="filtros__busca"
+        rotulo="Buscar nos logs"
+        placeholder="Buscar na mensagem…"
+        [valor]="texto()"
+        (valorChange)="aoDigitar($event)"
+        (buscar)="buscar($event)"
+      />
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        class="filtros__alternar"
+        aria-controls="logs-mais-filtros"
+        [icone]="iconeFiltros"
+        [attr.aria-expanded]="filtrosAbertos()"
+        (click)="alternarFiltros()"
+      >
+        Filtros
+        @if (quantosFiltros()) {
+          <span class="contador-filtros">{{ quantosFiltros() }}</span>
+        }
+      </button>
+    </div>
+    <div
+      class="filtros__mais"
+      id="logs-mais-filtros"
+      [class.filtros__mais--aberto]="filtrosAbertos()"
+    >
+      <div class="filtros__grade">
+        <app-campo-texto
+          rotulo="Origem"
+          placeholder="HTTP, Fila, Webhooks…"
+          ajuda="Pelo começo do nome: HTTP (requisições), Fila (tarefas em segundo plano), Webhooks, Email, Distribuicao…"
+          [valor]="origem()"
+          (valorChange)="aoDigitarOrigem($event)"
+          (keydown.enter)="aplicarOrigem()"
+          (focusout)="aplicarOrigem()"
+        />
+        <app-campo-data
+          rotulo="De"
+          [valor]="de()"
+          [maximo]="ate()"
+          (valorChange)="de.set($event)"
+        />
+        <app-campo-data
+          rotulo="Até"
+          [valor]="ate()"
+          [minimo]="de()"
+          [erro]="problemaPeriodo()"
+          (valorChange)="ate.set($event)"
+        />
+      </div>
+    </div>
+    @if (requisicaoId() || temFiltro()) {
+      <div class="filtros__ativos">
+        @if (requisicaoId(); as id) {
+          <span class="filtros__requisicao">
+            Só a requisição <code>{{ id }}</code>
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              [icone]="iconeLimpar"
+              (click)="limparRequisicao()"
+            >
+              Tirar
+            </button>
+          </span>
+        }
+        @if (temFiltro()) {
+          <button appBotao type="button" tamanho="sm" variante="contorno" (click)="limparFiltros()">
+            Limpar filtros
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (erro(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos carregar os logs técnicos"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao type="button" variante="invertido" (click)="recarregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <app-tabela
+      rotulo="Logs técnicos"
+      densa
+      clicavel
+      colunaPrincipal="mensagem"
+      [colunas]="colunas"
+      [linhas]="itens()"
+      [carregando]="carregando()"
+      [linhasEsqueleto]="6"
+      (abrir)="abrir($event)"
+    >
+      <ng-template appCelula="quando" [appCelulaDe]="itens()" let-l>
+        <time
+          class="consulta__quando"
+          [attr.datetime]="l.criadoEm"
+          [title]="dataHora(l.criadoEm)"
+          >{{ quando(l.criadoEm) }}</time
+        >
+      </ng-template>
+      <ng-template appCelula="nivel" [appCelulaDe]="itens()" let-l>
+        <app-selo tamanho="sm" [variante]="seloNivel[l.nivel]">{{ rotuloNivel[l.nivel] }}</app-selo>
+      </ng-template>
+      <ng-template appCelula="contexto" [appCelulaDe]="itens()" let-l>
+        <span class="consulta__origem">{{ l.contexto }}</span>
+      </ng-template>
+      <ng-template appCelula="mensagem" [appCelulaDe]="itens()" let-l>
+        <span class="consulta__mensagem">{{ l.mensagem }}</span>
+      </ng-template>
+      <ng-template appCelula="http" [appCelulaDe]="itens()" let-l>
+        @if (http(l); as resumoHttp) {
+          <span class="consulta__http">{{ resumoHttp }}</span>
+        } @else {
+          <span class="consulta__fraco">—</span>
+        }
+      </ng-template>
+
+      @if (temFiltro()) {
+        <app-estado-vazio
+          tabela-vazio
+          compacto
+          variante="busca"
+          titulo="Nenhum log com esses filtros"
+          texto="Tire algum filtro ou aumente o período."
+        >
+          <button appBotao type="button" tamanho="sm" variante="contorno" (click)="limparFiltros()">
+            Limpar filtros
+          </button>
+        </app-estado-vazio>
+      } @else {
+        <app-estado-vazio
+          tabela-vazio
+          compacto
+          titulo="Nenhum log técnico"
+          texto="Bom sinal: nenhum erro, aviso ou falha de tarefa nos últimos 90 dias."
+        />
+      }
+    </app-tabela>
+
+    @if (itens().length) {
+      <div class="consulta__rodape">
+        <p class="consulta__contagem" role="status">{{ contagem() }}</p>
+        @if (erroMais(); as falhaMais) {
+          <p class="consulta__erro" role="alert">{{ falhaMais.mensagem }}</p>
+        }
+        @if (proximoCursor()) {
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            [carregando]="carregandoMais()"
+            (click)="carregarMais()"
+          >
+            Carregar mais
+          </button>
+        }
+      </div>
+    }
+  }
+</app-cartao>
+
+<app-painel-lateral
+  largura="lg"
+  [aberto]="painelAberto()"
+  [titulo]="tituloPainel()"
+  [complemento]="complementoPainel()"
+  [descricao]="descricaoPainel()"
+  (fechado)="fecharPainel()"
+>
+  @if (detalhe(); as d) {
+    <div class="detalhe">
+      <p class="detalhe__mensagem">{{ d.mensagem }}</p>
+
+      <dl class="detalhe__dados">
+        <div>
+          <dt>Nível</dt>
+          <dd>
+            <app-selo tamanho="sm" [variante]="seloNivel[d.nivel]">{{
+              rotuloNivel[d.nivel]
+            }}</app-selo>
+          </dd>
+        </div>
+        <div>
+          <dt>Origem</dt>
+          <dd>
+            <code>{{ d.contexto }}</code>
+          </dd>
+        </div>
+        <div>
+          <dt>Quando</dt>
+          <dd>{{ dataHora(d.criadoEm) }}</dd>
+        </div>
+        @if (http(d); as resumoHttp) {
+          <div>
+            <dt>Requisição HTTP</dt>
+            <dd>
+              <code>{{ resumoHttp }}</code>
+            </dd>
+          </div>
+        }
+        @if (pessoaDoLog(); as pessoa) {
+          <div>
+            <dt>Usuário</dt>
+            <dd>{{ pessoa }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Id da requisição</dt>
+          <dd>
+            @if (d.requisicaoId; as requisicao) {
+              <code>{{ requisicao }}</code>
+              <span class="detalhe__acoes-linha">
+                <app-botao-copiar [texto]="requisicao" oQue="Id da requisição" />
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  variante="contorno"
+                  (click)="filtrarPorRequisicao(requisicao)"
+                >
+                  Ver logs desta requisição
+                </button>
+                @if (podeVerAuditoria()) {
+                  <a
+                    appBotao
+                    tamanho="sm"
+                    variante="contorno"
+                    routerLink="/administracao/auditoria"
+                    [queryParams]="{ requisicao: requisicao }"
+                    >Ver na auditoria</a
+                  >
+                }
+              </span>
+            } @else {
+              <span class="detalhe__fraco">—</span>
+            }
+          </dd>
+        </div>
+      </dl>
+
+      @if (erroDoLog(); as falhaDoLog) {
+        <section class="detalhe__secao" aria-labelledby="log-erro">
+          <h3 class="detalhe__subtitulo" id="log-erro">Erro</h3>
+          <p class="detalhe__fraco">
+            <strong>{{ falhaDoLog.nome ?? 'Erro' }}</strong
+            >{{ falhaDoLog.mensagem ? ': ' + falhaDoLog.mensagem : '' }}
+            @if (falhaDoLog.codigo) {
+              <code>({{ falhaDoLog.codigo }})</code>
+            }
+          </p>
+          @if (falhaDoLog.pilha) {
+            <app-bloco-codigo rotulo="Pilha do erro" oQue="Pilha" [codigo]="falhaDoLog.pilha" />
+          }
+        </section>
+      }
+
+      @if (dadosDoLog(); as dados) {
+        <app-bloco-codigo rotulo="Dados do registro" oQue="Dados" [codigo]="dados" />
+      }
+    </div>
+  } @else if (erroDetalhe(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      manterAcoes
+      [falha]="falha"
+      compacto
+      [titulo]="falha.ehNaoEncontrado ? 'Log não encontrado' : 'Não conseguimos abrir o log'"
+      [texto]="falha.resumo"
+      [codigo]="falha.ehFalhaDoServidor ? falha.requisicaoId : null"
+    >
+      <button appBotao type="button" variante="contorno" (click)="fecharPainel()">Fechar</button>
+    </app-estado-vazio>
+  } @else {
+    <div class="detalhe" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando…</p>
+      <app-esqueleto forma="texto" [linhas]="2" />
+      <app-esqueleto forma="bloco" altura="10rem" />
+    </div>
+  }
+</app-painel-lateral>

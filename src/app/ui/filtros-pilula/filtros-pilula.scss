@@ -1,0 +1,109 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+// Linha de pílulas; no celular rola na horizontal (.rolagem-horizontal), com folga de 4px
+// para o anel de foco não ser cortado.
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+
+  @include m.abaixo(m.$md) {
+    flex-wrap: nowrap;
+    margin: -4px;
+    padding: 4px;
+  }
+}
+
+.filtro {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--altura-sm);
+  margin: 0;
+  padding: 0 var(--esp-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  &:hover:not([aria-disabled='true']) {
+    background: color-mix(in srgb, var(--cor-texto) 7%, var(--cor-superficie-2));
+    color: var(--cor-texto);
+  }
+
+  // Ligado: invertido (pílula branca no escuro), como a aba ativa.
+  &[aria-pressed='true'] {
+    border-color: transparent;
+    background: var(--cor-inverso);
+    color: var(--cor-sobre-inverso);
+
+    &:hover {
+      background: color-mix(in srgb, var(--cor-sobre-inverso) 12%, var(--cor-inverso));
+      color: var(--cor-sobre-inverso);
+    }
+  }
+
+  &[aria-disabled='true'] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @include m.toque {
+    min-height: var(--altura-md);
+  }
+}
+
+.filtro--com-icone {
+  padding-left: var(--esp-1);
+}
+
+.filtro__icone {
+  display: grid;
+  place-items: center;
+  width: calc(var(--altura-sm) - 10px);
+  height: calc(var(--altura-sm) - 10px);
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+
+  [aria-pressed='true'] > & {
+    background: var(--cor-sobre-inverso);
+    color: var(--cor-inverso);
+  }
+}
+
+.filtro__contagem {
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+  font: var(--fonte-micro);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+
+  [aria-pressed='true'] > & {
+    background: color-mix(in srgb, var(--cor-sobre-inverso) 14%, var(--cor-inverso));
+    color: var(--cor-sobre-inverso);
+  }
+}
+
+@media (forced-colors: active) {
+  .filtro[aria-pressed='true'] {
+    border: 2px solid Highlight;
+  }
+}

@@ -1,0 +1,285 @@
+@use 'mixins' as m;
+@use 'contatos-comum' as c;
+
+// Detalhe do contato e da empresa: trilha, palco do perfil, abas entalhadas e a coluna ao
+// lado (origem, LGPD). A página é um contêiner: as duas colunas aparecem com ≥ 60rem de
+// conteúdo. Só tokens.
+
+:host {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-5);
+  max-width: var(--largura-pagina);
+}
+
+.trilha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.trilha__link {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--cor-texto);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+// Palco do perfil --------------------------------------------------------------------------
+
+.perfil {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+.perfil--esqueleto {
+  padding: var(--esp-8);
+  border-radius: var(--raio-palco);
+  background: var(--cor-superficie);
+}
+
+.perfil__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--esp-4) var(--esp-5);
+}
+
+.perfil__avatar {
+  flex: none;
+}
+
+.perfil__identidade {
+  display: grid;
+  flex: 1 1 20rem;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.perfil__nome {
+  font: var(--fonte-h1);
+  letter-spacing: var(--tracking-titulo);
+  overflow-wrap: anywhere;
+}
+
+.perfil__sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-lead);
+}
+
+// Estreito: cargo e empresa (ou segmento e cidade) um embaixo do outro, sem o "·" sobrando
+// no fim da linha quando o segundo não cabe.
+@container (width < 32rem) {
+  .perfil__sub {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--esp-1);
+  }
+
+  .perfil__separador {
+    display: none;
+  }
+}
+
+.perfil__empresa {
+  color: var(--cor-texto);
+  text-decoration: underline;
+  text-decoration-color: var(--cor-borda-forte);
+  text-underline-offset: 4px;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+.perfil__selos {
+  @include c.selos;
+
+  margin-top: var(--esp-1);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.perfil__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+  margin-left: auto;
+}
+
+.perfil__so-leitura {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  min-height: var(--altura-md);
+  padding-left: var(--esp-4);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+}
+
+.perfil__detalhes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--esp-5) var(--esp-8);
+  padding-top: var(--esp-5);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.perfil__bloco {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.perfil__rotulo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.perfil__pessoa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  font: var(--fonte-corpo);
+}
+
+.perfil__texto {
+  font: var(--fonte-corpo);
+  overflow-wrap: anywhere;
+}
+
+.perfil__vazio {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.perfil__link {
+  color: var(--cor-texto);
+  text-decoration: underline;
+  text-decoration-color: var(--cor-borda-forte);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+// Grade: abas (2/3) e a coluna ao lado (1/3) --------------------------------------------------
+
+.detalhe__grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-entre-cartoes);
+  align-items: start;
+}
+
+@container (width >= 60rem) {
+  .detalhe__grade--lado {
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  }
+}
+
+.detalhe__lado {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+  min-width: 0;
+}
+
+.detalhe__carregando {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+// Aba "Dados" -----------------------------------------------------------------------------
+
+.dados {
+  display: grid;
+  gap: var(--esp-8);
+}
+
+.dados__lista {
+  @include c.dados;
+}
+
+.dados__secao {
+  display: grid;
+  gap: var(--esp-4);
+  padding-top: var(--esp-5);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.dados__titulo {
+  font: var(--fonte-h3);
+}
+
+.dados__vazio {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.dados__link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+// Cartão "Origem" ------------------------------------------------------------------------
+
+.origem {
+  display: grid;
+  gap: var(--esp-4);
+  margin: 0;
+
+  > div {
+    display: grid;
+    gap: var(--esp-1);
+  }
+
+  dt {
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda);
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2);
+    margin: 0;
+    font: var(--fonte-corpo-sm);
+  }
+}
+
+.origem .origem__utm {
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.origem .origem__quando {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+}
+
+// Ação principal: pílula no desktop, botão flutuante no celular ------------------------------
+
+.so-desktop {
+  @include c.so-desktop;
+}
+
+.acao-flutuante {
+  @include c.acao-flutuante;
+}

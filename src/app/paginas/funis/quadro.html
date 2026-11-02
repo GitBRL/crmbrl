@@ -1,0 +1,378 @@
+<header class="cabecalho">
+  <div class="cabecalho__texto">
+    <!-- Título em dois tons (DESIGN-SYSTEM §2.3): o espaço inseparável prende o "·" ao título e
+         a quebra só acontece depois dele; os elementos ficam colados (sem espaço solto). -->
+    @let partes = tituloEmDoisTons();
+    <h1 class="cabecalho__titulo">
+      {{ partes.principal }}<span class="tom-fraco">{{ partes.ponto }}</span
+      ><span class="tom-fraco sem-quebra">{{ partes.complemento }}</span>
+    </h1>
+    <p class="cabecalho__frase">{{ frase() }}</p>
+    <app-regras-funil [area]="areaAtual()" [funilId]="estado.funil()?.id ?? null" />
+  </div>
+
+  <div class="cabecalho__acoes">
+    @if (podeConfigurar()) {
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        class="cabecalho__configurar"
+        [icone]="icones.configurar"
+        [disabled]="!estado.funil()"
+        (click)="configurarAberto.set(true)"
+      >
+        Configurar etapas
+      </button>
+      <button
+        appBotaoIcone
+        type="button"
+        variante="contorno"
+        class="cabecalho__configurar-icone"
+        rotulo="Configurar etapas"
+        [icone]="icones.configurar"
+        [disabled]="!estado.funil()"
+        (click)="configurarAberto.set(true)"
+      ></button>
+    }
+    <button
+      appBotao
+      type="button"
+      variante="invertido"
+      class="cabecalho__novo"
+      [icone]="icones.mais"
+      [disabled]="!estado.funil()"
+      (click)="novoAberto.set(true)"
+    >
+      Novo negócio
+    </button>
+  </div>
+</header>
+
+<div class="filtros">
+  @if (opcoesFunil().length > 1) {
+    <app-filtros-pilula
+      class="filtros__funil"
+      rotulo="Funil"
+      [opcoes]="opcoesFunil()"
+      [selecionado]="estado.funilId()"
+      (selecionadoChange)="escolherFunil($event)"
+    />
+  }
+  <app-filtros-pilula
+    rotulo="Mostrar"
+    [opcoes]="opcoesVisao()"
+    [selecionado]="estado.filtros().visao"
+    (selecionadoChange)="escolherVisao($event)"
+  />
+  <!-- No celular, a busca e a etiqueta ficam atrás do botão "Filtros" (como na Auditoria): o
+       primeiro cartão aparece mais cedo na tela. -->
+  <button
+    appBotao
+    type="button"
+    variante="contorno"
+    class="filtros__alternar"
+    aria-controls="quadro-filtros-campos"
+    [icone]="icones.filtros"
+    [attr.aria-expanded]="filtrosAbertos()"
+    (click)="filtrosAbertos.set(!filtrosAbertos())"
+  >
+    Filtros
+    @if (quantosFiltros()) {
+      <span class="contador-filtros">{{ quantosFiltros() }}</span>
+    }
+  </button>
+  <div
+    class="filtros__campos"
+    id="quadro-filtros-campos"
+    [class.filtros__campos--fechado]="!filtrosAbertos()"
+  >
+    <app-campo-busca
+      class="filtros__busca"
+      rotulo="Buscar negócios"
+      placeholder="Título, contato ou empresa…"
+      [valor]="termo()"
+      (valorChange)="digitar($event)"
+      (buscar)="buscar($event)"
+    />
+    @if (opcoesEtiqueta().length) {
+      <app-seletor
+        class="filtros__etiqueta"
+        rotulo="Etiqueta"
+        rotuloOculto
+        placeholder="Todas as etiquetas"
+        permitirVazio
+        [opcoes]="opcoesEtiqueta()"
+        [valor]="estado.filtros().etiqueta"
+        (valorChange)="escolherEtiqueta($event)"
+      />
+    }
+  </div>
+  @if (estado.situacao() === 'pronto' && mostrarValores()) {
+    <p class="filtros__total numeros">
+      <span class="filtros__total-valor">{{ valorEmAberto() }}</span> em aberto
+      <app-dica
+        rotulo="O que entra no valor em aberto"
+        texto="Soma dos valores dos negócios nas etapas abertas, com os filtros aplicados. Ganhos e perdidos ficam de fora."
+      />
+    </p>
+  }
+</div>
+
+<p id="kanban-instrucoes" class="visualmente-oculto">
+  Para mover pelo teclado: Espaço pega o negócio; as setas para os lados trocam a etapa e para cima
+  ou para baixo, a posição; Espaço solta e Esc cancela. O menu de ações do cartão também tem "Mover
+  para".
+</p>
+
+@switch (estado.situacao()) {
+  @case ('carregando') {
+    <div class="quadro quadro--carregando" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando o quadro…</p>
+      @for (coluna of [1, 2, 3, 4]; track coluna) {
+        <div class="coluna coluna--esqueleto" aria-hidden="true">
+          <div class="coluna__cabecalho">
+            <app-esqueleto largura="60%" />
+            <app-esqueleto largura="40%" />
+          </div>
+          <div class="coluna__esqueletos">
+            @for (cartao of [1, 2, 3]; track cartao) {
+              <app-esqueleto forma="bloco" altura="128px" />
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+  @case ('erro') {
+    <app-estado-vazio
+      class="quadro__estado"
+      variante="erro"
+      [falha]="estado.erro()"
+      titulo="Não conseguimos carregar o quadro"
+      [texto]="estado.erro()?.resumo ?? null"
+      [codigo]="estado.erro()?.requisicaoId ?? null"
+    >
+      <button appBotao type="button" variante="invertido" (click)="estado.recarregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  }
+  @case ('sem-funil') {
+    <app-estado-vazio
+      class="quadro__estado"
+      titulo="Nenhum funil ativo nesta área"
+      texto="Os funis desta área estão arquivados. A liderança da área, o C-level ou o Admin podem reativá-los."
+    />
+  }
+  @default {
+    @if (!estado.funilAtivo()) {
+      <p class="quadro__aviso">
+        <app-selo variante="contorno">Arquivado</app-selo>
+        Este funil está arquivado: não recebe negócios novos.
+      </p>
+    }
+    @if (etapaFiltrada(); as etapa) {
+      <p class="quadro__aviso" role="status">
+        <app-selo variante="contorno">Etapa {{ etapa.nome }}</app-selo>
+        Mostrando só esta etapa.
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="contorno"
+          (click)="mostrarTodasEtapas()"
+        >
+          Mostrar todas as etapas
+        </button>
+      </p>
+    }
+    @if (semResultados()) {
+      <app-estado-vazio
+        class="quadro__estado"
+        variante="busca"
+        compacto
+        titulo="Nada encontrado com esses filtros"
+        texto="Tente outra busca, outra etiqueta ou mostre todos os negócios."
+      >
+        <button appBotao type="button" variante="contorno" (click)="limparFiltros()">
+          Limpar filtros
+        </button>
+      </app-estado-vazio>
+    }
+    <div
+      class="quadro"
+      cdkDropListGroup
+      cdkScrollable
+      role="region"
+      [attr.aria-label]="'Quadro do funil ' + titulo()"
+    >
+      @for (coluna of colunasVisiveis(); track coluna.etapa.id) {
+        <section
+          class="coluna"
+          [class.coluna--fechada]="ehFechada(coluna)"
+          [class.coluna--ganho]="coluna.etapa.tipo === 'GANHO'"
+          [class.coluna--perda]="coluna.etapa.tipo === 'PERDIDO'"
+          [class.coluna--recolhida]="recolhida(coluna)"
+          [attr.aria-labelledby]="idColuna(coluna)"
+        >
+          <header class="coluna__cabecalho">
+            <div class="coluna__linha">
+              <h2 class="coluna__titulo" [id]="idColuna(coluna)">
+                {{ coluna.etapa.nome }}
+                <span class="visualmente-oculto">
+                  , {{ coluna.total }} {{ coluna.total === 1 ? 'negócio' : itens() }}</span
+                >
+              </h2>
+              <app-selo tamanho="sm" aria-hidden="true" class="coluna__contagem">{{
+                coluna.total
+              }}</app-selo>
+              @if (prazoDaColuna(coluna); as prazo) {
+                <app-dica
+                  class="coluna__dica"
+                  [rotulo]="'Prazo-alvo de ' + coluna.etapa.nome"
+                  [texto]="prazo"
+                />
+              }
+              @if (ehFechada(coluna)) {
+                <button
+                  appBotaoIcone
+                  type="button"
+                  tamanho="sm"
+                  variante="contorno"
+                  class="coluna__recolher"
+                  [icone]="recolhida(coluna) ? icones.expandir : icones.recolher"
+                  [rotulo]="
+                    (recolhida(coluna) ? 'Expandir a coluna ' : 'Recolher a coluna ') +
+                    coluna.etapa.nome
+                  "
+                  [attr.aria-expanded]="!recolhida(coluna)"
+                  (click)="alternarColuna(coluna)"
+                ></button>
+              }
+            </div>
+            @if (!recolhida(coluna)) {
+              <div class="coluna__resumo">
+                @if (ehFechada(coluna)) {
+                  <app-selo
+                    tamanho="sm"
+                    [variante]="coluna.etapa.tipo === 'GANHO' ? 'menta' : 'contorno'"
+                    >{{
+                      coluna.etapa.tipo === 'GANHO' ? 'etapa de ganho' : 'etapa de perda'
+                    }}</app-selo
+                  >
+                }
+                @if (mostrarValores()) {
+                  <span class="coluna__valor numeros">{{ valorDaColuna(coluna) }}</span>
+                }
+                @if (coluna.parados > 0) {
+                  <span class="coluna__parados">
+                    {{ coluna.parados }} {{ coluna.parados === 1 ? 'parado' : 'parados' }}
+                  </span>
+                }
+              </div>
+            }
+          </header>
+
+          <div class="coluna__corpo" cdkScrollable>
+            <div
+              class="coluna__lista"
+              role="list"
+              cdkDropList
+              [cdkDropListData]="coluna.etapa.id"
+              [cdkDropListEnterPredicate]="podeEntrar"
+              [attr.aria-labelledby]="idColuna(coluna)"
+              (cdkDropListDropped)="aoSoltar($event)"
+              (cdkDropListEntered)="aoEntrarNaColuna(coluna)"
+            >
+              @if (!recolhida(coluna)) {
+                @for (negocio of coluna.negocios; track negocio.id) {
+                  <app-cartao-negocio
+                    role="listitem"
+                    cdkDrag
+                    [cdkDragData]="negocio"
+                    [cdkDragStartDelay]="atrasoArraste"
+                    [negocio]="negocio"
+                    [proxima]="estado.proximas().get(negocio.id) ?? null"
+                    [link]="linkDoNegocio(negocio)"
+                    [queryParams]="queryParams()"
+                    [etapas]="estado.etapas()"
+                    [podeSair]="podeSair(negocio)"
+                    [podeAssumir]="podeAssumir()"
+                    [assumindo]="assumindo().has(negocio.id)"
+                    [mostrarValor]="mostrarValores()"
+                    [pego]="pego()?.negocio?.id === negocio.id"
+                    (cdkDragStarted)="aoComecarArrastar(negocio)"
+                    (acao)="agir(negocio, $event)"
+                    (teclaMover)="teclar($event, negocio)"
+                    (saiuDoMover)="aoSairDoMover(negocio)"
+                  />
+                } @empty {
+                  <p class="coluna__vazia">
+                    @if (filtrando()) {
+                      Nada nesta etapa com esses filtros.
+                    } @else {
+                      Nenhum {{ nomeItemSingular() }} aqui. Arraste um cartão para esta etapa.
+                    }
+                  </p>
+                }
+              } @else {
+                <p class="coluna__vertical" aria-hidden="true">
+                  {{ coluna.etapa.nome }} · {{ coluna.total }}
+                </p>
+              }
+            </div>
+            @if (!recolhida(coluna) && coluna.temMais) {
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                class="coluna__mais"
+                [carregando]="estado.carregandoMais().has(coluna.etapa.id)"
+                (click)="estado.carregarMais(coluna.etapa.id)"
+              >
+                Carregar mais ({{ restantes(coluna) }})
+              </button>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+}
+
+<button
+  appBotaoIcone
+  type="button"
+  variante="invertido"
+  tamanho="lg"
+  class="novo-flutuante"
+  rotulo="Novo negócio"
+  [icone]="icones.mais"
+  [disabled]="!estado.funil()"
+  (click)="novoAberto.set(true)"
+></button>
+
+<app-motivo-perda
+  [aberto]="!!aguardandoMotivo()"
+  [negocio]="aguardandoMotivo()?.negocio?.titulo ?? ''"
+  [etapa]="aguardandoMotivo()?.etapa?.nome ?? null"
+  [titulo]="areaAtual() === 'MARKETING' ? 'Por que descartar?' : 'Por que perdemos?'"
+  [rotuloConfirmar]="areaAtual() === 'MARKETING' ? 'Descartar lead' : 'Marcar como perdido'"
+  (confirmado)="confirmarMotivo($event)"
+  (cancelado)="cancelarMotivo()"
+/>
+
+@if (estado.funil(); as funil) {
+  <app-novo-negocio [(aberto)]="novoAberto" [funil]="funil" (criado)="aoCriar($event)" />
+  @if (podeConfigurar()) {
+    <app-configurar-etapas
+      [(aberto)]="configurarAberto"
+      [funil]="funil"
+      (alterado)="aoConfigurar($event)"
+    />
+  }
+}
+
+<router-outlet />

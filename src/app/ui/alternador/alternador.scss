@@ -1,0 +1,140 @@
+@use 'mixins' as m;
+@use '../campo/campo' as c;
+
+:host {
+  --_largura: 48px;
+  --_altura: 28px;
+  --_bolinha: 20px;
+  --_folga: 4px;
+
+  display: block;
+  min-width: 0;
+}
+
+:host(.alternador-host--desabilitado) {
+  opacity: 0.5;
+}
+
+// Rótulo à esquerda, trilho à direita; descrição e erro embaixo do rótulo.
+.alternador {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--esp-4);
+}
+
+.alternador__topo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  grid-row: 1;
+  min-height: var(--altura-md);
+}
+
+.alternador__rotulo {
+  color: var(--cor-texto);
+  font: var(--fonte-corpo);
+  cursor: pointer;
+}
+
+.alternador__trilho {
+  position: relative;
+  display: grid;
+  grid-row: 1;
+  grid-column: 2;
+  cursor: pointer;
+
+  @include m.area-toque(8px, 4px);
+}
+
+.alternador__input {
+  width: var(--_largura);
+  height: var(--_altura);
+  margin: 0;
+  // Desligado: superfície com a borda em texto fraco (≥ 3:1 nos dois temas).
+  border: 1.5px solid var(--cor-texto-fraco);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-3);
+  cursor: pointer;
+  appearance: none;
+  transition:
+    background-color var(--duracao) var(--curva),
+    border-color var(--duracao) var(--curva);
+
+  &:checked {
+    border-color: var(--cor-inverso);
+    background: var(--cor-inverso);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.alternador__bolinha {
+  position: absolute;
+  top: calc((var(--_altura) - var(--_bolinha)) / 2);
+  left: var(--_folga);
+  display: grid;
+  place-items: center;
+  width: var(--_bolinha);
+  height: var(--_bolinha);
+  border-radius: 50%;
+  background: var(--cor-texto-suave);
+  color: var(--cor-inverso);
+  pointer-events: none;
+  transition:
+    transform var(--duracao) var(--curva),
+    background-color var(--duracao) var(--curva);
+}
+
+.alternador__visto {
+  opacity: 0;
+  transition: opacity var(--duracao-rapida) var(--curva);
+}
+
+.alternador__input:checked + .alternador__bolinha {
+  background: var(--cor-sobre-inverso);
+  transform: translateX(calc(var(--_largura) - var(--_bolinha) - 2 * var(--_folga)));
+
+  .alternador__visto {
+    opacity: 1;
+  }
+}
+
+.alternador__dica,
+.alternador__erro {
+  grid-column: 1;
+  margin-top: calc(-1 * var(--esp-2));
+  padding-bottom: var(--esp-1);
+}
+
+.alternador__dica + .alternador__erro {
+  margin-top: 0;
+}
+
+.alternador__dica {
+  @include c.dica;
+
+  padding-inline-start: 0;
+}
+
+.alternador__erro {
+  @include c.erro;
+
+  padding-inline-start: 0;
+}
+
+@media (forced-colors: active) {
+  .alternador__input:checked {
+    background: Highlight;
+  }
+
+  .alternador__bolinha {
+    background: CanvasText;
+  }
+
+  .alternador__input:checked + .alternador__bolinha {
+    background: HighlightText;
+  }
+}

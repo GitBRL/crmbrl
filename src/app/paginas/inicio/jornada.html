@@ -1,0 +1,150 @@
+<h2 class="visualmente-oculto">Jornada do cliente · {{ periodo().complemento }}</h2>
+
+@switch (estado()) {
+  @case ('carregando') {
+    <div class="jornada__carregando" aria-busy="true">
+      <span class="visualmente-oculto" role="status">Carregando as métricas dos funis…</span>
+      <div class="jornada__esqueleto-kpis">
+        @for (kpi of [1, 2, 3]; track kpi) {
+          <div class="jornada__esqueleto-kpi">
+            <app-esqueleto forma="bloco" altura="3.5rem" largura="70%" />
+            <app-esqueleto largura="55%" />
+          </div>
+        }
+      </div>
+      @for (barra of [100, 72, 54, 40]; track barra) {
+        <div class="jornada__esqueleto-barra">
+          <app-esqueleto largura="30%" />
+          <app-esqueleto forma="pilula" [largura]="barra + '%'" />
+        </div>
+      }
+    </div>
+  }
+  @case ('erro') {
+    <app-estado-vazio
+      compacto
+      variante="erro"
+      [falha]="erro()"
+      titulo="Não conseguimos carregar as métricas"
+      [texto]="erro()?.resumo ?? null"
+      [codigo]="erro()?.requisicaoId ?? null"
+    >
+      <button appBotao variante="invertido" type="button" (click)="recarregar.emit()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  }
+  @default {
+    @if (jornada(); as jornada) {
+      @if (!jornada.temDados) {
+        <app-estado-vazio
+          compacto
+          titulo="Nenhum negócio no período"
+          [texto]="
+            'Os números aparecem assim que houver negócios criados ' +
+            noPeriodo() +
+            '. Escolha um período maior ou registre os negócios nos funis.'
+          "
+        >
+          <a appBotao variante="invertido" routerLink="/funis">Abrir os funis</a>
+        </app-estado-vazio>
+      } @else {
+        <div class="palco__kpis palco__kpis--3">
+          <app-indicador
+            [valor]="jornada.conversao.valor ?? '—'"
+            [unidade]="jornada.conversao.unidade"
+            casas="1.0-1"
+            [legenda]="jornada.conversao.legenda"
+            [dica]="jornada.conversao.dica"
+          />
+          <app-indicador
+            [valor]="jornada.ciclo.valor ?? '—'"
+            [unidade]="jornada.ciclo.unidade"
+            casas="1.0-1"
+            [legenda]="jornada.ciclo.legenda"
+            [dica]="jornada.ciclo.dica"
+          />
+          @if (terceiro(); as terceiro) {
+            <app-indicador
+              [valor]="terceiro.numero"
+              [prefixo]="terceiro.prefixo"
+              [unidade]="terceiro.unidade"
+              [legenda]="terceiro.legenda"
+              [dica]="terceiro.dica"
+            />
+          }
+        </div>
+
+        <div class="jornada__funil">
+          <div class="jornada__legenda">
+            <app-legenda [series]="series" />
+            <app-dica
+              rotulo="Como ler o funil"
+              titulo="Como ler o funil"
+              [texto]="
+                'Cada barra é uma etapa do funil. O número é quantos negócios criados ' +
+                noPeriodo() +
+                ' chegaram até ela; as cores separam os que seguiram para a barra de baixo e os que pararam ali (ainda abertos ou perdidos). A seta mostra quanto caiu em relação à barra anterior; o selo, o tempo médio em dias que os negócios ficaram na etapa (0d é menos de um dia).'
+              "
+            />
+          </div>
+
+          <div class="etapas">
+            @for (area of jornada.areas; track area.area) {
+              <div class="etapas__grupo">
+                <div class="etapas__area">
+                  <h3 class="etapas__nome">
+                    <a class="etapas__link" [routerLink]="['/funis', area.slug]">{{
+                      area.rotulo
+                    }}</a>
+                  </h3>
+                  @if (area.passagem; as passagem) {
+                    <span class="etapas__passagem">
+                      <span class="etapas__passagem-texto">
+                        <svg lucideWorkflow [size]="14" />
+                        passagem automática
+                      </span>
+                      <app-dica
+                        [rotulo]="'Como o negócio chega ao ' + area.rotulo"
+                        [texto]="passagem"
+                      />
+                    </span>
+                  }
+                  @if (area.parados > 0) {
+                    <app-selo variante="contorno" class="etapas__parados" [icone]="iconeParados">
+                      {{ rotuloParados(area.parados) }}
+                    </app-selo>
+                  }
+                  @if (!umaArea() && area.etapas.length > 2) {
+                    <button
+                      type="button"
+                      class="etapas__alternar"
+                      [attr.aria-expanded]="estaAberta(area)"
+                      [attr.aria-controls]="'etapas-' + area.area"
+                      (click)="alternar(area)"
+                    >
+                      {{ estaAberta(area) ? 'Só a entrada e o ganho' : 'Ver todas as etapas' }}
+                      <span class="visualmente-oculto"> de {{ area.rotulo }}</span>
+                    </button>
+                  }
+                </div>
+                <div class="etapas__barras" [id]="'etapas-' + area.area">
+                  @for (etapa of etapasDe(area); track etapa.id) {
+                    <app-barra-funil
+                      [etapa]="etapa.etapa"
+                      [total]="etapa.total"
+                      [series]="etapa.series"
+                      [totalReferencia]="jornada.referencia"
+                      [queda]="etapa.queda"
+                      [tempoMedioDias]="etapa.tempoMedioDias"
+                    />
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+  }
+}

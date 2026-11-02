@@ -1,0 +1,105 @@
+// Peças comuns das seções de Configurações (não gera CSS sozinho).
+// Uso no componente: `@use 'secao' as s;` e `@include s.cabecalho;` etc.
+@use 'mixins' as m;
+
+// Cabeçalho da seção: título (h2) e frase à esquerda, a ação principal à direita.
+@mixin cabecalho {
+  .secao__cabecalho {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--esp-4) var(--esp-6);
+  }
+
+  .secao__textos {
+    display: grid;
+    flex: 1 1 28rem;
+    gap: var(--esp-2);
+    min-width: 0;
+  }
+
+  .secao__titulo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2);
+    font: var(--fonte-h2);
+    letter-spacing: var(--tracking-titulo);
+  }
+
+  .secao__frase {
+    max-width: 48rem;
+    color: var(--cor-texto-suave);
+    font: var(--fonte-corpo);
+  }
+}
+
+// A ação principal: pílula invertida no cabeçalho; no celular, botão flutuante circular no
+// canto inferior direito (TELAS-FASE1, princípios), com o rótulo só para leitores de tela.
+@mixin acao-flutuante($seletor: '.secao__acao') {
+  // Espaço no fim da página para o botão flutuante não cobrir a última linha.
+  :host {
+    @include m.abaixo(m.$md) {
+      padding-bottom: 72px;
+    }
+  }
+
+  @include m.abaixo(m.$md) {
+    #{$seletor} {
+      position: fixed;
+      right: var(--esp-4);
+      bottom: calc(var(--esp-6) + env(safe-area-inset-bottom, 0px));
+      z-index: var(--z-cabecalho);
+      width: 56px;
+      min-width: 0;
+      height: 56px;
+      padding: 0;
+      border-radius: 50%;
+      box-shadow: var(--sombra-flutuante);
+      gap: 0;
+      justify-content: center;
+
+      // O círculo do ícone vira o próprio botão; o texto fica só para leitores de tela.
+      .secao__acao-texto {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+  }
+}
+
+// Faixa de atenção (ex.: pessoas sem o líder certo), com ícone e texto.
+@mixin faixa {
+  .faixa {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--esp-3);
+    padding: var(--esp-4) var(--esp-5);
+    border: 1px solid var(--cor-borda-forte);
+    border-radius: var(--raio-lg);
+    background: var(--cor-superficie);
+    box-shadow: var(--sombra-cartao);
+    color: var(--cor-texto-suave);
+    font: var(--fonte-corpo-sm);
+
+    strong {
+      color: var(--cor-texto);
+      font-weight: 600;
+    }
+  }
+
+  .faixa__icone {
+    flex: none;
+    margin-top: 2px;
+    color: var(--cor-aviso);
+  }
+
+  .faixa--info .faixa__icone {
+    color: var(--cor-info);
+  }
+}

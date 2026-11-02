@@ -1,0 +1,208 @@
+<app-modal
+  largura="lg"
+  [(aberto)]="aberto"
+  [titulo]="editando() ? 'Editar empresa' : 'Nova empresa'"
+  [complemento]="editando() ? '· ' + (empresa()?.nome ?? '') : null"
+>
+  <form class="formulario" novalidate [id]="idFormulario" [formGroup]="form" (ngSubmit)="salvar()">
+    @if (!editando()) {
+      <p class="formulario__frase">
+        Só o nome é obrigatório. Com o CNPJ, conferimos se a empresa já está cadastrada.
+      </p>
+    }
+
+    @if (erroGeral(); as mensagem) {
+      <p class="formulario__erro" role="alert">{{ mensagem }}</p>
+    }
+
+    <div class="formulario__grade">
+      <app-campo-texto
+        rotulo="Nome"
+        autocomplete="off"
+        formControlName="nome"
+        [maximoCaracteres]="200"
+      />
+      <app-campo-texto
+        rotulo="CNPJ"
+        opcional
+        autocomplete="off"
+        teclado="text"
+        placeholder="11.222.333/0001-81"
+        ajuda="Aceita o CNPJ numérico e o novo, com letras. Cada CNPJ só pode estar em uma empresa."
+        formControlName="cnpj"
+      />
+    </div>
+
+    <div class="formulario__duplicados" aria-live="polite">
+      @if (encontradas().porCnpj; as existente) {
+        <div class="duplicado">
+          <div class="duplicado__texto">
+            <p class="duplicado__titulo">
+              <strong>{{ existente.nome }}</strong> já está cadastrada com este CNPJ.
+            </p>
+            <p class="duplicado__meta">
+              Cada CNPJ só pode estar em uma empresa: abra a existente em vez de criar outra.
+            </p>
+          </div>
+          <a
+            appBotao
+            variante="contorno"
+            tamanho="sm"
+            [routerLink]="['/empresas', existente.id]"
+            (click)="fechar()"
+          >
+            Abrir empresa
+          </a>
+        </div>
+      }
+      @if (encontradas().mesmoNome; as existente) {
+        @if (existente.id !== encontradas().porCnpj?.id) {
+          <div class="duplicado">
+            <div class="duplicado__texto">
+              <p class="duplicado__titulo">
+                Já existe uma empresa chamada <strong>{{ existente.nome }}</strong
+                >.
+              </p>
+              <p class="duplicado__meta">
+                {{ existente.cnpjFormatado ?? 'Sem CNPJ' }} · {{ existente.quantidadeContatos }}
+                {{ existente.quantidadeContatos === 1 ? 'pessoa' : 'pessoas' }}. Confira se não é a
+                mesma antes de salvar.
+              </p>
+            </div>
+            <a
+              appBotao
+              variante="contorno"
+              tamanho="sm"
+              [routerLink]="['/empresas', existente.id]"
+              (click)="fechar()"
+            >
+              Abrir empresa
+            </a>
+          </div>
+        }
+      }
+      @if (parecidas().length) {
+        <div class="parecidos">
+          <p class="parecidos__titulo">Empresas com nome parecido:</p>
+          <ul class="parecidos__lista">
+            @for (parecida of parecidas(); track parecida.id) {
+              <li>
+                <a
+                  class="formulario__link"
+                  [routerLink]="['/empresas', parecida.id]"
+                  (click)="fechar()"
+                  >{{ parecida.nome }}</a
+                >
+                <span class="duplicado__meta">{{ parecida.cnpjFormatado ?? '' }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+
+    <div class="formulario__grade">
+      <app-campo-texto
+        rotulo="Site"
+        tipo="url"
+        opcional
+        autocomplete="off"
+        placeholder="empresa.com.br"
+        formControlName="site"
+      />
+      <app-campo-texto
+        rotulo="Segmento"
+        opcional
+        placeholder="Ex.: Varejo"
+        formControlName="segmento"
+      />
+      <app-campo-texto
+        rotulo="E-mail"
+        tipo="email"
+        opcional
+        autocomplete="off"
+        formControlName="email"
+      />
+      <app-campo-texto
+        rotulo="Telefone"
+        tipo="tel"
+        opcional
+        autocomplete="off"
+        placeholder="(11) 3333-4444"
+        formControlName="telefone"
+      />
+      <app-campo-texto rotulo="Cidade" opcional autocomplete="off" formControlName="cidade" />
+      <app-seletor
+        rotulo="Estado (UF)"
+        opcional
+        placeholder="Sem estado"
+        permitirVazio
+        [opcoes]="opcoesUf"
+        formControlName="uf"
+      />
+      @if (mostrarResponsavel()) {
+        <app-seletor
+          rotulo="Responsável"
+          ajuda="Quem cuida desta empresa. Líderes atribuem a alguém da equipe; Admin e C-level, a qualquer pessoa."
+          [opcoes]="opcoesResponsavel()"
+          formControlName="responsavelId"
+        />
+      }
+      <app-campo-etiquetas
+        class="formulario__largo"
+        rotulo="Etiquetas"
+        opcional
+        [sugestoes]="sugestoesEtiquetas()"
+        formControlName="etiquetas"
+      />
+    </div>
+
+    @if (editando()) {
+      <fieldset class="formulario__grupo" formArrayName="campos">
+        <legend class="formulario__legenda">Campos personalizados</legend>
+        @for (linha of campos.controls; track linha; let i = $index) {
+          <div class="campo-livre" [formGroupName]="i">
+            <app-campo-texto rotulo="Nome do campo" autocomplete="off" formControlName="chave" />
+            <app-campo-texto rotulo="Valor" autocomplete="off" formControlName="valor" />
+            <button
+              appBotaoIcone
+              type="button"
+              variante="contorno"
+              class="campo-livre__remover"
+              [icone]="icones.remover"
+              [rotulo]="'Remover o campo ' + (linha.value.chave || i + 1)"
+              (click)="removerCampo(i)"
+            ></button>
+          </div>
+        } @empty {
+          <p class="duplicado__meta">Nenhum campo personalizado.</p>
+        }
+        <div>
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            tamanho="sm"
+            [icone]="icones.adicionar"
+            (click)="adicionarCampo()"
+          >
+            Adicionar campo
+          </button>
+        </div>
+      </fieldset>
+    }
+  </form>
+
+  <div modal-rodape>
+    <button appBotao type="button" variante="contorno" (click)="fechar()">Cancelar</button>
+    <button
+      appBotao
+      type="submit"
+      variante="invertido"
+      [attr.form]="idFormulario"
+      [carregando]="salvando()"
+    >
+      {{ editando() ? 'Salvar alterações' : 'Criar empresa' }}
+    </button>
+  </div>
+</app-modal>

@@ -1,0 +1,215 @@
+<section class="lgpd" [attr.aria-labelledby]="idTitulo">
+  <header class="lgpd__cabecalho">
+    <span class="lgpd__selo" aria-hidden="true"><svg lucideShieldCheck [size]="18" /></span>
+    <h2 class="lgpd__titulo" [id]="idTitulo">Privacidade (LGPD)</h2>
+    <app-dica
+      rotulo="Sobre a privacidade do contato"
+      titulo="Lei Geral de Proteção de Dados"
+      texto="A LGPD dá à pessoa o direito de não receber marketing (opt-out) e de pedir que os dados dela sejam apagados. Aqui fica o que ela escolheu e de onde veio o consentimento dela."
+    />
+  </header>
+
+  <app-alternador
+    rotulo="Opt-out de marketing"
+    [dica]="dicaOptOut()"
+    [valor]="optOut()"
+    [desabilitado]="!podeEditar() || salvandoOptOut()"
+    (valorChange)="mudarOptOut($event)"
+  />
+
+  <app-alternador
+    rotulo="Não contatar por WhatsApp"
+    [dica]="dicaWhatsapp()"
+    [valor]="naoContatar()"
+    [desabilitado]="!podeEditar() || salvandoWhatsapp()"
+    (valorChange)="mudarWhatsapp($event)"
+  />
+
+  <div class="lgpd__parte">
+    <h3 class="lgpd__subtitulo">Consentimento</h3>
+    @if (contato().consentimento; as consentimento) {
+      <p class="lgpd__texto">
+        Consentiu em <strong>{{ formatarData(consentimento.em) }}</strong>
+        @if (consentimento.origem) {
+          · {{ consentimento.origem }}
+        }
+      </p>
+    } @else {
+      <p class="lgpd__meta">Nenhum consentimento registrado.</p>
+    }
+    @if (podeEditar()) {
+      <div class="lgpd__acoes">
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          (click)="abrirConsentimento()"
+        >
+          {{ contato().consentimento ? 'Registrar de novo' : 'Registrar consentimento' }}
+        </button>
+        @if (contato().consentimento) {
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            tamanho="sm"
+            (click)="removerConsentimento()"
+          >
+            Remover
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (podeAnonimizar()) {
+    <div class="lgpd__parte">
+      <h3 class="lgpd__subtitulo">Exportar dados pessoais</h3>
+      <p class="lgpd__meta">
+        A pedido da pessoa: baixa um arquivo com tudo o que o CRM guarda sobre ela (contato,
+        consentimento, negócios, atividades e conversas). A consulta fica na auditoria.
+      </p>
+      <div class="lgpd__acoes">
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          [icone]="iconeBaixar"
+          [carregando]="exportando()"
+          (click)="exportar()"
+        >
+          Exportar dados pessoais
+        </button>
+      </div>
+      @if (erroExportacao(); as erro) {
+        <p class="lgpd__erro" role="alert">{{ erro }}</p>
+      }
+    </div>
+  }
+
+  <div class="lgpd__parte">
+    <h3 class="lgpd__subtitulo">Apagar dados pessoais</h3>
+    @if (podeAnonimizar()) {
+      <p class="lgpd__meta">
+        A pedido da pessoa: apaga para sempre nome, e-mail, telefone e os outros dados pessoais. As
+        métricas continuam certas.
+      </p>
+      <div class="lgpd__acoes">
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          class="lgpd__anonimizar"
+          (click)="abrirAnonimizacao()"
+        >
+          Anonimizar contato…
+        </button>
+      </div>
+    } @else {
+      <p class="lgpd__meta">
+        A exclusão com anonimização, quando a pessoa pede, é feita só pelo Admin.
+      </p>
+    }
+  </div>
+</section>
+
+<app-modal titulo="Registrar consentimento" largura="sm" [(aberto)]="consentimentoAberto">
+  <form
+    class="lgpd__formulario"
+    [id]="idFormConsentimento"
+    (submit)="$event.preventDefault(); salvarConsentimento()"
+  >
+    <app-campo-texto
+      rotulo="De onde veio"
+      placeholder="Ex.: formulário do site"
+      autocomplete="off"
+      [maximoCaracteres]="200"
+      [valor]="origemConsentimento()"
+      (valorChange)="origemConsentimento.set($event === null ? '' : '' + $event)"
+      [erro]="erroConsentimento()"
+    />
+    <app-campo-data
+      rotulo="Quando"
+      tipo="data"
+      [maximo]="hoje"
+      dica="O dia em que a pessoa consentiu. Hoje registra a hora de agora."
+      [(valor)]="dataConsentimento"
+    />
+  </form>
+  <div modal-rodape>
+    <button appBotao type="button" variante="contorno" (click)="consentimentoAberto.set(false)">
+      Cancelar
+    </button>
+    <button
+      appBotao
+      type="submit"
+      variante="invertido"
+      [attr.form]="idFormConsentimento"
+      [carregando]="salvandoConsentimento()"
+    >
+      Registrar
+    </button>
+  </div>
+</app-modal>
+
+<app-modal
+  largura="md"
+  [titulo]="'Anonimizar ' + contato().nome + '?'"
+  [(aberto)]="anonimizacaoAberta"
+>
+  <form
+    class="lgpd__formulario"
+    [id]="idFormAnonimizar"
+    (submit)="$event.preventDefault(); anonimizar()"
+  >
+    <p class="lgpd__perigo">
+      <svg lucideTriangleAlert [size]="18" />
+      <span>Atenção: isso não pode ser desfeito.</span>
+    </p>
+    <p class="lgpd__texto">Os dados pessoais de {{ contato().nome }} saem do CRM para sempre:</p>
+    <ul class="lgpd__lista">
+      <li>nome, e-mail, telefone, cargo e empresa;</li>
+      <li>etiquetas, campos personalizados e o consentimento;</li>
+      <li>nos títulos dos negócios e das atividades dela, o nome vira “Contato anonimizado”.</li>
+    </ul>
+    <p class="lgpd__meta">
+      O contato some das listas, e o e-mail e o telefone ficam livres para um cadastro novo. Ficam
+      só o tipo da origem, a campanha (UTM) e as contagens, para as métricas continuarem certas. A
+      auditoria registra quem anonimizou e quando, sem os dados apagados.
+    </p>
+    <app-area-texto
+      rotulo="Motivo"
+      opcional
+      [linhas]="2"
+      [maximoCaracteres]="500"
+      placeholder="Ex.: pedido do titular por e-mail em 21/10/2026"
+      dica="Fica na auditoria, que é permanente: não escreva dados pessoais aqui."
+      [(valor)]="motivo"
+    />
+    <app-campo-texto
+      autocomplete="off"
+      [rotulo]="'Digite “' + nomeEsperado() + '” para confirmar'"
+      [valor]="confirmacaoDigitada()"
+      (valorChange)="confirmacaoDigitada.set($event === null ? '' : '' + $event)"
+      [erro]="erroAnonimizacao()"
+    />
+  </form>
+  <div modal-rodape>
+    <button appBotao type="button" variante="contorno" (click)="anonimizacaoAberta.set(false)">
+      Cancelar
+    </button>
+    <button
+      appBotao
+      type="submit"
+      variante="invertido"
+      [attr.form]="idFormAnonimizar"
+      [disabled]="!confere()"
+      [carregando]="anonimizando()"
+    >
+      Anonimizar contato
+    </button>
+  </div>
+</app-modal>

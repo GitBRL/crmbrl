@@ -1,0 +1,290 @@
+@use 'mixins' as m;
+@use 'conversa' as c;
+
+// Compositor (DESIGN-SYSTEM.md §4.6): pílula de escrever (28px de raio, cresce com o texto),
+// botões-círculo dentro dela, anexos em pílulas acima e a linha de ajuda embaixo. Só tokens.
+
+:host {
+  display: grid;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.compositor__caixa {
+  position: relative;
+  display: grid;
+  gap: var(--esp-2);
+}
+
+// Mensagem | Nota interna: pílulas pequenas; a escolhida invertida (a nota, coral).
+.compositor__modos {
+  display: flex;
+  gap: var(--esp-1);
+}
+
+.compositor__modo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 var(--esp-3);
+  border: 1px solid var(--cor-contorno-controle);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  cursor: pointer;
+
+  @include m.area-toque(6px, 0);
+
+  &:hover {
+    color: var(--cor-texto);
+  }
+
+  &[aria-pressed='true'] {
+    border-color: transparent;
+    background: var(--cor-inverso);
+    color: var(--cor-sobre-inverso);
+  }
+}
+
+.compositor__modo--nota[aria-pressed='true'] {
+  background: var(--cor-destaque);
+  color: var(--cor-sobre-destaque);
+}
+
+.compositor__respostas {
+  position: absolute;
+  inset: auto 0 calc(100% + var(--esp-2));
+  z-index: var(--z-flutuante);
+}
+
+.compositor__barra {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--esp-2);
+  min-height: 56px;
+  padding: 5px;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 28px;
+  background: var(--cor-superficie-2);
+  transition:
+    border-color var(--duracao) var(--curva),
+    background-color var(--duracao) var(--curva);
+
+  &:has(.compositor__campo:focus-visible) {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+:host(.compositor--nota) .compositor__barra {
+  @include c.tons-nota;
+
+  border-color: transparent;
+}
+
+.compositor__caixa--arrastando .compositor__barra {
+  border: 1px dashed var(--cor-destaque);
+  background: color-mix(in srgb, var(--cor-destaque) 12%, var(--cor-superficie-2));
+}
+
+.compositor__seletor {
+  display: none;
+}
+
+.compositor__campo {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: calc(6lh + 22px);
+  padding: 11px var(--esp-2);
+  overflow-y: auto;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: var(--fonte-corpo);
+  resize: none;
+  field-sizing: content;
+
+  // Uma linha só (cortada com reticências): o campo vazio não cresce por causa da frase.
+  &::placeholder {
+    overflow: hidden;
+    color: var(--cor-texto-fraco);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// Anexos escolhidos: pílulas com miniatura (ou ícone), nome, tamanho e remover.
+.compositor__anexos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compositor__anexo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  max-width: min(100%, 280px);
+  padding: 4px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+}
+
+.compositor__miniatura {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+  object-fit: cover;
+}
+
+.compositor__anexo-textos {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.compositor__anexo-nome {
+  overflow: hidden;
+  font: var(--fonte-rotulo);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compositor__anexo-detalhe {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+// Gravando: ponto vermelho, tempo e o nível do microfone em barras-pílula.
+.compositor__gravando {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--esp-2);
+}
+
+.compositor__ponto {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cor-erro);
+  animation: gravando 1.2s var(--curva) 4;
+}
+
+@keyframes gravando {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.compositor__tempo {
+  min-width: 3em;
+  font: var(--fonte-rotulo);
+  font-variant-numeric: tabular-nums;
+}
+
+.compositor__niveis {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  height: 28px;
+  overflow: hidden;
+
+  i {
+    flex: none;
+    width: 3px;
+    border-radius: var(--raio-pilula);
+    background: var(--cor-info);
+  }
+}
+
+.compositor__player {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  align-self: center;
+}
+
+.compositor__bloqueio {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: 56px;
+  padding: var(--esp-3) var(--esp-5);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: 28px;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  svg {
+    flex: none;
+    color: var(--cor-aviso);
+  }
+}
+
+.compositor__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-1) var(--esp-4);
+  padding-inline: var(--esp-4);
+}
+
+.compositor__erro {
+  flex-basis: 100%;
+  color: var(--cor-erro);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.compositor__dica {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.compositor__contador {
+  margin-left: auto;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+}
+
+.compositor__contador--excedeu {
+  color: var(--cor-erro);
+  font-weight: 600;
+}
+
+@media (forced-colors: active) {
+  .compositor__modo[aria-pressed='true'] {
+    border: 2px solid CanvasText;
+  }
+}

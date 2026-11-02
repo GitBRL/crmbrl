@@ -1,0 +1,65 @@
+.formulario {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.formulario__frase {
+  color: var(--cor-texto-suave);
+}
+
+// Papel e líder, um embaixo do outro: o papel define as opções de líder logo abaixo.
+.formulario__par {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+// Admin e C-level não têm líder: no lugar do seletor, a explicação.
+.formulario__sem-lider {
+  display: grid;
+  gap: var(--esp-2);
+  padding-inline: var(--esp-4);
+
+  p {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-legenda-lg);
+  }
+}
+
+.formulario__rotulo-nota {
+  font: var(--fonte-rotulo);
+}
+
+.formulario__aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.formulario__senha {
+  display: grid;
+  gap: var(--esp-3);
+  justify-items: start;
+
+  app-campo-senha {
+    justify-self: stretch;
+  }
+}
+
+.formulario__erro {
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+}
+
+.formulario__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-2);
+}

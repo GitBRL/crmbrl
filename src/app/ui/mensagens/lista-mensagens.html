@@ -1,0 +1,82 @@
+<cdk-virtual-scroll-viewport
+  class="lista__area"
+  tabindex="0"
+  role="region"
+  [attr.aria-label]="rotulo()"
+  [attr.aria-busy]="carregando() || carregandoAnteriores() || null"
+>
+  <div
+    *cdkVirtualFor="let item of itens(); trackBy: rastrear"
+    class="lista__item"
+    [attr.data-chave]="item.id"
+  >
+    @switch (item.tipo) {
+      @case ('topo') {
+        <div class="lista__topo">
+          @if (temAnteriores()) {
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              [carregando]="carregandoAnteriores()"
+              (click)="pedirAnteriores()"
+            >
+              {{
+                carregandoAnteriores()
+                  ? 'Carregando as anteriores…'
+                  : 'Carregar mensagens anteriores'
+              }}
+            </button>
+          } @else {
+            <p class="lista__inicio">Início da conversa</p>
+          }
+        </div>
+      }
+      @case ('data') {
+        <app-separador-data [rotulo]="item.rotulo" />
+      }
+      @case ('mensagem') {
+        <app-bolha-mensagem
+          [mensagem]="item.mensagem"
+          [continuacao]="item.continuacao"
+          [seguida]="item.seguida"
+          [nomes]="nomes()"
+          [avatares]="avatares()"
+          (tentarDeNovo)="tentarDeNovo.emit($event)"
+        />
+      }
+    }
+  </div>
+</cdk-virtual-scroll-viewport>
+
+@if (!mensagens().length) {
+  <div class="lista__estado">
+    @if (carregando()) {
+      <div class="lista__esqueletos" aria-hidden="true">
+        <app-esqueleto forma="bloco" largura="46%" altura="44px" />
+        <app-esqueleto class="lista__esqueleto-saida" forma="bloco" largura="58%" altura="64px" />
+        <app-esqueleto forma="bloco" largura="38%" altura="44px" />
+        <app-esqueleto class="lista__esqueleto-saida" forma="bloco" largura="30%" altura="44px" />
+      </div>
+      <p class="visualmente-oculto" role="status">Carregando as mensagens…</p>
+    } @else {
+      <p class="lista__vazia">{{ textoVazio() }}</p>
+    }
+  </div>
+}
+
+<app-digitando class="lista__digitando" [nomes]="digitando()" />
+
+@if (!noFim() && mensagens().length) {
+  <button
+    appBotaoIcone
+    type="button"
+    class="lista__ir-ao-fim"
+    variante="invertido"
+    [icone]="icones.fim"
+    [rotulo]="rotuloIrAoFim()"
+    [contagem]="novas()"
+    (click)="rolarParaOFim('smooth')"
+  ></button>
+}

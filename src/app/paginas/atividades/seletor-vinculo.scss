@@ -1,0 +1,155 @@
+@use '../../ui/campo/campo' as c;
+
+// Caixa de combinação do vínculo: a mesma pílula dos campos de ui/ e, embaixo dela, a lista
+// flutuante (cartão flutuante, como o menu de ações).
+
+:host {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.vinculo__campo,
+.vinculo__escolhido {
+  @include c.controle;
+}
+
+.vinculo__escolhido {
+  padding-inline: var(--esp-1) var(--esp-1);
+}
+
+.vinculo__lupa {
+  flex: none;
+  color: var(--cor-texto-suave);
+}
+
+.vinculo__input {
+  @include c.nativo;
+}
+
+.vinculo__icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--altura-sm);
+  height: var(--altura-sm);
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+}
+
+.vinculo__texto {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.vinculo__nome {
+  overflow: hidden;
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vinculo__tipo {
+  overflow: hidden;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vinculo__tirar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--altura-sm);
+  height: var(--altura-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  &:hover {
+    background: var(--cor-vidro-forte);
+    color: var(--cor-texto);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.vinculo__lista {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + var(--esp-1));
+  z-index: var(--z-flutuante);
+  display: grid;
+  gap: var(--esp-1);
+  max-height: min(22rem, 60vh);
+  overflow-y: auto;
+  padding: var(--esp-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-flutuante);
+  box-shadow: var(--sombra-flutuante);
+  transition: opacity var(--duracao-opacidade) ease-out;
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+.vinculo__grupo {
+  display: grid;
+  gap: 2px;
+}
+
+.vinculo__grupo-titulo {
+  padding: var(--esp-1) var(--esp-3) 0;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.vinculo__opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--altura-md);
+  padding: var(--esp-1) var(--esp-3) var(--esp-1) var(--esp-1);
+  border-radius: var(--raio-pilula);
+  cursor: pointer;
+  transition: background-color var(--duracao) var(--curva);
+
+  &:hover,
+  &.vinculo__opcao--ativa {
+    background: var(--cor-vidro-forte);
+  }
+
+  &.vinculo__opcao--ativa {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: -2px;
+  }
+}
+
+.vinculo__aviso {
+  padding: var(--esp-3);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+@media (forced-colors: active) {
+  .vinculo__opcao--ativa {
+    outline-color: Highlight;
+  }
+}

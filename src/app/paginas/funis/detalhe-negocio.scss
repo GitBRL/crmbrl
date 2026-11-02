@@ -1,0 +1,240 @@
+@use 'mixins' as m;
+
+// Detalhe do negócio (painel lateral): resumo (etapa e responsável, fatos, vínculos e
+// jornada) e as abas. Só tokens.
+
+:host {
+  display: contents;
+}
+
+.carregando {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.carregando__linha {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-4);
+}
+
+.detalhe {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+.resumo {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.resumo__acoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--esp-4);
+  align-items: start;
+}
+
+.resumo__responsavel {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.resumo__assumir {
+  justify-self: start;
+}
+
+.resumo__motivo {
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: color-mix(in srgb, var(--cor-destaque) 10%, transparent);
+  color: var(--cor-texto);
+  font: var(--fonte-corpo-sm);
+
+  strong {
+    font-weight: 500;
+  }
+}
+
+// Fatos: valor, previsão e tempo na etapa, em blocos lado a lado (número leve, legenda fraca).
+.fatos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--esp-3);
+  margin: 0;
+}
+
+.fato {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-1);
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+
+  dt {
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda);
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--esp-1) var(--esp-2);
+    margin: 0;
+    color: var(--cor-texto);
+    font: var(--fonte-corpo);
+  }
+}
+
+.fato dd.fato__numero {
+  font: var(--fonte-numero-pequeno);
+}
+
+.fato__extra {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+// Contato, empresa e etiquetas: rótulo à esquerda, valor à direita.
+.vinculos,
+.ficha {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+}
+
+.vinculo,
+.ficha__linha {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: var(--esp-3);
+  align-items: baseline;
+
+  dt {
+    color: var(--cor-texto-fraco);
+    font: var(--fonte-legenda-lg);
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--esp-1) var(--esp-2);
+    min-width: 0;
+    margin: 0;
+    color: var(--cor-texto);
+    font: var(--fonte-corpo-sm);
+    overflow-wrap: anywhere;
+  }
+}
+
+.vinculo__link {
+  color: var(--cor-texto);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--cor-borda-forte);
+  text-underline-offset: 3px;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+
+  &:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.vinculo__extra {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.vinculo dd.vinculo__etiquetas {
+  gap: var(--esp-1);
+}
+
+// Jornada: de onde veio e o que gerou (passagens entre funis).
+.jornada {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: var(--raio-lg);
+  list-style: none;
+}
+
+.jornada__item {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  strong {
+    color: var(--cor-texto);
+    font-weight: 500;
+  }
+}
+
+.jornada__circulo {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+}
+
+// Aba "Dados".
+.dados {
+  display: grid;
+  gap: var(--esp-8);
+}
+
+.dados__form {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.dados__linha {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--esp-4);
+  align-items: start;
+}
+
+.dados__erro {
+  color: var(--cor-erro);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+}
+
+.dados__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
+
+.ficha {
+  padding-top: var(--esp-5);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.ficha__linha dd.ficha__utm {
+  gap: var(--esp-1) var(--esp-3);
+}
+
+@include m.abaixo(m.$sm) {
+  .vinculo,
+  .ficha__linha {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}

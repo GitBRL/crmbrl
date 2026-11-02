@@ -1,0 +1,167 @@
+<!-- Cada seta anda com a etapa seguinte e o "?" com a última: quebrando a linha, nada fica
+     sozinho no fim (nem a seta nem a dica). -->
+<div class="jornada" role="list" aria-label="Jornada do cliente">
+  @for (etapa of etapas(); track etapa.area; let primeira = $first, ultima = $last) {
+    <span class="jornada__item" role="listitem">
+      @if (!primeira) {
+        <span class="jornada__seta" aria-hidden="true">→</span>
+      }
+      <span class="jornada__etapa" [class.jornada__etapa--vazia]="!etapa.total">
+        <span class="jornada__ponto" [style.background]="dadoDaArea[etapa.area]"></span>
+        <span class="jornada__nome">{{ rotuloArea[etapa.area] }}</span>
+        <!-- Separa nome e resumo para o leitor de tela ("Marketing: nenhum"). -->
+        <span class="visualmente-oculto">{{ ': ' }}</span>
+        @if (etapa.semAcesso) {
+          <span class="jornada__resumo jornada__resumo--sem-acesso">
+            <svg lucideLock [size]="12" />
+            sem acesso
+          </span>
+        } @else {
+          <span class="jornada__resumo">{{
+            resumoDaEtapa(etapa.total, etapa.abertos, etapa.ganhos)
+          }}</span>
+        }
+      </span>
+      @if (ultima) {
+        <app-dica rotulo="Sobre os negócios" [texto]="explicacao()" />
+      }
+    </span>
+  }
+</div>
+
+@if (notaDoMembro(); as nota) {
+  <p class="jornada__nota">{{ nota }}</p>
+}
+
+@if (erro(); as falha) {
+  <app-estado-vazio
+    compacto
+    variante="erro"
+    [falha]="falha"
+    titulo="Não conseguimos carregar os negócios"
+    [texto]="falha.resumo"
+    [codigo]="falha.requisicaoId"
+  >
+    <button
+      appBotao
+      type="button"
+      variante="invertido"
+      tamanho="sm"
+      [icone]="icones.tentar"
+      (click)="tentarDeNovo.emit()"
+    >
+      Tentar de novo
+    </button>
+  </app-estado-vazio>
+} @else if (carregando()) {
+  <div class="negocios" aria-busy="true">
+    <p class="visualmente-oculto" role="status">Carregando os negócios…</p>
+    @for (linha of [1, 2]; track linha) {
+      <div class="negocio negocio--esqueleto">
+        <app-esqueleto largura="40%" />
+        <app-esqueleto largura="70%" />
+        <app-esqueleto largura="30%" />
+      </div>
+    }
+  </div>
+} @else if (negocios().length === 0) {
+  <app-estado-vazio
+    compacto
+    titulo="Nenhum negócio por aqui"
+    [texto]="
+      dono() === 'empresa'
+        ? 'A empresa ainda não tem negócios nos funis que você acompanha.'
+        : 'A pessoa ainda não tem negócios nos funis que você acompanha. Os negócios nascem no funil: em Novo negócio, escolha este contato.'
+    "
+  />
+} @else {
+  <ul class="negocios">
+    @for (item of jornada(); track item.negocio.id) {
+      <li class="negocio">
+        <div class="negocio__topo">
+          <span class="negocio__onde">
+            <span
+              class="jornada__ponto"
+              [style.background]="dadoDaArea[item.negocio.funil.area]"
+            ></span>
+            {{ item.negocio.funil.nome }} · {{ item.negocio.etapa.nome }}
+          </span>
+          <span class="negocio__selos">
+            <app-selo tamanho="sm" [variante]="varianteStatus[item.negocio.status]">{{
+              rotuloStatus[item.negocio.status]
+            }}</app-selo>
+            @if (item.negocio.parado) {
+              <app-selo tamanho="sm" variante="coral">Parado</app-selo>
+            }
+          </span>
+        </div>
+
+        <a
+          class="negocio__titulo"
+          [routerLink]="linkDoNegocio(item.negocio)"
+          [queryParams]="{ funil: item.negocio.funil.id }"
+          >{{ item.negocio.titulo }}</a
+        >
+
+        <div class="negocio__linha">
+          <span class="negocio__valor">
+            {{ moeda(item.negocio.valor) }}
+            @if (recorrente(item.negocio); as mensal) {
+              <span class="negocio__meta"> + {{ mensal }}/mês</span>
+            }
+          </span>
+          <span class="negocio__meta">
+            @switch (item.negocio.status) {
+              @case ('GANHO') {
+                Ganho em {{ formatarData(item.negocio.ganhoEm) }}
+              }
+              @case ('PERDIDO') {
+                Perdido em {{ formatarData(item.negocio.perdidoEm) }}
+              }
+              @default {
+                {{ tempoNaEtapa(item.negocio.diasNaEtapa, item.negocio.etapaDesde) }}
+              }
+            }
+          </span>
+          @if (item.negocio.responsavel; as responsavel) {
+            <span class="negocio__responsavel">
+              <app-avatar [nome]="responsavel.nome" tamanho="sm" decorativo />
+              {{ responsavel.nome }}
+            </span>
+          } @else {
+            <span class="negocio__meta">Sem responsável</span>
+          }
+        </div>
+
+        @if (item.veioDe || item.veioDeOculto || item.gerou.length) {
+          <div class="negocio__vinculos">
+            @if (item.veioDeOculto) {
+              <p>Veio de outro funil, que o seu papel não vê.</p>
+            } @else if (item.veioDe; as origem) {
+              <p>
+                Veio de:
+                <a
+                  class="negocio__vinculo"
+                  [routerLink]="link(origem)"
+                  [queryParams]="{ funil: origem.funilId }"
+                  >{{ titulo(origem) }}</a
+                >
+              </p>
+            }
+            @for (destino of item.gerou; track destino.id) {
+              <p>
+                Gerou:
+                <a
+                  class="negocio__vinculo"
+                  [routerLink]="link(destino)"
+                  [queryParams]="{ funil: destino.funilId }"
+                  >{{ titulo(destino) }}</a
+                >
+              </p>
+            }
+          </div>
+        }
+      </li>
+    }
+  </ul>
+}

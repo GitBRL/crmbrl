@@ -1,0 +1,446 @@
+@use 'mixins' as m;
+
+// Consultas da Administração (auditoria e logs técnicos): filtros, tabela densa, "Carregar
+// mais" e o painel de detalhe. Só tokens.
+
+:host {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+  min-width: 0;
+}
+
+// Filtros ------------------------------------------------------------------------------------
+.filtros {
+  display: grid;
+  // Coluna presa à largura do cartão: o <input> da busca tem largura própria e, com o
+  // botão "Filtros" ao lado, alargaria a grade no celular.
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-4);
+  margin-bottom: var(--esp-5);
+}
+
+.filtros__topo {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--esp-3);
+}
+
+.filtros__busca {
+  flex: 1 1 0;
+  max-width: 36rem;
+  min-width: 0;
+}
+
+// Botão "Filtros": só no celular, onde os filtros além da busca ficam recolhidos.
+.filtros__alternar {
+  display: none;
+  flex: none;
+}
+
+.filtros__mais {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+@include m.abaixo(m.$sm) {
+  .filtros__alternar {
+    display: inline-flex;
+  }
+
+  .filtros__busca {
+    max-width: none;
+  }
+
+  .filtros__mais:not(.filtros__mais--aberto) {
+    display: none;
+  }
+}
+
+.filtros__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-3);
+  min-width: 0;
+
+  app-filtros-pilula {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+.filtros__rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  color: var(--cor-texto);
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+}
+
+.filtros__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+  gap: var(--esp-3) var(--esp-4);
+  align-items: start;
+}
+
+.filtros__ativos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-3);
+}
+
+.filtros__requisicao {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  code {
+    color: var(--cor-texto);
+  }
+}
+
+// Células ------------------------------------------------------------------------------------
+.consulta__quando {
+  color: var(--cor-texto-suave);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.consulta__ator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.consulta__ator-icone {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-controle);
+  color: var(--cor-texto);
+}
+
+.consulta__ator-nome {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.consulta__fraco {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.consulta__resumo,
+.consulta__mensagem {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.consulta__origem {
+  font-family: var(--familia-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.consulta__http {
+  color: var(--cor-texto-suave);
+  font-family: var(--familia-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+// Rodapé da lista ----------------------------------------------------------------------------
+.consulta__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  margin-top: var(--esp-4);
+}
+
+.consulta__contagem {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.consulta__erro {
+  color: var(--cor-erro);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+}
+
+// Painel -------------------------------------------------------------------------------------
+.detalhe {
+  display: grid;
+  gap: var(--esp-6);
+  min-width: 0;
+}
+
+.detalhe__fatos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-2);
+  margin: 0;
+
+  div {
+    display: grid;
+    align-content: start;
+    gap: var(--esp-1);
+    min-width: 0;
+    padding: var(--esp-3) var(--esp-4);
+    border-radius: var(--raio-lg);
+    background: var(--cor-superficie-2);
+  }
+
+  // No celular, uma lista compacta (rótulo à esquerda, valor à direita), como nos webhooks.
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    overflow: hidden;
+    border-radius: var(--raio-lg);
+    background: var(--cor-superficie-2);
+
+    div {
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: var(--esp-3);
+      padding: var(--esp-2) var(--esp-4);
+      border-radius: 0;
+      background: none;
+    }
+
+    div + div {
+      border-top: 1px solid var(--cor-borda);
+    }
+
+    dd {
+      justify-content: flex-end;
+      text-align: end;
+    }
+  }
+
+  dt {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-legenda);
+    font-weight: 500;
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2);
+    margin: 0;
+    font: var(--fonte-corpo-sm);
+    overflow-wrap: anywhere;
+  }
+}
+
+.detalhe__secao {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.detalhe__subtitulo {
+  font: var(--fonte-h3);
+}
+
+.detalhe__fraco {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.detalhe__mensagem {
+  font: var(--fonte-corpo);
+  overflow-wrap: anywhere;
+}
+
+.detalhe__link {
+  color: var(--cor-texto);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    color: var(--cor-destaque-texto);
+  }
+}
+
+.detalhe__dados {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+
+  div {
+    display: grid;
+    grid-template-columns: minmax(9rem, 26%) minmax(0, 1fr);
+    gap: var(--esp-4);
+    font: var(--fonte-corpo-sm);
+
+    @include m.abaixo(m.$sm) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--esp-1);
+    }
+  }
+
+  dt {
+    color: var(--cor-texto-suave);
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2);
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.detalhe__acoes-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.detalhe__agente {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.detalhe__relacionados {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-1) var(--esp-3);
+    align-items: baseline;
+    font: var(--fonte-corpo-sm);
+  }
+
+  code {
+    color: var(--cor-texto-suave);
+  }
+}
+
+.detalhe__entidade {
+  min-width: 5.5rem;
+  color: var(--cor-texto-suave);
+}
+
+.detalhe__nome {
+  font-weight: 500;
+}
+
+code {
+  font-family: var(--familia-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+// Diff: antes riscado em tom suave, depois em destaque (como no catálogo).
+.diff__rolagem {
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.diff {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--fonte-corpo-sm);
+
+  th,
+  td {
+    padding: var(--esp-3) var(--esp-2);
+    border-bottom: 1px solid var(--cor-borda);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  thead th {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-legenda);
+    font-weight: 500;
+  }
+
+  tbody th {
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  td {
+    overflow-wrap: anywhere;
+  }
+}
+
+.diff__antes {
+  color: var(--cor-texto-suave);
+  text-decoration: line-through;
+}
+
+.diff__depois {
+  display: inline-block;
+  padding: 2px var(--esp-2);
+  border-radius: var(--raio-sm);
+  background: var(--cor-vidro-forte);
+}
+
+.diff__id {
+  font-family: var(--familia-mono);
+  font-size: 12px;
+}
+
+.diff__vazio {
+  color: var(--cor-texto-fraco);
+  text-decoration: none;
+  background: none;
+  padding: 0;
+}
+
+// O código da ação, ao lado do rótulo legível, em tom fraco (para quem procura no log).
+.detalhe__codigo-acao {
+  color: var(--cor-texto-fraco);
+  font-size: 12px;
+}
+
+// O JSON dos dados registrados, recolhido: o que importa já está na lista acima.
+.detalhe__tecnico {
+  display: grid;
+  gap: var(--esp-3);
+
+  summary {
+    width: fit-content;
+    color: var(--cor-texto-suave);
+    font: var(--fonte-rotulo);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--cor-texto);
+    }
+  }
+}

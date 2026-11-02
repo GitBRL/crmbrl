@@ -1,0 +1,180 @@
+@use 'palco';
+
+// Funil: a legenda das origens logo acima das barras, e as barras agrupadas por área. Cada
+// área abre com o nome e uma linha fina até a borda; entre áreas, a passagem automática.
+// (A classe não pode ser "funil": é a do próprio app-barra-funil.)
+.jornada__funil {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+// Legenda das origens com a dica "Como ler o funil", que fica sempre junto da última origem
+// (nunca sozinha numa linha). Os itens da legenda entram nesta linha (o app-legenda e a lista
+// dele não geram caixa; os vãos são os da própria legenda) e a última origem reserva, depois
+// de si, o vão e o alvo da dica: o "?" volta para esse espaço com a margem negativa. Quando a
+// última origem não cabe e desce de linha, a dica desce junto.
+.jornada__legenda {
+  --_vao: var(--esp-5);
+  --_reserva: calc(var(--esp-3) + var(--altura-md));
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--_vao);
+
+  > app-legenda,
+  ::ng-deep .legenda__lista {
+    display: contents;
+  }
+
+  ::ng-deep .legenda__item:last-child {
+    margin-inline-end: var(--_reserva);
+  }
+
+  > app-dica {
+    margin-inline-start: calc(var(--esp-3) - var(--_vao) - var(--_reserva));
+  }
+}
+
+.etapas {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+.etapas__grupo {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.etapas__barras {
+  display: grid;
+  gap: var(--esp-5);
+}
+
+.etapas__area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+
+  // A linha encolhe até sumir antes de o nome da área quebrar.
+  &::after {
+    content: '';
+    flex: 1 1 0;
+    min-width: 0;
+    height: 1px;
+    background: var(--cor-borda);
+  }
+}
+
+.etapas__nome {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-rotulo);
+  white-space: nowrap;
+}
+
+// O nome da área leva ao funil dela.
+.etapas__link {
+  color: var(--cor-texto-suave);
+  text-decoration: none;
+  border-radius: var(--raio-sm);
+
+  &:hover {
+    color: var(--cor-texto);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+// "Ver todas as etapas": depois da linha, na ponta direita (a linha é o ::after, que vem
+// antes dele na ordem).
+.etapas__area::after {
+  order: 1;
+}
+
+.etapas__alternar {
+  order: 2;
+  min-height: var(--altura-sm);
+  margin: 0;
+  padding: 0 var(--esp-3);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--cor-texto);
+  font: var(--fonte-legenda);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--duracao) var(--curva);
+
+  &:hover {
+    background: var(--cor-vidro-forte);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+// Carregando: três indicadores e quatro barras na forma do conteúdo.
+.jornada__carregando {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+.jornada__esqueleto-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--esp-6);
+}
+
+.jornada__esqueleto-kpi,
+.jornada__esqueleto-barra {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+// O texto e a dica dele descem juntos quando não cabem ao lado do nome da área.
+.etapas__passagem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+.etapas__passagem-texto {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+// Palco estreito: nome e linha sempre na primeira linha, a passagem embaixo — igual em
+// "Comercial" e em "Customer Success" (sem a linha pular sozinha para baixo).
+@container (width < 30rem) {
+  .etapas__area {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: var(--esp-2);
+    row-gap: var(--esp-1);
+  }
+
+  .etapas__area::after {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .etapas__passagem,
+  .etapas__parados,
+  .etapas__alternar {
+    grid-row: auto;
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}

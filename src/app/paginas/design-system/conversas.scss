@@ -1,0 +1,82 @@
+@use 'catalogo';
+@use 'mixins' as m;
+
+// Seção de conversas do catálogo. Só tokens.
+
+:host {
+  display: block;
+}
+
+// A conversa de exemplo: lista com altura fixa (a lista ocupa a altura do pai) e o compositor.
+.ds-conversa {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--esp-3);
+  height: 620px;
+  padding: var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-fundo);
+
+  @include m.abaixo(m.$md) {
+    height: 560px;
+    padding: var(--esp-2);
+  }
+}
+
+.ds-conversa__lista {
+  min-height: 0;
+}
+
+.ds-conversa__digitando {
+  flex: 0 1 260px;
+}
+
+.ds-bolhas {
+  display: grid;
+  padding: var(--esp-2) var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-fundo);
+}
+
+.ds-pilha {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-entre-cartoes);
+}
+
+.ds-previas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--esp-3);
+}
+
+.ds-miudos__coluna {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-3);
+}
+
+.ds-status {
+  display: grid;
+  gap: var(--esp-2);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-3);
+    min-height: 32px;
+    padding: 0 var(--esp-3);
+    border-radius: var(--raio-pilula);
+    background: var(--cor-superficie-2);
+    color: var(--cor-texto-suave);
+    font: var(--fonte-corpo-sm);
+  }
+
+  .ds-token {
+    margin-left: auto;
+    color: var(--cor-texto-fraco);
+  }
+}

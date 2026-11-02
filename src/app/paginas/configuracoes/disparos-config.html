@@ -1,0 +1,133 @@
+<section class="secao" aria-labelledby="disparos-titulo">
+  <header class="secao__cabecalho">
+    <div class="secao__textos">
+      <h2 class="secao__titulo" id="disparos-titulo">Disparos</h2>
+      <p class="secao__frase">
+        Como as campanhas em massa são liberadas e como o contato pede para parar de receber.
+      </p>
+    </div>
+  </header>
+
+  @if (dados.erro(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar a configuração dos disparos"
+      [texto]="erro.resumo"
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeTentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (dados.dados() === null) {
+    <app-cartao>
+      <div class="config__esqueleto" aria-busy="true">
+        <p class="visualmente-oculto" role="status">Carregando a configuração…</p>
+        <app-esqueleto largura="35%" />
+        <app-esqueleto forma="bloco" altura="44px" />
+        <app-esqueleto forma="bloco" altura="96px" />
+      </div>
+    </app-cartao>
+  } @else {
+    <form class="config" (submit)="$event.preventDefault(); salvar()">
+      <app-cartao>
+        <div class="config__bloco">
+          <h3 class="config__titulo">Aprovação do líder</h3>
+          @for (r of [revisao()]; track r) {
+            <app-alternador
+              rotulo="Campanhas de membros precisam da aprovação do líder"
+              dica="Ligado: a campanha criada por um membro só começa a enviar depois que o líder da área aprova. Desligado: o membro inicia sozinho."
+              [valor]="aprovacao()"
+              (valorChange)="aprovacao.set($event)"
+            />
+          }
+        </div>
+      </app-cartao>
+
+      <app-cartao>
+        <div class="config__bloco">
+          <h3 class="config__titulo">Palavras de saída</h3>
+          <p class="config__texto">
+            Quando o contato responde com uma destas palavras, ele deixa de receber mensagens de
+            marketing (opt-out). Mantenha ao menos uma.
+          </p>
+          <ul class="config__palavras" aria-label="Palavras de saída">
+            @for (palavra of palavras(); track palavra) {
+              <li class="config__palavra">
+                <span>{{ palavra }}</span>
+                <button
+                  type="button"
+                  class="config__remover"
+                  [attr.aria-label]="'Remover ' + palavra"
+                  (click)="remover(palavra)"
+                >
+                  <svg lucideX [size]="14" aria-hidden="true" />
+                </button>
+              </li>
+            }
+          </ul>
+          @if (palavras().length === 0) {
+            <p class="config__erro" role="alert">Informe ao menos uma palavra.</p>
+          }
+          <div class="config__nova">
+            <app-campo-texto
+              rotulo="Nova palavra"
+              [maximoCaracteres]="maximoPalavra"
+              [erro]="erroPalavra()"
+              [(valor)]="novaPalavra"
+              (keydown.enter)="$event.preventDefault(); adicionar()"
+            />
+            <button appBotao type="button" variante="neutro" (click)="adicionar()">
+              Adicionar
+            </button>
+          </div>
+        </div>
+      </app-cartao>
+
+      <app-cartao>
+        <div class="config__bloco">
+          <h3 class="config__titulo">Confirmação de saída</h3>
+          <app-area-texto
+            rotulo="Texto enviado ao contato que pediu para sair"
+            [linhas]="3"
+            [maximoCaracteres]="maximoMensagem"
+            [erro]="erroMensagem()"
+            [(valor)]="mensagem"
+          />
+        </div>
+      </app-cartao>
+
+      @if (erroSalvar(); as texto) {
+        <p class="config__erro" role="alert">Não foi possível salvar. {{ texto }}</p>
+      }
+
+      <div class="config__rodape">
+        <button
+          appBotao
+          type="button"
+          variante="neutro"
+          [disabled]="!alterado() || salvando()"
+          (click)="descartar()"
+        >
+          Descartar mudanças
+        </button>
+        <button
+          appBotao
+          type="submit"
+          variante="invertido"
+          [carregando]="salvando()"
+          [disabled]="!podeSalvar()"
+        >
+          Salvar
+        </button>
+      </div>
+    </form>
+  }
+</section>

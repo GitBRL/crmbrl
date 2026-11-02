@@ -1,0 +1,968 @@
+<header class="ds-topo">
+  <div class="ds-topo__selos">
+    <app-selo variante="lima">Fundação</app-selo>
+  </div>
+  <h1 class="texto-display">
+    Design system&nbsp;<span class="tom-fraco">· </span
+    ><span class="tom-fraco sem-quebra">BRL CRM</span>
+  </h1>
+  <p class="ds-topo__frase">
+    Cores, tipografia e componentes do CRM, vivos: tudo o que aparece aqui é o componente real.
+    Troque o tema para conferir os dois, ou veja-os lado a lado no fim da página.
+  </p>
+  <div class="ds-topo__tema">
+    <app-alternador-tema variante="contorno" />
+    <span class="ds-topo__tema-texto">
+      Tema {{ tema.tema() }}
+      @if (tema.segueSistema()) {
+        <span class="tom-fraco">· segue o sistema</span>
+      }
+    </span>
+  </div>
+  <nav class="ds-indice" aria-label="Seções do catálogo">
+    <ol class="ds-indice__lista rolagem-horizontal" role="list">
+      @for (item of indice; track item.id) {
+        <li>
+          <a class="ds-indice__link" routerLink="." [fragment]="item.id">
+            <span class="ds-indice__numero" aria-hidden="true">{{ item.numero }}</span>
+            {{ item.rotulo }}
+          </a>
+        </li>
+      }
+    </ol>
+  </nav>
+</header>
+
+<app-ds-fundamentos />
+
+<app-ds-secao ancora="botoes" numero="05" titulo="Botões" complemento="· pílulas e círculos">
+  <p frase>
+    Atributos sobre o elemento nativo (<code class="ds-token">button</code> ou
+    <code class="ds-token">a</code>): semântica, foco e teclado vêm de graça.
+  </p>
+
+  <app-ds-exemplo
+    titulo="Botão pílula"
+    seletor="button[appBotao] · a[appBotao]"
+    quando="Toda ação com texto. Uma ação principal por tela (invertido); marca (pílula neutra com o círculo lima, sempre com ícone) só para IA; destaque (coral) para o que está ativo."
+  >
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Variantes</p>
+      <div class="ds-linha">
+        <button appBotao type="button" [icone]="icones.relatorio">Neutro</button>
+        <button appBotao type="button" variante="contorno" [icone]="icones.personalizar">
+          Contorno
+        </button>
+        <button appBotao type="button" variante="invertido" [icone]="icones.compartilhar">
+          Invertido
+        </button>
+        <button appBotao type="button" variante="destaque" [icone]="icones.layout">Destaque</button>
+        <button appBotao type="button" variante="marca" [icone]="icones.ia">Analisar com IA</button>
+      </div>
+    </div>
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Ícone em círculo · item ativo com círculo invertido</p>
+      <div class="ds-linha">
+        <button appBotao type="button" ativo [icone]="icones.layout">Layout</button>
+        <button appBotao type="button" variante="contorno" [icone]="icones.personalizar">
+          Personalizar
+        </button>
+        <button appBotao type="button" variante="contorno" [icone]="icones.relatorio">
+          Detalhes do relatório
+        </button>
+      </div>
+    </div>
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Tamanhos · sm 36 · md 44 · lg 52</p>
+      <div class="ds-linha">
+        <button appBotao type="button" tamanho="sm" [icone]="icones.mais">Pequeno</button>
+        <button appBotao type="button" [icone]="icones.mais">Médio</button>
+        <button appBotao type="button" tamanho="lg" [icone]="icones.mais">Grande</button>
+        <button appBotao type="button" tamanho="sm" variante="contorno">Sem ícone</button>
+      </div>
+    </div>
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Estados</p>
+      <div class="ds-linha">
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [carregando]="salvando()"
+          (click)="salvar()"
+        >
+          {{ salvando() ? 'Salvando…' : 'Salvar (clique)' }}
+        </button>
+        <button appBotao type="button" disabled [icone]="icones.enviar">Desabilitado</button>
+        <button appBotao type="button" semCirculo [icone]="icones.compartilhar">Ícone solto</button>
+        <a appBotao variante="contorno" routerLink="/inicio">Link para a visão geral</a>
+      </div>
+    </div>
+  </app-ds-exemplo>
+
+  <app-ds-exemplo
+    titulo="Botão-ícone"
+    seletor="button[appBotaoIcone]"
+    quando="Ações curtas e repetidas (voltar, desfazer, notificações, filtros). O rótulo é obrigatório e vira o aria-label: diga a ação. Marca (lima) só para IA; destaque (coral) para o que está selecionado."
+  >
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Variantes · neutro, contorno, invertido, destaque e marca</p>
+      <div class="ds-linha">
+        <button appBotaoIcone type="button" [icone]="icones.voltar" rotulo="Voltar"></button>
+        <button
+          appBotaoIcone
+          type="button"
+          variante="contorno"
+          [icone]="icones.mais"
+          rotulo="Adicionar aba"
+        ></button>
+        <button
+          appBotaoIcone
+          type="button"
+          variante="invertido"
+          [icone]="icones.avancar"
+          rotulo="Expandir painel"
+        ></button>
+        <button
+          appBotaoIcone
+          type="button"
+          variante="destaque"
+          [icone]="icones.layout"
+          rotulo="Layout selecionado"
+        ></button>
+        <button
+          appBotaoIcone
+          type="button"
+          variante="marca"
+          [icone]="icones.varinha"
+          rotulo="Sugerir com IA"
+        ></button>
+      </div>
+    </div>
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Tamanhos, ponto e contagem</p>
+      <div class="ds-linha">
+        <button
+          appBotaoIcone
+          type="button"
+          tamanho="sm"
+          [icone]="icones.ver"
+          rotulo="Ver tudo"
+        ></button>
+        <button appBotaoIcone type="button" [icone]="icones.ver" rotulo="Ver tudo"></button>
+        <button
+          appBotaoIcone
+          type="button"
+          tamanho="lg"
+          [icone]="icones.ver"
+          rotulo="Ver tudo"
+        ></button>
+        <button
+          appBotaoIcone
+          type="button"
+          ponto
+          [icone]="icones.sino"
+          rotulo="Notificações, há novidades"
+        ></button>
+        <button
+          appBotaoIcone
+          type="button"
+          variante="invertido"
+          [contagem]="2"
+          [icone]="icones.sino"
+          rotulo="Notificações, 2 novas"
+        ></button>
+      </div>
+    </div>
+    <div class="ds-grade ds-grade--2">
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">
+          Grupo sobreposto (barra de ações), com anel da cor do cartão entre os círculos
+        </p>
+        <div class="grupo-icones" role="group" aria-label="Ações do painel">
+          <button
+            appBotaoIcone
+            type="button"
+            class="recorte"
+            [icone]="icones.atualizar"
+            rotulo="Atualizar dados"
+          ></button>
+          <button
+            appBotaoIcone
+            type="button"
+            class="recorte"
+            [icone]="icones.ver"
+            rotulo="Ver detalhes"
+          ></button>
+          <button
+            appBotaoIcone
+            type="button"
+            class="recorte"
+            [icone]="icones.compartilhar"
+            rotulo="Compartilhar"
+          ></button>
+          <button
+            appBotaoIcone
+            type="button"
+            class="recorte"
+            [icone]="icones.enviar"
+            rotulo="Enviar por e-mail"
+          ></button>
+          <button
+            appBotaoIcone
+            type="button"
+            class="recorte"
+            [icone]="icones.personalizar"
+            rotulo="Configurar o painel"
+          ></button>
+        </div>
+      </div>
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Alternância (aria-pressed): o ligado fica invertido</p>
+        <div class="seletor-visualizacao" role="group" aria-label="Canal">
+          @for (opcao of canais; track opcao.id) {
+            <button
+              appBotaoIcone
+              type="button"
+              variante="contorno"
+              [icone]="opcao.icone"
+              [rotulo]="opcao.rotulo"
+              [attr.aria-pressed]="canal() === opcao.id"
+              (click)="canal.set(opcao.id)"
+            ></button>
+          }
+        </div>
+      </div>
+    </div>
+  </app-ds-exemplo>
+</app-ds-secao>
+
+<app-ds-secao ancora="abas" numero="06" titulo="Abas" complemento="· e opções">
+  <p frase>
+    Linha de pílulas com teclado: setas, Home e End. No mobile a linha rola na horizontal.
+  </p>
+
+  <app-ds-exemplo
+    titulo="Abas"
+    seletor="app-abas"
+    quando="Trocar entre visões do mesmo conteúdo. Pílulas no meio da página; entalhe quando as abas encostam no painel; opções (segmentado) para filtros como período."
+  >
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Pílulas (padrão)</p>
+      <app-abas rotulo="Visões do exemplo" [abas]="abasPilulas" [(selecionada)]="abaPilulas">
+        <p class="ds-painel-texto">
+          @switch (abaPilulas()) {
+            @case ('atendimento') {
+              Conversas de todos os canais, com tempo de resposta e SLA.
+            }
+            @case ('equipe') {
+              Ranking da equipe, com metas e atividades concluídas.
+            }
+            @default {
+              Da captação do lead ao cliente em onboarding, etapa por etapa.
+            }
+          }
+        </p>
+      </app-abas>
+    </div>
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Entalhe: a aba ativa se funde ao painel</p>
+      <div class="ds-moldura">
+        <app-abas
+          rotulo="Visões do painel"
+          variante="entalhe"
+          [abas]="abasEntalhe"
+          [(selecionada)]="abaEntalhe"
+        >
+          <div class="ds-linha ds-linha--espalhada">
+            <app-indicador
+              [valor]="17"
+              unidade="%"
+              legenda="Conversão total do funil"
+              disposicao="lado"
+            />
+            <app-indicador
+              [valor]="12"
+              unidade="d"
+              legenda="Ciclo médio de venda"
+              disposicao="lado"
+            />
+          </div>
+        </app-abas>
+      </div>
+    </div>
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">Opções (controle segmentado, tamanho sm)</p>
+      <div class="ds-linha">
+        <app-abas
+          rotulo="Período"
+          modo="opcoes"
+          tamanho="sm"
+          [abas]="periodos"
+          [(selecionada)]="periodo"
+        />
+        <span class="ds-nota" aria-live="polite">Período: {{ periodo() }}</span>
+      </div>
+    </div>
+  </app-ds-exemplo>
+</app-ds-secao>
+
+<app-ds-secao ancora="cartoes" numero="07" titulo="Cartões" complemento="· três variantes">
+  <p frase>
+    O palco é o cartão principal de cada tela. Dentro dele, pílulas e botões neutros viram vidro;
+    dentro do destaque coral, textos e linhas viram tons de preto — os componentes se adaptam
+    sozinhos.
+  </p>
+
+  <div class="cartoes">
+    <app-cartao
+      class="cartoes__palco"
+      variante="palco"
+      titulo="Jornada do cliente"
+      complemento="· outubro"
+      [nivel]="3"
+      dica="O palco reúne a informação principal da tela. Os números aqui são de exemplo."
+    >
+      <div cartao-acoes class="ds-linha">
+        <button
+          appBotaoIcone
+          type="button"
+          tamanho="sm"
+          [icone]="icones.atualizar"
+          rotulo="Atualizar"
+        ></button>
+        <app-pilha-avatares tamanho="sm" [pessoas]="equipe" />
+      </div>
+      <div class="ds-linha ds-linha--espalhada">
+        <app-indicador
+          [valor]="17"
+          unidade="%"
+          legenda="Conversão total do funil"
+          disposicao="lado"
+        />
+        <app-indicador [valor]="12" unidade="d" legenda="Ciclo médio de venda" disposicao="lado" />
+      </div>
+      <app-barra-funil
+        etapa="Leads"
+        [total]="1600"
+        [series]="etapas[0].series"
+        [tempoMedioDias]="4"
+      />
+    </app-cartao>
+
+    <app-cartao
+      titulo="Atividades recentes"
+      [nivel]="3"
+      dica="Tudo o que a equipe fez, na ordem em que aconteceu."
+    >
+      <button
+        cartao-acoes
+        appBotaoIcone
+        type="button"
+        tamanho="sm"
+        [icone]="icones.ver"
+        rotulo="Ver todas as atividades"
+      ></button>
+      <ul class="ds-atividades" role="list">
+        @for (atividade of atividades; track atividade.texto) {
+          <li class="ds-atividade">
+            <app-avatar [nome]="atividade.pessoa" tamanho="sm" decorativo />
+            <span class="ds-atividade__texto">
+              {{ atividade.texto }}
+              <span class="ds-nota">{{ atividade.pessoa }} · {{ atividade.quando }}</span>
+            </span>
+          </li>
+        }
+      </ul>
+    </app-cartao>
+
+    <app-cartao variante="destaque" titulo="Etapas" [nivel]="3">
+      <app-zona-soltar legenda="Solte um campo aqui" />
+      <div class="cartoes__chip"><app-chip tipo="texto">Etapa</app-chip></div>
+    </app-cartao>
+  </div>
+</app-ds-secao>
+
+<app-ds-secao ancora="dados" numero="08" titulo="Dados" complemento="· números e barras">
+  <p frase>
+    Séries sempre na ordem ciano, menta, lima, coral. Todo gráfico tem alternativa em texto.
+  </p>
+
+  <app-ds-exemplo
+    titulo="Barra de funil"
+    seletor="app-barra-funil + app-legenda"
+    quando="Etapas de um funil: largura proporcional ao total da primeira etapa e cápsulas sobrepostas por série. Os números ficam todos dentro ou, se algum não couber, todos ao lado. Cada barra é lida inteira pelo leitor de tela."
+  >
+    <app-cartao variante="palco" titulo="Funil de conversão" complemento="· exemplo" [nivel]="4">
+      <app-legenda cartao-acoes [series]="origens" />
+      <div class="funil">
+        @for (etapa of etapas; track etapa.etapa) {
+          <app-barra-funil
+            [etapa]="etapa.etapa"
+            [total]="etapa.total"
+            [series]="etapa.series"
+            [totalReferencia]="etapas[0].total"
+            [queda]="etapa.queda"
+            [tempoMedioDias]="etapa.dias"
+          />
+        }
+      </div>
+    </app-cartao>
+  </app-ds-exemplo>
+
+  <app-ds-exemplo
+    titulo="Indicador"
+    seletor="app-indicador"
+    quando="Métricas-chave (KPI): número grande e leve, legenda curta e, se fizer sentido, a variação e uma dica explicando a sigla. Número e unidade nunca se separam: em célula estreita, o número encolhe."
+  >
+    <div class="ds-indicadores">
+      <app-indicador [valor]="17" unidade="%" legenda="Conversão total do funil" [variacao]="2.4" />
+      <app-indicador
+        [valor]="12"
+        unidade="d"
+        legenda="Ciclo médio de venda"
+        [variacao]="-8"
+        quedaEhBoa
+      />
+      <app-indicador
+        [valor]="186"
+        prefixo="R$"
+        unidade="mil"
+        legenda="Receita recorrente (MRR)"
+        [variacao]="-3.1"
+        dica="MRR é a receita recorrente mensal: quanto os contratos ativos rendem por mês."
+      />
+    </div>
+    <div class="ds-grade ds-grade--2">
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Tamanho sm e legenda ao lado (um ou dois indicadores curtos)</p>
+        <div class="ds-indicadores">
+          <app-indicador tamanho="sm" [valor]="1600" legenda="Leads no mês" [variacao]="0" />
+          <app-indicador
+            tamanho="sm"
+            [valor]="92"
+            unidade="%"
+            legenda="SLA cumprido"
+            disposicao="lado"
+          />
+        </div>
+      </div>
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">
+          Variação abaixo do número (cartões estreitos) e unidade da variação: % · p.p. · pts
+        </p>
+        <div class="ds-indicadores">
+          <app-indicador
+            tamanho="sm"
+            [valor]="48.6"
+            unidade="%"
+            legenda="Taxa de ganho"
+            [variacao]="2.1"
+            unidadeVariacao="p.p."
+            variacaoAbaixo
+          />
+          <app-indicador
+            tamanho="sm"
+            [valor]="78"
+            legenda="Health score médio"
+            [variacao]="2.6"
+            unidadeVariacao="pts"
+            variacaoAbaixo
+          />
+        </div>
+      </div>
+    </div>
+    <div class="ds-demo">
+      <p class="ds-demo__rotulo">
+        Células estreitas: o número encolhe aos poucos (cqi) e "mil" nunca desce sozinho
+      </p>
+      <div class="ds-celulas-estreitas">
+        <app-indicador [valor]="16" unidade="%" legenda="Conversão total do funil" />
+        <app-indicador [valor]="11" unidade="d" legenda="Ciclo médio de venda" />
+        <app-indicador [valor]="42.4" prefixo="R$" unidade="mil" legenda="Receita ganha" />
+      </div>
+    </div>
+  </app-ds-exemplo>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Selo"
+      seletor="app-selo"
+      quando="Tempos, variações, status e marcações curtas. Nunca só cor: o texto diz o significado."
+    >
+      <div class="ds-linha">
+        <app-selo>4d</app-selo>
+        <app-selo variante="ciano">Site</app-selo>
+        <app-selo variante="menta">Ganho</app-selo>
+        <app-selo variante="lima" [icone]="icones.ia">IA</app-selo>
+        <app-selo variante="coral">Atrasado</app-selo>
+        <app-selo variante="contorno">Dados de exemplo</app-selo>
+        <app-selo variante="contorno" ponto>ao vivo</app-selo>
+      </div>
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">
+          Tamanho sm (20px, listas densas) e ponto na cor do contexto (--selo-ponto)
+        </p>
+        <div class="ds-linha">
+          <app-selo tamanho="sm">em breve</app-selo>
+          <app-selo tamanho="sm" variante="lima">Fase 1</app-selo>
+          <app-selo variante="contorno" ponto class="ds-selo-ao-vivo">ao vivo</app-selo>
+        </div>
+      </div>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Legenda"
+      seletor="app-legenda"
+      quando="Acompanha todo gráfico com mais de uma série: bolinhas nas cores de dado, na ordem das séries, com o nome de cada uma."
+    >
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Quatro séries, na ordem ciano → menta → lima → coral</p>
+        <app-legenda [series]="['Site e webhooks', 'WhatsApp', 'Indicação', 'Outros']" />
+      </div>
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Sobre o fundo da página, ao lado do gráfico</p>
+        <div class="ds-moldura">
+          <app-legenda [series]="origens" />
+        </div>
+      </div>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Gráfico"
+      seletor="app-grafico"
+      quando="Barras e linhas do ECharts, carregado só quando o primeiro gráfico aparece. As cores vêm dos tokens e o desenho se refaz ao trocar o tema. O rótulo descreve o gráfico para leitores de tela e a tela oferece os mesmos números em tabela (veja os painéis do BI)."
+    >
+      <app-cartao titulo="Leads por origem" complemento="· exemplo" [nivel]="4">
+        <app-grafico
+          rotulo="Barras: leads por origem. Site 36, WhatsApp 18, Indicação 12, Outros 7."
+          [opcao]="graficoDeExemplo"
+          altura="14rem"
+        />
+      </app-cartao>
+    </app-ds-exemplo>
+  </div>
+</app-ds-secao>
+
+<app-ds-secao ancora="pessoas" numero="09" titulo="Pessoas" complemento="· avatares">
+  <p frase>
+    A cor do avatar sai do nome: a mesma pessoa tem sempre a mesma cor. Sem foto, as iniciais.
+  </p>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Avatar"
+      seletor="app-avatar"
+      quando="Quem fez, quem é o responsável, quem está na equipe. Use decorativo quando o nome já estiver escrito ao lado."
+    >
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Tamanhos · sm 32 · md 44 · lg 56</p>
+        <div class="ds-linha">
+          <app-avatar nome="Ana Ribeiro" tamanho="sm" />
+          <app-avatar nome="Carla Nogueira" />
+          <app-avatar nome="João Batista" tamanho="lg" />
+        </div>
+      </div>
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Forma pílula (a da pilha) e cor fixa (cor)</p>
+        <div class="ds-linha">
+          <app-avatar nome="Beatriz Lima" forma="pilula" />
+          <app-avatar nome="Lucas Prado" cor="coral" />
+          <app-avatar nome="Fernanda Rocha" forma="pilula" cor="lima" />
+        </div>
+      </div>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Pilha de avatares"
+      seletor="app-pilha-avatares"
+      quando="Equipe de um painel ou negócio, ao lado de Compartilhar. Mostra até três pessoas e o restante em +k."
+    >
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Ao lado de Compartilhar e da IA, sobre o fundo da página</p>
+        <div class="ds-moldura ds-linha">
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            semCirculo
+            [icone]="icones.compartilhar"
+          >
+            Compartilhar
+          </button>
+          <button
+            appBotaoIcone
+            type="button"
+            variante="marca"
+            [icone]="icones.varinha"
+            rotulo="Analisar com IA"
+          ></button>
+          <app-pilha-avatares [pessoas]="equipe" />
+        </div>
+      </div>
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Tamanho sm, sem excedente</p>
+        <app-pilha-avatares tamanho="sm" [pessoas]="equipe.slice(0, 3)" rotulo="Responsáveis" />
+      </div>
+    </app-ds-exemplo>
+  </div>
+</app-ds-secao>
+
+<app-ds-secao
+  ancora="campos"
+  numero="10"
+  titulo="Campos e arrastar"
+  complemento="· arrastar e buscar"
+>
+  <p frase>
+    Arrastar é sempre um atalho: toda ação de arrastar tem um botão que faz a mesma coisa.
+  </p>
+
+  <!-- Chip e campo de busca empilhados à esquerda; a zona de soltar, mais alta, à direita. -->
+  <div class="ds-grade ds-grade--2 ds-grade--densa">
+    <app-ds-exemplo
+      titulo="Chip"
+      seletor="app-chip"
+      quando="Campos, etiquetas e filtros. O selo à esquerda diz o tipo: A texto, # número, calendário data."
+    >
+      <div class="ds-linha">
+        <app-chip tipo="texto">Nome da empresa</app-chip>
+        <app-chip tipo="numero">Valor</app-chip>
+        <app-chip tipo="data">Data de fechamento</app-chip>
+        <app-chip>Sem tipo</app-chip>
+      </div>
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Selecionado e arrastando</p>
+        <div class="ds-linha">
+          <app-chip tipo="texto" selecionado>Origem do lead</app-chip>
+          <app-chip tipo="texto" arrastando>Categoria da previsão</app-chip>
+        </div>
+      </div>
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Multilinha: o rótulo longo quebra em vez de cortar</p>
+        <div class="ds-chip-estreito">
+          <app-chip multilinha [icone]="icones.mais"
+            >Distribuição automática de leads entre a equipe comercial</app-chip
+          >
+        </div>
+      </div>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      class="ds-alto"
+      titulo="Zona de soltar"
+      seletor="app-zona-soltar"
+      quando="Onde o usuário monta algo arrastando campos (relatórios, etapas). Recebendo um item, a borda fica coral."
+    >
+      <div class="arrastar">
+        <ul class="arrastar__campos" role="list" aria-label="Campos disponíveis">
+          @for (campo of campos; track campo.rotulo) {
+            <li>
+              <app-chip
+                arrastavel
+                [tipo]="campo.tipo"
+                [arrastando]="emArraste() === campo.rotulo"
+                (dragstart)="iniciarArraste($event, campo.rotulo)"
+                (dragend)="terminarArraste()"
+                >{{ campo.rotulo }}</app-chip
+              >
+            </li>
+          }
+        </ul>
+        <app-zona-soltar legenda="Arraste um campo até aqui" (soltar)="receberCampo($event)" />
+        @if (camposSoltos().length) {
+          <ul class="ds-linha" role="list" aria-label="Campos adicionados">
+            @for (campo of camposSoltos(); track campo) {
+              <li>
+                <app-chip [tipo]="tipoDoCampo(campo)">{{ campo }}</app-chip>
+              </li>
+            }
+          </ul>
+        }
+        <div class="ds-linha">
+          <button
+            appBotao
+            type="button"
+            tamanho="sm"
+            variante="contorno"
+            [icone]="icones.mais"
+            (click)="adicionarProximo()"
+          >
+            Adicionar próximo campo
+          </button>
+          <button
+            appBotao
+            type="button"
+            tamanho="sm"
+            variante="contorno"
+            [disabled]="!camposSoltos().length"
+            (click)="limparCampos()"
+          >
+            Limpar
+          </button>
+        </div>
+        <p class="ds-nota">
+          Arrastar não funciona pelo teclado: o botão Adicionar faz a mesma coisa.
+        </p>
+        <p class="visualmente-oculto" aria-live="polite">
+          {{ camposSoltos().length }} campos adicionados
+        </p>
+      </div>
+      <div class="ds-demo">
+        <p class="ds-demo__rotulo">Estado recebendo (forçado com ativa)</p>
+        <app-zona-soltar ativa legenda="Solte para adicionar" />
+      </div>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Campo de busca"
+      seletor="app-campo-busca"
+      quando="Busca global na barra superior e filtros de listas. Enter busca; Esc limpa."
+    >
+      <div class="busca">
+        <app-campo-busca
+          placeholder="Buscar contatos, negócios…"
+          [(valor)]="busca"
+          (buscar)="ultimaBusca.set($event)"
+        />
+        <span class="ds-nota" aria-live="polite">
+          @if (ultimaBusca(); as termo) {
+            Você buscou: “{{ termo }}”
+          } @else {
+            Digite e tecle Enter
+          }
+        </span>
+      </div>
+    </app-ds-exemplo>
+  </div>
+</app-ds-secao>
+
+<app-ds-secao ancora="ajuda" numero="11" titulo="Dica e modal" complemento="· ajuda na tela">
+  <p frase>
+    O CRM precisa servir a quem nunca usou um CRM: o que não se explica sozinho ganha uma dica.
+  </p>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Dica"
+      seletor="app-dica"
+      quando="Ao lado de métricas, siglas e campos que não se explicam sozinhos. Abre com clique, toque, Enter ou Espaço; fecha com Esc ou clique fora."
+    >
+      <div class="ds-linha">
+        <span class="ds-rotulo-dica">
+          MQL
+          <app-dica
+            rotulo="O que é MQL?"
+            texto="Lead qualificado pelo Marketing: tem perfil e interesse para o Comercial abordar."
+          />
+        </span>
+        <span class="ds-rotulo-dica">
+          SLA
+          <app-dica
+            rotulo="O que é SLA?"
+            titulo="Acordo de nível de serviço"
+            texto="O prazo máximo combinado para responder ao cliente. Aqui: primeira resposta em até 15 minutos."
+          />
+        </span>
+      </div>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Modal"
+      seletor="app-modal"
+      quando="Tarefas curtas que pedem foco total (confirmar, configurar, ver uma análise). Usa o dialog nativo: foco preso e Esc."
+    >
+      <div class="ds-linha">
+        <button
+          appBotao
+          type="button"
+          variante="marca"
+          [icone]="icones.ia"
+          (click)="modalAberto.set(true)"
+        >
+          Abrir modal
+        </button>
+      </div>
+      <app-modal [(aberto)]="modalAberto" titulo="Análise com IA" complemento="· beta">
+        <p class="ds-painel-texto">
+          A IA vai ler as métricas do painel e sugerir ações. Este é só um exemplo do componente:
+          título em dois tons, corpo com rolagem e rodapé com as ações.
+        </p>
+        <div modal-rodape class="ds-linha">
+          <button appBotao type="button" variante="contorno" (click)="modalAberto.set(false)">
+            Cancelar
+          </button>
+          <button
+            appBotao
+            type="button"
+            variante="invertido"
+            [icone]="icones.ia"
+            (click)="modalAberto.set(false)"
+          >
+            Gerar análise
+          </button>
+        </div>
+      </app-modal>
+    </app-ds-exemplo>
+  </div>
+</app-ds-secao>
+
+<app-ds-formularios />
+
+<app-ds-listas />
+
+<app-ds-retorno />
+
+<app-ds-conversas />
+
+<app-ds-automacao />
+
+<app-ds-secao ancora="marca" numero="17" titulo="Tema e marca" complemento="· BRL CRM">
+  <p frase>
+    O tema inicial segue o sistema operacional; a escolha do usuário fica salva. A marca é o símbolo
+    da BRL com o nome BRL CRM, sempre numa cor só:
+    <code class="ds-token">--cor-logo</code>, preto no tema claro e branco no escuro.
+  </p>
+
+  <app-ds-exemplo
+    titulo="Logo"
+    seletor="app-logo"
+    quando="Canto da barra superior, ligando à visão geral; só o símbolo (somenteSimbolo) no mobile e na navegação recolhida. Sempre monocromático: a versão colorida da marca não é usada no app."
+  >
+    <div class="marca">
+      @for (painel of paineisMarca(); track painel.tema) {
+        <figure #painelMarca class="marca__painel" [attr.data-tema]="painel.tema">
+          <div class="marca__logos">
+            <span class="marca__item">
+              <span class="marca__visual"><app-logo [tamanho]="40" /></span>
+              <span class="marca__nota">logo completo</span>
+            </span>
+            <span class="marca__item">
+              <span class="marca__visual"><app-logo somenteSimbolo [tamanho]="40" /></span>
+              <span class="marca__nota">só o símbolo</span>
+            </span>
+            <span class="marca__item">
+              <span class="marca__visual">
+                <img src="favicon.svg" width="32" height="32" alt="" />
+              </span>
+              <span class="marca__nota">favicon</span>
+            </span>
+          </div>
+          <figcaption class="marca__regra">
+            <span class="marca__amostra" aria-hidden="true"></span>
+            Tema {{ painel.tema }} · <code class="ds-token">--cor-logo</code>
+            <span class="marca__valor">{{ painel.cor }}</span>
+          </figcaption>
+        </figure>
+      }
+    </div>
+  </app-ds-exemplo>
+
+  <div class="ds-grade ds-grade--2">
+    <app-ds-exemplo
+      titulo="Favicon"
+      seletor="public/favicon.svg"
+      quando="Aba do navegador e atalhos. É o mesmo símbolo, também numa cor só: troca preto e branco com o tema (prefers-color-scheme dentro do próprio SVG)."
+    >
+      <div class="marca__abas">
+        @for (nome of temasMarca; track nome) {
+          <span class="marca__aba" [attr.data-tema]="nome">
+            <img src="favicon.svg" width="16" height="16" alt="" />
+            Visão geral · BRL CRM
+          </span>
+        }
+      </div>
+    </app-ds-exemplo>
+
+    <app-ds-exemplo
+      titulo="Alternador de tema"
+      seletor="app-alternador-tema"
+      quando="Na barra superior. O ícone e o rótulo dizem a ação (sol: ativar tema claro)."
+    >
+      <div class="ds-linha">
+        <app-alternador-tema />
+        <app-alternador-tema variante="contorno" tamanho="sm" />
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="contorno"
+          [disabled]="tema.segueSistema()"
+          (click)="tema.seguirSistema()"
+        >
+          Seguir o sistema
+        </button>
+      </div>
+    </app-ds-exemplo>
+  </div>
+</app-ds-secao>
+
+<app-ds-secao ancora="dois-temas" numero="18" titulo="Dois temas" complemento="· lado a lado">
+  <p frase>
+    Os mesmos componentes, só com os tokens trocados. Qualquer contêiner com
+    <code class="ds-token">data-tema</code> muda o tema do que está dentro dele.
+  </p>
+
+  <div class="dois-temas">
+    @for (nome of temas; track nome) {
+      <div class="dois-temas__painel" [attr.data-tema]="nome">
+        <p class="dois-temas__rotulo">Tema {{ nome }}</p>
+        <app-cartao
+          variante="palco"
+          titulo="Jornada do cliente"
+          complemento="· outubro"
+          [nivel]="3"
+        >
+          <div cartao-acoes class="ds-linha">
+            <button appBotao type="button" tamanho="sm" semCirculo [icone]="icones.compartilhar">
+              Compartilhar
+            </button>
+            <button
+              appBotaoIcone
+              type="button"
+              tamanho="sm"
+              variante="marca"
+              [icone]="icones.varinha"
+              rotulo="Analisar com IA"
+            ></button>
+          </div>
+          <div class="ds-linha ds-linha--espalhada">
+            <app-indicador
+              tamanho="sm"
+              [valor]="17"
+              unidade="%"
+              legenda="Conversão total do funil"
+              disposicao="lado"
+            />
+            <app-pilha-avatares tamanho="sm" [pessoas]="equipe" />
+          </div>
+          <div class="funil">
+            @for (etapa of etapas.slice(0, 2); track etapa.etapa) {
+              <app-barra-funil
+                [etapa]="etapa.etapa"
+                [total]="etapa.total"
+                [series]="etapa.series"
+                [totalReferencia]="etapas[0].total"
+                [queda]="etapa.queda"
+                [tempoMedioDias]="etapa.dias"
+              />
+            }
+          </div>
+        </app-cartao>
+        <div class="ds-linha">
+          <app-chip tipo="texto" selecionado>Etapa</app-chip>
+          <app-chip tipo="numero">Valor</app-chip>
+          <app-selo variante="contorno" ponto>ao vivo</app-selo>
+        </div>
+        <div class="dois-temas__campos">
+          <app-campo-texto
+            rotulo="E-mail"
+            placeholder="nome@empresa.com.br"
+            erro="Digite um e-mail válido."
+          />
+          <app-alternador rotulo="Participa do rodízio" [valor]="true" />
+        </div>
+      </div>
+    }
+  </div>
+</app-ds-secao>

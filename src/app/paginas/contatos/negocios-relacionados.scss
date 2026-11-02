@@ -1,0 +1,186 @@
+// Negócios do contato/empresa: faixa da jornada e cartões de negócio. Só tokens.
+
+:host {
+  display: grid;
+  gap: var(--esp-5);
+  min-width: 0;
+}
+
+// Marketing → Comercial → Customer Success, com a situação de cada um.
+.jornada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.jornada__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  white-space: nowrap;
+}
+
+.jornada__etapa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--altura-sm);
+  padding: 0 var(--esp-4) 0 var(--esp-3);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-2);
+  box-shadow: inset 0 0 0 1px var(--cor-borda);
+  font: var(--fonte-legenda-lg);
+  white-space: nowrap;
+}
+
+.jornada__seta {
+  color: var(--cor-texto-fraco);
+}
+
+.jornada__etapa--vazia {
+  color: var(--cor-texto-fraco);
+
+  .jornada__ponto {
+    opacity: 0.35;
+  }
+}
+
+.jornada__ponto {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.jornada__nome {
+  font-weight: 500;
+}
+
+// Área que o papel não vê: "sem acesso" com um cadeado, em texto fraco.
+.jornada__resumo--sem-acesso {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  color: var(--cor-texto-fraco);
+}
+
+.jornada__nota {
+  margin-top: calc(-1 * var(--esp-2));
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.jornada__resumo {
+  color: var(--cor-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.negocios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  align-items: start;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.negocio {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-2);
+  min-width: 0;
+  padding: var(--esp-4) var(--esp-5);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+  box-shadow: inset 0 0 0 1px var(--cor-borda);
+}
+
+.negocio--esqueleto {
+  gap: var(--esp-3);
+}
+
+.negocio__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.negocio__onde {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.negocio__selos {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+}
+
+.negocio__titulo {
+  width: fit-content;
+  color: var(--cor-texto);
+  font: var(--fonte-h3);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+.negocio__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-4);
+}
+
+.negocio__valor {
+  font: var(--fonte-rotulo);
+  font-variant-numeric: tabular-nums;
+}
+
+.negocio__meta {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+}
+
+.negocio__responsavel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.negocio__vinculos {
+  display: grid;
+  gap: var(--esp-1);
+  margin-top: var(--esp-1);
+  padding-top: var(--esp-3);
+  border-top: 1px solid var(--cor-borda);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.negocio__vinculo {
+  color: var(--cor-texto);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--cor-borda-forte);
+  text-underline-offset: 3px;
+
+  &:hover {
+    text-decoration-color: currentColor;
+  }
+}

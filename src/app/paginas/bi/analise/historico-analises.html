@@ -1,0 +1,155 @@
+<header class="cabecalho">
+  <div class="cabecalho__texto">
+    <h1 class="cabecalho__titulo">
+      Análises com IA&nbsp;<span class="tom-fraco">· histórico</span>
+    </h1>
+    <p class="cabecalho__frase">
+      Quem pediu cada análise, de qual painel, como terminou e o que a IA respondeu.
+    </p>
+  </div>
+  <a appBotao variante="contorno" tamanho="sm" routerLink="/bi" [icone]="icones.voltar">
+    Voltar ao BI
+  </a>
+</header>
+
+<app-cartao
+  titulo="Limite por dia"
+  dica="Quantas análises novas o CRM faz por dia, somando todos os administradores. As perguntas de acompanhamento não contam. Com 0, as análises ficam desligadas."
+>
+  <form class="limite" (submit)="$event.preventDefault(); salvarLimite()">
+    <app-campo-texto
+      class="limite__campo"
+      rotulo="Análises por dia"
+      tipo="number"
+      [minimo]="0"
+      [maximo]="1000"
+      [erro]="erroLimite()"
+      [(valor)]="limite"
+    />
+    <button
+      appBotao
+      type="submit"
+      variante="invertido"
+      [icone]="icones.salvar"
+      [carregando]="salvando()"
+      [disabled]="!estado()"
+    >
+      Salvar
+    </button>
+    @if (estado(); as e) {
+      <p class="limite__uso" role="status">
+        {{ e.usadasHoje }} usadas hoje
+        @if (!e.configurada) {
+          · a chave da IA ainda não foi configurada
+        }
+      </p>
+    }
+  </form>
+</app-cartao>
+
+<app-cartao titulo="Análises feitas">
+  <div class="filtros">
+    <app-seletor
+      rotulo="Painel"
+      permitirVazio
+      placeholder="Todos os painéis"
+      [opcoes]="opcoesPainel"
+      [valor]="painel()"
+      (valorChange)="painel.set($event); mudarFiltro()"
+    />
+    <app-seletor
+      rotulo="Quem pediu"
+      permitirVazio
+      placeholder="Todas as pessoas"
+      [opcoes]="opcoesPessoa()"
+      [valor]="usuarioId()"
+      (valorChange)="usuarioId.set($event); mudarFiltro()"
+    />
+  </div>
+
+  @if (erro(); as falha) {
+    <app-estado-vazio
+      compacto
+      variante="erro"
+      titulo="Não conseguimos carregar o histórico"
+      [falha]="falha"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao variante="invertido" type="button" (click)="carregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (!carregando() && itens().length === 0) {
+    @if (filtrado()) {
+      <app-estado-vazio
+        compacto
+        variante="busca"
+        titulo="Nenhuma análise com esses filtros"
+        texto="Tire um filtro para ver mais."
+      >
+        <button appBotao variante="invertido" type="button" (click)="limpar()">
+          Limpar filtros
+        </button>
+      </app-estado-vazio>
+    } @else {
+      <app-estado-vazio
+        compacto
+        titulo="Nenhuma análise ainda"
+        texto="Abra um painel do BI e use “Analisar com IA”. Cada análise fica registrada aqui."
+      >
+        <a appBotao variante="invertido" routerLink="/bi">Ir para o BI</a>
+      </app-estado-vazio>
+    }
+  } @else {
+    <app-tabela
+      rotulo="Análises com IA"
+      densa
+      clicavel
+      colunaPrincipal="resumo"
+      [colunas]="colunas"
+      [linhas]="itens()"
+      [carregando]="carregando()"
+      [linhasEsqueleto]="6"
+      (abrir)="abrir($event)"
+    >
+      <ng-template appCelula="quando" [appCelulaDe]="itens()" let-a>
+        <time [attr.datetime]="a.criadoEm" [title]="dataHora(a.criadoEm)">{{ quando(a) }}</time>
+      </ng-template>
+      <ng-template appCelula="usuario" [appCelulaDe]="itens()" let-a>{{
+        a.usuario.nome
+      }}</ng-template>
+      <ng-template appCelula="painel" [appCelulaDe]="itens()" let-a>
+        {{ rotuloPainel[a.painel] }}
+      </ng-template>
+      <ng-template appCelula="periodo" [appCelulaDe]="itens()" let-a>{{ periodo(a) }}</ng-template>
+      <ng-template appCelula="status" [appCelulaDe]="itens()" let-a>
+        <app-selo tamanho="sm" [variante]="seloStatus(a.status)">
+          {{ rotuloStatus[a.status] }}
+        </app-selo>
+      </ng-template>
+      <ng-template appCelula="perguntas" [appCelulaDe]="itens()" let-a>{{
+        a.totalPerguntas
+      }}</ng-template>
+      <ng-template appCelula="resumo" [appCelulaDe]="itens()" let-a>
+        <span class="resumo">{{ a.resumo ?? a.erro ?? '—' }}</span>
+      </ng-template>
+    </app-tabela>
+
+    @if (lista(); as l) {
+      <app-paginacao
+        rotulo="Paginação do histórico de análises"
+        [total]="l.total"
+        [porPagina]="porPagina"
+        [(pagina)]="pagina"
+      />
+    }
+  }
+</app-cartao>
+
+<app-analise-ia
+  semHistorico
+  [aberto]="aberta()"
+  (abertoChange)="aoFechar($event)"
+  [analiseId]="abertaId()"
+/>

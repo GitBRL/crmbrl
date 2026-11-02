@@ -1,0 +1,159 @@
+<section class="secao" aria-labelledby="equipe-titulo">
+  <header class="secao__cabecalho">
+    <div class="secao__textos">
+      <h2 class="secao__titulo" id="equipe-titulo">Minha equipe</h2>
+      <p class="secao__frase">{{ frase() }}</p>
+    </div>
+  </header>
+
+  @if (equipes.erro(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar a sua equipe"
+      [texto]="erro.resumo"
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeTentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (equipes.dados() === null) {
+    <div class="equipe__carregando" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando a sua equipe…</p>
+      <div class="equipe__resumo">
+        @for (item of [1, 2, 3, 4]; track item) {
+          <app-esqueleto forma="bloco" altura="88px" />
+        }
+      </div>
+      <app-cartao>
+        <div class="equipe__esqueleto">
+          @for (item of [1, 2, 3, 4]; track item) {
+            <div class="equipe__esqueleto-linha" [class.equipe__esqueleto-linha--filho]="item > 1">
+              <app-esqueleto forma="circulo" />
+              <app-esqueleto [linhas]="2" largura="40%" />
+            </div>
+          }
+        </div>
+      </app-cartao>
+    </div>
+  } @else if (arvore().length === 0) {
+    <app-estado-vazio
+      titulo="Ninguém responde a você ainda"
+      texto="Quando o Admin definir você como líder de alguém, a equipe aparece aqui."
+    />
+  } @else {
+    <div class="equipe__resumo" role="group" aria-label="Resumo da equipe">
+      <app-indicador
+        tamanho="sm"
+        [valor]="resumo().pessoas"
+        legenda="Pessoas na equipe"
+        dica="Você e quem responde a você, direta ou indiretamente."
+      />
+      <app-indicador
+        tamanho="sm"
+        [valor]="resumo().atividadesPendentes"
+        legenda="Atividades pendentes"
+        [dica]="
+          'Das quais ' +
+          numero(resumo().atividadesAtrasadas) +
+          ' atrasadas (pendentes com vencimento no passado).'
+        "
+      />
+      <app-indicador
+        tamanho="sm"
+        [valor]="resumo().negociosAbertos"
+        legenda="Negócios abertos"
+        dica="Negócios ainda em andamento nos funis, de todas as pessoas da árvore."
+      />
+      <app-indicador
+        tamanho="sm"
+        prefixo="R$"
+        [valor]="valorAbreviado().numero"
+        [unidade]="valorAbreviado().sufixo || null"
+        legenda="Valor em aberto"
+        dica="Soma do valor dos negócios abertos de todas as pessoas da árvore."
+      />
+    </div>
+
+    @if (resumo().aguardandoNovoLider > 0) {
+      <p class="equipe__aviso" role="note">
+        <app-selo variante="lima" tamanho="sm">provisório</app-selo>
+        {{
+          resumo().aguardandoNovoLider === 1
+            ? 'Uma pessoa responde'
+            : resumo().aguardandoNovoLider + ' pessoas respondem'
+        }}
+        provisoriamente a quem recebeu a equipe de um líder desligado, até o Admin definir o novo
+        líder.
+      </p>
+    }
+
+    @for (raiz of arvore(); track raiz.no.pessoa.id) {
+      <app-cartao class="equipe__cartao">
+        <ul class="arvore" [attr.aria-label]="'Equipe de ' + raiz.no.pessoa.nome">
+          <ng-container *ngTemplateOutlet="ramo; context: { $implicit: raiz, raiz: true }" />
+        </ul>
+      </app-cartao>
+    }
+  }
+</section>
+
+<!-- Um nó e, abaixo dele, quem responde a ele (lista aninhada: a árvore para leitores de tela). -->
+<ng-template #ramo let-item let-raiz="raiz">
+  <li class="arvore__item" [class.arvore__item--raiz]="raiz">
+    <div class="arvore__no">
+      <app-avatar [nome]="item.no.pessoa.nome" [tamanho]="raiz ? 'md' : 'sm'" decorativo />
+      <div class="arvore__quem">
+        <span class="arvore__nome">
+          {{ item.no.pessoa.nome }}
+          @if (item.ehVoce) {
+            <app-selo tamanho="sm">você</app-selo>
+          }
+          @if (item.no.aguardandoNovoLider) {
+            <app-selo
+              tamanho="sm"
+              variante="lima"
+              title="Responde provisoriamente a quem recebeu a equipe de um líder desligado."
+              >provisório</app-selo
+            >
+          }
+        </span>
+        <span class="arvore__papel">
+          {{ item.descricao }}
+          @if (item.tamanhoEquipe) {
+            <span class="sem-quebra">{{ item.tamanhoEquipe }}</span>
+          }
+        </span>
+      </div>
+      <ul class="arvore__numeros" [attr.aria-label]="'Números de ' + item.no.pessoa.nome">
+        <li>{{ item.atividades }}</li>
+        @if (item.atrasadas) {
+          <li class="arvore__atrasadas">{{ item.atrasadas }}</li>
+        }
+        <li>
+          {{ item.negocios }}
+          @if (item.valorAberto) {
+            <span class="sem-quebra">{{ item.valorAberto }}</span>
+          }
+        </li>
+        @if (item.contatos) {
+          <li>{{ item.contatos }}</li>
+        }
+      </ul>
+    </div>
+    @if (item.filhos.length > 0) {
+      <ul class="arvore__filhos">
+        @for (filho of item.filhos; track filho.no.pessoa.id) {
+          <ng-container *ngTemplateOutlet="ramo; context: { $implicit: filho, raiz: false }" />
+        }
+      </ul>
+    }
+  </li>
+</ng-template>

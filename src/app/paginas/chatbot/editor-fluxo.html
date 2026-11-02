@@ -1,0 +1,261 @@
+@if (erro(); as falha) {
+  <a class="voltar" routerLink="/chatbot">← Todos os fluxos</a>
+  <app-estado-vazio
+    variante="erro"
+    [falha]="falha"
+    [titulo]="falha.status === 404 ? 'Fluxo não encontrado' : 'Não conseguimos abrir o fluxo'"
+    [texto]="
+      falha.status === 404 ? 'Ele pode ter sido excluído ou ser de outra área.' : falha.resumo
+    "
+    [codigo]="falha.ehFalhaDoServidor ? falha.requisicaoId : null"
+    [manterAcoes]="true"
+  >
+    @if (falha.status !== 404 && falha.status !== 403) {
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeTentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    }
+    <a appBotao variante="contorno" routerLink="/chatbot">Voltar para a lista</a>
+  </app-estado-vazio>
+} @else if (fluxo(); as f) {
+  <a class="voltar" routerLink="/chatbot">← Todos os fluxos</a>
+  <header class="cabecalho">
+    <div class="cabecalho__textos">
+      <h1 class="texto-display">{{ f.nome }}</h1>
+      <p class="cabecalho__selos">
+        <app-selo [variante]="f.ativo ? 'menta' : 'neutro'">{{
+          f.ativo ? 'Ligado' : 'Desligado'
+        }}</app-selo>
+        @if (f.versaoPublicada; as v) {
+          <app-selo variante="contorno">Versão {{ v.numero }} publicada</app-selo>
+        } @else {
+          <app-selo variante="lima">Nunca publicado</app-selo>
+        }
+        @if (f.versaoPublicada && f.rascunhoNaoPublicado) {
+          <app-selo variante="ciano">Há mudanças no rascunho</app-selo>
+        }
+        <span class="cabecalho__gatilho">Começa em: {{ gatilho() }}</span>
+      </p>
+    </div>
+    <div class="cabecalho__acoes">
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        [icone]="iconeTestar"
+        (click)="testeAberto.set(true)"
+      >
+        Testar
+      </button>
+      @if (podeEditar()) {
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          [carregando]="validando()"
+          (click)="validar()"
+        >
+          Conferir
+        </button>
+        <button
+          appBotao
+          type="button"
+          variante="destaque"
+          [icone]="iconePublicar"
+          (click)="abrirPublicar()"
+        >
+          Publicar
+        </button>
+      }
+      <app-menu-acoes
+        rotulo="Mais ações do fluxo"
+        [itens]="acoes()"
+        (escolher)="executarAcao($event)"
+      />
+    </div>
+  </header>
+
+  @if (!podeEditar()) {
+    <p class="aviso" role="note">
+      Você pode ver e testar este fluxo, mas só quem cuida da área dele consegue editar.
+    </p>
+  }
+
+  <app-abas rotulo="Seções do fluxo" [abas]="abas" [(selecionada)]="aba">
+    @switch (aba()) {
+      @case ('passos') {
+        <div class="passos">
+          <div class="passos__topo">
+            <p class="dica">
+              O robô segue os passos de cima para baixo. Clique em um passo para editar. Mudanças
+              ficam no rascunho e só chegam aos clientes quando você publica.
+            </p>
+            @if (podeEditar()) {
+              <p
+                class="salvamento"
+                [class.salvamento--erro]="estadoSalvamento() === 'erro'"
+                role="status"
+                aria-live="polite"
+              >
+                {{ textoSalvamento() }}
+                @if (estadoSalvamento() === 'erro') {
+                  <button
+                    appBotao
+                    type="button"
+                    variante="contorno"
+                    tamanho="sm"
+                    (click)="salvarAgora()"
+                  >
+                    Tentar salvar de novo
+                  </button>
+                }
+              </p>
+            }
+          </div>
+
+          @if (problemasDaApi().length > 0) {
+            <div class="problemas" role="alert">
+              <p class="problemas__titulo">
+                O fluxo ainda não pode ser
+                {{ publicando() ? 'publicado' : 'publicado ou testado' }}. Ajuste:
+              </p>
+              <ul>
+                @for (p of problemasDaApi(); track $index) {
+                  <li>
+                    {{ p.mensagem }}
+                    @if (p.passoId) {
+                      <button type="button" class="problemas__ir" (click)="irAoPasso(p)">
+                        Ir ao passo
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          } @else if (totalFaltando() > 0 && podeEditar()) {
+            <p class="faltando" role="status">
+              {{
+                totalFaltando() === 1
+                  ? '1 passo tem campos vazios.'
+                  : totalFaltando() + ' passos têm campos vazios.'
+              }}
+              Abra os marcados com “Falta preencher”.
+            </p>
+          }
+
+          @if (passos().length === 0 && !podeEditar()) {
+            <app-estado-vazio titulo="Este fluxo ainda não tem passos" />
+          } @else {
+            <app-arvore-passos
+              [passos]="passos()"
+              [somenteLeitura]="!podeEditar()"
+              [problemasDaApi]="mapaDaApi()"
+              (passosChange)="aoMudarPassos($event)"
+            />
+            @if (passos().length === 0) {
+              <p class="dica">
+                Dica: comece com uma mensagem de boas-vindas e uma pergunta com opções, como “Com o
+                que posso ajudar?”.
+              </p>
+            }
+          }
+          @if (total() > 0) {
+            <p class="total">
+              {{ total() === 1 ? '1 passo' : total() + ' passos' }} no total (máximo 150)
+            </p>
+          }
+        </div>
+      }
+      @case ('configuracao') {
+        <form (submit)="salvarConfiguracao($event)" novalidate>
+          <app-formulario-fluxo
+            [(dados)]="dados"
+            [somenteLeitura]="!podeEditar()"
+            [erros]="errosDaConfiguracao()"
+          />
+          @if (podeEditar()) {
+            <div class="acoes-form">
+              <button
+                appBotao
+                type="submit"
+                variante="destaque"
+                [carregando]="salvandoConfiguracao()"
+              >
+                Salvar configuração
+              </button>
+              <p class="dica">
+                Diferente dos passos, estes dados valem na hora, sem precisar publicar.
+              </p>
+            </div>
+          }
+        </form>
+      }
+      @case ('versoes') {
+        <app-versoes-fluxo
+          [fluxoId]="id"
+          [versaoAtual]="f.versaoPublicada?.numero ?? null"
+          [podeEditar]="podeEditar()"
+          (restaurada)="aoRestaurar($event)"
+        />
+      }
+      @case ('historico') {
+        <app-historico-fluxo [fluxoId]="id" />
+      }
+    }
+  </app-abas>
+
+  <app-painel-lateral
+    [(aberto)]="testeAberto"
+    titulo="Testar o fluxo"
+    descricao="Converse com o robô sem afetar nenhum cliente."
+    largura="md"
+  >
+    <app-simulador-fluxo
+      [fluxoId]="id"
+      [temPublicada]="f.versaoPublicada !== null"
+      [garantirSalvo]="salvarAgora"
+    />
+  </app-painel-lateral>
+
+  <app-modal [(aberto)]="publicarAberto" titulo="Publicar o fluxo" largura="sm">
+    <div class="publicar">
+      <p>
+        Vai nascer a versão {{ (f.versaoPublicada?.numero ?? 0) + 1 }} com os passos do rascunho.
+        Quem já está conversando termina na versão antiga.
+      </p>
+      <app-alternador
+        rotulo="Ligar o fluxo agora"
+        dica="Ligado, o fluxo atende as conversas novas assim que for publicado."
+        [(valor)]="ligarAoPublicar"
+      />
+    </div>
+    <div modal-rodape class="publicar__acoes">
+      <button appBotao type="button" variante="contorno" (click)="publicarAberto.set(false)">
+        Cancelar
+      </button>
+      <button
+        appBotao
+        type="button"
+        variante="destaque"
+        [icone]="iconePublicar"
+        [carregando]="publicando()"
+        (click)="publicar()"
+      >
+        Publicar
+      </button>
+    </div>
+  </app-modal>
+} @else {
+  <div class="carregando" aria-busy="true">
+    <p class="visualmente-oculto" role="status">Carregando o fluxo…</p>
+    <app-esqueleto forma="bloco" altura="72px" />
+    <app-esqueleto forma="bloco" altura="48px" />
+    <app-esqueleto forma="bloco" altura="220px" />
+  </div>
+}

@@ -1,0 +1,194 @@
+@use 'mixins' as m;
+
+// Navegação inferior do celular (só existe abaixo de 900px). Só tokens.
+:host {
+  display: contents;
+}
+
+.nav-inf {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: var(--z-cabecalho);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  border-top: 1px solid var(--cor-borda);
+  background: var(--cor-superficie);
+}
+
+.nav-inf__lista {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: 60px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-inf__li {
+  display: flex;
+  min-width: 0;
+}
+
+.nav-inf__item {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--esp-1);
+  border: 0;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco, currentColor);
+    outline-offset: -4px;
+    border-radius: var(--raio-lg);
+  }
+}
+
+.nav-inf__item--ativo {
+  color: var(--cor-texto);
+  font-weight: 700;
+
+  .nav-inf__icone {
+    background: var(--cor-texto);
+    color: var(--cor-fundo);
+  }
+}
+
+.nav-inf__icone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 28px;
+  border-radius: var(--raio-pilula, 999px);
+  transition: background var(--duracao) var(--curva);
+}
+
+.nav-inf__rotulo {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.6875rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-inf__contagem {
+  position: absolute;
+  top: -4px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--cor-texto);
+  color: var(--cor-fundo);
+  box-shadow: 0 0 0 2px var(--cor-superficie);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+// Ações rápidas: botão flutuante acima da navegação, à direita.
+.nav-inf__acoes {
+  position: fixed;
+  right: var(--esp-4);
+  bottom: calc(60px + env(safe-area-inset-bottom, 0px) + var(--esp-3));
+  z-index: var(--z-cabecalho);
+  display: grid;
+  justify-items: end;
+  gap: var(--esp-2);
+}
+
+.nav-inf__mais {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 48px;
+  padding: 0 var(--esp-4);
+  border: 0;
+  border-radius: 999px;
+  background: var(--cor-texto);
+  color: var(--cor-fundo);
+  box-shadow: var(--sombra-flutuante);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-texto);
+    outline-offset: 3px;
+  }
+}
+
+.nav-inf__menu {
+  display: grid;
+  order: -1;
+  gap: var(--esp-1);
+  width: min(20rem, calc(100vw - 2 * var(--esp-4)));
+  margin: 0;
+  padding: var(--esp-2);
+  list-style: none;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-xl);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+}
+
+.nav-inf__acao {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--esp-2) var(--esp-3);
+  border: 0;
+  border-radius: var(--raio-lg);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cor-superficie-hover, var(--cor-borda));
+  }
+}
+
+.nav-inf__acao-icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--cor-fundo);
+}
+
+.nav-inf__acao-textos {
+  display: grid;
+  min-width: 0;
+
+  small {
+    color: var(--cor-texto-suave);
+    font-size: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-inf__icone {
+    transition: none;
+  }
+}

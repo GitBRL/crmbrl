@@ -1,0 +1,406 @@
+@use 'mixins' as m;
+
+// Quadro (kanban) do funil: cabeçalho, filtros e as colunas com rolagem própria. A página é
+// um contêiner (a largura muda com a navegação aberta ou recolhida). Só tokens.
+
+:host {
+  --_coluna: 18.5rem;
+  --_coluna-fechada: 16rem;
+  --_coluna-recolhida: 4.25rem;
+
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-6);
+  max-width: var(--largura-pagina, 1600px);
+}
+
+// Cabeçalho ---------------------------------------------------------------------------------
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-4) var(--esp-6);
+}
+
+.cabecalho__texto {
+  display: grid;
+  flex: 1 1 24rem;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.cabecalho__titulo {
+  font: var(--fonte-display);
+  letter-spacing: var(--tracking-display);
+}
+
+.cabecalho__frase {
+  max-width: 60ch;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-lead);
+}
+
+.cabecalho__acoes {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--esp-3);
+  margin-left: auto;
+}
+
+.cabecalho__configurar-icone {
+  display: none;
+}
+
+// Filtros -----------------------------------------------------------------------------------
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3) var(--esp-4);
+  min-width: 0;
+}
+
+// Com mais de um funil na área, a escolha do funil ocupa a própria linha.
+.filtros__funil {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.filtros__campos {
+  display: flex;
+  flex: 1 1 28rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+// Botão "Filtros": só no celular (veja abaixo).
+.filtros__alternar {
+  display: none;
+}
+
+.filtros__busca {
+  flex: 1 1 16rem;
+  min-width: 0;
+  max-width: 26rem;
+}
+
+.filtros__etiqueta {
+  flex: 0 1 14rem;
+  min-width: 11rem;
+}
+
+.filtros__total {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  margin-left: auto;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  white-space: nowrap;
+}
+
+.filtros__total-valor {
+  color: var(--cor-texto);
+  font: var(--fonte-numero-pequeno);
+}
+
+// Quadro ------------------------------------------------------------------------------------
+// As colunas ficam lado a lado; o quadro rola na horizontal (só ele, nunca a página) e cada
+// coluna rola na vertical. A altura das colunas acompanha a tela.
+.quadro {
+  // Posicionado: o que é absoluto lá dentro (os textos só para leitores de tela) fica preso à
+  // rolagem do quadro, sem alargar a página.
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: var(--esp-entre-cartoes);
+  min-width: 0;
+  padding: var(--esp-1) var(--esp-1) var(--esp-3);
+  margin: calc(var(--esp-1) * -1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--esp-1);
+  scrollbar-color: var(--cor-borda-forte) transparent;
+}
+
+.quadro__estado {
+  margin-block: var(--esp-6);
+}
+
+.quadro__aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.coluna {
+  position: relative;
+  display: flex;
+  flex: 0 0 var(--_coluna);
+  flex-direction: column;
+  // Sem isto, um conteúdo largo alargaria a coluna além da base (o flex-basis manda).
+  min-width: 0;
+  height: max(26rem, calc(100dvh - var(--casca-reservado) - var(--esp-12)));
+  min-height: 0;
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+  transition: flex-basis var(--duracao) var(--curva);
+}
+
+.coluna--fechada {
+  flex-basis: var(--_coluna-fechada);
+  background: color-mix(in srgb, var(--cor-superficie) 70%, var(--cor-fundo));
+  box-shadow: inset 0 0 0 1px var(--cor-borda);
+}
+
+.coluna--recolhida {
+  flex-basis: var(--_coluna-recolhida);
+
+  .coluna__cabecalho {
+    padding-inline: var(--esp-3);
+  }
+
+  .coluna__linha {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .coluna__titulo,
+  .coluna__contagem,
+  .coluna__dica {
+    display: none;
+  }
+
+  .coluna__corpo {
+    padding-inline: var(--esp-2);
+  }
+}
+
+.coluna__cabecalho {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-4) var(--esp-4) var(--esp-3) var(--esp-5);
+}
+
+.coluna__linha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+// Nomes longos ("Qualificado (MQL)" na coluna estreita de ganho) quebram em até duas linhas
+// em vez de sumir nas reticências.
+.coluna__titulo {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  font: var(--fonte-h3);
+  letter-spacing: var(--tracking-titulo);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.coluna__recolher {
+  margin-left: auto;
+}
+
+.coluna__resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--esp-1) var(--esp-3);
+  min-height: 1.5rem;
+
+  // Sem soma (Marketing) nem parados: a linha some e os cartões sobem.
+  &:empty {
+    display: none;
+  }
+}
+
+.coluna__valor {
+  color: var(--cor-texto);
+  font: var(--fonte-numero-pequeno);
+}
+
+.coluna__parados {
+  color: var(--cor-destaque-texto);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+}
+
+// O corpo rola; dentro dele, a lista (a zona de soltar do CDK) e o "Carregar mais".
+.coluna__corpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-height: 0;
+  padding: 0 var(--esp-3) var(--esp-3);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cor-borda-forte) transparent;
+}
+
+.coluna__lista {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-height: 8rem;
+  border-radius: var(--raio-lg);
+  transition:
+    background-color var(--duracao) var(--curva),
+    box-shadow var(--duracao) var(--curva);
+}
+
+// Arrastando por cima de uma coluna: um leve tom coral e o contorno tracejado.
+.coluna__lista.cdk-drop-list-receiving {
+  box-shadow: inset 0 0 0 1px var(--cor-borda-forte);
+}
+
+.coluna__lista.cdk-drop-list-dragging {
+  background: color-mix(in srgb, var(--cor-destaque) 6%, transparent);
+  box-shadow: inset 0 0 0 1px var(--cor-destaque);
+
+  app-cartao-negocio:not(.cdk-drag-placeholder) {
+    transition: transform var(--duracao-lenta) var(--curva);
+  }
+}
+
+.coluna__vazia {
+  display: grid;
+  place-items: center;
+  min-height: 8rem;
+  padding: var(--esp-4);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: var(--raio-lg);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda-lg);
+  text-align: center;
+}
+
+.coluna__vertical {
+  flex: 1;
+  margin: 0 auto;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+}
+
+.coluna__mais {
+  align-self: center;
+}
+
+// Esqueleto: a forma das colunas e dos cartões.
+.coluna--esqueleto {
+  .coluna__cabecalho {
+    padding-bottom: var(--esp-4);
+  }
+}
+
+.coluna__esqueletos {
+  display: grid;
+  gap: var(--esp-3);
+  padding: 0 var(--esp-3) var(--esp-3);
+}
+
+// Ação principal no celular: botão flutuante circular, no canto inferior direito.
+.novo-flutuante {
+  position: fixed;
+  right: var(--esp-4);
+  bottom: calc(var(--esp-4) + env(safe-area-inset-bottom, 0px));
+  z-index: var(--z-cabecalho);
+  display: none;
+  box-shadow: var(--sombra-flutuante);
+}
+
+// Celular -----------------------------------------------------------------------------------
+@include m.abaixo(m.$md) {
+  .cabecalho__novo {
+    display: none;
+  }
+
+  .novo-flutuante {
+    display: inline-flex;
+  }
+
+  .coluna {
+    height: max(24rem, calc(100dvh - var(--casca-reservado) - var(--esp-16)));
+  }
+}
+
+@include m.abaixo(m.$sm) {
+  :host {
+    --_coluna: min(19rem, calc(100vw - 4.5rem));
+    --_coluna-fechada: min(17rem, calc(100vw - 4.5rem));
+
+    gap: var(--esp-5);
+  }
+
+  .cabecalho {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+  }
+
+  // No celular, "Configurar etapas" vira só o ícone, e a busca e a etiqueta ficam atrás do
+  // botão "Filtros".
+  .cabecalho__configurar,
+  .filtros__campos--fechado {
+    display: none;
+  }
+
+  .cabecalho__configurar-icone,
+  .filtros__alternar {
+    display: inline-flex;
+  }
+
+  .cabecalho__acoes {
+    flex: none;
+  }
+
+  // Os filtros em pílula e o quadro rolam na horizontal até a borda da tela (o recuo da
+  // casca); no quadro, os cartões param certinho em cada coluna.
+  app-filtros-pilula,
+  .quadro {
+    width: calc(100% + 2 * var(--casca-margem, 16px));
+    margin-inline: calc(-1 * var(--casca-margem, 16px));
+    padding-inline: var(--casca-margem, 16px);
+  }
+
+  .filtros__campos {
+    flex-basis: 100%;
+  }
+
+  .filtros__busca {
+    max-width: none;
+  }
+
+  .filtros__etiqueta {
+    flex: 1 1 100%;
+  }
+
+  .quadro {
+    scroll-padding-inline: var(--casca-margem, 16px);
+    scroll-snap-type: x mandatory;
+  }
+
+  .coluna {
+    scroll-snap-align: start;
+  }
+}

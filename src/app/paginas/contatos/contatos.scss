@@ -1,0 +1,23 @@
+@use 'contatos-comum' as c;
+
+// /contatos: cabeçalho, abas entalhadas (Pessoas | Empresas) e o botão flutuante do celular.
+// Só tokens.
+
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-6);
+  max-width: var(--largura-pagina);
+}
+
+.cabecalho {
+  @include c.cabecalho;
+}
+
+.so-desktop {
+  @include c.so-desktop;
+}
+
+.acao-flutuante {
+  @include c.acao-flutuante;
+}

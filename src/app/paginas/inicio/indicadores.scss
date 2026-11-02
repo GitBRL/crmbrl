@@ -1,0 +1,100 @@
+:host {
+  display: block;
+  container-type: inline-size;
+}
+
+// A base das variações, acima dos cartões ("Variações em relação aos 30 dias anteriores").
+.kpis__base {
+  margin-bottom: var(--esp-3);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+// Celular: um cartão por linha, com o ícone à esquerda e a dica à direita.
+.kpis {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-entre-cartoes);
+}
+
+.kpi {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--esp-4);
+  min-width: 0;
+  padding: var(--esp-cartao);
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+// O selo "exemplo" (números de módulos que ainda não existem) e a dica, juntos à direita.
+.kpi__lado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+.kpi__carregando {
+  display: grid;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.kpi__icone {
+  display: grid;
+  place-items: center;
+  width: var(--altura-md);
+  height: var(--altura-md);
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  color: var(--cor-texto);
+}
+
+// Dois por linha: no topo do cartão, o ícone à esquerda e a dica à direita; embaixo, o número
+// com a variação e a legenda, que usa a largura toda do cartão. Os cartões de uma linha
+// dividem as mesmas três linhas da grade (subgrid, também dentro do indicador): dicas, números,
+// selos e legendas ficam na mesma altura em todos, e uma legenda mais longa só desce.
+@container (width >= 26rem) {
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi {
+    grid-row: span 3;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: subgrid;
+    align-items: start;
+    gap: var(--esp-5) var(--esp-2);
+  }
+
+  .kpi__lado {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+  }
+
+  .kpi app-indicador,
+  .kpi__carregando {
+    display: grid;
+    grid-row: 2 / span 2;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: subgrid;
+    row-gap: var(--esp-2);
+    align-items: start;
+  }
+}
+
+// Os quatro numa linha (DESIGN-SYSTEM.md §5) a partir de 43rem: cartões de ≥ 160px, onde
+// "R$ 412 mil" (40px) ocupa ~114px dos 120px de dentro; a variação desce para a linha de baixo.
+@container (width >= 43rem) {
+  .kpis {
+    grid-template-columns: repeat(var(--kpis, 4), minmax(0, 1fr));
+  }
+
+  .kpi {
+    padding: var(--esp-5);
+  }
+}

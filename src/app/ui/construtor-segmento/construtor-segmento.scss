@@ -1,0 +1,136 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+}
+
+.segmento {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.segmento__frase {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+  margin: 0;
+  font: var(--fonte-corpo);
+}
+
+.segmento__combinacao {
+  min-width: 240px;
+}
+
+.segmento__lista {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Uma linha por condição: campo, operador, valor e remover. No celular, campo e operador
+// dividem a primeira linha e o valor desce, com o botão de remover ao lado.
+.segmento__linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-3);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+
+  @include m.abaixo(m.$md) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--esp-2);
+
+    .segmento__campo,
+    .segmento__operador,
+    .segmento__valor {
+      grid-column: 1;
+    }
+
+    .segmento__remover {
+      grid-column: 2;
+      grid-row: 1 / span 3;
+    }
+  }
+}
+
+.segmento__valor--nenhum {
+  @include m.abaixo(m.$sm) {
+    display: none;
+  }
+}
+
+.segmento__campo,
+.segmento__operador,
+.segmento__valor {
+  min-width: 0;
+}
+
+.segmento__vazio {
+  margin: 0;
+  padding: var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.segmento__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.segmento__contagem {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--esp-2);
+  min-height: var(--altura-sm);
+  margin: 0;
+}
+
+.segmento__numero {
+  font: var(--fonte-numero-pequeno);
+}
+
+.segmento__contagem-texto {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  &--erro {
+    color: var(--cor-erro);
+  }
+}
+
+.segmento__tentar {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.segmento__nota {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}

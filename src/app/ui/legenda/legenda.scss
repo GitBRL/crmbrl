@@ -1,0 +1,47 @@
+:host {
+  display: block;
+}
+
+.legenda__lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2) var(--esp-5);
+}
+
+.legenda__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+// Contorno interno só no tema claro (`--cor-contorno-dado`): a bolinha lima some no branco.
+.legenda__ponto {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dado-1);
+  box-shadow: inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.legenda__ponto[data-serie='2'] {
+  background: var(--dado-2);
+}
+
+.legenda__ponto[data-serie='3'] {
+  background: var(--dado-3);
+}
+
+.legenda__ponto[data-serie='4'] {
+  background: var(--dado-4);
+}
+
+// Alto contraste (cores forçadas): a bolinha mantém a cor da série e ganha um contorno.
+@media (forced-colors: active) {
+  .legenda__ponto {
+    forced-color-adjust: none;
+    outline: 1px solid CanvasText;
+  }
+}

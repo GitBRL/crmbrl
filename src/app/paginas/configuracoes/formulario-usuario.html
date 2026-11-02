@@ -1,0 +1,143 @@
+<app-modal
+  [titulo]="titulo()"
+  [complemento]="editando() ? null : '· acesso ao CRM'"
+  [aberto]="aberto()"
+  (fechado)="fechar()"
+>
+  <form
+    class="formulario"
+    novalidate
+    [id]="idFormulario"
+    [formGroup]="formulario"
+    (ngSubmit)="salvar()"
+  >
+    @if (!editando()) {
+      <p class="formulario__frase">
+        A pessoa entra com o e-mail e vê só o que o papel dela permite.
+      </p>
+    }
+
+    <app-campo-texto
+      #campoNome
+      rotulo="Nome"
+      autocomplete="off"
+      [maximoCaracteres]="200"
+      formControlName="nome"
+    />
+    <app-campo-texto
+      #campoEmail
+      rotulo="E-mail"
+      tipo="email"
+      autocomplete="off"
+      dica="É com ele que a pessoa entra no CRM."
+      formControlName="email"
+    />
+
+    <div class="formulario__par">
+      <app-seletor
+        #campoPapel
+        rotulo="Papel"
+        ajuda="O papel define a área (Comercial, Marketing ou Customer Success) e o que a pessoa vê e pode fazer. Líderes veem a própria equipe; C-level vê tudo; o Admin gerencia usuários e integrações."
+        placeholder="Escolha o papel"
+        [opcoes]="opcoesPapel"
+        formControlName="papel"
+      />
+
+      @if (papel() !== null && !liderNecessario()) {
+        <div class="formulario__sem-lider" role="note">
+          <span class="formulario__rotulo-nota">Líder</span>
+          <p>{{ explicacaoLider() }}</p>
+        </div>
+      } @else {
+        <app-seletor
+          #campoLider
+          rotulo="Líder"
+          [placeholder]="lideres.carregando() ? 'Carregando quem pode liderar…' : 'Escolha o líder'"
+          [ajuda]="ajudaLider"
+          [dica]="explicacaoLider()"
+          [erro]="semCandidatos() ? mensagemSemCandidatos() : null"
+          [opcoes]="opcoesLider()"
+          formControlName="liderId"
+        />
+      }
+    </div>
+
+    @if (liderProvisorio()) {
+      <p class="formulario__aviso" role="note">
+        Este líder é provisório: depois de um desligamento, a pessoa passou a responder a quem
+        recebeu a equipe. Escolha um líder da área.
+      </p>
+    }
+    @if (lideres.erro(); as erro) {
+      <p class="formulario__aviso" role="alert">
+        Não conseguimos carregar quem pode liderar: {{ erro.resumo }}
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="contorno"
+          (click)="recarregarLideres()"
+        >
+          Tentar de novo
+        </button>
+      </p>
+    }
+
+    <app-campo-texto
+      rotulo="Telefone"
+      tipo="tel"
+      autocomplete="off"
+      teclado="tel"
+      opcional
+      placeholder="(11) 98765-4321"
+      formControlName="telefone"
+    />
+
+    @if (!editando()) {
+      <app-grupo-opcoes
+        rotulo="Como a pessoa entra"
+        [opcoes]="opcoesAcesso"
+        formControlName="acesso"
+      />
+      @if (acesso() === 'senha') {
+        <div class="formulario__senha">
+          <app-campo-senha
+            #campoSenha
+            rotulo="Senha temporária"
+            autocomplete="new-password"
+            [dica]="
+              'De ' + senhaMinimo + ' a 128 caracteres. Passe a senha à pessoa por um canal seguro.'
+            "
+            formControlName="senha"
+          />
+          <button appBotao type="button" variante="contorno" tamanho="sm" (click)="gerarSenha()">
+            Gerar senha forte
+          </button>
+        </div>
+      }
+    }
+
+    @if (erroGeral(); as erro) {
+      <p class="formulario__erro" role="alert">{{ erro.mensagem }}</p>
+    }
+  </form>
+
+  <div modal-rodape class="formulario__acoes">
+    <button appBotao type="button" variante="contorno" (click)="fechar()">Cancelar</button>
+    <button
+      appBotao
+      type="submit"
+      variante="invertido"
+      [attr.form]="idFormulario"
+      [carregando]="enviando()"
+    >
+      {{
+        editando()
+          ? 'Salvar alterações'
+          : acesso() === 'senha'
+            ? 'Cadastrar usuário'
+            : 'Enviar convite'
+      }}
+    </button>
+  </div>
+</app-modal>

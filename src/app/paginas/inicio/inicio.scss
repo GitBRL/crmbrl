@@ -1,0 +1,230 @@
+@use 'mixins' as m;
+
+// Visão geral (/inicio): cabeçalho, grade (palco e indicadores | coluna lateral) e o palco
+// das abas entalhadas. Só tokens; cada bloco do painel tem os próprios estilos.
+//
+// A página é um contêiner: o cabeçalho e a grade se ajustam à largura do conteúdo, que muda
+// com a navegação aberta ou recolhida, e não só com a da tela.
+
+:host {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-8);
+  max-width: var(--largura-pagina, 1600px);
+}
+
+// Cabeçalho ----------------------------------------------------------------------------
+// Título à esquerda e ações à direita. Sem espaço, as ações descem para baixo do título,
+// numa linha alinhada à direita.
+.cabecalho {
+  container-type: inline-size;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-6);
+}
+
+.cabecalho__texto {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.cabecalho__titulo {
+  font: var(--fonte-display);
+  letter-spacing: var(--tracking-display);
+}
+
+.cabecalho__frase {
+  max-width: 60ch;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-lead, 400 1.0625rem/1.5 var(--familia));
+}
+
+// Ações e, logo abaixo delas, o retorno do "Compartilhar".
+.cabecalho__lado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+}
+
+.cabecalho__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--esp-4) var(--esp-6);
+  min-width: 0;
+  max-width: 100%;
+}
+
+// Com espaço (~1.240px de conteúdo: 1440 com a navegação recolhida, 1600 com ela aberta),
+// as ações cabem ao lado do título em duas linhas: o período em cima; a equipe, compartilhar
+// e a IA embaixo (título de ~671px + 32px + ações de ~534px).
+@container (width >= 77.5rem) {
+  .cabecalho__acoes {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--esp-3);
+  }
+}
+
+.cabecalho__periodo,
+.cabecalho__botoes,
+.cabecalho__icones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-3);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cabecalho__intervalo {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// Os botões-ícone só aparecem no celular (abaixo).
+.cabecalho__icones {
+  display: none;
+}
+
+// Vazio, não ocupa altura (mas continua na árvore, para a região viva funcionar).
+.cabecalho__retorno {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  text-align: right;
+}
+
+.cabecalho__retorno--visivel {
+  margin-top: var(--esp-2);
+}
+
+// Celular: as ações começam à esquerda; compartilhar e a IA viram botões-ícone na linha da
+// equipe, à direita, como na referência. O cabeçalho cabe na primeira tela. Onde a linha não
+// cabe (320px: pilha de ~190px + dois botões de 44px), os botões descem juntos para a linha de
+// baixo, ainda à direita: nada avança sobre o recuo da página.
+@include m.abaixo(m.$sm) {
+  .cabecalho__lado {
+    align-items: stretch;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .cabecalho__acoes {
+    justify-content: flex-start;
+  }
+
+  .cabecalho__botoes {
+    width: 100%;
+  }
+
+  .cabecalho__pilula {
+    display: none;
+  }
+
+  .cabecalho__icones {
+    display: flex;
+    flex-wrap: nowrap;
+    margin-left: auto;
+  }
+
+  .cabecalho__retorno {
+    text-align: left;
+  }
+}
+
+// Grade --------------------------------------------------------------------------------
+// Estreita: uma coluna (palco, indicadores, lateral). A lateral se divide em duas colunas
+// quando cabe (a partir de 900px de tela), com os dois cartões da mesma altura.
+// Com 60rem de conteúdo: palco e indicadores em 2/3, lateral em 1/3.
+.grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--esp-entre-cartoes);
+}
+
+.grade__lateral {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  align-items: stretch;
+  gap: var(--esp-entre-cartoes);
+}
+
+@include m.abaixo(m.$md) {
+  .grade__lateral {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container (width >= 60rem) {
+  .grade {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .grade__lateral {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+// Palco --------------------------------------------------------------------------------
+// O palco é o painel das abas entalhadas: a aba ativa tem a cor sólida da superfície e se
+// funde a ele. O conteúdo cobre o padding do painel e desenha os brilhos do palco num
+// ::before que entra suave a partir do topo, para a junção com a aba não aparecer.
+// O painel usa o raio de cartão; aqui ele vira o raio do palco (36px; 28px no mobile).
+.grade__palco {
+  --abas-entalhe-fundo: var(--cor-superficie);
+  --raio-cartao: var(--raio-palco);
+}
+
+.palco {
+  --cor-superficie-2: var(--cor-vidro);
+  --cor-superficie-3: var(--cor-vidro-forte);
+  --pilha-anel: color-mix(in srgb, var(--cor-fundo) 70%, transparent);
+
+  position: relative;
+  isolation: isolate;
+  margin: calc(-1 * var(--esp-cartao));
+  padding: var(--esp-8);
+  border-radius: inherit;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--gradiente-palco);
+    mask-image: linear-gradient(to bottom, transparent, black var(--esp-16));
+    pointer-events: none;
+  }
+}
+
+@include m.abaixo(m.$sm) {
+  .palco {
+    padding: var(--esp-5);
+  }
+
+  // As abas viram pílulas que rolam até a borda da tela (DESIGN-SYSTEM.md §5): a lista avança
+  // sobre o recuo da página dos dois lados e devolve o mesmo espaço por dentro, então a
+  // primeira aba continua alinhada ao conteúdo e a última chega à borda ao rolar. A lista é
+  // interna do app-abas, e o recuo é da casca (`--casca-margem`): daí o ::ng-deep, preso ao
+  // palco desta página. O painel não muda.
+  .grade__palco ::ng-deep .abas__lista {
+    margin-inline: calc(-1 * var(--casca-margem, var(--esp-4)));
+    padding-inline: var(--casca-margem, var(--esp-4));
+  }
+}

@@ -1,0 +1,70 @@
+@use 'mixins' as m;
+
+// Dúvidas ao assistente (Administração): abas, filtros e tabelas. Só tokens.
+
+:host {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+  min-width: 0;
+}
+
+.filtros {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-4);
+  margin-bottom: var(--esp-5);
+}
+
+.filtros__topo {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}
+
+.filtros__busca {
+  flex: 1 1 14rem;
+  max-width: 36rem;
+  min-width: 0;
+}
+
+.filtros__exportar {
+  display: inline-flex;
+  gap: var(--esp-2);
+}
+
+.filtros__grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-4);
+  margin-bottom: var(--esp-4);
+  min-width: 0;
+
+  @include m.acima(m.$sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include m.acima(m.$lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  &--curta {
+    @include m.acima(m.$lg) {
+      grid-template-columns: repeat(2, minmax(0, 14rem));
+    }
+  }
+}
+
+.consulta__fraco {
+  font: var(--fonte-legenda);
+  color: var(--cor-texto-fraco);
+}
+
+.resumo {
+  overflow-wrap: anywhere;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+}

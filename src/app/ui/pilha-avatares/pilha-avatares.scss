@@ -1,0 +1,40 @@
+:host {
+  --_lado: var(--altura-md);
+  --_anel: var(--pilha-anel, var(--cor-fundo));
+
+  display: inline-flex;
+  align-items: center;
+  isolation: isolate;
+}
+
+:host(.pilha--sm) {
+  --_lado: 32px;
+}
+
+// Anel da cor do fundo por fora e, no tema claro, o contorno de dado por dentro (esta regra
+// substitui o box-shadow do próprio avatar).
+.pilha__avatar {
+  box-shadow:
+    0 0 0 2px var(--_anel),
+    inset 0 0 0 1px var(--cor-contorno-dado);
+}
+
+.pilha__avatar + .pilha__avatar {
+  margin-left: calc(var(--_lado) * -0.3);
+}
+
+// Círculo translúcido no fim, sobre o último avatar (deixa a cor dele aparecer).
+.pilha__mais {
+  display: grid;
+  place-items: center;
+  width: var(--_lado);
+  height: var(--_lado);
+  margin-left: calc(var(--_lado) * -0.4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cor-superficie) 60%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--cor-texto);
+  font: var(--fonte-rotulo);
+  font-variant-numeric: tabular-nums;
+}

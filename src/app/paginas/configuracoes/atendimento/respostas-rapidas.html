@@ -1,0 +1,152 @@
+<div class="respostas">
+  <div class="respostas__topo">
+    <div class="faixa faixa--info" role="note">
+      <svg lucideMessageSquareText class="faixa__icone" [size]="20" />
+      <p>
+        <strong>Mensagens prontas para o dia a dia.</strong>
+        No Atendimento, digite <kbd>/</kbd> e o atalho: o texto entra no campo, já com o nome do
+        cliente e de quem atende, para revisar antes de enviar.
+      </p>
+    </div>
+    @if (podeCriar()) {
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        class="secao__acao"
+        [icone]="icones.novo"
+        (click)="abrirFormulario(null)"
+      >
+        <span class="secao__acao-texto">Nova resposta</span>
+      </button>
+    }
+  </div>
+
+  <div class="respostas__filtros">
+    <app-campo-busca
+      class="respostas__busca"
+      rotulo="Buscar nas respostas rápidas"
+      placeholder="Atalho, título ou texto"
+      [valor]="busca()"
+      (valorChange)="buscar($event)"
+      (buscar)="buscar($event)"
+    />
+    <app-filtros-pilula
+      rotulo="Área"
+      [opcoes]="opcoesArea"
+      [selecionado]="area()"
+      (selecionadoChange)="mudarArea($event)"
+    />
+    @if (podeCriar()) {
+      <app-caixa-selecao
+        rotulo="Mostrar desativadas"
+        [valor]="incluirInativas()"
+        (valorChange)="mudarInativas($event)"
+      />
+    }
+  </div>
+
+  @if (dados.erro(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar as respostas rápidas"
+      [texto]="erro.resumo"
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="icones.tentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <app-tabela
+      rotulo="Respostas rápidas"
+      [colunas]="colunas"
+      [linhas]="respostas()"
+      [carregando]="dados.dados() === null"
+      clicavel
+      colunaPrincipal="atalho"
+      (abrir)="abrirFormulario($event)"
+    >
+      <ng-template appCelula="atalho" [appCelulaDe]="respostas()" let-resposta>
+        <span class="resposta__atalho" [class.resposta__atalho--inativa]="!resposta.ativa"
+          >/{{ resposta.atalho }}</span
+        >
+      </ng-template>
+      <ng-template appCelula="titulo" [appCelulaDe]="respostas()" let-resposta>
+        <span class="resposta__titulo">{{ resposta.titulo }}</span>
+        @if (!resposta.ativa) {
+          <app-selo tamanho="sm" variante="contorno">desativada</app-selo>
+        }
+      </ng-template>
+      <ng-template appCelula="area" [appCelulaDe]="respostas()" let-resposta>
+        <app-selo tamanho="sm" [variante]="resposta.area ? 'neutro' : 'lima'">{{
+          rotuloArea(resposta.area)
+        }}</app-selo>
+      </ng-template>
+      <ng-template appCelula="texto" [appCelulaDe]="respostas()" let-resposta>
+        <span class="resposta__texto">{{ resposta.texto }}</span>
+      </ng-template>
+      <ng-template appCelula="acoes" [appCelulaDe]="respostas()" let-resposta>
+        <app-menu-acoes
+          [rotulo]="'Ações de /' + resposta.atalho"
+          [itens]="acoesDa(resposta)"
+          (escolher)="agir(resposta, $event.id)"
+        />
+      </ng-template>
+      <div tabela-vazio>
+        @if (filtrando()) {
+          <app-estado-vazio
+            compacto
+            variante="busca"
+            titulo="Nenhuma resposta encontrada"
+            texto="Tente outro termo ou mostre todas as áreas."
+          >
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              (click)="limparFiltros()"
+            >
+              Limpar filtros
+            </button>
+          </app-estado-vazio>
+        } @else {
+          <app-estado-vazio
+            compacto
+            titulo="Nenhuma resposta rápida ainda"
+            texto="Crie as mensagens que a equipe mais repete: boas-vindas, horário, envio de proposta, pedido de documentos…"
+          >
+            @if (podeCriar()) {
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="invertido"
+                [icone]="icones.novo"
+                (click)="abrirFormulario(null)"
+              >
+                Nova resposta
+              </button>
+            }
+          </app-estado-vazio>
+        }
+      </div>
+    </app-tabela>
+  }
+</div>
+
+<app-formulario-resposta
+  [pedido]="formulario()"
+  [areasPermitidas]="areasPermitidas()"
+  [variaveis]="variaveis()"
+  (salva)="respostaSalva($event)"
+  (fechado)="formulario.set(null)"
+/>

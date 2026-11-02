@@ -1,0 +1,216 @@
+@use 'mixins' as m;
+
+// Navegação principal: pílulas com o ícone num círculo (como "Layout" e "Customizing" na
+// referência). Densa o bastante para os 16 módulos do Admin caberem quase inteiros no
+// cartão (o resto rola, com as bordas esmaecidas pela casca). Só tokens.
+
+:host {
+  display: block;
+}
+
+.menu {
+  // Altura do item: 40px no mouse e 44px no toque (alvo mínimo). O círculo do ícone mede a
+  // altura menos 8px, como nas pílulas (§2.6).
+  --_item: calc(var(--altura-md) - var(--esp-1));
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-1);
+
+  @include m.toque {
+    --_item: var(--altura-md);
+  }
+}
+
+.menu__grupo {
+  padding: var(--esp-1) var(--esp-3) 2px;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.menu__lista {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+
+.menu__item {
+  --_circulo: var(--cor-superficie-3);
+  --_circulo-icone: var(--cor-texto-suave);
+
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: var(--_item);
+  padding: 3px var(--esp-2) 3px 3px;
+  border: 1px solid transparent;
+  border-radius: var(--raio-pilula);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duracao) var(--curva),
+    border-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+
+  &:hover {
+    --_circulo-icone: var(--cor-texto);
+
+    background: var(--cor-vidro);
+    color: var(--cor-texto);
+  }
+}
+
+// Página atual: círculo invertido (branco no escuro), como o item ativo da referência.
+.menu__item--ativo,
+.menu__item--ativo:hover {
+  --_circulo: var(--cor-inverso);
+  --_circulo-icone: var(--cor-sobre-inverso);
+
+  border-color: var(--cor-borda);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+}
+
+.menu__circulo {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(var(--_item) - 8px);
+  height: calc(var(--_item) - 8px);
+  border-radius: 50%;
+  background: var(--_circulo);
+  color: var(--_circulo-icone);
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva);
+}
+
+// O nome nunca é cortado: com espaçamento de texto maior (WCAG 1.4.12) ele quebra e o item
+// cresce (a altura é mínima).
+.menu__rotulo {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+// O selo "em breve" (tamanho sm) chega um pouco mais perto do nome.
+.menu__item app-selo {
+  margin-left: calc(var(--esp-1) * -1);
+}
+
+// Não lidas (Atendimento, Chat): a contagem do sino (§4, botão-ícone), ao lado do nome; com a
+// navegação recolhida, no canto do círculo, recortada com a cor do cartão.
+.menu__contagem {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-erro);
+  color: var(--cor-sobre-erro);
+  font: var(--fonte-micro);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.menu__contagem--canto {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-shadow: 0 0 0 2px var(--cor-superficie);
+}
+
+// Recolhida: só os círculos; os grupos viram um fio.
+.menu--recolhido {
+  justify-items: center;
+  gap: var(--esp-2);
+
+  .menu__secao {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: var(--esp-2);
+  }
+
+  .menu__grupo {
+    width: var(--esp-6);
+    height: 1px;
+    padding: 0;
+    background: var(--cor-borda-forte);
+  }
+
+  .menu__item {
+    justify-content: center;
+    width: var(--_item);
+    padding: 3px;
+  }
+}
+
+// Dica do item recolhido (decorativa: o nome já está no link). Pode receber o ponteiro: uma
+// ponte invisível de 12px liga o balão ao item, e ele só some quando o ponteiro sai dos dois.
+.menu__dica {
+  position: fixed;
+  z-index: var(--z-flutuante);
+  padding: 6px var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  font: var(--fonte-rotulo);
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-4px, -50%);
+  transition:
+    opacity var(--duracao-opacidade) ease-out,
+    transform var(--duracao-rapida) var(--curva);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    right: 100%;
+    width: var(--esp-3);
+  }
+
+  &:empty {
+    display: none;
+  }
+}
+
+.menu__dica--visivel {
+  pointer-events: auto;
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+// Alto contraste (cores forçadas): o item ativo e o círculo invertido perderiam a cor.
+@media (forced-colors: active) {
+  .menu__item--ativo {
+    border-color: Highlight;
+  }
+
+  .menu__item--ativo .menu__circulo {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .menu__contagem {
+    border: 1px solid CanvasText;
+  }
+}

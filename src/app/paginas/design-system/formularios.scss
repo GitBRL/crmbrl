@@ -1,0 +1,30 @@
+@use 'catalogo';
+
+// Seção de formulários do catálogo. Só tokens.
+
+:host {
+  display: block;
+}
+
+.ds-form {
+  display: grid;
+  gap: var(--esp-5);
+  max-width: 56rem;
+}
+
+// Duas colunas quando cabem (cada campo com pelo menos 16rem).
+.ds-form__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: var(--esp-5) var(--esp-4);
+  align-items: start;
+}
+
+.ds-form__grade--estreita {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+
+.ds-riscado {
+  color: var(--cor-texto-suave);
+  text-decoration: line-through;
+}

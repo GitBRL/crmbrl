@@ -1,0 +1,89 @@
+@use '../../ui/campo/campo' as c;
+
+// Campo de etiquetas: a pílula do campo que cresce em linhas com os selos e o texto.
+// Só tokens.
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.etiquetas {
+  @include c.controle;
+
+  flex-wrap: wrap;
+  gap: var(--esp-1) var(--esp-2);
+  padding-block: var(--esp-1);
+  // Com mais de uma linha a pílula vira um retângulo de cantos grandes.
+  border-radius: var(--raio-lg);
+
+  &.etiquetas--invalido {
+    border-color: var(--cor-erro);
+  }
+
+  &.etiquetas--desabilitado {
+    opacity: 0.5;
+  }
+}
+
+.etiquetas__lista {
+  display: contents;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.etiquetas__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  min-height: 28px;
+  padding-inline: var(--esp-3) var(--esp-1);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-3);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+}
+
+.etiquetas__remover {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -11px;
+  }
+
+  &:hover {
+    background: var(--cor-vidro-forte);
+    color: var(--cor-texto);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 1px;
+  }
+}
+
+.etiquetas__campo {
+  @include c.nativo;
+
+  flex: 1 1 8rem;
+  min-height: 34px;
+}
+
+// Sem a seta nativa do <datalist> (um "▼" fora do estilo dos seletores): as sugestões
+// aparecem enquanto se digita, como a dica diz.
+.etiquetas__campo::-webkit-calendar-picker-indicator {
+  display: none !important;
+}

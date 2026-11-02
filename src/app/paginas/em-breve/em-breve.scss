@@ -1,0 +1,179 @@
+@use 'mixins' as m;
+
+// Página "em breve": palco com o módulo, funcionalidades planejadas e roadmap. Só tokens.
+
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-entre-cartoes);
+  max-width: var(--largura-pagina, 1600px);
+}
+
+// Palco -------------------------------------------------------------------------------------
+.em-breve__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--esp-4);
+  margin-bottom: var(--esp-8);
+}
+
+// Ícone grande num círculo invertido, como o item ativo da referência.
+.em-breve__icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--cor-inverso);
+  color: var(--cor-sobre-inverso);
+}
+
+.em-breve__icone--bloqueado {
+  background: var(--cor-vidro-forte);
+  color: var(--cor-texto);
+}
+
+.em-breve__selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.em-breve__titulo {
+  margin-bottom: var(--esp-3);
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.em-breve__descricao {
+  max-width: 44ch;
+  color: var(--cor-texto-suave);
+  font-size: 1.125rem;
+
+  strong {
+    color: var(--cor-texto);
+    font-weight: 500;
+  }
+}
+
+.em-breve__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  max-width: 64ch;
+  margin-top: var(--esp-3);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda-lg, 400 0.8125rem/1.35 var(--familia));
+
+  svg {
+    margin-top: 1px;
+  }
+}
+
+.em-breve__indicadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-6) var(--esp-12);
+  margin-top: var(--esp-10);
+}
+
+.em-breve__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.em-breve__palco .em-breve__acoes {
+  margin-top: var(--esp-8);
+}
+
+// Funcionalidades e roadmap ------------------------------------------------------------------
+// Lado a lado, os dois cartões têm a mesma altura (sem vão embaixo do mais curto).
+.em-breve__grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--esp-entre-cartoes);
+}
+
+@include m.acima(m.$md) {
+  .em-breve__grade {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+}
+
+.em-breve__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+// O chip e as dicas dos termos que ele cita andam juntos.
+.em-breve__funcionalidade {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+  max-width: 100%;
+}
+
+.roadmap {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.roadmap__fase {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: var(--altura-sm);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-rotulo);
+
+  // Fio que liga um marcador ao seguinte (marcador de 28px, 8px entre as fases).
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    top: calc(50% + 16px);
+    bottom: calc(8px - 50%);
+    left: 13px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--cor-borda-forte);
+  }
+}
+
+.roadmap__marcador {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--cor-superficie-3);
+  font: var(--fonte-micro);
+}
+
+.roadmap__nome {
+  flex: 1;
+  min-width: 0;
+}
+
+.roadmap__fase--concluida .roadmap__marcador {
+  background: var(--dado-2);
+  color: var(--pb-preto);
+}
+
+.roadmap__fase--atual {
+  color: var(--cor-texto);
+
+  .roadmap__marcador {
+    background: var(--cor-destaque);
+    color: var(--cor-sobre-destaque);
+  }
+}

@@ -1,0 +1,46 @@
+<header class="cabecalho">
+  <div class="cabecalho__texto">
+    <!-- Título em dois tons (DESIGN-SYSTEM §2.3): o espaço inseparável prende o "·" ao título. -->
+    @let partes = titulo();
+    <h1 class="cabecalho__titulo">
+      {{ partes.principal }}<span class="tom-fraco">{{ partes.ponto }}</span
+      ><span class="tom-fraco sem-quebra">{{ partes.complemento }}</span>
+    </h1>
+    <p class="cabecalho__frase">
+      Responda os clientes do WhatsApp, do chat do site, do e-mail e das redes sociais num só lugar.
+    </p>
+  </div>
+  <div class="cabecalho__dicas" [hidden]="estado.semAcesso()">
+    <app-dica
+      rotulo="Como as conversas chegam e quais você vê"
+      titulo="Filas e distribuição"
+      [texto]="dicaFilas()"
+    />
+    <app-dica rotulo="Atalhos de teclado" titulo="Atalhos de teclado" [texto]="textoAtalhos" />
+  </div>
+</header>
+
+@if (estado.semAcesso()) {
+  <!-- A API recusou o Atendimento para este papel (R12: o Marketing não atende conversas). -->
+  <div class="sem-acesso">
+    <app-estado-vazio
+      variante="sem-acesso"
+      titulo="O Atendimento não faz parte do seu papel"
+      texto="As conversas com clientes ficam com o Comercial e o Customer Success. Se você precisa acompanhar alguma, peça para a liderança dessas áreas."
+    />
+  </div>
+}
+<div class="caixa" [hidden]="estado.semAcesso()">
+  <app-lista-conversas class="caixa__lista" />
+
+  <section class="caixa__conversa" aria-label="Conversa aberta">
+    <router-outlet (activate)="aoAtivar()" (deactivate)="aoDesativar()" />
+    @if (!aberta()) {
+      <app-estado-vazio
+        class="caixa__vazio"
+        titulo="Escolha uma conversa"
+        texto="Abra uma conversa da lista para ler as mensagens, responder e ver os dados do contato."
+      />
+    }
+  </section>
+</div>

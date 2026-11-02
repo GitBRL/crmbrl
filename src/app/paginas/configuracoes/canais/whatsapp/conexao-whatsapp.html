@@ -1,0 +1,177 @@
+@switch (fase()) {
+  @case ('qr') {
+    <div class="conexao conexao--qr">
+      <figure class="qr">
+        <div class="qr__moldura" [class.qr__moldura--vencido]="vencido()">
+          @if (qr(); as imagem) {
+            <img
+              class="qr__imagem"
+              [src]="imagem"
+              width="240"
+              height="240"
+              alt="QR para conectar o WhatsApp: leia com o celular do número"
+            />
+          } @else {
+            <div class="qr__gerando" role="status">
+              <svg lucideLoaderCircle class="qr__girando" [size]="28" />
+              <span>Gerando o código…</span>
+            </div>
+          }
+          @if (vencido()) {
+            <div class="qr__vencido">
+              <p>O código venceu.</p>
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="invertido"
+                [icone]="iconeRenovar"
+                [carregando]="conectando()"
+                (click)="conectar.emit()"
+              >
+                Gerar outro
+              </button>
+            </div>
+          }
+        </div>
+        @if (qr() && !vencido()) {
+          <figcaption class="qr__tempo">
+            <span class="qr__barra" aria-hidden="true">
+              <span class="qr__barra-cheia" [style.inline-size.%]="fracaoRestante() * 100"></span>
+            </span>
+            <span aria-live="off">{{ textoTempo() }}</span>
+          </figcaption>
+        }
+      </figure>
+
+      <div class="passos">
+        <h3 class="passos__titulo">Leia o QR com o celular do número</h3>
+        <p class="passos__celular">
+          <svg lucideMonitor [size]="16" />
+          Está no celular? Abra esta tela num computador: o QR precisa ser lido pela câmera do
+          celular do número.
+        </p>
+        <ol class="passos__lista">
+          <li>
+            Pegue o celular com o número que vai atender, com o WhatsApp (comum ou Business)
+            funcionando.
+          </li>
+          <li>
+            Abra o WhatsApp e toque em <strong>Mais opções ⋮</strong> (Android) ou em
+            <strong>Configurações</strong> (iPhone).
+          </li>
+          <li>
+            Toque em <strong>Aparelhos conectados</strong> e depois em
+            <strong>Conectar um aparelho</strong>.
+          </li>
+          <li>
+            Aponte a câmera para o código ao lado. Em alguns segundos esta tela mostra
+            <strong>Conectado</strong>.
+          </li>
+        </ol>
+        <p class="passos__dica">
+          <svg lucideInfo [size]="16" />
+          O código muda a cada poucos segundos por segurança: se a câmera não ler, espere o próximo.
+          Ninguém além de você precisa ver esta tela.
+        </p>
+      </div>
+    </div>
+  }
+
+  @case ('conectando') {
+    <div class="conexao conexao--centro" role="status">
+      <span class="conexao__circulo conexao__circulo--vivo" aria-hidden="true">
+        <svg lucideLoaderCircle class="qr__girando" [size]="28" />
+      </span>
+      <p class="conexao__titulo">Conectando ao WhatsApp…</p>
+      <p class="conexao__texto">
+        O QR foi lido. O CRM está terminando de ligar o número; leva alguns segundos.
+      </p>
+    </div>
+  }
+
+  @case ('conectado') {
+    <div class="conexao conexao--conectado">
+      <div class="conectado">
+        <span class="conexao__circulo conexao__circulo--ok" aria-hidden="true">
+          <svg lucideCheck [size]="28" />
+        </span>
+        <div class="conectado__textos">
+          <p class="conectado__rotulo">Número conectado</p>
+          <p class="conectado__telefone">{{ telefoneFormatado() || 'Telefone não informado' }}</p>
+          @if (desde(); as desde) {
+            <p class="conectado__desde">{{ desde }}</p>
+          }
+        </div>
+      </div>
+      <ul class="conectado__fatos">
+        <li>As mensagens que chegam neste número viram conversas no Atendimento.</li>
+        <li>
+          O celular pode ficar desligado: o WhatsApp mantém a conexão por até 14 dias sem abrir o
+          app nele.
+        </li>
+      </ul>
+      <div class="conexao__acoes">
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          [icone]="iconeDesconectar"
+          (click)="desconectar.emit()"
+        >
+          Desconectar
+        </button>
+      </div>
+    </div>
+  }
+
+  @default {
+    <div class="conexao conexao--parado">
+      <div class="parado">
+        <span
+          class="conexao__circulo"
+          [class.conexao__circulo--erro]="fase() === 'erro'"
+          aria-hidden="true"
+        >
+          <svg [lucideIcon]="fase() === 'erro' ? iconeAlerta : iconeQr" [size]="26" />
+        </span>
+        <div class="parado__textos">
+          <p class="conexao__titulo">{{ tituloParado() }}</p>
+          <p class="conexao__texto">{{ textoParado() }}</p>
+          @if (motivo(); as motivo) {
+            <p class="parado__motivo"><strong>Motivo:</strong> {{ motivo }}</p>
+          }
+        </div>
+      </div>
+      @if (erroGateway(); as erro) {
+        <p class="parado__gateway" role="alert">{{ erro }}</p>
+      }
+      <div class="conexao__acoes">
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="iconeQr"
+          [carregando]="conectando()"
+          (click)="conectar.emit()"
+        >
+          {{ rotuloConectar() }}
+        </button>
+      </div>
+      <div class="passos passos--resumo">
+        <h3 class="passos__titulo">Como funciona</h3>
+        <ol class="passos__lista">
+          <li>
+            Toque em <strong>{{ rotuloConectar() }}</strong
+            >: se precisar, um código aparece aqui.
+          </li>
+          <li>
+            No celular do número, abra o WhatsApp → <strong>Aparelhos conectados</strong> →
+            <strong>Conectar um aparelho</strong>.
+          </li>
+          <li>Aponte a câmera para o código. Pronto: as conversas passam a chegar.</li>
+        </ol>
+      </div>
+    </div>
+  }
+}

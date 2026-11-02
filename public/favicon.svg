@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-7.5 -4 401 401">
+  <!-- Símbolo da BRL, monocromático (DESIGN-SYSTEM.md §9): preto no tema claro, branco no escuro. -->
+  <style>
+    path { fill: #000000; }
+    @media (prefers-color-scheme: dark) {
+      path { fill: #ffffff; }
+    }
+  </style>
+  <path d="M0 313L346 313L346 393L0 393ZM25 207.4L66.8 137.7L346.6 305.6L304.8 375.3ZM208.3 25.8L375.7 322.1L304.8 362.1L137.4 65.8ZM306 0L386 0L386 393L306 393Z" />
+</svg>

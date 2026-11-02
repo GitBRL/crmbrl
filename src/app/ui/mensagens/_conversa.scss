@@ -1,0 +1,34 @@
+// Peças comuns dos componentes de conversa (não gera CSS sozinho).
+// Uso: `@use 'conversa' as c;` (mesma pasta) e `@include c.tons-nota;`.
+
+// Nota interna: o coral listrado do cartão destaque (DESIGN-SYSTEM.md §4, `app-cartao`), com os
+// mesmos tons de preto para texto, bordas e superfícies — o que estiver dentro se adapta.
+@mixin tons-nota {
+  --cor-texto: var(--pb-preto);
+  --cor-texto-suave: color-mix(in srgb, var(--pb-preto) 78%, transparent);
+  --cor-texto-fraco: color-mix(in srgb, var(--pb-preto) 78%, transparent);
+  --cor-borda: color-mix(in srgb, var(--pb-preto) 16%, transparent);
+  --cor-borda-forte: color-mix(in srgb, var(--pb-preto) 28%, transparent);
+  --cor-superficie-2: color-mix(in srgb, var(--pb-preto) 6%, transparent);
+  --cor-superficie-3: color-mix(in srgb, var(--pb-preto) 8%, transparent);
+  --cor-vidro: color-mix(in srgb, var(--pb-preto) 6%, transparent);
+  --cor-vidro-forte: color-mix(in srgb, var(--pb-preto) 12%, transparent);
+  --cor-contorno-controle: color-mix(in srgb, var(--pb-preto) 28%, transparent);
+  --cor-info: var(--pb-preto);
+  --cor-foco: var(--pb-preto);
+  --cor-inverso: var(--pb-preto);
+  --cor-sobre-inverso: var(--pb-branco);
+
+  background: var(--listras-destaque), var(--cor-destaque);
+  color: var(--pb-preto);
+}
+
+// Bolha de saída: a superfície das pílulas tingida de menta, como o brilho verde-água do
+// palco. Texto e texto suave mantêm o contraste AA nos dois temas (≥ 5,5:1).
+@mixin tons-saida {
+  --cor-borda: color-mix(in srgb, var(--dado-2) 26%, transparent);
+  // O texto fraco do tema ficaria abaixo de 4,5:1 sobre o tom de menta no escuro.
+  --cor-texto-fraco: var(--cor-texto-suave);
+
+  background: color-mix(in srgb, var(--dado-2) 14%, var(--cor-superficie-2));
+}

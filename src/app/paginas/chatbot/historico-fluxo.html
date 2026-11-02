@@ -1,0 +1,108 @@
+<p class="dica">
+  Aqui ficam as conversas reais atendidas por este fluxo. Os testes do simulador não aparecem.
+</p>
+<div class="filtros">
+  <app-seletor
+    class="filtros__status"
+    rotulo="Situação"
+    permitirVazio
+    placeholder="Todas"
+    [opcoes]="opcoesStatus"
+    [(valor)]="status"
+    (valorChange)="filtrou()"
+  />
+</div>
+
+@if (erro(); as falha) {
+  <app-estado-vazio
+    variante="erro"
+    [falha]="falha"
+    titulo="Não conseguimos carregar o histórico"
+    [texto]="falha.resumo"
+  >
+    <button appBotao type="button" variante="invertido" [icone]="iconeTentar" (click)="carregar()">
+      Tentar de novo
+    </button>
+  </app-estado-vazio>
+} @else {
+  <app-tabela
+    rotulo="Conversas atendidas pelo fluxo"
+    clicavel
+    colunaPrincipal="contato"
+    [colunas]="colunas"
+    [linhas]="linhas()"
+    [carregando]="carregando() && dados() === null"
+    (abrir)="abrir($event)"
+  >
+    <ng-template appCelula="contato" [appCelulaDe]="linhas()" let-e>{{
+      e.contato?.nome ?? 'Sem contato'
+    }}</ng-template>
+    <ng-template appCelula="status" [appCelulaDe]="linhas()" let-e>
+      <app-selo [variante]="variante(e.status)">{{ rotuloStatus(e.status) }}</app-selo>
+    </ng-template>
+    <ng-template appCelula="motivo" [appCelulaDe]="linhas()" let-e>{{
+      motivo(e.motivoFim)
+    }}</ng-template>
+    <ng-template appCelula="versao" [appCelulaDe]="linhas()" let-e>{{
+      e.versao ?? '—'
+    }}</ng-template>
+    <ng-template appCelula="passos" [appCelulaDe]="linhas()" let-e>{{
+      e.passosExecutados
+    }}</ng-template>
+    <ng-template appCelula="inicio" [appCelulaDe]="linhas()" let-e>{{
+      data(e.iniciadaEm)
+    }}</ng-template>
+    <app-estado-vazio
+      tabela-vazio
+      titulo="Nenhuma conversa ainda"
+      texto="Quando o fluxo estiver ligado e atender um cliente, a conversa aparece aqui."
+    />
+  </app-tabela>
+  @if ((dados()?.total ?? 0) > porPagina()) {
+    <app-paginacao
+      [total]="dados()?.total ?? 0"
+      [(pagina)]="pagina"
+      [(porPagina)]="porPagina"
+      (paginaChange)="carregar()"
+    />
+  }
+}
+
+<app-modal [(aberto)]="detalheAberto" titulo="Conversa atendida" largura="lg">
+  @if (detalhe(); as d) {
+    <div class="detalhe">
+      <p class="detalhe__resumo">
+        <app-selo [variante]="variante(d.status)">{{ rotuloStatus(d.status) }}</app-selo>
+        {{ motivo(d.motivoFim) }} · começou em {{ data(d.iniciadaEm) }}
+      </p>
+      @if (d.erro) {
+        <p class="detalhe__erro" role="alert">Erro: {{ d.erro }}</p>
+      }
+      <h3 class="detalhe__titulo">Passos executados</h3>
+      <ol class="detalhe__passos">
+        @for (p of d.passos; track $index) {
+          <li>
+            <strong>{{ p.tipo }}</strong> · {{ p.status.toLowerCase() }}
+            @if (p.tentativas > 1) {
+              · {{ p.tentativas }} tentativas
+            }
+            @if (p.erro) {
+              <span class="detalhe__erro"> — {{ p.erro }}</span>
+            }
+          </li>
+        } @empty {
+          <li>Nenhum passo registrado.</li>
+        }
+      </ol>
+      @if (variaveis().length) {
+        <h3 class="detalhe__titulo">O que o cliente respondeu</h3>
+        <dl class="detalhe__variaveis">
+          @for (v of variaveis(); track v.chave) {
+            <dt>{{ v.chave }}</dt>
+            <dd>{{ v.valor }}</dd>
+          }
+        </dl>
+      }
+    </div>
+  }
+</app-modal>

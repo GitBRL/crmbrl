@@ -1,0 +1,122 @@
+@use 'mixins' as m;
+
+:host {
+  --_tamanho: var(--altura-md);
+  --_fundo: var(--cor-superficie-3);
+  --_fundo-hover: color-mix(in srgb, var(--cor-texto) 9%, var(--_fundo));
+  --_icone: var(--cor-texto);
+  // Neutro: no tema claro ganha o contorno de controle (superfície-3 sobre o fundo claro dá
+  // 1,07:1); no escuro o token é transparente.
+  --_borda: var(--cor-contorno-controle);
+
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--_tamanho);
+  height: var(--_tamanho);
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--_borda);
+  border-radius: 50%;
+  background: var(--_fundo);
+  color: var(--_icone);
+  text-decoration: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duracao) var(--curva),
+    color var(--duracao) var(--curva),
+    transform var(--duracao-rapida) var(--curva);
+}
+
+:host(:hover:not(:disabled):not([aria-disabled='true'])) {
+  background: var(--_fundo-hover);
+}
+
+:host(:active:not(:disabled):not([aria-disabled='true'])) {
+  transform: scale(0.94);
+}
+
+:host(:disabled),
+:host([aria-disabled='true']) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+:host(.botao-icone--invertido) {
+  --_fundo: var(--cor-inverso);
+  --_fundo-hover: color-mix(in srgb, var(--cor-sobre-inverso) 12%, var(--cor-inverso));
+  --_icone: var(--cor-sobre-inverso);
+  --_borda: transparent;
+}
+
+:host(.botao-icone--contorno) {
+  --_fundo: transparent;
+  --_borda: var(--cor-borda-forte);
+}
+
+:host(.botao-icone--destaque) {
+  --_fundo: var(--cor-destaque);
+  --_fundo-hover: color-mix(in srgb, var(--cor-sobre-destaque) 10%, var(--cor-destaque));
+  --_icone: var(--cor-sobre-destaque);
+  --_borda: transparent;
+}
+
+// Marca (lima): ações de IA, como a varinha ao lado de "Compartilhar". No claro, o lima sobre
+// o branco dá 1,17:1: a borda de 1px vira o contorno de dado (`--cor-contorno-dado`, ~#7E8900
+// sobre o lima, ≥ 3:1 — WCAG 1.4.11); no escuro o token é transparente.
+:host(.botao-icone--marca) {
+  --_fundo: var(--cor-marca);
+  --_fundo-hover: color-mix(in srgb, var(--cor-sobre-marca) 10%, var(--cor-marca));
+  --_icone: var(--cor-sobre-marca);
+  --_borda: var(--cor-contorno-dado);
+}
+
+// Estado ligado (aria-pressed="true"): vence a variante e fica invertido.
+:host([aria-pressed='true']) {
+  --_fundo: var(--cor-inverso);
+  --_fundo-hover: color-mix(in srgb, var(--cor-sobre-inverso) 12%, var(--cor-inverso));
+  --_icone: var(--cor-sobre-inverso);
+  --_borda: transparent;
+}
+
+:host(.botao-icone--sm) {
+  --_tamanho: var(--altura-sm);
+
+  @include m.area-toque(4px, 4px);
+}
+
+:host(.botao-icone--lg) {
+  --_tamanho: var(--altura-lg);
+}
+
+// Ponto de notificação: 8px, sobre o canto do ícone, com anel da cor do fundo.
+.botao-icone__ponto {
+  position: absolute;
+  top: 24%;
+  right: 24%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cor-erro);
+  box-shadow: 0 0 0 2px var(--botao-icone-anel, var(--cor-fundo));
+}
+
+.botao-icone__contagem {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-erro);
+  color: var(--cor-sobre-erro);
+  font: var(--fonte-micro);
+  font-weight: 700;
+  box-shadow: 0 0 0 2px var(--botao-icone-anel, var(--cor-fundo));
+}

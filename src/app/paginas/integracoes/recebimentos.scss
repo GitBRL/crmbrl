@@ -1,0 +1,8 @@
+@use 'comum/lista-expansivel';
+
+:host {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+  container-type: inline-size;
+}

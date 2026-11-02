@@ -1,0 +1,255 @@
+<div class="filas">
+  <div class="filas__topo">
+    <div class="faixa faixa--info" role="note">
+      <svg lucideInfo class="faixa__icone" [size]="20" />
+      <p>
+        <strong>Como funciona.</strong>
+        Cada canal manda as conversas novas para uma fila. A fila escolhe quem atende — por rodízio,
+        por quem tem menos conversas ou deixando para alguém assumir — e cobra os prazos (SLA) de
+        primeira resposta e de resolução.
+      </p>
+    </div>
+    @if (podeCriar()) {
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        class="secao__acao"
+        [icone]="icones.novo"
+        (click)="abrirFormulario(null)"
+      >
+        <span class="secao__acao-texto">Nova fila</span>
+      </button>
+    }
+  </div>
+
+  @if (dados.erro(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar as filas"
+      [texto]="erro.resumo"
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="icones.tentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (dados.dados() === null) {
+    <div class="filas__grade" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando as filas…</p>
+      @for (item of [1, 2]; track item) {
+        <app-cartao>
+          <div class="filas__esqueleto">
+            <app-esqueleto largura="40%" />
+            <app-esqueleto forma="bloco" altura="72px" />
+            <app-esqueleto [linhas]="3" />
+          </div>
+        </app-cartao>
+      }
+    </div>
+  } @else if (filas().length === 0) {
+    <app-estado-vazio
+      titulo="Nenhuma fila ainda"
+      texto="Crie uma fila para distribuir as conversas entre as pessoas da área e combinar os prazos de resposta."
+    >
+      @if (podeCriar()) {
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="icones.novo"
+          (click)="abrirFormulario(null)"
+        >
+          Nova fila
+        </button>
+      }
+    </app-estado-vazio>
+  } @else {
+    @if (opcoesArea().length > 1) {
+      <app-filtros-pilula
+        rotulo="Mostrar as filas de"
+        [opcoes]="opcoesArea()"
+        [selecionado]="area()"
+        (selecionadoChange)="area.set($event ?? 'TODAS')"
+      />
+    }
+    <div class="filas__grade filas__grade--colunas">
+      @for (coluna of colunas(); track $index) {
+        <div class="filas__coluna">
+          @for (fila of coluna; track fila.id) {
+            <app-cartao
+              class="fila"
+              [class.fila--inativa]="!fila.ativa"
+              regiao
+              [nivel]="3"
+              [titulo]="fila.nome"
+              [complemento]="'· ' + rotuloDaArea(fila.area)"
+            >
+              <app-menu-acoes
+                cartao-acoes
+                [rotulo]="'Ações da fila ' + fila.nome"
+                [itens]="acoesDa(fila)"
+                (escolher)="agir(fila, $event.id)"
+              />
+
+              <div class="fila__corpo">
+                <div class="fila__selos">
+                  <app-selo
+                    [variante]="fila.estrategia === 'MANUAL' ? 'neutro' : 'ciano'"
+                    [icone]="icones.estrategia"
+                  >
+                    {{ estrategia[fila.estrategia].rotulo }}
+                  </app-selo>
+                  @if (!fila.ativa) {
+                    <app-selo variante="contorno">Desativada</app-selo>
+                  }
+                  @if (fila.chave) {
+                    <app-selo variante="contorno">Do sistema</app-selo>
+                  }
+                </div>
+                @if (fila.descricao) {
+                  <p class="fila__descricao">{{ fila.descricao }}</p>
+                }
+
+                <dl class="fila__numeros">
+                  <div class="fila__numero">
+                    <dt>
+                      Primeira resposta
+                      <app-dica rotulo="O que é a primeira resposta?" [texto]="dicaSla" />
+                    </dt>
+                    <dd>{{ minutos(fila.slaPrimeiraRespostaMinutos) }}</dd>
+                  </div>
+                  <div class="fila__numero">
+                    <dt>Resolução</dt>
+                    <dd>{{ minutos(fila.slaResolucaoMinutos) }}</dd>
+                  </div>
+                  <div class="fila__numero">
+                    <dt>Em aberto</dt>
+                    <dd>
+                      {{ fila.conversasEmAberto }}
+                      @if (fila.conversasSemResponsavel > 0) {
+                        <span class="fila__sem-responsavel"
+                          >{{ fila.conversasSemResponsavel }} sem responsável</span
+                        >
+                      }
+                    </dd>
+                  </div>
+                </dl>
+
+                <div class="fila__canais">
+                  <span class="fila__rotulo">Canais que mandam para cá</span>
+                  @if (fila.canais.length) {
+                    <ul class="fila__lista-canais">
+                      @for (canal of fila.canais; track canal.id) {
+                        <li class="fila__canal" [class.fila__canal--inativo]="!canal.ativo">
+                          <svg [lucideIcon]="iconeDoCanal[canal.tipo]" [size]="14" />
+                          {{ canal.nome }}
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="fila__vazio">
+                      Nenhum canal ainda. Escolha esta fila em “Fila das conversas novas”, na tela
+                      do canal ou em Horário e satisfação.
+                    </p>
+                  }
+                </div>
+
+                @if (fila.estrategia !== 'MANUAL') {
+                  <div class="fila__proximo" [class.fila__proximo--vazio]="!fila.proximo">
+                    @if (fila.proximo; as proximo) {
+                      <app-avatar
+                        [nome]="proximo.nome"
+                        [foto]="proximo.avatarUrl"
+                        tamanho="sm"
+                        decorativo
+                      />
+                      <div class="fila__proximo-textos">
+                        <span class="fila__rotulo">{{
+                          fila.estrategia === 'RODIZIO' ? 'Próximo da vez' : 'Recebe a próxima'
+                        }}</span>
+                        <strong>{{ proximo.nome }}</strong>
+                      </div>
+                    } @else {
+                      <p class="fila__vazio">
+                        Ninguém recebe agora: as conversas novas ficam na fila, sem responsável, até
+                        alguém assumir.
+                      </p>
+                    }
+                  </div>
+                }
+
+                @if (fila.estrategia === 'MANUAL') {
+                  <p class="fila__vazio">
+                    Na fila manual ninguém recebe sozinho: qualquer pessoa da área vê as conversas
+                    sem responsável e assume a que puder.
+                  </p>
+                }
+                @for (versao of [revisao()]; track versao) {
+                  <div class="fila__pessoas" [hidden]="fila.estrategia === 'MANUAL'">
+                    <span class="fila__rotulo">
+                      {{
+                        fila.modoParticipantes === 'AREA'
+                          ? 'Quem recebe · a área inteira'
+                          : 'Quem recebe · só a lista'
+                      }}
+                    </span>
+                    <ul
+                      class="fila__lista-pessoas"
+                      [attr.aria-label]="'Pessoas da fila ' + fila.nome"
+                    >
+                      @for (pessoa of fila.pessoas; track pessoa.id) {
+                        <li class="fila__pessoa" [class.fila__pessoa--fora]="!pessoa.participa">
+                          <app-avatar
+                            [nome]="pessoa.nome"
+                            [foto]="pessoa.avatarUrl"
+                            tamanho="sm"
+                            decorativo
+                          />
+                          @if (fila.podeEditar) {
+                            <app-alternador
+                              class="fila__alternador"
+                              [rotulo]="pessoa.nome"
+                              [dica]="textoDaPessoa(pessoa)"
+                              [desabilitado]="emAndamento(fila.id + ':' + pessoa.id)"
+                              [valor]="pessoa.participa"
+                              (valorChange)="definirParticipacao(fila, pessoa, $event)"
+                            />
+                          } @else {
+                            <div class="fila__pessoa-textos">
+                              <strong>{{ pessoa.nome }}</strong>
+                              <span>{{ textoDaPessoa(pessoa) }}</span>
+                            </div>
+                          }
+                        </li>
+                      } @empty {
+                        <li class="fila__vazio">Ninguém ativo nesta área ainda.</li>
+                      }
+                    </ul>
+                  </div>
+                }
+                @if (!fila.podeEditar) {
+                  <p class="fila__nota">{{ motivoSemEdicao(fila) }}</p>
+                }
+              </div>
+            </app-cartao>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<app-formulario-fila
+  [pedido]="formulario()"
+  [areasPermitidas]="areasPermitidas()"
+  (salva)="filaSalva($event)"
+  (fechado)="formulario.set(null)"
+/>

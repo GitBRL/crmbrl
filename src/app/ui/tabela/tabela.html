@@ -1,0 +1,136 @@
+<p class="visualmente-oculto" role="status">{{ anuncio() }}</p>
+
+@if (opcoesOrdenacao().length) {
+  <!-- Só aparece no modo cartões (container query): lá o cabeçalho fica escondido. -->
+  <div class="tabela__ordem-cartoes">
+    <label class="tabela__ordem-rotulo" [for]="id + '-ordem'">Ordenar por</label>
+    <select
+      class="tabela__ordem-seletor"
+      [id]="id + '-ordem'"
+      (change)="ordenarPeloSeletor($event)"
+    >
+      <option value="" [selected]="!valorOrdenacao()">Padrão</option>
+      @for (opcao of opcoesOrdenacao(); track opcao.valor) {
+        <option [value]="opcao.valor" [selected]="opcao.valor === valorOrdenacao()">
+          {{ opcao.rotulo }}
+        </option>
+      }
+    </select>
+  </div>
+}
+
+<div class="tabela__rolagem">
+  <!-- Papéis ARIA explícitos: a semântica de tabela continua no modo cartões (display: block). -->
+  <table
+    class="tabela"
+    role="table"
+    [class.tabela--densa]="densa()"
+    [attr.aria-busy]="carregando() || null"
+  >
+    <caption class="visualmente-oculto">
+      {{
+        rotulo()
+      }}
+    </caption>
+    <thead class="tabela__cabecalho" role="rowgroup">
+      <tr role="row">
+        @for (coluna of colunasVisuais(); track coluna.id) {
+          <th
+            role="columnheader"
+            scope="col"
+            [class]="coluna.classes"
+            [style.width]="coluna.largura ?? null"
+            [attr.aria-sort]="coluna.ariaSort"
+          >
+            @if (coluna.ordenavel) {
+              <button
+                type="button"
+                class="tabela__ordenar"
+                [class.tabela__ordenar--ativo]="coluna.direcao !== null"
+                (click)="ordenarPor(coluna)"
+              >
+                <span [class.visualmente-oculto]="coluna.rotuloOculto">{{ coluna.rotulo }}</span>
+                @switch (coluna.direcao) {
+                  @case ('asc') {
+                    <svg lucideArrowUp [size]="14" />
+                  }
+                  @case ('desc') {
+                    <svg lucideArrowDown [size]="14" />
+                  }
+                  @default {
+                    <svg lucideArrowUpDown class="tabela__ordenar-neutro" [size]="14" />
+                  }
+                }
+              </button>
+            } @else {
+              <span [class.visualmente-oculto]="coluna.rotuloOculto">{{ coluna.rotulo }}</span>
+            }
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody class="tabela__corpo" role="rowgroup">
+      @if (carregando()) {
+        @for (larguras of esqueleto(); track $index) {
+          <tr role="row" class="tabela__linha tabela__linha--esqueleto">
+            @for (coluna of colunasVisuais(); track coluna.id; let j = $index) {
+              <td role="cell" [class]="coluna.classes">
+                <app-esqueleto [largura]="larguras[j]" />
+              </td>
+            }
+          </tr>
+        }
+      } @else {
+        @for (linha of linhas(); track rastrear(i, linha); let i = $index) {
+          <tr role="row" class="tabela__linha" [class.tabela__linha--clicavel]="temAbrir()">
+            @for (coluna of colunasVisuais(); track coluna.id) {
+              <td role="cell" [class]="coluna.classes" [attr.data-rotulo]="coluna.rotulo">
+                @if (temAbrir() && coluna.id === principal()) {
+                  @if (link(); as gerarLink) {
+                    <a class="tabela__abrir" [routerLink]="gerarLink(linha)">
+                      <ng-container
+                        *ngTemplateOutlet="
+                          conteudo;
+                          context: { linha: linha, i: i, coluna: coluna.id }
+                        "
+                      />
+                    </a>
+                  } @else {
+                    <button type="button" class="tabela__abrir" (click)="abrir.emit(linha)">
+                      <ng-container
+                        *ngTemplateOutlet="
+                          conteudo;
+                          context: { linha: linha, i: i, coluna: coluna.id }
+                        "
+                      />
+                    </button>
+                  }
+                } @else {
+                  <ng-container
+                    *ngTemplateOutlet="conteudo; context: { linha: linha, i: i, coluna: coluna.id }"
+                  />
+                }
+              </td>
+            }
+          </tr>
+        }
+        @if (vazia()) {
+          <tr role="row" class="tabela__linha-vazia">
+            <td role="cell" [attr.colspan]="colunas().length">
+              <ng-content select="[tabela-vazio]" />
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<!-- Conteúdo de uma célula: o modelo da coluna (appCelula) ou o texto do campo. -->
+<ng-template #conteudo let-linha="linha" let-i="i" let-coluna="coluna">
+  @if (modelos().get(coluna); as modelo) {
+    <ng-container *ngTemplateOutlet="modelo; context: contexto(linha, i)" />
+  } @else {
+    {{ textoPadrao(linha, coluna) }}
+  }
+</ng-template>

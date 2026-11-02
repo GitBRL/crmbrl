@@ -1,0 +1,154 @@
+@use 'mixins' as m;
+
+:host {
+  display: contents;
+}
+
+// Cartão flutuante encostado na direita, com 12px de folga e o raio do palco.
+.painel {
+  --_largura: 520px;
+
+  position: fixed;
+  inset: var(--esp-3) var(--esp-3) var(--esp-3) auto;
+  width: min(var(--_largura), calc(100vw - 2 * var(--esp-3)));
+  max-width: none;
+  height: calc(100dvh - 2 * var(--esp-3));
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-2xl);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  transition:
+    opacity var(--duracao-opacidade) ease-out,
+    transform var(--duracao-lenta) var(--curva),
+    display var(--duracao-lenta) allow-discrete,
+    overlay var(--duracao-lenta) allow-discrete;
+
+  &::backdrop {
+    background: var(--cor-veu);
+    backdrop-filter: blur(2px);
+    transition:
+      opacity var(--duracao-opacidade) ease-out,
+      display var(--duracao-lenta) allow-discrete,
+      overlay var(--duracao-lenta) allow-discrete;
+  }
+
+  &:not([open]) {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+@starting-style {
+  .painel[open] {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+
+  .painel[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.painel--lg {
+  --_largura: 680px;
+}
+
+.painel--xl {
+  --_largura: 880px;
+}
+
+// Celular: a tela toda, com 8px de folga.
+@include m.abaixo(m.$sm) {
+  .painel {
+    inset: var(--esp-2);
+    width: auto;
+    height: auto;
+    border-radius: var(--raio-lg);
+  }
+}
+
+.painel__caixa {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.painel__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--esp-4);
+  padding: var(--esp-6) var(--esp-6) var(--esp-4) var(--esp-8);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.painel__titulos {
+  display: grid;
+  gap: var(--esp-1);
+  min-width: 0;
+  padding-top: var(--esp-1);
+}
+
+.painel__titulo {
+  font: var(--fonte-h2);
+  letter-spacing: var(--tracking-titulo);
+  overflow-wrap: anywhere;
+
+  // Recebe o foco ao abrir (para o leitor de tela ler o título), mas não é um controle.
+  &:focus {
+    outline: none;
+  }
+}
+
+.painel__descricao {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.painel__acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.painel__corpo {
+  flex: 1;
+  min-height: 0;
+  padding: var(--esp-6) var(--esp-8) var(--esp-8);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.painel__rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--esp-3);
+  padding: var(--esp-4) var(--esp-8);
+  border-top: 1px solid var(--cor-borda);
+
+  &:empty {
+    display: none;
+  }
+}
+
+@include m.abaixo(m.$sm) {
+  .painel__cabecalho {
+    padding: var(--esp-4) var(--esp-4) var(--esp-3) var(--esp-5);
+  }
+
+  .painel__corpo {
+    padding: var(--esp-5);
+  }
+
+  .painel__rodape {
+    padding: var(--esp-3) var(--esp-5);
+  }
+}

@@ -1,0 +1,315 @@
+<aside class="painel" aria-labelledby="painel-contato-nome">
+  <header class="painel__topo">
+    <app-avatar [nome]="nome()" decorativo />
+    <div class="painel__identidade">
+      <h3 id="painel-contato-nome" class="painel__nome" tabindex="-1">{{ nome() }}</h3>
+      @if (contato(); as carga) {
+        @if (carga.situacao === 'pronta') {
+          @if (carga.dados.cargo || carga.dados.empresa) {
+            <p class="painel__cargo">
+              {{ carga.dados.cargo }}{{ carga.dados.cargo && carga.dados.empresa ? ' · ' : ''
+              }}{{ carga.dados.empresa?.nome }}
+            </p>
+          }
+        }
+      }
+    </div>
+    @if (!sobreposto()) {
+      <button
+        appBotaoIcone
+        type="button"
+        class="painel__fechar"
+        variante="contorno"
+        tamanho="sm"
+        rotulo="Esconder os dados do contato"
+        [icone]="icones.fechar"
+        (click)="fechar.emit()"
+      ></button>
+    }
+  </header>
+
+  <div class="painel__rolagem">
+    <!-- Meios de contato -->
+    <section class="secao" aria-labelledby="painel-contato-dados">
+      <h4 id="painel-contato-dados" class="visualmente-oculto">Dados do contato</h4>
+      <dl class="dados">
+        @if (telefone()) {
+          <div class="dados__linha">
+            <dt>
+              <svg [lucideIcon]="icones.telefone" [size]="16" aria-hidden="true" /><span
+                class="visualmente-oculto"
+                >Telefone</span
+              >
+            </dt>
+            <dd>
+              <a class="dados__link numeros" [href]="'tel:+' + conversa().contato.telefone">{{
+                telefone()
+              }}</a>
+            </dd>
+          </div>
+        }
+        @if (conversa().contato.email) {
+          <div class="dados__linha">
+            <dt>
+              <svg [lucideIcon]="icones.email" [size]="16" aria-hidden="true" /><span
+                class="visualmente-oculto"
+                >E-mail</span
+              >
+            </dt>
+            <dd>
+              <a class="dados__link" [href]="'mailto:' + conversa().contato.email">{{
+                conversa().contato.email
+              }}</a>
+            </dd>
+          </div>
+        }
+        @if (contato(); as carga) {
+          @if (carga.situacao === 'pronta') {
+            @if (carga.dados.empresa) {
+              <div class="dados__linha">
+                <dt>
+                  <svg [lucideIcon]="icones.empresa" [size]="16" aria-hidden="true" /><span
+                    class="visualmente-oculto"
+                    >Empresa</span
+                  >
+                </dt>
+                <dd>
+                  <a class="dados__link" [routerLink]="['/empresas', carga.dados.empresa.id]">{{
+                    carga.dados.empresa.nome
+                  }}</a>
+                </dd>
+              </div>
+            }
+            <div class="dados__linha">
+              <dt>
+                <svg [lucideIcon]="icones.pessoa" [size]="16" aria-hidden="true" /><span
+                  class="visualmente-oculto"
+                  >Responsável pelo contato</span
+                >
+              </dt>
+              <dd>
+                {{
+                  carga.dados.responsavel
+                    ? 'Contato de ' + carga.dados.responsavel.nome
+                    : 'Contato sem responsável'
+                }}
+              </dd>
+            </div>
+          }
+        }
+      </dl>
+      @if (contato(); as carga) {
+        @if (carga.situacao === 'pronta') {
+          @if (carga.dados.etiquetas.length) {
+            <div class="dados__etiquetas" role="list" aria-label="Etiquetas do contato">
+              @for (etiqueta of carga.dados.etiquetas; track etiqueta) {
+                <app-selo role="listitem" tamanho="sm" variante="contorno">{{ etiqueta }}</app-selo>
+              }
+            </div>
+          }
+          @if (carga.dados.optOutMarketing) {
+            <p class="dados__aviso">Pediu para não receber mensagens de marketing.</p>
+          }
+        } @else if (carga.situacao === 'carregando') {
+          <app-esqueleto forma="texto" [linhas]="2" />
+        }
+      }
+      <a
+        appBotao
+        tamanho="sm"
+        variante="contorno"
+        class="secao__acao"
+        [routerLink]="['/contatos', contatoId()]"
+        >Abrir a ficha do contato</a
+      >
+    </section>
+
+    <!-- Negócios -->
+    <section class="secao" aria-labelledby="painel-contato-negocios">
+      <h4 id="painel-contato-negocios" class="secao__titulo">Negócios</h4>
+      @switch (negocios().situacao) {
+        @case ('carregando') {
+          <app-esqueleto forma="bloco" altura="56px" />
+        }
+        @case ('erro') {
+          <p class="secao__vazio">Não deu para carregar os negócios.</p>
+        }
+        @default {
+          @if (negocios(); as carga) {
+            @if (carga.situacao === 'pronta' && carga.dados.length) {
+              <ul class="itens">
+                @for (negocio of carga.dados; track negocio.id) {
+                  <li>
+                    <a class="cartao-item" [routerLink]="rotaNegocio(negocio)">
+                      <span class="cartao-item__titulo">{{ negocio.titulo }}</span>
+                      <span class="cartao-item__detalhe"
+                        >{{ negocio.funil.nome }} · {{ negocio.etapa.nome }}</span
+                      >
+                      <span class="cartao-item__rodape">
+                        <span class="numeros">{{ valor(negocio) }}</span>
+                        @if (negocio.status === 'GANHO') {
+                          <app-selo tamanho="sm" variante="menta">Ganho</app-selo>
+                        } @else if (negocio.status === 'PERDIDO') {
+                          <app-selo tamanho="sm" variante="neutro">Perdido</app-selo>
+                        }
+                        @if (negocio.id === conversa().negocioId) {
+                          <app-selo tamanho="sm" variante="contorno">Desta conversa</app-selo>
+                        }
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="secao__vazio">Nenhum negócio que você veja para este contato.</p>
+            }
+          }
+          @if (!conversa().negocio && conversa().acoes.criarNegocio) {
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              class="secao__acao"
+              [icone]="icones.negocio"
+              (click)="criarNegocio.emit()"
+            >
+              Criar negócio
+            </button>
+          }
+        }
+      }
+    </section>
+
+    <!-- Atividades -->
+    <section class="secao" aria-labelledby="painel-contato-atividades">
+      <h4 id="painel-contato-atividades" class="secao__titulo">Atividades pendentes</h4>
+      @switch (atividades().situacao) {
+        @case ('carregando') {
+          <app-esqueleto forma="texto" [linhas]="2" />
+        }
+        @case ('erro') {
+          <p class="secao__vazio">Não deu para carregar as atividades.</p>
+        }
+        @default {
+          @if (atividades(); as carga) {
+            @if (carga.situacao === 'pronta' && carga.dados.length) {
+              <ul class="itens itens--compactos">
+                @for (atividade of carga.dados; track atividade.id) {
+                  <li class="linha-atividade">
+                    <span class="linha-atividade__titulo">{{ atividade.titulo }}</span>
+                    <span class="linha-atividade__detalhe">
+                      {{ rotuloAtividade(atividade.tipo) }} · {{ quando(atividade) }} ·
+                      {{ atividade.responsavel.nome }}
+                      @if (atividade.atrasada) {
+                        <app-selo tamanho="sm" variante="coral">Atrasada</app-selo>
+                      }
+                    </span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="secao__vazio">Nenhuma atividade pendente.</p>
+            }
+          }
+        }
+      }
+    </section>
+
+    <!-- Conversas anteriores -->
+    <section class="secao" aria-labelledby="painel-contato-conversas">
+      <h4 id="painel-contato-conversas" class="secao__titulo">Outras conversas</h4>
+      @switch (anteriores().situacao) {
+        @case ('carregando') {
+          <app-esqueleto forma="texto" [linhas]="2" />
+        }
+        @case ('erro') {
+          <p class="secao__vazio">Não deu para carregar as outras conversas.</p>
+        }
+        @default {
+          @if (anteriores(); as carga) {
+            @if (carga.situacao === 'pronta' && carga.dados.length) {
+              <ul class="itens">
+                @for (outra of carga.dados; track outra.id) {
+                  <li>
+                    <a class="cartao-item" [routerLink]="['/atendimento', outra.id]">
+                      <span class="cartao-item__titulo cartao-item__titulo--canal">
+                        <svg
+                          [lucideIcon]="CANAL[outra.canal.tipo].icone"
+                          [size]="14"
+                          aria-hidden="true"
+                        />
+                        {{ outra.canal.nome }}
+                      </span>
+                      <span class="cartao-item__detalhe">{{ previa(outra) }}</span>
+                      <span class="cartao-item__rodape">
+                        <span>{{ dataConversa(outra) }}</span>
+                        <app-selo
+                          tamanho="sm"
+                          [variante]="outra.status === 'RESOLVIDA' ? 'menta' : 'contorno'"
+                          >{{ ROTULO_STATUS[outra.status] }}</app-selo
+                        >
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="secao__vazio">Esta é a primeira conversa que você vê com este contato.</p>
+            }
+          }
+        }
+      }
+    </section>
+
+    <!-- Atendimento desta conversa -->
+    <section class="secao" aria-labelledby="painel-contato-atendimento">
+      <div class="secao__cabeca">
+        <h4 id="painel-contato-atendimento" class="secao__titulo">Esta conversa</h4>
+        <app-dica
+          rotulo="O que são os prazos"
+          titulo="Prazos (SLA)"
+          texto="Cada fila define em quanto tempo a primeira resposta deve sair e em quanto tempo a conversa deve ser resolvida. Os prazos contam a partir da chegada da conversa; quando estouram, a lista mostra o tempo de espera em coral e a liderança da área é avisada."
+        />
+      </div>
+      <dl class="prazos">
+        <div class="prazos__linha">
+          <dt>Fila</dt>
+          <dd>{{ conversa().fila?.nome ?? 'Sem fila' }}</dd>
+        </div>
+        <div class="prazos__linha">
+          <dt>Chegou</dt>
+          <dd>{{ criadaEm() }}</dd>
+        </div>
+        <div class="prazos__linha">
+          <dt>Primeira resposta</dt>
+          <dd [class.prazos__estourado]="prazos().primeiraEstourada">{{ prazos().primeira }}</dd>
+        </div>
+        <div class="prazos__linha">
+          <dt>Resolução</dt>
+          <dd [class.prazos__estourado]="prazos().resolucaoEstourada">{{ prazos().resolucao }}</dd>
+        </div>
+        @if (conversa().reaberturas > 0) {
+          <div class="prazos__linha">
+            <dt>Reaberta</dt>
+            <dd>
+              {{ conversa().reaberturas === 1 ? '1 vez' : conversa().reaberturas + ' vezes' }}
+            </dd>
+          </div>
+        }
+        @if (conversa().satisfacao.nota !== null) {
+          <div class="prazos__linha">
+            <dt>Satisfação</dt>
+            <dd>
+              {{ conversa().satisfacao.nota }} de 5{{
+                conversa().satisfacao.comentario
+                  ? ' · “' + conversa().satisfacao.comentario + '”'
+                  : ''
+              }}
+            </dd>
+          </div>
+        }
+      </dl>
+    </section>
+  </div>
+</aside>

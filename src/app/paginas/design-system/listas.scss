@@ -1,0 +1,78 @@
+@use 'catalogo';
+
+// Seção de listas do catálogo. Só tokens.
+
+:host {
+  display: block;
+}
+
+.lista__barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3) var(--esp-6);
+  min-width: 0;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+.lista__pessoa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.lista__dados {
+  display: grid;
+  gap: var(--esp-4);
+  margin: 0 0 var(--esp-6);
+
+  > div {
+    display: grid;
+    gap: var(--esp-1);
+  }
+
+  dt {
+    color: var(--cor-texto-suave);
+    font: var(--fonte-legenda);
+  }
+
+  dd {
+    margin: 0;
+    font: var(--fonte-corpo);
+  }
+}
+
+.lista__esqueleto {
+  display: grid;
+  gap: var(--esp-4);
+  padding: var(--esp-5);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+}
+
+.lista__esqueleto-topo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+
+  > :last-child {
+    flex: 1;
+  }
+}
+
+.lista__estados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--esp-3);
+
+  > * {
+    border-radius: var(--raio-lg);
+    background: var(--cor-superficie-2);
+    // O anel do círculo da ilustração segue o fundo onde o estado está.
+    --estado-anel: var(--cor-superficie-2);
+  }
+}

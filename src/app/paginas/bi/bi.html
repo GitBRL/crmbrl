@@ -1,0 +1,179 @@
+<header class="cabecalho">
+  <div class="cabecalho__texto">
+    <h1 class="cabecalho__titulo">BI&nbsp;<span class="tom-fraco">· relatórios</span></h1>
+    <p class="cabecalho__frase">
+      Os números de cada área num só lugar, comparados com o período anterior.
+    </p>
+  </div>
+
+  @if (estado() === 'pronto' || atualizando()) {
+    <div class="cabecalho__acoes">
+      @if (ehAdmin()) {
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="marca"
+          [icone]="icones.ia"
+          [disabled]="!periodoValido()"
+          (click)="analiseAberta.set(true)"
+        >
+          Analisar com IA
+        </button>
+        <a
+          appBotao
+          tamanho="sm"
+          variante="contorno"
+          routerLink="/bi/analises"
+          [icone]="icones.historico"
+        >
+          Histórico de análises
+        </a>
+      }
+      <button
+        appBotao
+        type="button"
+        tamanho="sm"
+        [icone]="icones.atualizar"
+        [carregando]="atualizando()"
+        (click)="atualizar()"
+      >
+        Atualizar
+      </button>
+      <button
+        appBotao
+        type="button"
+        tamanho="sm"
+        [icone]="icones.baixar"
+        [carregando]="exportando() === 'xlsx'"
+        [disabled]="exportando() !== null"
+        (click)="exportar('xlsx')"
+      >
+        Planilha (XLSX)
+      </button>
+      <button
+        appBotao
+        type="button"
+        tamanho="sm"
+        [icone]="icones.baixar"
+        [carregando]="exportando() === 'csv'"
+        [disabled]="exportando() !== null"
+        (click)="exportar('csv')"
+      >
+        Indicadores (CSV)
+      </button>
+      <app-dica
+        rotulo="Sobre a exportação"
+        texto="A planilha traz uma aba para cada tabela da tela, com os mesmos filtros. O CSV traz só os indicadores. Cada tabela também tem o próprio botão de baixar em CSV."
+      />
+    </div>
+  } @else if (ehAdmin()) {
+    <div class="cabecalho__acoes">
+      <a
+        appBotao
+        tamanho="sm"
+        variante="contorno"
+        routerLink="/bi/analises"
+        [icone]="icones.historico"
+      >
+        Histórico de análises
+      </a>
+    </div>
+  }
+</header>
+
+@switch (estadoPaineis()) {
+  @case ('carregando') {
+    <div class="carregando" aria-busy="true">
+      <span class="visualmente-oculto" role="status">Carregando os painéis…</span>
+      <app-esqueleto forma="bloco" altura="2.75rem" largura="min(100%, 32rem)" />
+      <app-esqueleto forma="bloco" altura="12rem" />
+    </div>
+  }
+  @case ('erro') {
+    <app-estado-vazio
+      variante="erro"
+      titulo="Não conseguimos carregar o BI"
+      [falha]="erroPaineis()"
+      [texto]="erroPaineis()?.resumo ?? null"
+      [codigo]="erroPaineis()?.requisicaoId ?? null"
+    >
+      <button appBotao variante="invertido" type="button" (click)="tentarDeNovo()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  }
+  @default {
+    @if ((paineis() ?? []).length === 0) {
+      <app-estado-vazio
+        variante="sem-acesso"
+        titulo="Nenhum painel disponível para o seu perfil"
+        texto="Peça ao seu líder ou ao administrador para liberar o acesso."
+      />
+    } @else if (estado() === 'sem-acesso') {
+      <app-estado-vazio
+        variante="sem-acesso"
+        titulo="Você não vê este painel"
+        texto="Este painel é de outra área. Escolha uma das abas ao seu alcance."
+      />
+    } @else {
+      <app-abas
+        class="palco"
+        rotulo="Painéis do BI"
+        variante="entalhe"
+        [abas]="abas()"
+        [selecionada]="painelAtual()"
+        (selecionadaChange)="trocarPainel($event)"
+      >
+        @if (painelAtual(); as painel) {
+          <div class="conteudo" [attr.aria-busy]="atualizando() || estado() === 'carregando'">
+            <app-bi-filtros
+              [painel]="painel"
+              [opcoes]="opcoes()"
+              [diretoria]="diretoria()"
+              [(filtros)]="filtros"
+            />
+
+            @switch (estado()) {
+              @case ('carregando') {
+                <div class="carregando">
+                  <span class="visualmente-oculto" role="status">Carregando os números…</span>
+                  <app-esqueleto forma="bloco" altura="7rem" />
+                  <app-esqueleto forma="bloco" altura="14rem" />
+                </div>
+              }
+              @case ('erro') {
+                <app-estado-vazio
+                  compacto
+                  variante="erro"
+                  titulo="Não conseguimos carregar este painel"
+                  [falha]="erro()"
+                  [texto]="erro()?.resumo ?? null"
+                  [codigo]="erro()?.requisicaoId ?? null"
+                >
+                  <button appBotao variante="invertido" type="button" (click)="tentarDeNovo()">
+                    Tentar de novo
+                  </button>
+                </app-estado-vazio>
+              }
+              @default {
+                @if (dados(); as resposta) {
+                  <app-bi-painel
+                    [dados]="resposta"
+                    [filtros]="filtros()"
+                    (filtrarPessoa)="filtrarPessoa($event)"
+                    (baixarTabela)="exportar('csv', $event)"
+                  />
+                }
+              }
+            }
+          </div>
+        }
+      </app-abas>
+    }
+  }
+}
+
+@if (ehAdmin()) {
+  <app-analise-ia [(aberto)]="analiseAberta" [painel]="painelAtual()" [filtros]="filtros()" />
+}

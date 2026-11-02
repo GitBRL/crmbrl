@@ -1,0 +1,78 @@
+@use 'mixins' as m;
+
+// Só tokens.
+:host {
+  display: contents;
+}
+
+.faixa {
+  position: fixed;
+  bottom: var(--esp-6);
+  left: var(--esp-6);
+  z-index: var(--z-flutuante);
+  display: none;
+  gap: var(--esp-2);
+  width: min(28rem, calc(100vw - 2 * var(--esp-4)));
+  pointer-events: none;
+
+  @include m.abaixo(m.$md) {
+    // Acima da navegação inferior e do botão "Ações rápidas".
+    bottom: calc(var(--casca-nav-inferior, 0px) + 72px + var(--esp-3));
+    left: var(--esp-4);
+  }
+}
+
+.faixa--visivel {
+  display: grid;
+}
+
+.faixa__aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  font-size: 0.875rem;
+  pointer-events: auto;
+
+  &[hidden] {
+    display: none;
+  }
+
+  svg {
+    flex: none;
+  }
+
+  span {
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+.faixa__botao {
+  flex: none;
+  min-height: 44px;
+  padding: 0 var(--esp-4);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-texto);
+  color: var(--cor-fundo);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
