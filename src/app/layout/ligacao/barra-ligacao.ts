@@ -120,6 +120,18 @@ const PADRAO = '__padrao__';
 
         <p class="visualmente-oculto" role="status">{{ anuncio() }}</p>
 
+        @if (gravando()) {
+          <p class="barra__lembrete">
+            <svg [lucideIcon]="icones.aviso" [size]="16" aria-hidden="true" />
+            <span>
+              Esta ligação está sendo gravada. Avise o cliente no início da conversa.
+              @if (gravacaoComFalha()) {
+                <strong>O envio da gravação está falhando; seguimos tentando.</strong>
+              }
+            </span>
+          </p>
+        }
+
         @if (alerta(); as texto) {
           <p class="barra__alerta" role="alert">
             <svg [lucideIcon]="icones.aviso" [size]="16" aria-hidden="true" />
@@ -196,6 +208,13 @@ const PADRAO = '__padrao__';
               <a [routerLink]="['/contatos', f.contato.id]">{{ f.contato.nome }}</a>
             </p>
             <p class="barra__estado" role="status">{{ f.texto }}</p>
+            @if (f.estado === 'ENCERRADA') {
+              <p class="barra__lembrete">
+                <a [routerLink]="['/atendimento', 'ligacoes', f.ligacaoId]">
+                  Ver gravação, transcrição e resumo
+                </a>
+              </p>
+            }
           </div>
           <div class="barra__acoes">
             <button
@@ -234,6 +253,7 @@ export class BarraLigacao {
   protected readonly mudo = this.ligacoes.mudo;
   protected readonly alerta = this.ligacoes.alerta;
   protected readonly gravando = this.ligacoes.gravando;
+  protected readonly gravacaoComFalha = this.ligacoes.gravacaoComFalha;
 
   protected readonly podeAgir = computed(() => {
     const c = this.curso();

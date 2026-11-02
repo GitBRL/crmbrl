@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   input,
@@ -11,6 +12,7 @@ import {
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   LucideCircleCheck,
+  LucideFileAudio,
   LucideDynamicIcon,
   LucidePhone,
   LucidePhoneOff,
@@ -22,6 +24,7 @@ import { type ErroApi, erroDaApi } from '../../../../nucleo/api/erro-api';
 import { AvisosService } from '../../../../nucleo/avisos.service';
 import { ConfirmacaoService } from '../../../../nucleo/confirmacao.service';
 import { formatarDataHora } from '../../../../nucleo/formatos';
+import { GravacaoApi } from '../../../../nucleo/ligacoes/gravacao.api';
 import { LigacoesApi } from '../../../../nucleo/ligacoes/ligacoes.api';
 import type {
   ConfiguracaoLigacoes,
@@ -47,6 +50,18 @@ import { AJUDA_FILA_PADRAO, FilasDisponiveis } from '../comum/filas';
 /** Tempo de toque aceito pela API (10 a 40 s, sempre abaixo do prazo da Meta para atender). */
 export const TOQUE_MINIMO_SEGUNDOS = 10;
 export const TOQUE_MAXIMO_SEGUNDOS = 40;
+/** Prazo de guarda da gravação e da transcrição, em dias. */
+export const GUARDA_MINIMA_DIAS = 1;
+export const GUARDA_MAXIMA_DIAS = 3650;
+export const GUARDA_PADRAO_DIAS = 365;
+/** Tamanho máximo do áudio de aviso. */
+export const AVISO_MAXIMO_BYTES = 5 * 1024 * 1024;
+
+export function tamanhoEmTexto(bytes: number): string {
+  return bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
 
 /**
  * Requisitos da Meta para ligar pelo WhatsApp, em linguagem simples (contrato da Onda E, §2.2).
@@ -119,11 +134,13 @@ export class LigacoesCanal {
   private readonly canaisApi = inject(CanaisApi);
   private readonly avisos = inject(AvisosService);
   private readonly confirmacao = inject(ConfirmacaoService);
+  private readonly gravacaoApi = inject(GravacaoApi);
 
   protected readonly icones = {
     telefone: LucidePhone,
     desligado: LucidePhoneOff,
     ok: LucideCircleCheck,
+    audio: LucideFileAudio,
     aviso: LucideTriangleAlert,
     tentar: LucideRefreshCw,
   };
@@ -131,6 +148,9 @@ export class LigacoesCanal {
   protected readonly ajudaFila = AJUDA_FILA_PADRAO;
   protected readonly toqueMinimo = TOQUE_MINIMO_SEGUNDOS;
   protected readonly toqueMaximo = TOQUE_MAXIMO_SEGUNDOS;
+  protected readonly guardaMinima = GUARDA_MINIMA_DIAS;
+  protected readonly guardaMaxima = GUARDA_MAXIMA_DIAS;
+  protected readonly tamanhoTexto = tamanhoEmTexto;
 
   protected readonly config = new Carregamento<ConfiguracaoLigacoes>();
   protected readonly filas = new FilasDisponiveis(this.canaisApi);
@@ -139,6 +159,19 @@ export class LigacoesCanal {
   protected readonly erroGeral = signal<string | null>(null);
   protected readonly erroDoEstado = signal<string | null>(null);
   /** Horário próprio das ligações (senão vale o da fila/do canal). */
+  protected readonly enviandoAudio = signal(false);
+  protected readonly ouvindo = signal(false);
+  protected readonly erroAudio = signal<string | null>(null);
+  /** Endereço temporário do áudio de aviso baixado para ouvir. */
+  protected readonly previa = signal<string | null>(null);
+  /** Nome e tamanho do áudio enviado nesta tela (a configuração só traz o id do arquivo). */
+  private readonly avisoEnviado = signal<{ nome: string; tamanhoBytes: number } | null>(null);
+  protected readonly audioAviso = computed(() => {
+    if (!this.config.dados()?.avisoArquivoId) {
+      return null;
+    }
+    return this.avisoEnviado() ?? { nome: 'Áudio de aviso configurado', tamanhoBytes: null };
+  });
   protected readonly horarioProprio = signal(false);
   protected readonly horario = signal<HorarioDeAtendimento>(horarioComercial());
 
@@ -146,6 +179,14 @@ export class LigacoesCanal {
     botaoVisivel: new FormControl(true, { nonNullable: true }),
     filaId: new FormControl<string | null>(null),
     gravar: new FormControl(true, { nonNullable: true }),
+    retencaoDias: new FormControl(GUARDA_PADRAO_DIAS, {
+      nonNullable: true,
+      validators: [
+        Validators.required,
+        Validators.min(GUARDA_MINIMA_DIAS),
+        Validators.max(GUARDA_MAXIMA_DIAS),
+      ],
+    }),
     tempoDeToqueSegundos: new FormControl(25, {
       nonNullable: true,
       validators: [
@@ -171,6 +212,7 @@ export class LigacoesCanal {
       this.canalId();
       untracked(() => void this.abrir());
     });
+    inject(DestroyRef).onDestroy(() => this.soltarPrevia());
   }
 
   protected dataHora(valor: string): string {
@@ -190,6 +232,7 @@ export class LigacoesCanal {
       botaoVisivel: config.botaoVisivel,
       filaId: config.filaId,
       gravar: config.gravar,
+      retencaoDias: config.retencaoDias ?? GUARDA_PADRAO_DIAS,
       tempoDeToqueSegundos: config.tempoDeToqueSegundos,
       mensagemPerdidaAtiva: config.mensagemPerdidaAtiva,
       mensagemPerdida: config.mensagemPerdida ?? '',
@@ -233,6 +276,88 @@ export class LigacoesCanal {
     }
   }
 
+  // ----- Áudio de aviso (vale na hora, sem o botão Salvar) --------------------------------------
+
+  protected async escolherArquivo(evento: Event): Promise<void> {
+    const campo = evento.target as HTMLInputElement;
+    const arquivo = campo.files?.[0];
+    campo.value = '';
+    if (!arquivo || this.enviandoAudio()) {
+      return;
+    }
+    if (!arquivo.type.startsWith('audio/')) {
+      this.erroAudio.set('Escolha um arquivo de áudio (mp3, ogg, wav, m4a…).');
+      return;
+    }
+    if (arquivo.size > AVISO_MAXIMO_BYTES) {
+      this.erroAudio.set('O áudio passa de 5 MB. Escolha um arquivo menor.');
+      return;
+    }
+    this.erroAudio.set(null);
+    this.enviandoAudio.set(true);
+    try {
+      const aviso = await this.gravacaoApi.enviarAudioDeAviso(this.canalId(), arquivo);
+      this.soltarPrevia();
+      const atual = this.config.dados();
+      if (atual) {
+        this.avisoEnviado.set({ nome: aviso.nome, tamanhoBytes: aviso.tamanhoBytes });
+        this.config.definir({ ...atual, avisoArquivoId: aviso.id });
+      }
+      this.avisos.sucesso('Áudio de aviso salvo.');
+    } catch (falha) {
+      this.erroAudio.set(erroDaApi(falha).mensagem);
+    } finally {
+      this.enviandoAudio.set(false);
+    }
+  }
+
+  protected async ouvirAviso(): Promise<void> {
+    if (this.ouvindo()) {
+      return;
+    }
+    this.ouvindo.set(true);
+    this.erroAudio.set(null);
+    try {
+      const arquivo = await this.gravacaoApi.baixarAudioDeAviso(this.canalId());
+      this.soltarPrevia();
+      this.previa.set(URL.createObjectURL(arquivo));
+    } catch (falha) {
+      this.erroAudio.set(erroDaApi(falha).mensagem);
+    } finally {
+      this.ouvindo.set(false);
+    }
+  }
+
+  protected async removerAviso(): Promise<void> {
+    const ok = await this.confirmacao.confirmar({
+      titulo: 'Remover o áudio de aviso?',
+      mensagem: 'As próximas ligações deixam de tocar o aviso para o cliente.',
+      confirmar: 'Remover áudio',
+      perigo: true,
+      executar: async () => {
+        await this.gravacaoApi.removerAudioDeAviso(this.canalId());
+      },
+    });
+    if (!ok) {
+      return;
+    }
+    this.soltarPrevia();
+    const atual = this.config.dados();
+    if (atual) {
+      this.avisoEnviado.set(null);
+      this.config.definir({ ...atual, avisoArquivoId: null });
+    }
+    this.avisos.sucesso('Áudio de aviso removido.');
+  }
+
+  private soltarPrevia(): void {
+    const url = this.previa();
+    if (url) {
+      URL.revokeObjectURL(url);
+      this.previa.set(null);
+    }
+  }
+
   protected async salvar(): Promise<void> {
     if (this.salvando()) {
       return;
@@ -248,6 +373,7 @@ export class LigacoesCanal {
       botaoVisivel: v.botaoVisivel,
       filaId: v.filaId,
       gravar: v.gravar,
+      retencaoDias: Number(v.retencaoDias),
       tempoDeToqueSegundos: Number(v.tempoDeToqueSegundos),
       mensagemPerdidaAtiva: v.mensagemPerdidaAtiva,
       mensagemPerdida: v.mensagemPerdida.trim() || null,
@@ -261,7 +387,7 @@ export class LigacoesCanal {
       this.avisos.sucesso('Configuração das ligações salva.');
     } catch (falha) {
       const erro = erroDaApi(falha);
-      for (const campo of ['tempoDeToqueSegundos', 'mensagemPerdida'] as const) {
+      for (const campo of ['tempoDeToqueSegundos', 'mensagemPerdida', 'retencaoDias'] as const) {
         const mensagem = erro.mensagemDoCampo(campo);
         if (mensagem) {
           this.formulario.controls[campo].setErrors({ api: mensagem });

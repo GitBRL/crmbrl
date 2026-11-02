@@ -120,11 +120,97 @@
                 max: 'No máximo ' + toqueMaximo + ' segundos.',
               }"
             />
+          </div>
+        </app-cartao>
+
+        <app-cartao regiao titulo="Gravação e transcrição" [nivel]="3">
+          <div class="formulario">
             <app-caixa-selecao
               rotulo="Gravar as ligações"
-              dica="A gravação roda no navegador do atendente e é guardada com a ligação. O atendente vê o aviso “Gravando” e deve avisar o cliente. Disponível numa próxima etapa."
+              dica="A gravação roda no navegador do atendente e é guardada com a ligação, com transcrição e resumo automáticos. O atendente vê o aviso “Gravando” na barra e deve avisar o cliente."
               formControlName="gravar"
             />
+            <app-campo-texto
+              rotulo="Guardar a gravação por (dias)"
+              tipo="number"
+              [minimo]="guardaMinima"
+              [maximo]="guardaMaxima"
+              [dica]="
+                'De ' +
+                guardaMinima +
+                ' a ' +
+                guardaMaxima +
+                ' dias (o padrão é 365). Depois do prazo, o áudio e a transcrição são apagados; o registro da ligação, a duração e o resumo continuam.'
+              "
+              formControlName="retencaoDias"
+              [mensagens]="{
+                required: 'Informe por quantos dias guardar.',
+                min: 'No mínimo ' + guardaMinima + ' dia.',
+                max: 'No máximo ' + guardaMaxima + ' dias.',
+              }"
+            />
+          </div>
+        </app-cartao>
+
+        <app-cartao regiao titulo="Áudio de aviso ao cliente" [nivel]="3">
+          <div class="formulario aviso-audio">
+            <p class="formulario__frase">
+              Opcional. Um áudio gravado por você (por exemplo, “Esta ligação pode ser gravada para
+              melhorar o atendimento”) toca <strong>só para o cliente</strong> assim que a ligação é
+              atendida. O atendente não ouve. Aceita arquivos de áudio de até 5 MB.
+            </p>
+            @if (audioAviso(); as aviso) {
+              <p class="aviso-audio__arquivo">
+                <svg [lucideIcon]="icones.audio" [size]="16" aria-hidden="true" />
+                <span class="aviso-audio__nome">{{ aviso.nome }}</span>
+                @if (aviso.tamanhoBytes !== null) {
+                  <span class="aviso-audio__tamanho">{{ tamanhoTexto(aviso.tamanhoBytes) }}</span>
+                }
+              </p>
+              @if (previa(); as url) {
+                <audio controls autoplay [src]="url" aria-label="Áudio de aviso"></audio>
+              }
+              <div class="aviso-audio__acoes">
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  [carregando]="ouvindo()"
+                  (click)="ouvirAviso()"
+                >
+                  Ouvir
+                </button>
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  [disabled]="enviandoAudio()"
+                  (click)="removerAviso()"
+                >
+                  Remover
+                </button>
+              </div>
+            } @else {
+              <p class="aviso-audio__vazio">Nenhum áudio de aviso. As ligações seguem sem ele.</p>
+            }
+            <div class="aviso-audio__enviar">
+              <label class="aviso-audio__rotulo" for="aviso-audio-arquivo">
+                {{ audioAviso() ? 'Trocar o áudio' : 'Enviar um áudio' }}
+              </label>
+              <input
+                id="aviso-audio-arquivo"
+                class="aviso-audio__arquivo-campo"
+                type="file"
+                accept="audio/*"
+                [disabled]="enviandoAudio()"
+                (change)="escolherArquivo($event)"
+              />
+            </div>
+            @if (erroAudio(); as erro) {
+              <p class="formulario__erro" role="alert">{{ erro }}</p>
+            }
           </div>
         </app-cartao>
 

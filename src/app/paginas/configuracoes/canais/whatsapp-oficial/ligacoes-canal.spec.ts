@@ -21,6 +21,8 @@ function configuracao(extra: Partial<ConfiguracaoLigacoes> = {}): ConfiguracaoLi
     filaId: null,
     filaEfetivaId: null,
     gravar: true,
+    retencaoDias: 365,
+    avisoArquivoId: null,
     tempoDeToqueSegundos: 25,
     mensagemPerdidaAtiva: false,
     mensagemPerdida: null,
@@ -147,6 +149,67 @@ describe('LigacoesCanal (aba "Ligações" do WhatsApp oficial)', () => {
     expect('ativa' in pedido.request.body).toBe(false);
     pedido.flush(configuracao({ ativa: true, tempoDeToqueSegundos: 30 }));
     await microtarefas();
+  });
+
+  it('guarda: manda o prazo de guarda e recusa valor fora do limite', async () => {
+    await abrir(configuracao({ ativa: true }));
+    const campos = raiz().querySelectorAll<HTMLInputElement>('input[type="number"]');
+    const guarda = campos[1]!;
+    expect(guarda.value).toBe('365');
+    guarda.value = '0';
+    guarda.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    botao('Salvar').click();
+    fixture.detectChanges();
+    http.expectNone(URL);
+    expect(raiz().textContent).toContain('No mínimo 1 dia');
+    guarda.value = '90';
+    guarda.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    botao('Salvar').click();
+    await microtarefas();
+    const pedido = http.expectOne(URL);
+    expect(pedido.request.body).toMatchObject({ retencaoDias: 90, gravar: true });
+    pedido.flush(configuracao({ ativa: true, retencaoDias: 90 }));
+    await microtarefas();
+  });
+
+  it('áudio de aviso: envia o arquivo na hora e mostra o nome', async () => {
+    await abrir(configuracao({ ativa: true }));
+    expect(raiz().textContent).toContain('Nenhum áudio de aviso');
+    const campo = raiz().querySelector<HTMLInputElement>('input[type="file"]')!;
+    const arquivo = new File(['x'], 'aviso.mp3', { type: 'audio/mpeg' });
+    Object.defineProperty(campo, 'files', { value: [arquivo], configurable: true });
+    campo.dispatchEvent(new Event('change'));
+    await microtarefas();
+    const envio = http.expectOne((r) => r.url === '/api/v1/arquivos');
+    expect(envio.request.method).toBe('POST');
+    expect(envio.request.params.get('contexto')).toBe('LIGACAO');
+    expect((envio.request.body as FormData).get('arquivo')).toBeInstanceOf(File);
+    envio.flush({ id: 'arq-1', nome: 'aviso.mp3', tamanho: 2048 });
+    await microtarefas();
+    const vinculo = http.expectOne(URL);
+    expect(vinculo.request.method).toBe('PATCH');
+    expect(vinculo.request.body).toEqual({ avisoArquivoId: 'arq-1' });
+    vinculo.flush(configuracao({ ativa: true, avisoArquivoId: 'arq-1' }));
+    await microtarefas();
+    fixture.detectChanges();
+    expect(raiz().textContent).toContain('aviso.mp3');
+    expect(raiz().textContent).toContain('2 KB');
+  });
+
+  it('áudio de aviso: arquivo que não é áudio ou grande demais nem sai do navegador', async () => {
+    await abrir(configuracao({ ativa: true }));
+    const campo = raiz().querySelector<HTMLInputElement>('input[type="file"]')!;
+    Object.defineProperty(campo, 'files', {
+      value: [new File(['x'], 'a.pdf', { type: 'application/pdf' })],
+      configurable: true,
+    });
+    campo.dispatchEvent(new Event('change'));
+    await microtarefas();
+    fixture.detectChanges();
+    http.expectNone('/api/v1/arquivos');
+    expect(raiz().querySelector('[role="alert"]')?.textContent).toContain('arquivo de áudio');
   });
 
   it('erro ao abrir: mostra a falha e deixa tentar de novo', async () => {

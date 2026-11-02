@@ -108,3 +108,58 @@
   color: var(--cor-texto-suave);
   font: var(--fonte-corpo-sm);
 }
+
+// ----- Áudio de aviso -----------------------------------------------------------------------
+.aviso-audio {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+
+  audio {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+.aviso-audio__arquivo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0;
+  min-width: 0;
+}
+
+.aviso-audio__nome {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.aviso-audio__tamanho,
+.aviso-audio__vazio {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.aviso-audio__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.aviso-audio__enviar {
+  display: grid;
+  gap: var(--esp-1);
+}
+
+.aviso-audio__rotulo {
+  font: var(--fonte-rotulo);
+}
+
+.aviso-audio__arquivo-campo {
+  max-width: 100%;
+  min-height: 2.75rem;
+  color: var(--cor-texto);
+  font: var(--fonte-corpo-sm);
+}

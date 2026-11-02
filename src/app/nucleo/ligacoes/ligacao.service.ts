@@ -4,6 +4,7 @@ import {
   DestroyRef,
   effect,
   inject,
+  Injector,
   Injectable,
   InjectionToken,
   signal,
@@ -14,6 +15,9 @@ import { erroDaApi } from '../api/erro-api';
 import { AvisosService } from '../avisos.service';
 import { SessaoService } from '../sessao/sessao.service';
 import { TempoRealService } from '../tempo-real/tempo-real.service';
+import { type AvisoEmExecucao, tocarAvisoParaOCliente } from './aviso-gravacao';
+import { GravacaoApi } from './gravacao.api';
+import { AMBIENTE_DO_NAVEGADOR, type AmbienteDoGravador, Gravador } from './gravador';
 import { LigacoesApi } from './ligacoes.api';
 import { formatarTelefone, resumoDoFim } from './ligacoes.textos';
 import {
@@ -44,6 +48,8 @@ export interface AmbienteDeLigacao {
   readonly webrtc: FabricaWebrtc;
   criarToque(): ToqueSonoro;
   criarAudio(): HTMLAudioElement;
+  /** Gravação e Web Audio (nulo: o navegador de verdade). */
+  readonly gravador?: AmbienteDoGravador;
   /** Microfones e alto-falantes (nulo: o navegador não lista). */
   dispositivos(): MediaDevices | null;
 }
@@ -199,6 +205,7 @@ export class LigacaoService {
   private readonly tempoReal = inject(TempoRealService);
   private readonly ambiente = inject(AMBIENTE_DE_LIGACAO);
   private readonly documento = inject(DOCUMENT);
+  private readonly injetor = inject(Injector);
 
   // ----- Estado (signals) ---------------------------------------------------------------------
 
@@ -222,6 +229,7 @@ export class LigacaoService {
   private readonly _destaque = signal<string | null>(null);
   private readonly _encerradas = signal(0);
   private readonly _gravando = signal(false);
+  private readonly _gravacaoComFalha = signal(false);
 
   /** A ligação desta aba (recebida atendida ou feita), ou `null`. */
   readonly emCurso = this._emCurso.asReadonly();
@@ -254,6 +262,8 @@ export class LigacaoService {
   readonly encerradas = this._encerradas.asReadonly();
   /** A gravação da ligação está rodando (a E3 liga; a barra mostra o indicador "Gravando"). */
   readonly gravando = this._gravando.asReadonly();
+  /** Alguma parte da gravação não está subindo (a barra avisa; segue tentando). */
+  readonly gravacaoComFalha = this._gravacaoComFalha.asReadonly();
   /** O navegador deixa escolher o alto-falante (`setSinkId`). */
   readonly suportaAltoFalante =
     typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
@@ -290,6 +300,9 @@ export class LigacaoService {
   private readonly expiracoes = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly dispensadas = new Set<string>();
   private midia: SessaoWebrtc | null = null;
+  private gravador: Gravador | null = null;
+  private avisoDeGravacao: AvisoEmExecucao | null = null;
+  private paraGravar: { id: string; canalId: string } | null = null;
   private anotacaoPendente = false;
   private geracao = 0;
   private criando = false;
@@ -341,10 +354,14 @@ export class LigacaoService {
       }
     };
     janela?.addEventListener('beforeunload', aoSair);
+    // A aba está mesmo saindo: finaliza a gravação com o que já subiu.
+    const aoSumir = () => this.gravador?.sairDaPagina();
+    janela?.addEventListener('pagehide', aoSumir);
     const aoMudarDispositivos = () => void this.listarDispositivos();
     this.ambiente.dispositivos()?.addEventListener?.('devicechange', aoMudarDispositivos);
     inject(DestroyRef).onDestroy(() => {
       janela?.removeEventListener('beforeunload', aoSair);
+      janela?.removeEventListener('pagehide', aoSumir);
       this.ambiente.dispositivos()?.removeEventListener?.('devicechange', aoMudarDispositivos);
       this.limparTudo();
       this.toque.destruir();
@@ -583,6 +600,7 @@ export class LigacaoService {
         return { ok: false, mensagem: 'Ligação cancelada.', motivo: 'cancelada' };
       }
       this.criando = false;
+      this.paraGravar = ligacao.gravar ? { id: ligacao.id, canalId: ligacao.canal.id } : null;
       this.definirCurso({
         ...this._emCurso()!,
         id: ligacao.id,
@@ -686,6 +704,10 @@ export class LigacaoService {
       try {
         await this.midia.trocarMicrofone(id, !this._mudo());
         this._streamLocal.set(this.midia.streamLocal);
+        const local = this.midia.streamLocal;
+        if (local) {
+          this.gravador?.trocarLocal(local);
+        }
       } catch (falha) {
         this.avisos.erro(erroDeMidia(falha).mensagem);
       }
@@ -825,6 +847,9 @@ export class LigacaoService {
       this.iniciarRelogio();
       if (curso.direcao === 'FEITA') {
         this.ligarAudioDoCliente();
+        if (this.paraGravar?.id === curso.id) {
+          this.comecarGravacao(this.paraGravar);
+        }
       }
     } else if (dados.estado === 'TOCANDO' && curso.fase !== 'em-andamento') {
       this.definirCurso({ ...curso, fase: curso.direcao === 'FEITA' ? 'tocando' : curso.fase });
@@ -874,6 +899,9 @@ export class LigacaoService {
     this.ligarAudioDoCliente();
     this.vigiarMidia();
     void this.listarDispositivos();
+    if (ligacao.gravar) {
+      this.comecarGravacao({ id: ligacao.id, canalId: ligacao.canal.id });
+    }
   }
 
   private falharAoAtender(falha: unknown, toque: Toque): void {
@@ -980,6 +1008,7 @@ export class LigacaoService {
     this._qualidade.set('desconhecida');
     this._semMidia.set(false);
     this._gravando.set(false);
+    this._gravacaoComFalha.set(false);
   }
 
   private limparTudo(): void {
@@ -1125,6 +1154,7 @@ export class LigacaoService {
   }
 
   private fecharMidia(): void {
+    this.encerrarGravacao();
     clearInterval(this.medidor);
     clearTimeout(this.vigiaDeMidia);
     this.medidor = undefined;
@@ -1136,6 +1166,93 @@ export class LigacaoService {
     this.saidaDeAudio.srcObject = null;
     this._streamLocal.set(null);
     this._streamRemoto.set(null);
+  }
+
+  // ----- Gravação (E3) ------------------------------------------------------------------------
+
+  /**
+   * Começa a gravar (o canal grava) e toca o áudio de aviso para o cliente, se houver. Só roda
+   * nesta aba, que tem o áudio da ligação.
+   */
+  private comecarGravacao(info: { id: string; canalId: string }): void {
+    if (this.gravador || !this.midia) {
+      return;
+    }
+    const ambiente = this.ambiente.gravador ?? AMBIENTE_DO_NAVEGADOR;
+    if (!ambiente.suportado()) {
+      this.avisos.atencao(
+        'Este navegador não consegue gravar a ligação. Ela segue sem gravação; use o Chrome, o Edge ou o Firefox atualizados.',
+        { chave: 'ligacao-gravacao' },
+      );
+      return;
+    }
+    const sessao = this.midia;
+    const geracao = this.geracao;
+    const iniciar = (remoto: MediaStream) => {
+      const local = sessao.streamLocal;
+      if (geracao !== this.geracao || this.gravador || !local) {
+        return;
+      }
+      const gravador = new Gravador({
+        ligacaoId: info.id,
+        envio: this.injetor.get(GravacaoApi),
+        ambiente,
+        aoMudar: (_situacao, falha) => this._gravacaoComFalha.set(falha),
+      });
+      if (gravador.iniciar(local, remoto)) {
+        this.gravador = gravador;
+        this._gravando.set(true);
+        void this.tocarAviso(info.canalId, geracao, ambiente);
+      } else {
+        this.avisos.atencao('Não foi possível iniciar a gravação. A ligação segue sem gravar.', {
+          chave: 'ligacao-gravacao',
+        });
+      }
+    };
+    const remoto = sessao.streamRemoto;
+    if (remoto) {
+      iniciar(remoto);
+    } else {
+      sessao.aoReceberAudio(iniciar);
+    }
+  }
+
+  private async tocarAviso(
+    canalId: string,
+    geracao: number,
+    ambiente: AmbienteDoGravador,
+  ): Promise<void> {
+    try {
+      const audio = await this.injetor.get(GravacaoApi).audioDeAviso(canalId);
+      const sessao = this.midia;
+      const local = sessao?.streamLocal;
+      const conexao = sessao?.conexao;
+      if (!audio || geracao !== this.geracao || !local || !conexao) {
+        return;
+      }
+      this.avisoDeGravacao = tocarAvisoParaOCliente(ambiente, local, conexao, audio);
+    } catch {
+      // sem aviso sonoro: o atendente avisa de viva voz (o lembrete está na barra)
+    }
+  }
+
+  /** Fecha a gravação (envia o que falta e finaliza) sem travar o encerramento da ligação. */
+  private encerrarGravacao(): void {
+    this.avisoDeGravacao?.cancelar();
+    this.avisoDeGravacao = null;
+    this.paraGravar = null;
+    const gravador = this.gravador;
+    this.gravador = null;
+    if (gravador) {
+      void gravador.parar().then(() => {
+        if (gravador.situacao === 'falhou') {
+          this.avisos.atencao(
+            'A gravação da ligação não foi enviada por completo. Parte do áudio pode faltar.',
+            { chave: 'ligacao-gravacao-falhou' },
+          );
+        }
+      });
+    }
   }
 
   // ----- Cronômetro e qualidade ---------------------------------------------------------------

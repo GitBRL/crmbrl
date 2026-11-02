@@ -70,6 +70,7 @@ describe('BarraLigacao (ligação fixa na tela)', () => {
     fixture.detectChanges();
     expect(raiz.querySelector('[role="alert"]')?.textContent).toContain('Conexão ruim');
     expect(raiz.querySelector('.barra__gravando')?.textContent).toContain('Gravando');
+    expect(raiz.querySelector('.barra__lembrete')?.textContent).toContain('Avise o cliente');
   });
 
   it('ajustes: microfone, alto-falante e a anotação rápida vão para o serviço', () => {

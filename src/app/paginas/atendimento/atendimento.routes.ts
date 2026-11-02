@@ -17,6 +17,10 @@ export const ROTAS_ATENDIMENTO: Routes = [
       // Nenhuma conversa aberta: a página mostra o convite para escolher uma.
       { path: '', pathMatch: 'full', children: [] },
       {
+        path: 'ligacoes/:ligacaoId',
+        loadComponent: () => import('./ligacao-aberta').then((m) => m.LigacaoAberta),
+      },
+      {
         path: ':conversaId',
         loadComponent: () => import('./conversa').then((m) => m.Conversa),
       },

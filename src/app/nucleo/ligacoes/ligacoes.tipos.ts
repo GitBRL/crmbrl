@@ -3,6 +3,8 @@
  * mudou lá" (ligacao-dto.ts e ligacoes.dto.ts da API).
  */
 
+import type { GravacaoDaLigacao, ResumoDaLigacao, TranscricaoDaLigacao } from './gravacao.tipos';
+
 export type DirecaoLigacao = 'RECEBIDA' | 'FEITA';
 
 export type EstadoLigacao =
@@ -52,6 +54,10 @@ export interface Ligacao {
   /** Só ao atendente de uma ligação feita, enquanto chama ou toca. */
   readonly respostaSdp: string | null;
   readonly gravar: boolean;
+  /** Estados da gravação, da transcrição e do resumo (E3); `null` se a ligação não gravou. */
+  readonly gravacao?: GravacaoDaLigacao;
+  readonly transcricao?: TranscricaoDaLigacao;
+  readonly resumo?: ResumoDaLigacao;
   readonly erroCodigo: string | null;
   readonly erroMensagem: string | null;
 }
@@ -148,6 +154,9 @@ export interface ConfiguracaoLigacoes {
   readonly tempoDeToqueSegundos: number;
   readonly mensagemPerdidaAtiva: boolean;
   readonly mensagemPerdida: string | null;
+  /** Dias de guarda da gravação e da transcrição, e o arquivo do áudio de aviso (E3). */
+  readonly retencaoDias: number;
+  readonly avisoArquivoId: string | null;
   readonly sincronizadaEm: string | null;
   readonly ultimoErroMeta: string | null;
   readonly campoDoWebhook: 'calls';
@@ -160,6 +169,8 @@ export type DadosConfiguracaoLigacoes = Partial<
     | 'botaoVisivel'
     | 'filaId'
     | 'gravar'
+    | 'retencaoDias'
+    | 'avisoArquivoId'
     | 'tempoDeToqueSegundos'
     | 'mensagemPerdidaAtiva'
     | 'mensagemPerdida'

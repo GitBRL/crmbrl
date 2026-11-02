@@ -25,6 +25,7 @@ export function ligacaoServiceFalso() {
     somDesligado: signal(false),
     segundos: signal(0),
     gravando: signal(false),
+    gravacaoComFalha: signal(false),
     anotacao: signal(''),
     situacaoDaAnotacao: signal<'salvando' | 'salva' | 'erro' | null>(null),
     microfones: signal([{ id: 'mic-1', rotulo: 'Microfone USB' }]),

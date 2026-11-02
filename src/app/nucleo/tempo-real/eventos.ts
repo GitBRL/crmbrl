@@ -6,6 +6,7 @@ import type {
   EventoLigacaoRespostaSdp,
   EventoLigacaoTocando,
 } from '../ligacoes/ligacoes.tipos';
+import type { EventoLigacaoProcessada } from '../ligacoes/gravacao.tipos';
 import type { Notificacao } from '../notificacoes.service';
 
 /**
@@ -228,6 +229,7 @@ export interface EventosServidor {
   'ligacao.resposta_sdp': EventoLigacaoRespostaSdp;
   'ligacao.estado': EventoLigacaoEstado;
   'ligacao.encerrada': EventoLigacaoEncerrada;
+  'ligacao.processada': EventoLigacaoProcessada;
   'ligacao.permissao': EventoLigacaoPermissao;
 }
 
