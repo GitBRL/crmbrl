@@ -63,6 +63,32 @@
     }
   </div>
 
+  @if (podeAnonimizar()) {
+    <div class="lgpd__parte">
+      <h3 class="lgpd__subtitulo">Exportar dados pessoais</h3>
+      <p class="lgpd__meta">
+        A pedido da pessoa: baixa um arquivo com tudo o que o CRM guarda sobre ela (contato,
+        consentimento, negócios, atividades e conversas). A consulta fica na auditoria.
+      </p>
+      <div class="lgpd__acoes">
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          [icone]="iconeBaixar"
+          [carregando]="exportando()"
+          (click)="exportar()"
+        >
+          Exportar dados pessoais
+        </button>
+      </div>
+      @if (erroExportacao(); as erro) {
+        <p class="lgpd__erro" role="alert">{{ erro }}</p>
+      }
+    </div>
+  }
+
   <div class="lgpd__parte">
     <h3 class="lgpd__subtitulo">Apagar dados pessoais</h3>
     @if (podeAnonimizar()) {

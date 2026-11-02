@@ -83,7 +83,8 @@ Detalhes: artigos `atendimento-*.md`.
 - **Importar de planilha** (Admin, C-level e líderes): assistente em quatro passos (Arquivo, Colunas, Opções,
   Importação) com relatório em Excel.
 - **Privacidade (LGPD):** marque **opt-out** ou **Não contatar por WhatsApp** quando o cliente pedir. Só o Admin
-  anonimiza um contato, e isso não volta atrás.
+  exporta os dados pessoais de um contato (botão **Exportar dados pessoais**, baixa um arquivo `.json` para
+  enviar à própria pessoa) ou o anonimiza, e a anonimização não volta atrás.
 
 Detalhes: `contatos-*.md`, `importacao-contatos.md`.
 

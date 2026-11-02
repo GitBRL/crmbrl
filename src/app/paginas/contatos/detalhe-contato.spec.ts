@@ -225,6 +225,60 @@ describe('DetalheContato (/contatos/:id)', () => {
     expect(TestBed.inject(Router).url).toBe('/contatos');
   });
 
+  it('Admin exporta os dados pessoais: baixa o JSON, mostra carregando e o erro da API', async () => {
+    await abrir('ADMIN');
+    responderContato();
+    await processar();
+    responderLinhaDoTempo();
+    await processar();
+
+    const urls: Blob[] = [];
+    const criar = vi.fn((arquivo: Blob) => {
+      urls.push(arquivo);
+      return 'blob:teste';
+    });
+    const revogar = vi.fn();
+    Object.assign(URL, { createObjectURL: criar, revokeObjectURL: revogar });
+    const baixados: string[] = [];
+    const clique = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      baixados.push(this.download);
+    });
+
+    botao('Exportar dados pessoais')?.click();
+    await processar();
+    expect(botao('Exportar dados pessoais')?.getAttribute('aria-busy')).toBe('true');
+    const pedido = http.expectOne(`/api/v1/contatos/${ID}/dados-pessoais`);
+    expect(pedido.request.method).toBe('GET');
+    pedido.flush({ contato: { id: ID } });
+    await processar();
+    expect(baixados).toEqual([`dados-pessoais-${ID}.json`]);
+    expect(await urls[0].text()).toContain('"contato"');
+
+    botao('Exportar dados pessoais')?.click();
+    await processar();
+    http
+      .expectOne(`/api/v1/contatos/${ID}/dados-pessoais`)
+      .flush(
+        { statusCode: 403, erro: 'Proibido', mensagem: 'Só o Admin exporta.' },
+        { status: 403, statusText: 'Forbidden' },
+      );
+    await processar();
+    expect(texto()).toContain('Só o Admin exporta.');
+    expect(baixados.length).toBe(1);
+    clique.mockRestore();
+  });
+
+  it('quem não é Admin não vê "Exportar dados pessoais"', async () => {
+    await abrir('COMERCIAL');
+    responderContato();
+    await processar();
+    responderLinhaDoTempo();
+    await processar();
+    expect(botao('Exportar dados pessoais')).toBeUndefined();
+  });
+
   it('quem não é Admin lê que a anonimização é só do Admin; sem edição, "Só leitura"', async () => {
     await abrir('COMERCIAL');
     responderContato({ podeEditar: false });

@@ -7,7 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { LucideShieldCheck, LucideTriangleAlert } from '@lucide/angular';
+import { LucideDownload, LucideShieldCheck, LucideTriangleAlert } from '@lucide/angular';
 
 import { erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
@@ -108,6 +108,37 @@ export class BlocoLgpd {
   protected readonly erroConsentimento = signal<string | null>(null);
   protected readonly salvandoConsentimento = signal(false);
   protected readonly hoje = paraCampoData(new Date());
+
+  // ----- Exportação dos dados pessoais (LGPD art. 18, só Admin) ---------------------------------
+
+  protected readonly iconeBaixar = LucideDownload;
+  protected readonly exportando = signal(false);
+  protected readonly erroExportacao = signal<string | null>(null);
+
+  protected async exportar(): Promise<void> {
+    this.exportando.set(true);
+    this.erroExportacao.set(null);
+    try {
+      const dados = await this.api.dadosPessoais(this.contato().id);
+      const arquivo = new Blob([JSON.stringify(dados, null, 2)], {
+        type: 'application/json;charset=utf-8',
+      });
+      const url = URL.createObjectURL(arquivo);
+      const link = document.createElement('a');
+      link.href = url;
+      // O nome do arquivo usa o identificador, não o nome da pessoa.
+      link.download = `dados-pessoais-${this.contato().id}.json`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      this.avisos.sucesso('Arquivo com os dados pessoais baixado.');
+    } catch (falha) {
+      this.erroExportacao.set(erroDaApi(falha).mensagem);
+    } finally {
+      this.exportando.set(false);
+    }
+  }
 
   // ----- Anonimização ---------------------------------------------------------------------------
 

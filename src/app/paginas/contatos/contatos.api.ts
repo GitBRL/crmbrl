@@ -79,6 +79,13 @@ export class ContatosApi {
     );
   }
 
+  /** Exportação dos dados do titular (LGPD art. 18, só Admin; a API audita a consulta). */
+  dadosPessoais(id: string): Promise<Record<string, unknown>> {
+    return firstValueFrom(
+      this.http.get<Record<string, unknown>>(urlApi('contatos', id, 'dados-pessoais')),
+    );
+  }
+
   // ----- Empresas -----------------------------------------------------------------------------
 
   listarEmpresas(filtros: FiltrosEmpresas): Observable<Pagina<Empresa>> {
