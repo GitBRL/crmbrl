@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { PaletaGrafico } from '../../ui/grafico/paleta';
 import { tabela } from './bi-de-teste';
 import { montarGrafico } from './bi.graficos';
+import { PAINEIS_BI } from './bi.paineis';
 
 const PALETA: PaletaGrafico = {
   dados: ['#c1', '#c2', '#c3', '#c4'],
@@ -111,5 +112,59 @@ describe('montarGrafico', () => {
     });
     expect(grafico.vazio).toBe(true);
     expect(grafico.descricao).toContain('Sem dados no período');
+  });
+
+  it('ligações do painel Atendimento: 24 horas empilhadas e "Sem atendente" sem clique', () => {
+    const horas = Array.from({ length: 24 }, (_, hora) => ({
+      hora,
+      recebidas: hora === 9 ? 5 : 0,
+      feitas: hora === 9 ? 2 : 0,
+      atendidas: hora === 9 ? 4 : 0,
+      perdidas: hora === 9 ? 1 : 0,
+    }));
+    const porHora = tabela(
+      'ligacoesPorHora',
+      'Ligações por hora',
+      [
+        ['hora', 'numero'],
+        ['recebidas', 'numero'],
+        ['feitas', 'numero'],
+        ['atendidas', 'numero'],
+        ['perdidas', 'numero'],
+      ],
+      horas,
+    );
+    const blocos = PAINEIS_BI.atendimento.blocos;
+    const resultado = blocos.find((b) => b.id === 'ligacoesResultadoPorHora')!;
+    const grafico = montarGrafico(porHora, resultado.grafico!);
+    const opcao = grafico.opcao(PALETA) as any;
+    expect(opcao.xAxis.data).toHaveLength(24);
+    expect(opcao.xAxis.data[9]).toBe('9h');
+    expect(opcao.series.map((s: any) => [s.name, s.stack])).toEqual([
+      ['Atendidas', 'resultado'],
+      ['Perdidas', 'resultado'],
+    ]);
+    expect(grafico.vazio).toBe(false);
+
+    const porAtendente = tabela(
+      'ligacoesPorAtendente',
+      'Ligações por atendente',
+      [
+        ['id', 'id'],
+        ['nome', 'texto'],
+        ['atendidas', 'numero'],
+        ['perdidas', 'numero'],
+      ],
+      [
+        { id: 'u1', nome: 'Lucas', atendidas: 3, perdidas: 0 },
+        { id: null, nome: 'Sem atendente', atendidas: 0, perdidas: 2 },
+      ],
+    );
+    const bloco = blocos.find((b) => b.id === 'ligacoesPorAtendente')!;
+    const barras = montarGrafico(porAtendente, bloco.grafico!).opcao(PALETA) as any;
+    expect(barras.series[1].data).toEqual([
+      { value: 0, id: 'u1' },
+      { value: 2, id: null },
+    ]);
   });
 });

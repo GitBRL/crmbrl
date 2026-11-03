@@ -1,0 +1,288 @@
+@if (config.erro(); as erro) {
+  <app-estado-vazio
+    variante="erro"
+    [falha]="erro"
+    titulo="Não conseguimos abrir as ligações do canal"
+    [texto]="erro.resumo"
+    [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+  >
+    <button appBotao type="button" variante="invertido" [icone]="icones.tentar" (click)="abrir()">
+      Tentar de novo
+    </button>
+  </app-estado-vazio>
+} @else if (config.dados(); as c) {
+  <div class="ligacoes">
+    <div class="ligacoes__principal">
+      <app-cartao regiao titulo="Ligações neste número" [nivel]="3">
+        <div class="estado">
+          <div class="estado__situacao">
+            <app-selo [variante]="c.ativa ? 'menta' : 'contorno'" [ponto]="true">
+              {{ c.ativa ? 'Ligações ativas' : 'Ligações desativadas' }}
+            </app-selo>
+            @if (c.sincronizadaEm) {
+              <span class="estado__quando"
+                >Confirmado na Meta em {{ dataHora(c.sincronizadaEm) }}</span
+              >
+            }
+          </div>
+          <p class="formulario__frase">
+            {{
+              c.ativa
+                ? 'Os clientes podem ligar para este número pelo WhatsApp e a equipe atende dentro do CRM. O botão Ligar aparece no contato, na conversa e nas atividades de ligação.'
+                : 'Ative para receber ligações dos clientes e ligar pelo CRM. A Meta confere os requisitos abaixo na hora de ativar.'
+            }}
+          </p>
+          @if (c.ultimoErroMeta) {
+            <p class="estado__erro">
+              <svg [lucideIcon]="icones.aviso" [size]="16" aria-hidden="true" />
+              Último aviso da Meta: {{ c.ultimoErroMeta }}
+            </p>
+          }
+          @if (erroDoEstado(); as erro) {
+            <p class="formulario__erro" role="alert">{{ erro }}</p>
+          }
+          <div class="formulario__acoes">
+            <button
+              appBotao
+              type="button"
+              [variante]="c.ativa ? 'contorno' : 'invertido'"
+              [icone]="c.ativa ? icones.desligado : icones.telefone"
+              [carregando]="alterandoEstado()"
+              (click)="alternarEstado()"
+            >
+              {{ c.ativa ? 'Desativar ligações' : 'Ativar ligações' }}
+            </button>
+          </div>
+        </div>
+      </app-cartao>
+
+      <form
+        class="ligacoes__formulario"
+        novalidate
+        [formGroup]="formulario"
+        (submit)="$event.preventDefault(); salvar()"
+      >
+        <app-cartao regiao titulo="Quem atende e quando" [nivel]="3">
+          <div class="formulario">
+            <app-seletor
+              rotulo="Fila que atende as ligações"
+              placeholder="A fila padrão do canal"
+              permitirVazio
+              [ajuda]="ajudaFila"
+              [opcoes]="filas.opcoes()"
+              formControlName="filaId"
+            />
+            <app-caixa-selecao
+              rotulo="Mostrar o botão Ligar para o cliente"
+              dica="Desligado, o CRM só recebe ligações e não oferece o botão Ligar."
+              formControlName="botaoVisivel"
+            />
+            <fieldset class="formulario__grupo">
+              <legend class="formulario__legenda">Horário das ligações</legend>
+              <p class="formulario__legenda-frase">
+                Fora do horário, a ligação vira perdida e o CRM cria a atividade “Retornar ligação”.
+              </p>
+              <app-caixa-selecao
+                rotulo="Usar um horário só para as ligações"
+                [dica]="
+                  horarioProprio()
+                    ? null
+                    : 'Hoje vale o horário de atendimento: ' + resumoEfetivo() + '.'
+                "
+                [valor]="horarioProprio()"
+                (valorChange)="horarioProprio.set($event)"
+              />
+              @if (horarioProprio()) {
+                <app-editor-horario [(horario)]="horario" />
+              }
+            </fieldset>
+          </div>
+        </app-cartao>
+
+        <app-cartao regiao titulo="Durante a ligação" [nivel]="3">
+          <div class="formulario">
+            <app-campo-texto
+              rotulo="Tempo de toque (segundos)"
+              tipo="number"
+              [minimo]="toqueMinimo"
+              [maximo]="toqueMaximo"
+              [dica]="
+                'De ' +
+                toqueMinimo +
+                ' a ' +
+                toqueMaximo +
+                '. Passado esse tempo sem ninguém atender, a ligação vira perdida. A Meta só espera de 30 a 60 segundos.'
+              "
+              formControlName="tempoDeToqueSegundos"
+              [mensagens]="{
+                required: 'Informe quantos segundos o telefone toca.',
+                min: 'No mínimo ' + toqueMinimo + ' segundos.',
+                max: 'No máximo ' + toqueMaximo + ' segundos.',
+              }"
+            />
+          </div>
+        </app-cartao>
+
+        <app-cartao regiao titulo="Gravação e transcrição" [nivel]="3">
+          <div class="formulario">
+            <app-caixa-selecao
+              rotulo="Gravar as ligações"
+              dica="A gravação roda no navegador do atendente e é guardada com a ligação, com transcrição e resumo automáticos. O atendente vê o aviso “Gravando” na barra e deve avisar o cliente."
+              formControlName="gravar"
+            />
+            <app-campo-texto
+              rotulo="Guardar a gravação por (dias)"
+              tipo="number"
+              [minimo]="guardaMinima"
+              [maximo]="guardaMaxima"
+              [dica]="
+                'De ' +
+                guardaMinima +
+                ' a ' +
+                guardaMaxima +
+                ' dias (o padrão é 365). Depois do prazo, o áudio e a transcrição são apagados; o registro da ligação, a duração e o resumo continuam.'
+              "
+              formControlName="retencaoDias"
+              [mensagens]="{
+                required: 'Informe por quantos dias guardar.',
+                min: 'No mínimo ' + guardaMinima + ' dia.',
+                max: 'No máximo ' + guardaMaxima + ' dias.',
+              }"
+            />
+          </div>
+        </app-cartao>
+
+        <app-cartao regiao titulo="Webhook de ligação encerrada" [nivel]="3">
+          <div class="formulario">
+            <p class="formulario__frase">
+              Quem assina o evento <strong>ligacao.encerrada</strong> em Integrações recebe os dados
+              de cada ligação deste número quando ela termina: quem ligou, quanto durou, como
+              terminou e quem atendeu. O áudio e a transcrição nunca são enviados.
+            </p>
+            <app-caixa-selecao
+              rotulo="Incluir o resumo da ligação no webhook"
+              dica="Liga o envio do assunto, dos pontos principais, dos combinados, dos próximos passos e do sentimento. Com isto ligado, o webhook só sai depois que o resumo ficar pronto (até 20 minutos depois do fim da ligação); desligado, sai assim que a ligação termina."
+              formControlName="webhookIncluiResumo"
+            />
+          </div>
+        </app-cartao>
+
+        <app-cartao regiao titulo="Áudio de aviso ao cliente" [nivel]="3">
+          <div class="formulario aviso-audio">
+            <p class="formulario__frase">
+              Opcional. Um áudio gravado por você (por exemplo, “Esta ligação pode ser gravada para
+              melhorar o atendimento”) toca <strong>só para o cliente</strong> assim que a ligação é
+              atendida. O atendente não ouve. Aceita arquivos de áudio de até 5 MB.
+            </p>
+            @if (audioAviso(); as aviso) {
+              <p class="aviso-audio__arquivo">
+                <svg [lucideIcon]="icones.audio" [size]="16" aria-hidden="true" />
+                <span class="aviso-audio__nome">{{ aviso.nome }}</span>
+                @if (aviso.tamanhoBytes !== null) {
+                  <span class="aviso-audio__tamanho">{{ tamanhoTexto(aviso.tamanhoBytes) }}</span>
+                }
+              </p>
+              @if (previa(); as url) {
+                <audio controls autoplay [src]="url" aria-label="Áudio de aviso"></audio>
+              }
+              <div class="aviso-audio__acoes">
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  [carregando]="ouvindo()"
+                  (click)="ouvirAviso()"
+                >
+                  Ouvir
+                </button>
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  [disabled]="enviandoAudio()"
+                  (click)="removerAviso()"
+                >
+                  Remover
+                </button>
+              </div>
+            } @else {
+              <p class="aviso-audio__vazio">Nenhum áudio de aviso. As ligações seguem sem ele.</p>
+            }
+            <div class="aviso-audio__enviar">
+              <label class="aviso-audio__rotulo" for="aviso-audio-arquivo">
+                {{ audioAviso() ? 'Trocar o áudio' : 'Enviar um áudio' }}
+              </label>
+              <input
+                id="aviso-audio-arquivo"
+                class="aviso-audio__arquivo-campo"
+                type="file"
+                accept="audio/*"
+                [disabled]="enviandoAudio()"
+                (change)="escolherArquivo($event)"
+              />
+            </div>
+            @if (erroAudio(); as erro) {
+              <p class="formulario__erro" role="alert">{{ erro }}</p>
+            }
+          </div>
+        </app-cartao>
+
+        <app-cartao regiao titulo="Ligação perdida" [nivel]="3">
+          <div class="formulario">
+            <p class="formulario__frase">
+              Toda ligação perdida avisa a equipe e cria a atividade “Retornar ligação”. Você também
+              pode mandar uma mensagem automática ao cliente.
+            </p>
+            <app-caixa-selecao
+              rotulo="Responder ao cliente com uma mensagem"
+              formControlName="mensagemPerdidaAtiva"
+            />
+            @if (formulario.controls.mensagemPerdidaAtiva.value) {
+              <app-area-texto
+                rotulo="Mensagem"
+                [linhas]="3"
+                [maximoCaracteres]="1000"
+                placeholder="Oi! Vimos que você ligou e não conseguimos atender. Já já retornamos."
+                formControlName="mensagemPerdida"
+              />
+            }
+          </div>
+        </app-cartao>
+
+        @if (erroGeral(); as erro) {
+          <p class="formulario__erro" role="alert">{{ erro }}</p>
+        }
+        <div class="formulario__acoes">
+          <button appBotao type="submit" variante="invertido" [carregando]="salvando()">
+            Salvar
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <aside class="ligacoes__lado" aria-label="Requisitos da Meta">
+      <app-cartao regiao titulo="O que a Meta exige" [nivel]="3">
+        <ol class="requisitos">
+          @for (item of requisitos; track item.titulo) {
+            <li class="requisito">
+              <strong class="requisito__titulo">{{ item.titulo }}</strong>
+              <span class="requisito__texto">{{ item.texto }}</span>
+            </li>
+          }
+        </ol>
+        <p class="formulario__nota">
+          Campo do webhook neste canal: <code>{{ c.campoDoWebhook }}</code
+          >. O endereço e o token são os da aba Conexão.
+        </p>
+      </app-cartao>
+    </aside>
+  </div>
+} @else {
+  <div class="ligacoes__carregando" aria-busy="true">
+    <p class="visualmente-oculto" role="status">Carregando as ligações do canal…</p>
+    <app-cartao><app-esqueleto [linhas]="4" /></app-cartao>
+    <app-cartao><app-esqueleto [linhas]="5" /></app-cartao>
+  </div>
+}

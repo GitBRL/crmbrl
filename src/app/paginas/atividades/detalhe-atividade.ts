@@ -24,6 +24,7 @@ import { erroDaApi, type ErroApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
+import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
 import { AreaTexto } from '../../ui/area-texto/area-texto';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
@@ -80,6 +81,7 @@ export interface MudancaAtividade {
     AreaTexto,
     Avatar,
     Botao,
+    BotaoLigar,
     CampoData,
     CampoTexto,
     Dica,

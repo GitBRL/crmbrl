@@ -10,6 +10,8 @@
   ],
   "exclude": [
     "src/**/*.spec.ts",
-    "src/provedores-teste.ts"
+    "src/provedores-teste.ts",
+    "src/app/nucleo/ligacoes/ligacoes-de-teste.ts",
+    "src/app/layout/ligacao/ligacoes-stub.ts"
   ]
 }

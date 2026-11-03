@@ -11,10 +11,12 @@ import type { Area } from '../../../nucleo/sessao/perfil';
 export type { StatusWhatsapp };
 
 /** Tipos de canal (enum `TipoCanal` da API). */
-export type TipoCanal = 'WHATSAPP' | 'WEBCHAT' | 'EMAIL' | 'INSTAGRAM' | 'MESSENGER';
+export type TipoCanal =
+  'WHATSAPP' | 'WHATSAPP_OFICIAL' | 'WEBCHAT' | 'EMAIL' | 'INSTAGRAM' | 'MESSENGER';
 
 export const TIPOS_CANAL: readonly TipoCanal[] = [
   'WHATSAPP',
+  'WHATSAPP_OFICIAL',
   'WEBCHAT',
   'EMAIL',
   'INSTAGRAM',
@@ -350,6 +352,96 @@ export interface TesteDoCanalMeta {
   readonly nome: string | null;
 }
 
+// WhatsApp oficial (API da Meta) -----------------------------------------------------------------
+
+export type SituacaoDoCanalOficial = 'CONECTADO' | 'ERRO' | 'NAO_TESTADO';
+
+export interface EstadoDoCanalOficial {
+  readonly situacao: SituacaoDoCanalOficial;
+  /** Por que está com erro, em português. */
+  readonly motivo: string | null;
+  readonly conferidoEm: string | null;
+  readonly nomeVerificado: string | null;
+  readonly qualidade: string | null;
+}
+
+export interface ResumoDosTemplates {
+  readonly total: number;
+  readonly aprovados: number;
+  readonly sincronizadoEm: string | null;
+}
+
+/** `GET /whatsapp-oficial/canais`: o webhook é o mesmo do Instagram e do Messenger. */
+export interface CanalOficial extends CanalBase {
+  readonly phoneNumberId: string;
+  readonly wabaId: string;
+  readonly numeroExibido: string | null;
+  /** Mascarado. */
+  readonly token: string | null;
+  /** Mascarado. */
+  readonly appSecret: string | null;
+  readonly webhook: WebhookDoCanalMeta;
+  readonly estado: EstadoDoCanalOficial;
+  readonly templates: ResumoDosTemplates;
+}
+
+export interface DadosCanalOficial extends DadosCanalBase {
+  readonly phoneNumberId?: string;
+  readonly wabaId?: string;
+  readonly numeroExibido?: string | null;
+  /** Na edição, ausente = mantém o gravado. */
+  readonly token?: string;
+  readonly appSecret?: string;
+}
+
+export interface TesteDoCanalOficial {
+  readonly ok: boolean;
+  readonly mensagem: string;
+  readonly numeroExibido: string | null;
+  readonly nomeVerificado: string | null;
+  readonly qualidade: string | null;
+}
+
+export type CategoriaDoTemplate = 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+export type FormatoDoCabecalho = 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION';
+export type TipoDoBotao = 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'COPY_CODE' | 'OTHER';
+
+export interface BotaoDoTemplate {
+  readonly tipo: TipoDoBotao;
+  readonly texto: string;
+  readonly url: string | null;
+  readonly variaveis: readonly string[];
+}
+
+/** Template da WABA como a API o devolve (`GET …/templates`; no Atendimento, só os usáveis). */
+export interface TemplateDoCanal {
+  /** É o `templateId` do envio. */
+  readonly id: string;
+  readonly nome: string;
+  readonly idioma: string;
+  readonly categoria: CategoriaDoTemplate;
+  /** `APPROVED`, `PENDING`, `REJECTED`, `PAUSED`, `DISABLED`… */
+  readonly status: string;
+  readonly usavel: boolean;
+  readonly motivoIndisponivel: string | null;
+  readonly cabecalho: {
+    readonly formato: FormatoDoCabecalho;
+    readonly texto: string | null;
+    readonly variaveis: readonly string[];
+  } | null;
+  readonly corpo: { readonly texto: string; readonly variaveis: readonly string[] };
+  readonly rodape: string | null;
+  readonly botoes: readonly BotaoDoTemplate[];
+  readonly sincronizadoEm: string;
+}
+
+export interface SincronizacaoDeTemplates {
+  readonly total: number;
+  readonly aprovados: number;
+  readonly sincronizadoEm: string;
+  readonly itens: readonly TemplateDoCanal[];
+}
+
 // Lista ------------------------------------------------------------------------------------------
 
 /** Os canais de todos os tipos, como a tela de Canais os carrega (cada tipo pode falhar sozinho). */
@@ -358,4 +450,5 @@ export interface ListaDeCanais {
   readonly site: readonly CanalSite[] | null;
   readonly email: readonly CanalEmail[] | null;
   readonly meta: readonly CanalMeta[] | null;
+  readonly oficial: readonly CanalOficial[] | null;
 }

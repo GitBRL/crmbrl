@@ -13,10 +13,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideArrowLeft, LucidePencil, LucideRefreshCw } from '@lucide/angular';
 
 import { erroDaApi } from '../../nucleo/api/erro-api';
+import { LigacaoService } from '../../nucleo/ligacoes/ligacao.service';
 import { formatarData, formatarDataHora, formatarTempoRelativo } from '../../nucleo/formatos';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { NOME_PRODUTO } from '../../nucleo/titulo-pagina';
 import { Abas, type ItemAba } from '../../ui/abas/abas';
+import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
@@ -72,6 +74,7 @@ export function motivoSemEdicao(
     BlocoLgpd,
     Botao,
     BotaoIcone,
+    BotaoLigar,
     Cartao,
     Dica,
     Esqueleto,
@@ -124,6 +127,8 @@ export class DetalheContato {
 
   /** Muda depois de cada alteração: a linha do tempo recarrega. */
   protected readonly versao = signal(0);
+  private readonly ligacoes = inject(LigacaoService);
+  private ligacoesVistas = this.ligacoes.encerradas();
   protected readonly editando = signal(false);
 
   protected readonly contato = computed<Contato | null>(() =>
@@ -173,6 +178,14 @@ export class DetalheContato {
       const contato = this.contato();
       if (contato) {
         this.titulo.setTitle(`${contato.nome} · ${NOME_PRODUTO}`);
+      }
+    });
+    // Uma ligação terminou: a atividade dela entra na linha do tempo.
+    effect(() => {
+      const total = this.ligacoes.encerradas();
+      if (total !== this.ligacoesVistas) {
+        this.ligacoesVistas = total;
+        this.versao.update((versao) => versao + 1);
       }
     });
   }

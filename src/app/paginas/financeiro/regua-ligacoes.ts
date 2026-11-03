@@ -35,6 +35,7 @@ import {
   VARIANTE_SITUACAO_ENVIO,
 } from './financeiro.tipos';
 import { ModalBase, textoDoErro } from './modais-parcela';
+import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
 
 const OPCOES_RESULTADO: readonly OpcaoGrupo<ResultadoLigacao>[] = [
   {
@@ -67,6 +68,7 @@ const OPCOES_RESULTADO: readonly OpcaoGrupo<ResultadoLigacao>[] = [
     Alternador,
     AreaTexto,
     Botao,
+    BotaoLigar,
     CampoData,
     Cartao,
     EstadoVazio,
@@ -140,7 +142,14 @@ const OPCOES_RESULTADO: readonly OpcaoGrupo<ResultadoLigacao>[] = [
                   }
                 </p>
                 @if (l.telefone) {
-                  <p>
+                  <p class="ligacao__linha">
+                    @if (l.contato && l.situacao === 'AGUARDANDO_LIGACAO') {
+                      <app-botao-ligar
+                        [contato]="{ id: l.contato.id, nome: l.contato.nome, telefone: l.telefone }"
+                        [atividadeId]="l.atividadeId"
+                        tamanho="sm"
+                      />
+                    }
                     <a
                       appBotao
                       variante="contorno"

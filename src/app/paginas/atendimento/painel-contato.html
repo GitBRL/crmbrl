@@ -29,6 +29,19 @@
   </header>
 
   <div class="painel__rolagem">
+    <!-- Ligar (WhatsApp oficial): mostra a permissão do cliente -->
+    <section class="secao secao--ligar" aria-label="Ligar para o cliente">
+      <app-botao-ligar
+        [contato]="conversa().contato"
+        [canalId]="conversa().canal.id"
+        [conversaId]="conversa().id"
+        variante="contorno"
+        tamanho="sm"
+        verPermissao
+        coluna
+      />
+    </section>
+
     <!-- Meios de contato -->
     <section class="secao" aria-labelledby="painel-contato-dados">
       <h4 id="painel-contato-dados" class="visualmente-oculto">Dados do contato</h4>
@@ -210,6 +223,50 @@
               </ul>
             } @else {
               <p class="secao__vazio">Nenhuma atividade pendente.</p>
+            }
+          }
+        }
+      }
+    </section>
+
+    <!-- Ligações -->
+    <section class="secao" aria-labelledby="painel-contato-ligacoes">
+      <h4 id="painel-contato-ligacoes" class="secao__titulo">Ligações</h4>
+      @switch (ligacoes().situacao) {
+        @case ('carregando') {
+          <app-esqueleto forma="texto" [linhas]="2" />
+        }
+        @case ('erro') {
+          <p class="secao__vazio">Não deu para carregar as ligações.</p>
+        }
+        @default {
+          @if (ligacoes(); as carga) {
+            @if (carga.situacao === 'pronta' && carga.dados.length) {
+              <ul class="itens itens--compactos">
+                @for (ligacao of carga.dados; track ligacao.id) {
+                  @let resultado = resultadoDoEstado(ligacao.estado);
+                  <li class="linha-atividade">
+                    <a
+                      class="linha-atividade__titulo"
+                      [routerLink]="['/atendimento/ligacoes', ligacao.id]"
+                      >{{ rotuloDirecao[ligacao.direcao] }} {{ quandoLigou(ligacao) }}</a
+                    >
+                    <span class="linha-atividade__detalhe">
+                      <app-selo tamanho="sm" [variante]="varianteResultado[resultado]">{{
+                        rotuloResultado[resultado]
+                      }}</app-selo>
+                      @if (ligacao.estado === 'ENCERRADA') {
+                        {{ duracaoDaLigacao(ligacao) }}
+                      }
+                      @if (ligacao.atendente) {
+                        · {{ ligacao.atendente.nome }}
+                      }
+                    </span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="secao__vazio">Nenhuma ligação com esta pessoa.</p>
             }
           }
         }

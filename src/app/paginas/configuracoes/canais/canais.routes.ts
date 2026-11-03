@@ -11,6 +11,7 @@ import { podeGerenciarCanais } from '../../../nucleo/sessao/perfil';
  * - `''` — a lista: um cartão por tipo de canal;
  * - `whatsapp/:id` — um número (o novo é criado num modal da lista e abre aqui com
  *   `?conectar=1`, já mostrando o QR);
+ * - `whatsapp-oficial/novo`, `whatsapp-oficial/:id` — WhatsApp pela API oficial da Meta;
  * - `site/novo`, `site/:id` — chat do site;
  * - `email/novo`, `email/:id` — caixa de e-mail;
  * - `instagram/novo`, `messenger/novo`, `meta/:id` — Instagram e Messenger.
@@ -26,6 +27,16 @@ export const ROTAS_CONFIG_CANAIS: Routes = [
         path: 'whatsapp/:id',
         title: 'WhatsApp',
         loadComponent: () => import('./whatsapp/detalhe-whatsapp').then((m) => m.DetalheWhatsapp),
+      },
+      {
+        path: 'whatsapp-oficial/novo',
+        title: 'Novo WhatsApp oficial',
+        loadComponent: () => import('./whatsapp-oficial/canal-oficial').then((m) => m.CanalOficial),
+      },
+      {
+        path: 'whatsapp-oficial/:id',
+        title: 'WhatsApp oficial',
+        loadComponent: () => import('./whatsapp-oficial/canal-oficial').then((m) => m.CanalOficial),
       },
       {
         path: 'site/novo',

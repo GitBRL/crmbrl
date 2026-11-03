@@ -1,0 +1,465 @@
+<section class="tela" aria-labelledby="canal-titulo">
+  @if (canal.erro(); as erro) {
+    <app-cabecalho-canal titulo="WhatsApp oficial" tipo="WHATSAPP_OFICIAL" />
+    <app-estado-vazio
+      variante="erro"
+      [falha]="erro"
+      manterAcoes
+      [titulo]="erro.ehNaoEncontrado ? 'Canal não encontrado' : 'Não conseguimos abrir o canal'"
+      [texto]="
+        erro.ehNaoEncontrado
+          ? 'Ele pode ter sido excluído. Volte para a lista de canais.'
+          : erro.resumo
+      "
+      [codigo]="erro.ehFalhaDoServidor ? erro.requisicaoId : null"
+    >
+      @if (!erro.ehNaoEncontrado) {
+        <button
+          appBotao
+          type="button"
+          variante="invertido"
+          [icone]="icones.tentar"
+          (click)="abrir()"
+        >
+          Tentar de novo
+        </button>
+      }
+      <a appBotao variante="contorno" routerLink="/configuracoes/canais">Voltar aos canais</a>
+    </app-estado-vazio>
+  } @else if (pronto()) {
+    <app-cabecalho-canal
+      [titulo]="canal.dados()?.nome ?? 'Novo número oficial'"
+      tipo="WHATSAPP_OFICIAL"
+      [situacao]="situacao()"
+      [frase]="canal.dados() ? null : frase"
+    >
+      @if (canal.dados(); as c) {
+        <app-menu-acoes
+          cabecalho-acoes
+          [rotulo]="'Ações de ' + c.nome"
+          variante="contorno"
+          tamanho="md"
+          [itens]="acoes"
+          (escolher)="agir($event.id)"
+        />
+      }
+    </app-cabecalho-canal>
+
+    <div class="faixa faixa--info" role="note">
+      <svg lucideClock class="faixa__icone" [size]="20" />
+      <p>
+        <strong>Regra das 24 horas do WhatsApp.</strong>
+        Até 24 horas depois da última mensagem do cliente, a equipe responde como quiser. Depois
+        disso, só dá para enviar um <strong>template aprovado</strong> pela Meta. O Atendimento
+        avisa e mostra a lista de templates.
+      </p>
+    </div>
+
+    <ng-template #conexao>
+      <div class="oficial">
+        <div class="oficial__principal">
+          <app-cartao regiao titulo="Passo a passo" complemento="· Meta Business" [nivel]="3">
+            <details class="passos" [open]="!canal.dados()">
+              <summary class="passos__resumo">
+                Como conseguir esses dados no Meta Business
+                <svg lucideChevronDown class="passos__seta" [size]="18" />
+              </summary>
+              <ol class="passos__lista">
+                <li>
+                  Entre em
+                  <a
+                    href="https://developers.facebook.com/apps"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >developers.facebook.com</a
+                  >, abra o app do tipo <strong>Empresa</strong> e adicione o produto
+                  <strong>WhatsApp</strong>.
+                </li>
+                <li>
+                  Em <strong>WhatsApp → Configuração da API</strong>, copie o
+                  <strong>ID do número de telefone</strong> e o
+                  <strong>ID da conta do WhatsApp Business</strong> (WABA) para os campos abaixo.
+                </li>
+                <li>
+                  No <strong>Gerenciador de Negócios → Usuários do sistema</strong>, crie um usuário
+                  do sistema, dê acesso à conta do WhatsApp e gere um <strong>token</strong> com as
+                  permissões <code>whatsapp_business_messaging</code> e
+                  <code>whatsapp_business_management</code>. Esse token não expira.
+                </li>
+                <li>
+                  Em <strong>Configurações do app → Básico</strong>, copie a
+                  <strong>Chave secreta do app</strong>.
+                </li>
+                <li>
+                  Salve aqui e use <strong>Testar conexão</strong>. Aparecem o endereço do webhook e
+                  o token de verificação.
+                </li>
+                <li>
+                  De volta à Meta, em <strong>WhatsApp → Configuração → Webhook</strong>, cole o
+                  endereço e o token, confirme e assine o campo <code>messages</code>.
+                </li>
+                <li>
+                  Depois, use <strong>Sincronizar templates</strong> para trazer os modelos
+                  aprovados da conta.
+                </li>
+              </ol>
+            </details>
+          </app-cartao>
+
+          <form
+            class="oficial__formulario"
+            novalidate
+            [formGroup]="formulario"
+            (ngSubmit)="salvar()"
+            aria-labelledby="canal-titulo"
+          >
+            <app-cartao regiao titulo="Número e credenciais" [nivel]="3">
+              <div class="formulario">
+                <app-campo-texto
+                  #campoNome
+                  rotulo="Nome do canal"
+                  placeholder="Ex.: WhatsApp oficial da BRL"
+                  autocomplete="off"
+                  [maximoCaracteres]="120"
+                  formControlName="nome"
+                />
+                <div class="formulario__par">
+                  <app-campo-texto
+                    rotulo="ID do número de telefone"
+                    teclado="numeric"
+                    autocomplete="off"
+                    placeholder="109876543210987"
+                    dica="Meta → WhatsApp → Configuração da API."
+                    [mensagens]="{ pattern: 'Use só os números do ID (de 5 a 30 dígitos).' }"
+                    formControlName="phoneNumberId"
+                  />
+                  <app-campo-texto
+                    rotulo="ID da conta (WABA)"
+                    teclado="numeric"
+                    autocomplete="off"
+                    placeholder="123456789012345"
+                    dica="Fica logo abaixo do ID do número."
+                    [mensagens]="{ pattern: 'Use só os números do ID (de 5 a 30 dígitos).' }"
+                    formControlName="wabaId"
+                  />
+                </div>
+                <app-campo-texto
+                  rotulo="Número exibido"
+                  opcional
+                  teclado="tel"
+                  autocomplete="off"
+                  placeholder="+55 11 98888-7777"
+                  dica="Só para identificar o número na lista. O teste de conexão preenche sozinho."
+                  formControlName="numeroExibido"
+                />
+                <app-campo-senha
+                  rotulo="Token de acesso"
+                  autocomplete="off"
+                  [opcional]="!!canal.dados()"
+                  [placeholder]="
+                    canal.dados()?.token ? 'Mantém o gravado (' + canal.dados()!.token + ')' : null
+                  "
+                  dica="Token do usuário do sistema. Fica cifrado e nunca é mostrado de novo; para trocar, cole o novo."
+                  formControlName="token"
+                />
+                <app-campo-senha
+                  rotulo="Chave secreta do app"
+                  autocomplete="off"
+                  [opcional]="!!canal.dados()"
+                  [placeholder]="
+                    canal.dados()?.appSecret
+                      ? 'Mantém a gravada (' + canal.dados()!.appSecret + ')'
+                      : null
+                  "
+                  dica="Confere a assinatura das mensagens que a Meta manda. Meta → Configurações do app → Básico."
+                  formControlName="appSecret"
+                />
+              </div>
+            </app-cartao>
+
+            <app-cartao regiao titulo="Atendimento" [nivel]="3">
+              <div class="formulario">
+                <app-seletor
+                  rotulo="Fila das conversas novas"
+                  placeholder="Sem fila"
+                  permitirVazio
+                  [ajuda]="ajudaFila"
+                  [opcoes]="filas.opcoes()"
+                  formControlName="filaPadraoId"
+                />
+                <app-caixa-selecao
+                  rotulo="Ligado"
+                  dica="Desligado, as mensagens que a Meta mandar são ignoradas e nada sai por este número."
+                  formControlName="ativo"
+                />
+                <p class="formulario__nota">
+                  O horário de atendimento, a resposta fora do horário e a pesquisa de satisfação
+                  ficam em
+                  <a
+                    routerLink="/configuracoes/atendimento/horarios"
+                    [queryParams]="canal.dados() ? { canal: canal.dados()!.id } : {}"
+                    >Configurações → Atendimento</a
+                  >.
+                </p>
+              </div>
+            </app-cartao>
+
+            @if (erroGeral(); as erro) {
+              <p class="formulario__erro" role="alert">{{ erro }}</p>
+            }
+            <div class="oficial__acoes">
+              <button appBotao type="submit" variante="invertido" [carregando]="salvando()">
+                {{ canal.dados() ? 'Salvar' : 'Criar canal' }}
+              </button>
+              <a appBotao variante="contorno" routerLink="/configuracoes/canais">
+                {{ canal.dados() ? 'Voltar' : 'Cancelar' }}
+              </a>
+            </div>
+          </form>
+
+          @if (canal.dados(); as c) {
+            <app-cartao
+              regiao
+              titulo="Templates"
+              [complemento]="
+                templates()
+                  ? '· ' +
+                    c.templates.aprovados +
+                    (c.templates.aprovados === 1 ? ' aprovado' : ' aprovados') +
+                    ' de ' +
+                    c.templates.total
+                  : null
+              "
+              [nivel]="3"
+              dica="São os modelos de mensagem aprovados pela Meta. Só eles podem ser enviados depois das 24 horas. A lista vem da conta (WABA) e se atualiza sozinha todo dia às 3h."
+            >
+              <button
+                cartao-acoes
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="neutro"
+                [icone]="icones.tentar"
+                [carregando]="sincronizando()"
+                (click)="sincronizar()"
+              >
+                Sincronizar templates
+              </button>
+
+              <div aria-live="polite">
+                @if (erroSincronia(); as erro) {
+                  <p class="teste__erro" role="alert">
+                    <strong>Não deu para sincronizar:</strong> {{ erro }}
+                  </p>
+                }
+              </div>
+
+              @if (templatesErro(); as erro) {
+                <app-estado-vazio
+                  compacto
+                  variante="erro"
+                  [falha]="erro"
+                  titulo="Não conseguimos carregar os templates"
+                  [texto]="erro.resumo"
+                >
+                  <button
+                    appBotao
+                    type="button"
+                    tamanho="sm"
+                    variante="contorno"
+                    [icone]="icones.tentar"
+                    (click)="carregarTemplates()"
+                  >
+                    Tentar de novo
+                  </button>
+                </app-estado-vazio>
+              } @else if (templates() === null) {
+                <div aria-busy="true">
+                  <p class="visualmente-oculto" role="status">Carregando os templates…</p>
+                  <app-esqueleto [linhas]="3" />
+                </div>
+              } @else if (templates()!.length === 0) {
+                <p class="oficial__depois">
+                  {{
+                    c.templates.sincronizadoEm
+                      ? 'A conta ainda não tem templates. Crie no Gerenciador do WhatsApp (Meta) e sincronize de novo.'
+                      : 'Ainda não sincronizamos os templates. Use “Sincronizar templates” para buscar na Meta.'
+                  }}
+                </p>
+              } @else {
+                <ul class="templates" aria-label="Templates da conta">
+                  @for (t of templates(); track t.id) {
+                    <li class="template">
+                      <div class="template__linha">
+                        <strong class="template__nome">{{ t.nome }}</strong>
+                        <app-selo tamanho="sm" [variante]="t.usavel ? 'menta' : 'neutro'">{{
+                          rotuloStatus(t.status)
+                        }}</app-selo>
+                      </div>
+                      <p class="template__meta">
+                        {{ categorias[t.categoria] }} · {{ t.idioma }}
+                        @if (t.motivoIndisponivel) {
+                          · {{ t.motivoIndisponivel }}
+                        }
+                      </p>
+                      <p class="template__meta">{{ t.corpo.texto }}</p>
+                    </li>
+                  }
+                </ul>
+                @if (c.templates.sincronizadoEm) {
+                  <p class="oficial__depois">
+                    Sincronizado {{ relativo(c.templates.sincronizadoEm) }}.
+                  </p>
+                }
+              }
+            </app-cartao>
+          }
+        </div>
+
+        <aside class="oficial__lado" aria-label="Estado, webhook e teste">
+          @if (canal.dados(); as c) {
+            <app-cartao
+              regiao
+              titulo="Estado da conexão"
+              [nivel]="3"
+              dica="O CRM pergunta à Meta pelo número usando o token gravado. Se funcionar, as respostas vão sair."
+            >
+              <div class="teste">
+                <dl class="estado">
+                  <div>
+                    <dt>Situação</dt>
+                    <dd>
+                      @if (situacao(); as s) {
+                        <app-selo [variante]="s.variante" [ponto]="s.ponto">{{
+                          s.rotulo
+                        }}</app-selo>
+                      }
+                    </dd>
+                  </div>
+                  @if (c.estado.nomeVerificado) {
+                    <div>
+                      <dt>Nome verificado</dt>
+                      <dd>{{ c.estado.nomeVerificado }}</dd>
+                    </div>
+                  }
+                  @if (qualidade(); as q) {
+                    <div>
+                      <dt>Qualidade do número</dt>
+                      <dd>{{ q }}</dd>
+                    </div>
+                  }
+                  @if (c.estado.conferidoEm) {
+                    <div>
+                      <dt>Última conferência</dt>
+                      <dd>{{ dataHora(c.estado.conferidoEm) }}</dd>
+                    </div>
+                  }
+                </dl>
+                @if (c.estado.situacao === 'ERRO' && c.estado.motivo) {
+                  <p class="teste__erro" role="alert">
+                    <strong>Motivo do erro:</strong> {{ c.estado.motivo }}
+                  </p>
+                }
+                <button
+                  appBotao
+                  type="button"
+                  variante="neutro"
+                  [icone]="icones.testar"
+                  [carregando]="testando()"
+                  (click)="testar()"
+                >
+                  Testar conexão
+                </button>
+                <div aria-live="polite">
+                  @if (resultado(); as r) {
+                    <p class="teste__resultado" [class.teste__resultado--ok]="r.ok">
+                      <span class="teste__icone" aria-hidden="true">
+                        <svg [lucideIcon]="r.ok ? icones.ok : icones.falha" [size]="16" />
+                      </span>
+                      <span>
+                        <strong>{{ r.ok ? 'Funcionou.' : 'Não funcionou.' }}</strong>
+                        {{ r.mensagem }}
+                      </span>
+                    </p>
+                  }
+                </div>
+                @if (c.ultimoErro && c.ultimoErro !== c.estado.motivo) {
+                  <p class="teste__erro">
+                    <strong
+                      >Último erro{{
+                        c.ultimoErroEm ? ' · ' + relativo(c.ultimoErroEm) : ''
+                      }}:</strong
+                    >
+                    {{ c.ultimoErro }}
+                  </p>
+                }
+              </div>
+            </app-cartao>
+          }
+
+          <app-cartao
+            regiao
+            id="webhook"
+            titulo="Webhook"
+            [nivel]="3"
+            dica="É por este endereço que a Meta avisa o CRM de cada mensagem nova. É o mesmo endereço do Instagram e do Messenger. O token de verificação prova à Meta que o endereço é seu."
+          >
+            @if (canal.dados(); as c) {
+              <div class="webhook">
+                <div class="webhook__campo">
+                  <span class="webhook__rotulo">Endereço (URL de retorno)</span>
+                  <code class="webhook__valor">{{ c.webhook.url }}</code>
+                  <app-botao-copiar [texto]="c.webhook.url" oQue="Endereço" />
+                </div>
+                <div class="webhook__campo">
+                  <span class="webhook__rotulo">Token de verificação</span>
+                  <code class="webhook__valor">{{ c.webhook.tokenVerificacao }}</code>
+                  <app-botao-copiar [texto]="c.webhook.tokenVerificacao" oQue="Token" />
+                </div>
+                <div class="webhook__campo">
+                  <span class="webhook__rotulo">Campos para assinar</span>
+                  <ul class="webhook__campos">
+                    @for (campo of c.webhook.campos; track campo) {
+                      <li>
+                        <code>{{ campo }}</code>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </div>
+            } @else {
+              <p class="oficial__depois">
+                Depois de criar, aparecem aqui o endereço do webhook e o token de verificação para
+                colar no painel da Meta.
+              </p>
+            }
+          </app-cartao>
+        </aside>
+      </div>
+    </ng-template>
+
+    @if (canal.dados(); as c) {
+      <app-abas
+        class="oficial__abas"
+        rotulo="Seções do canal"
+        [abas]="abas"
+        [selecionada]="aba()"
+        (selecionadaChange)="mudarAba($event)"
+      >
+        @if (aba() === 'ligacoes') {
+          <app-ligacoes-canal [canalId]="c.id" [nomeDoCanal]="c.nome" />
+        } @else {
+          <ng-container [ngTemplateOutlet]="conexao" />
+        }
+      </app-abas>
+    } @else {
+      <ng-container [ngTemplateOutlet]="conexao" />
+    }
+  } @else {
+    <div class="tela__carregando" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando o canal…</p>
+      <app-esqueleto largura="35%" />
+      <app-cartao><app-esqueleto [linhas]="5" /></app-cartao>
+    </div>
+  }
+</section>

@@ -34,6 +34,7 @@ import {
 } from '@lucide/angular';
 
 import { AvisosService } from '../nucleo/avisos.service';
+import { LigacaoService } from '../nucleo/ligacoes/ligacao.service';
 import { TemaService } from '../nucleo/tema.service';
 import { Avisos } from '../ui/avisos/avisos';
 import { CamadaModal } from '../ui/camada-modal';
@@ -43,6 +44,8 @@ import { BarraSuperior } from './barra-superior';
 import { Confirmacao } from './confirmacao';
 import { EstadoCasca } from './estado-casca';
 import { FaixaPwa } from './faixa-pwa';
+import { AvisoToque } from './ligacao/aviso-toque';
+import { BarraLigacao } from './ligacao/barra-ligacao';
 import { provideIcones } from './icones';
 import { MenuLateral } from './menu-lateral';
 import { NavegacaoInferior } from './navegacao-inferior';
@@ -89,6 +92,8 @@ const FOCAVEIS =
     Avisos,
     Confirmacao,
     FaixaPwa,
+    AvisoToque,
+    BarraLigacao,
     NavegacaoInferior,
     BotaoIcone,
     Logo,
@@ -97,6 +102,10 @@ const FOCAVEIS =
   ],
   templateUrl: './casca.html',
   styleUrl: './casca.scss',
+  host: {
+    '[style.--casca-ligacao]':
+      "ligacoes.emCurso() !== null || ligacoes.fim() !== null ? '84px' : '0px'",
+  },
   providers: [EstadoCasca, provideIcones()],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -104,6 +113,7 @@ export class Casca {
   protected readonly estado = inject(EstadoCasca);
   protected readonly tema = inject(TemaService);
   protected readonly avisos = inject(AvisosService);
+  protected readonly ligacoes = inject(LigacaoService);
   protected readonly icones = { fechar: LucideX, sol: LucideSun, lua: LucideMoon };
   protected readonly alternador = computed(() =>
     this.estado.recolhida()

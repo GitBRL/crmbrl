@@ -1,3 +1,4 @@
+import type { TemplateDoCanal } from '../configuracoes/canais/canais.modelos';
 import type { Area } from '../../nucleo/sessao/perfil';
 import type { StatusMensagem } from '../../nucleo/tempo-real/eventos';
 import type { DirecaoMensagem, TipoMensagem } from '../../ui/mensagens/mensagens';
@@ -8,7 +9,8 @@ import type { DirecaoMensagem, TipoMensagem } from '../../ui/mensagens/mensagens
  * modelo dos componentes de conversa em `apresentacao.ts`.
  */
 
-export type TipoCanal = 'WHATSAPP' | 'WEBCHAT' | 'EMAIL' | 'INSTAGRAM' | 'MESSENGER';
+export type TipoCanal =
+  'WHATSAPP' | 'WHATSAPP_OFICIAL' | 'WEBCHAT' | 'EMAIL' | 'INSTAGRAM' | 'MESSENGER';
 export type StatusConversa = 'ABERTA' | 'PENDENTE' | 'RESOLVIDA';
 export type PrioridadeConversa = 'BAIXA' | 'NORMAL' | 'ALTA' | 'URGENTE';
 export type EscopoConversas = 'MINHAS' | 'SEM_RESPONSAVEL' | 'TODAS';
@@ -16,6 +18,7 @@ export type AreaDoAtendimento = Extract<Area, 'COMERCIAL' | 'CS'>;
 
 export const TIPOS_CANAL: readonly TipoCanal[] = [
   'WHATSAPP',
+  'WHATSAPP_OFICIAL',
   'WEBCHAT',
   'EMAIL',
   'INSTAGRAM',
@@ -87,7 +90,7 @@ export interface ConversaResumo {
   readonly aguardandoDesde: string | null;
   readonly atribuidaEm: string | null;
   readonly sla: SlaDaConversa;
-  /** Instagram e Messenger: até quando cabe resposta comum (janela de 24 h). */
+  /** Instagram, Messenger e WhatsApp oficial: até quando cabe resposta comum (janela de 24 h). */
   readonly janelaAte: string | null;
   readonly negocioId: string | null;
   readonly criadoEm: string;
@@ -116,6 +119,8 @@ export interface AcoesDaConversa {
   readonly reabrir: boolean;
   readonly responder: boolean;
   readonly criarNegocio: boolean;
+  /** Conversa em aberto num canal que usa templates (WhatsApp oficial). */
+  readonly enviarTemplate?: boolean;
 }
 
 /** `ConversaDetalheDto`. */
@@ -125,7 +130,12 @@ export interface ConversaDetalhe extends ConversaResumo {
   readonly reaberturas: number;
   readonly satisfacao: Satisfacao;
   readonly negocio: NegocioDaConversa | null;
-  readonly podeResponder: { readonly pode: boolean; readonly motivo: string | null };
+  readonly podeResponder: {
+    readonly pode: boolean;
+    readonly motivo: string | null;
+    /** Janela fechada: só vale um template aprovado. */
+    readonly apenasTemplate?: boolean;
+  };
   readonly acoes: AcoesDaConversa;
 }
 
@@ -330,4 +340,30 @@ export interface AtividadeDoContato {
   readonly inicioEm?: string | null;
   readonly atrasada: boolean;
   readonly responsavel: { readonly id: string; readonly nome: string };
+}
+
+// Templates (WhatsApp oficial) ---------------------------------------------------------------
+
+/** `GET /atendimento/conversas/:id/templates`. */
+export interface TemplatesDaConversa {
+  /** `false` nos canais sem templates (`itens` vazio). */
+  readonly suportado: boolean;
+  readonly janelaAberta: boolean;
+  readonly janelaAte: string | null;
+  /** Motivo, quando a janela está fechada. */
+  readonly aviso: string | null;
+  readonly sincronizadoEm: string | null;
+  readonly itens: readonly TemplateDoCanal[];
+}
+
+/** Variáveis de um envio, na ordem em que aparecem no template. */
+export interface VariaveisDoTemplate {
+  readonly cabecalho?: readonly string[];
+  readonly corpo?: readonly string[];
+  readonly botoes?: readonly (string | null)[];
+}
+
+export interface EnvioDeTemplate {
+  readonly templateId: string;
+  readonly variaveis?: VariaveisDoTemplate;
 }

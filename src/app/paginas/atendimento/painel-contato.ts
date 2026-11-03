@@ -30,6 +30,10 @@ import {
   formatarTempoRelativo,
 } from '../../nucleo/formatos';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
+import { LigacoesApi } from '../../nucleo/ligacoes/ligacoes.api';
+import { formatarDuracao } from '../../nucleo/ligacoes/ligacoes.textos';
+import type { Ligacao } from '../../nucleo/ligacoes/ligacoes.tipos';
+import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
@@ -53,6 +57,12 @@ import {
   ROTULO_STATUS_CONVERSA,
 } from './apresentacao';
 import { EstadoAtendimento } from './estado-atendimento';
+import {
+  resultadoDoEstado,
+  ROTULO_DIRECAO,
+  ROTULO_RESULTADO,
+  VARIANTE_RESULTADO,
+} from './ligacoes/historico.logica';
 
 type Carga<T> =
   | { readonly situacao: 'carregando' }
@@ -79,7 +89,17 @@ const ROTULO_ATIVIDADE: Readonly<Record<string, string>> = {
  */
 @Component({
   selector: 'app-painel-contato',
-  imports: [Avatar, Botao, BotaoIcone, Dica, Esqueleto, LucideDynamicIcon, RouterLink, Selo],
+  imports: [
+    Avatar,
+    Botao,
+    BotaoIcone,
+    BotaoLigar,
+    Dica,
+    Esqueleto,
+    LucideDynamicIcon,
+    RouterLink,
+    Selo,
+  ],
   templateUrl: './painel-contato.html',
   styleUrl: './painel-contato.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -97,6 +117,7 @@ export class PainelContato {
   readonly fechar = output<void>();
 
   private readonly api = inject(AtendimentoApi);
+  private readonly ligacoesApi = inject(LigacoesApi);
   private readonly sessao = inject(SessaoService);
   protected readonly estado = inject(EstadoAtendimento);
 
@@ -115,6 +136,15 @@ export class PainelContato {
   protected readonly negocios = signal<Carga<readonly NegocioDoContato[]>>(CARREGANDO);
   protected readonly atividades = signal<Carga<readonly AtividadeDoContato[]>>(CARREGANDO);
   protected readonly anteriores = signal<Carga<readonly ConversaResumo[]>>(CARREGANDO);
+  protected readonly ligacoes = signal<Carga<readonly Ligacao[]>>(CARREGANDO);
+  protected readonly rotuloResultado = ROTULO_RESULTADO;
+  protected readonly varianteResultado = VARIANTE_RESULTADO;
+  protected readonly rotuloDirecao = ROTULO_DIRECAO;
+  protected readonly resultadoDoEstado = resultadoDoEstado;
+  protected readonly quandoLigou = (ligacao: Ligacao): string =>
+    formatarDataHora(ligacao.iniciadaEm);
+  protected readonly duracaoDaLigacao = (ligacao: Ligacao): string =>
+    formatarDuracao(ligacao.duracaoSegundos);
 
   protected readonly contatoId = computed(() => this.conversa().contato.id);
   /** Só a troca de conversa recarrega o painel (o detalhe muda a cada evento do tempo real). */
@@ -170,6 +200,7 @@ export class PainelContato {
     this.negocios.set(CARREGANDO);
     this.atividades.set(CARREGANDO);
     this.anteriores.set(CARREGANDO);
+    this.ligacoes.set(CARREGANDO);
     this.cargas.add(
       this.api.contato(contatoId).subscribe({
         next: (dados) => {
@@ -185,6 +216,11 @@ export class PainelContato {
         error: () => this.negocios.set({ situacao: 'erro' }),
       }),
     );
+    // As últimas ligações com a pessoa (o histórico completo fica na aba Ligações).
+    this.ligacoesApi
+      .listar({ contatoId, limite: 5 })
+      .then((pagina) => this.ligacoes.set({ situacao: 'pronta', dados: pagina.itens }))
+      .catch(() => this.ligacoes.set({ situacao: 'erro' }));
     this.cargas.add(
       this.api.atividades(contatoId).subscribe({
         next: (dados) => this.atividades.set({ situacao: 'pronta', dados }),

@@ -139,6 +139,21 @@
               </app-selo>
             </div>
 
+            @if (
+              atividade.tipo === 'LIGACAO' && atividade.status === 'PENDENTE' && atividade.contato;
+              as contato
+            ) {
+              <div class="detalhe__ligar">
+                <app-botao-ligar
+                  [contato]="contato"
+                  [atividadeId]="atividade.id"
+                  variante="invertido"
+                  verPermissao
+                  coluna
+                />
+              </div>
+            }
+
             @if (atividade.encaminhadaDe; as origem) {
               <div class="detalhe__encaminhada">
                 <app-selo variante="ciano" [icone]="icones.encaminhada">

@@ -1,0 +1,377 @@
+@use 'mixins' as m;
+
+// Mesma estrutura do Atendimento: cabeçalho, abas e duas colunas (lista | ligação aberta) que
+// rolam por dentro; no celular, uma coluna por vez.
+
+:host {
+  --_altura: max(34rem, calc(100dvh - var(--casca-reservado) - var(--esp-4) - var(--esp-6)));
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+  height: var(--_altura);
+  min-width: 0;
+  margin-bottom: calc(var(--esp-6) - var(--esp-16));
+}
+
+router-outlet {
+  display: none;
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-2) var(--esp-6);
+}
+
+.cabecalho__texto {
+  display: grid;
+  flex: 1 1 0;
+  gap: var(--esp-2);
+  min-width: 12rem;
+}
+
+.cabecalho__titulo {
+  margin: 0;
+  font: var(--fonte-h1);
+  letter-spacing: var(--tracking-display);
+}
+
+.cabecalho__frase {
+  max-width: 64ch;
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo);
+}
+
+.cabecalho__dicas {
+  display: flex;
+  gap: var(--esp-1);
+}
+
+.sem-acesso {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: var(--esp-cartao);
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.caixa {
+  display: grid;
+  flex: 1;
+  grid-template-columns: clamp(20rem, 32%, 28rem) minmax(0, 1fr);
+  gap: var(--esp-entre-cartoes);
+  min-height: 0;
+}
+
+.lista,
+.detalhe {
+  min-width: 0;
+  min-height: 0;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--raio-cartao);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-cartao);
+}
+
+.detalhe {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.detalhe__vazio {
+  align-self: center;
+  justify-self: center;
+  max-width: 28rem;
+}
+
+.lista__topo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-3);
+  max-height: 60%;
+  padding: var(--esp-4) var(--esp-4) var(--esp-3);
+  overflow-y: auto;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.lista__busca {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--esp-2);
+  align-items: center;
+
+  app-campo-busca {
+    min-width: 0;
+  }
+}
+
+.lista__filtros {
+  display: grid;
+  gap: var(--esp-3);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.lista__filtro {
+  display: grid;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.lista__filtro-rotulo {
+  padding-inline: var(--esp-4);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.lista__datas,
+.lista__seletores {
+  display: grid;
+  gap: var(--esp-3);
+}
+
+.lista__datas {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lista__total {
+  margin: 0;
+  padding-inline: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.lista__rolagem {
+  flex: 1;
+  min-height: 0;
+  padding: var(--esp-2);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+
+  app-estado-vazio {
+    margin-top: var(--esp-6);
+  }
+}
+
+.lista__itens {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista__mais {
+  display: grid;
+  justify-items: center;
+  gap: var(--esp-2);
+  padding: var(--esp-3) 0 var(--esp-2);
+}
+
+.lista__erro {
+  margin: 0;
+  color: var(--cor-erro);
+  font: var(--fonte-legenda);
+}
+
+// Uma ligação ---------------------------------------------------------------------------------
+
+.item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--esp-3);
+  align-items: start;
+  padding: var(--esp-3);
+  border-radius: var(--raio-lg);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--duracao-rapida) var(--curva);
+
+  &:hover {
+    background: var(--cor-vidro);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: -2px;
+  }
+}
+
+.item--selecionada,
+.item--selecionada:hover {
+  background: var(--cor-superficie-2);
+  box-shadow: inset 0 0 0 2px var(--cor-destaque);
+}
+
+.item--esqueleto {
+  align-items: center;
+  pointer-events: none;
+
+  .item__corpo {
+    gap: var(--esp-2);
+  }
+}
+
+.item__icone {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+
+  &[data-resultado='perdida'],
+  &[data-resultado='falhou'] {
+    background: var(--pb-coral);
+    color: #000;
+  }
+}
+
+.item__corpo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.item__linha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.item__nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font: var(--fonte-rotulo);
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item__hora {
+  flex: none;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1) var(--esp-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.item__detalhe,
+.item__canal-nome {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  text-overflow: ellipsis;
+}
+
+.item__canal-nome {
+  white-space: nowrap;
+}
+
+.item__assunto {
+  display: -webkit-box;
+  overflow: hidden;
+  font: var(--fonte-corpo);
+  font-size: 13px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.item__trechos {
+  display: grid;
+  gap: var(--esp-2);
+  margin-top: 2px;
+}
+
+.trecho {
+  display: grid;
+  gap: 2px;
+  padding-left: var(--esp-3);
+  border-left: 2px solid var(--cor-borda-forte);
+}
+
+.trecho__quem {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.trecho__texto {
+  overflow-wrap: anywhere;
+  font: var(--fonte-corpo);
+  font-size: 13px;
+
+  mark {
+    padding: 0 2px;
+    border-radius: 3px;
+    background: var(--pb-lima);
+    color: #000;
+  }
+}
+
+// Celular: uma coluna por vez; com a ligação aberta, só ela.
+@include m.abaixo(m.$md) {
+  :host {
+    --_altura: max(30rem, calc(100dvh - var(--casca-reservado) - var(--esp-2) - var(--esp-3)));
+
+    gap: var(--esp-3);
+    margin-bottom: calc(var(--esp-3) - var(--esp-16));
+  }
+
+  .cabecalho {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .cabecalho__titulo {
+    font: var(--fonte-h2);
+  }
+
+  .cabecalho__frase {
+    display: none;
+  }
+
+  .caixa {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detalhe {
+    display: none;
+  }
+
+  :host(.ligacoes--aberta) {
+    .cabecalho,
+    .abas-pagina,
+    .lista {
+      display: none;
+    }
+
+    .detalhe {
+      display: grid;
+    }
+  }
+}

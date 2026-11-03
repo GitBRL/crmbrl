@@ -39,7 +39,10 @@ describe('app.routes (Onda A)', () => {
   });
 
   it('as rotas das telas novas têm a página e a filha com o id (conversa, canal)', () => {
-    expect(ROTAS_ATENDIMENTO[0].children?.map(caminho)).toEqual(['', ':conversaId']);
+    // A aba Ligações (E4) vem antes; a caixa de entrada é a rota de caminho vazio.
+    expect(ROTAS_ATENDIMENTO.map(caminho)).toEqual(['ligacoes', '']);
+    expect(ROTAS_ATENDIMENTO[1].children?.map(caminho)).toEqual(['', ':conversaId']);
+    expect(ROTAS_ATENDIMENTO[0].children?.map(caminho)).toEqual(['', ':ligacaoId']);
     expect(ROTAS_CHAT[0].children?.map(caminho)).toEqual(['', ':canalId']);
     expect(ROTAS_CONFIG_CANAIS.map(caminho)).toEqual(['canais']);
     expect(ROTAS_CONFIG_ATENDIMENTO.map(caminho)).toEqual(['atendimento']);

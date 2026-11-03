@@ -40,6 +40,7 @@ import { EditorPassos } from '../../ui/editor-passos/editor-passos';
 import { type Passo, validarPassos } from '../../ui/editor-passos/passos';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
+import { FiltrosPilula, type OpcaoFiltro } from '../../ui/filtros-pilula/filtros-pilula';
 import { Modal } from '../../ui/modal/modal';
 import { PainelLateral } from '../../ui/painel-lateral/painel-lateral';
 import { Seletor, type OpcaoSeletor } from '../../ui/seletor/seletor';
@@ -114,7 +115,28 @@ const FILTRO_ROTULO: Readonly<Record<string, { rotulo: string; dica?: string }>>
   notaMinima: { rotulo: 'Nota mínima (1 a 5)' },
   notaMaxima: { rotulo: 'Nota máxima (1 a 5)', dica: 'Ex.: 2 para agir só com notas baixas.' },
   campanhaId: { rotulo: 'Campanha', dica: 'Vazio: qualquer campanha.' },
+  direcao: {
+    rotulo: 'Quem ligou',
+    dica: 'Nenhuma marcada: ligações recebidas e feitas. Marque uma ou as duas.',
+  },
+  resultado: {
+    rotulo: 'Como a ligação terminou',
+    dica: 'Nenhuma marcada: qualquer resultado. Marque um ou mais.',
+  },
 };
+
+/** Filtros de gatilho em que se marca um ou mais valores (guardados como "A, B"). */
+const OPCOES_DIRECAO: readonly OpcaoFiltro[] = [
+  { id: 'RECEBIDA', rotulo: 'Recebidas' },
+  { id: 'FEITA', rotulo: 'Feitas' },
+];
+const OPCOES_RESULTADO: readonly OpcaoFiltro[] = [
+  { id: 'atendida', rotulo: 'Atendida' },
+  { id: 'perdida', rotulo: 'Perdida' },
+  { id: 'recusada', rotulo: 'Recusada' },
+  { id: 'sem_resposta', rotulo: 'Sem resposta' },
+  { id: 'falhou', rotulo: 'Falhou' },
+];
 
 const ORIGENS: readonly OpcaoSeletor<string>[] = [
   ['MANUAL', 'Cadastro manual'],
@@ -132,6 +154,7 @@ const ORIGENS: readonly OpcaoSeletor<string>[] = [
 
 const TIPOS_CANAL: readonly OpcaoSeletor<string>[] = [
   ['WHATSAPP', 'WhatsApp'],
+  ['WHATSAPP_OFICIAL', 'WhatsApp oficial'],
   ['WEBCHAT', 'Chat do site'],
   ['EMAIL', 'E-mail'],
   ['INSTAGRAM', 'Instagram'],
@@ -173,6 +196,7 @@ const CRITERIOS: readonly CriterioParada[] = ['RESPONDEU', 'GANHOU', 'PERDEU', '
     EditorPassos,
     EstadoVazio,
     Esqueleto,
+    FiltrosPilula,
     HistoricoAutomacoes,
     Modal,
     PainelLateral,
@@ -267,6 +291,8 @@ export class EditorAutomacao {
   protected readonly rotuloEntidade = ROTULO_ENTIDADE;
   protected readonly filtroRotulo = FILTRO_ROTULO;
   protected readonly origens = ORIGENS;
+  protected readonly opcoesDirecao = OPCOES_DIRECAO;
+  protected readonly opcoesResultado = OPCOES_RESULTADO;
   protected readonly tiposCanal = TIPOS_CANAL;
   protected readonly tiposAtividade = TIPOS_ATIVIDADE;
   protected readonly iconeVoltar = LucideArrowLeft;
@@ -586,6 +612,18 @@ export class EditorAutomacao {
 
   protected valorFiltro(chave: string): Texto {
     return this.filtros()[chave] ?? null;
+  }
+
+  /** Os valores marcados de um filtro de várias opções (`"RECEBIDA, FEITA"` → lista). */
+  protected valoresFiltro(chave: string): readonly string[] {
+    return String(this.filtros()[chave] ?? '')
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+
+  protected definirValoresFiltro(chave: string, valores: readonly string[]): void {
+    this.definirFiltro(chave, valores.length ? valores.join(', ') : null);
   }
 
   protected definirFiltro(chave: string, valor: Texto): void {

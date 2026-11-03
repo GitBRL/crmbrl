@@ -5,7 +5,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import type { RegistroDaLinhaDoTempo } from './contatos.tipos';
-import { agruparPorDia, LinhaDoTempo, rotuloDoDia } from './linha-do-tempo';
+import { agruparPorDia, frasePorLigacao, LinhaDoTempo, rotuloDoDia } from './linha-do-tempo';
 
 @Component({
   imports: [LinhaDoTempo],
@@ -150,5 +150,119 @@ describe('LinhaDoTempo', () => {
     await esperar();
     fixture.detectChanges();
     expect(raiz.textContent).toContain('Nenhuma atividade ainda');
+  });
+
+  describe('ligações (Onda E)', () => {
+    const ligacao = (extra: Record<string, unknown> = {}): RegistroDaLinhaDoTempo => ({
+      tipo: 'ligacao',
+      ocorridoEm: '2026-10-21T12:00:00Z',
+      evento: null,
+      atividade: null,
+      ligacao: {
+        id: 'lig-7',
+        direcao: 'RECEBIDA',
+        estado: 'ENCERRADA',
+        resultado: 'atendida',
+        motivoTexto: null,
+        duracaoSegundos: 125,
+        conversaId: 'conv-1',
+        canalId: 'canal-1',
+        canalNome: 'WhatsApp Oficial',
+        atendente: { id: 'u1', nome: 'Lucas' },
+        iniciadaEm: '2026-10-21T11:57:00Z',
+        encerradaEm: '2026-10-21T12:00:00Z',
+        resumoAssunto: 'Segunda via do boleto',
+        resumoTrecho: 'Cliente pediu o boleto de novembro.',
+        temGravacao: true,
+        temTranscricao: true,
+        ...extra,
+      },
+    });
+
+    it('a frase diz direção, resultado e duração', () => {
+      expect(frasePorLigacao(ligacao().ligacao!)).toBe('Ligação recebida · atendida, 2:05');
+      expect(
+        frasePorLigacao(
+          ligacao({ direcao: 'FEITA', resultado: 'sem_resposta', duracaoSegundos: null }).ligacao!,
+        ),
+      ).toBe('Ligação feita · sem resposta');
+    });
+
+    it('mostra a ligação com resumo e abre o painel ali mesmo (player e transcrição)', async () => {
+      fixture.detectChanges();
+      await esperar();
+      http
+        .expectOne((req) => req.url === '/api/v1/contatos/c1/linha-do-tempo')
+        .flush({ itens: [ligacao()], total: 1, pagina: 1, porPagina: 20 });
+      await esperar();
+      fixture.detectChanges();
+      const raiz = fixture.nativeElement as HTMLElement;
+      expect(raiz.textContent).toContain('Ligação recebida · atendida, 2:05');
+      expect(raiz.textContent).toContain('Segunda via do boleto');
+      expect(raiz.textContent).toContain('Cliente pediu o boleto de novembro.');
+      expect(raiz.textContent).toContain('Lucas');
+      expect(raiz.querySelector('app-painel-ligacao')).toBeNull();
+      const abrir = [...raiz.querySelectorAll('button')].find((b) =>
+        b.textContent?.includes('Ouvir e ler a transcrição'),
+      ) as HTMLButtonElement;
+      expect(abrir.getAttribute('aria-expanded')).toBe('false');
+      abrir.click();
+      fixture.detectChanges();
+      expect(abrir.getAttribute('aria-expanded')).toBe('true');
+      expect(raiz.querySelector('app-painel-ligacao')).not.toBeNull();
+      http.expectOne('/api/v1/ligacoes/lig-7').flush({});
+      const link = raiz.querySelector<HTMLAnchorElement>('a[href="/atendimento/ligacoes/lig-7"]');
+      expect(link?.textContent).toContain('Abrir a ligação');
+    });
+
+    it('ligação perdida sem gravação não oferece o player, só o motivo e o link', async () => {
+      fixture.detectChanges();
+      await esperar();
+      http
+        .expectOne((req) => req.url === '/api/v1/contatos/c1/linha-do-tempo')
+        .flush({
+          itens: [
+            ligacao({
+              resultado: 'perdida',
+              estado: 'PERDIDA',
+              duracaoSegundos: null,
+              resumoAssunto: null,
+              resumoTrecho: null,
+              motivoTexto: 'Ninguém atendeu a tempo.',
+              temGravacao: false,
+              temTranscricao: false,
+            }),
+          ],
+          total: 1,
+          pagina: 1,
+          porPagina: 20,
+        });
+      await esperar();
+      fixture.detectChanges();
+      const raiz = fixture.nativeElement as HTMLElement;
+      expect(raiz.textContent).toContain('Perdida');
+      expect(raiz.textContent).toContain('Ninguém atendeu a tempo.');
+      expect(raiz.textContent).not.toContain('Ouvir e ler');
+      expect(raiz.querySelector('.item__icone--atrasada')).not.toBeNull();
+    });
+
+    it('o filtro "Ligações" pede incluir=ligacoes', async () => {
+      fixture.detectChanges();
+      await esperar();
+      http
+        .expectOne((req) => req.url === '/api/v1/contatos/c1/linha-do-tempo')
+        .flush({ itens: [], total: 0, pagina: 1, porPagina: 20 });
+      await esperar();
+      fixture.detectChanges();
+      const botao = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find(
+        (b) => b.textContent?.trim() === 'Ligações',
+      ) as HTMLButtonElement;
+      botao.click();
+      fixture.detectChanges();
+      await esperar();
+      const pedido = http.expectOne((req) => req.url === '/api/v1/contatos/c1/linha-do-tempo');
+      expect(pedido.request.params.get('incluir')).toBe('ligacoes');
+      pedido.flush({ itens: [], total: 0, pagina: 1, porPagina: 20 });
+    });
   });
 });

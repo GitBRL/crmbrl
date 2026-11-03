@@ -1,3 +1,12 @@
+import type {
+  EventoLigacaoDeixouDeTocar,
+  EventoLigacaoEncerrada,
+  EventoLigacaoEstado,
+  EventoLigacaoPermissao,
+  EventoLigacaoRespostaSdp,
+  EventoLigacaoTocando,
+} from '../ligacoes/ligacoes.tipos';
+import type { EventoLigacaoProcessada } from '../ligacoes/gravacao.tipos';
 import type { Notificacao } from '../notificacoes.service';
 
 /**
@@ -24,6 +33,12 @@ import type { Notificacao } from '../notificacoes.service';
  * | `campanha.progresso`  | `{ campanhaId, status, contadores, proximoEnvioEm, pausaMotivo, em }` |
  * | `parcela.atualizada`  | `{ parcelaId, numero, contratoId, contatoId, status, motivo }` (C3)   |
  * | `regua.progresso`     | `{ execucaoId, status, resumo, envioId?, situacao? }` (C3)             |
+ * | `ligacao.tocando`     | `{ ligacaoId, contato, canal, ofertaSdp, expiraEm, conversaId }` (E2)  |
+ * | `ligacao.deixou_de_tocar` | `{ ligacaoId, motivo, atendidaPor? }` (E2)                         |
+ * | `ligacao.resposta_sdp`| `{ ligacaoId, sdp }` — ligação feita (E2)                              |
+ * | `ligacao.estado`      | `{ ligacaoId, estado, motivo?, atendidaEm? }` (E2)                     |
+ * | `ligacao.encerrada`   | `{ ligacaoId, estado, duracaoSegundos, motivo, motivoTexto }` (E2)     |
+ * | `ligacao.permissao`   | a permissão de ligar do contato (sala `conversa:<id>`) (E2)            |
  *
  * Cliente → servidor (com confirmação `{ ok }` ou `{ ok: false, erro, mensagem }`):
  * `conversa.entrar`/`sair` `{ conversaId }`, `chat.entrar`/`sair` `{ canalId }` e `digitando`
@@ -209,6 +224,13 @@ export interface EventosServidor {
   'campanha.progresso': EventoCampanhaProgresso;
   'parcela.atualizada': EventoParcelaAtualizada;
   'regua.progresso': EventoReguaProgresso;
+  'ligacao.tocando': EventoLigacaoTocando;
+  'ligacao.deixou_de_tocar': EventoLigacaoDeixouDeTocar;
+  'ligacao.resposta_sdp': EventoLigacaoRespostaSdp;
+  'ligacao.estado': EventoLigacaoEstado;
+  'ligacao.encerrada': EventoLigacaoEncerrada;
+  'ligacao.processada': EventoLigacaoProcessada;
+  'ligacao.permissao': EventoLigacaoPermissao;
 }
 
 export type EventoServidor = keyof EventosServidor;
