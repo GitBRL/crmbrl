@@ -71,12 +71,23 @@ suas e as sem responsável da área). Marketing não acessa.
   janela, o campo normal funciona e **Enviar template** fica como extra. Cada mensagem mostra enviada,
   entregue, lida ou o motivo da falha, com **Tentar de novo**.
 - **Ligações (WhatsApp oficial).** Quando um cliente liga, um aviso com **Atender** e **Recusar** aparece em
-  qualquer tela, com som (atalhos **Alt+A** e **Alt+R**). Durante a ligação, uma barra fixa mostra o nome, o
-  tempo, o **mudo** (Alt+M), o **Encerrar** (Alt+E) e os ajustes de microfone, alto-falante e anotação rápida;
+  qualquer tela, com som (atalhos **Alt+A** e **Alt+R**; no Mac, **Control+Shift+A** e **Control+Shift+R**: a tela
+  mostra os do seu computador). **Recusar** tira a ligação de você e avisa o CRM; os outros atendentes seguem
+  sendo chamados e, se todos recusarem, ela vira perdida. Durante a ligação, uma barra fixa mostra o nome, o
+  tempo, o **mudo** (Alt+S), o **Encerrar** (Alt+E) e os ajustes de microfone, alto-falante e anotação rápida;
   navegar pelo CRM não derruba a ligação. Para **ligar**, use o botão **Ligar** no contato, na conversa ou na
   atividade de ligação (inclui a régua de cobrança). A Meta só deixa ligar a quem permitiu: sem permissão, o
   CRM oferece **Pedir permissão para ligar** e mostra os limites (1 pedido por dia e 2 por semana por
   cliente). Ligação perdida vira a atividade "Retornar ligação". Artigo: `atendimento-ligacoes.md`.
+- **Aba Ligações (histórico).** No topo do Atendimento, ao lado de **Conversas**, fica a aba **Ligações**: todas
+  as ligações da mais recente para a mais antiga, com filtros (período, direção, situação, atendente, fila e conta
+  do canal) e **busca no que foi dito** nas transcrições (sem diferenciar maiúsculas, acentos e plural; aspas para
+  frase exata, traço para excluir, `or` para uma ou outra). Clique numa ligação para ouvir a gravação, ler a
+  transcrição (clique num trecho para ouvir aquele ponto) e ver o resumo e as atividades sugeridas. As ligações
+  também aparecem na **linha do tempo** do contato e da empresa, com resultado, duração e resumo, e as últimas
+  cinco no painel do contato. Artigo: `atendimento-historico-de-ligacoes.md`.
+- **Atalhos de teclado.** Funcionam pela posição da tecla (em qualquer layout): **Alt** no Windows e no Linux,
+  **Control+Shift** no Mac. A dica de atalhos do Atendimento mostra os certos.
 - **Painel do contato.** Ao lado da conversa estão os dados do contato, os negócios e o histórico.
 - **Configurar (líder, C-level, Admin).** Filas, prazos de SLA, horário de atendimento, satisfação e respostas
   rápidas ficam em Configurações; quando o prazo estoura, o líder é avisado pelo sino.
@@ -150,12 +161,15 @@ Detalhes: `disparos-*.md`, `configuracoes-disparos.md`, `chatbot-*.md`.
 
 Cada papel vê as abas do seu painel (Marketing, Comercial, Sucesso do cliente, Atendimento e Financeiro para
 Admin e C-level). Use os filtros de período e clique nos números para ver o detalhe; **Exportar** gera XLSX
-ou CSV. O Admin tem ainda **Analisar com IA**, que lê só números agregados, sem dados pessoais.
+ou CSV. O Admin tem ainda **Analisar com IA**, que lê só números agregados, sem dados pessoais. A aba
+**Atendimento** mostra também as **ligações**: recebidas, feitas, atendidas, perdidas, taxa de atendimento, espera
+e duração média, e os gráficos por hora do dia e por atendente.
 
 ## 9. Automações
 
 Admin e C-level (todas) e líderes (da área) criam regras do tipo "quando acontecer X, faça Y". Sempre **teste**
-antes de ligar. Os membros não acessam.
+antes de ligar. Os membros não acessam. Há gatilhos de **ligação perdida** (ligação recebida que ninguém
+atendeu) e de **ligação encerrada** (com filtros de canal, direção e resultado).
 
 ## 10. Financeiro
 
@@ -190,7 +204,9 @@ O CRM não emite boleto, Pix nem nota fiscal e não se conecta a bancos: a baixa
   **Webhook** para a Meta e clique em **Sincronizar templates**. Artigo: `configuracoes-canais-whatsapp-oficial.md`.
   A aba **Ligações** do canal ativa as chamadas no número (a Meta confere os requisitos: número só na API
   oficial, limite de 2.000 mensagens ou mais, forma de pagamento e o campo `calls` assinado no webhook), define
-  a fila, o horário, o tempo de toque, se grava e a mensagem para ligação perdida. Artigo: `atendimento-ligacoes.md`.
+  a fila, o horário, o tempo de toque, se grava, a mensagem para ligação perdida e se o **webhook de ligação
+  encerrada** leva o resumo (sem ele o webhook sai assim que a ligação termina; com ele, depois do resumo pronto,
+  até 20 minutos; o áudio e a transcrição nunca vão). Artigo: `atendimento-ligacoes.md`.
 - **Chat do site, e-mail, Instagram e Messenger:** cadastre o canal e, no site, cole o trecho de instalação.
 - **Disparos (Admin e C-level):** limites e ritmo gerais.
 - **Atendimento (Admin, C-level e líderes de Comercial e CS):** filas, horários de atendimento e respostas

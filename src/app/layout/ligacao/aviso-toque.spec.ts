@@ -59,7 +59,7 @@ describe('AvisoToque (ligação recebida em qualquer tela)', () => {
     botoes[0].click();
     expect(falso.atender).toHaveBeenCalledWith('lig-1');
     botoes[1].click();
-    expect(falso.dispensar).toHaveBeenCalledWith('lig-1');
+    expect(falso.recusar).toHaveBeenCalledWith('lig-1');
   });
 
   it('atalhos Alt+A e Alt+R valem para o primeiro toque, de qualquer lugar', () => {
@@ -69,9 +69,19 @@ describe('AvisoToque (ligação recebida em qualquer tela)', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', altKey: true }));
     expect(falso.atender).toHaveBeenCalledWith('lig-1');
     document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', altKey: true }));
-    expect(falso.dispensar).toHaveBeenCalledWith('lig-1');
+    expect(falso.recusar).toHaveBeenCalledWith('lig-1');
     document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA' }));
     expect(falso.atender).toHaveBeenCalledTimes(1);
+  });
+
+  it('o Alt+Gr (Ctrl+Alt) e o Option do Mac não acionam o atendimento sem querer', () => {
+    const { fixture } = criar();
+    falso.toques.set([toqueDeTeste()]);
+    fixture.detectChanges();
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { code: 'KeyA', altKey: true, ctrlKey: true }),
+    );
+    expect(falso.atender).not.toHaveBeenCalled();
   });
 
   it('avisa quando o toque está sem som (autoplay) e não rouba o foco ao aparecer', () => {

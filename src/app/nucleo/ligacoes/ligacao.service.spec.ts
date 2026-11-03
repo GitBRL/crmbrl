@@ -115,6 +115,20 @@ describe('LigacaoService (softphone)', () => {
       expect(servico.toques()).toEqual([]);
     });
 
+    it('"Recusar" avisa a API, some na hora e ignora o 409 de quem chegou tarde', async () => {
+      const servico = iniciar();
+      const s = await socket();
+      s.receber('ligacao.tocando', TOCANDO);
+      const promessa = servico.recusar('lig-1');
+      expect(servico.toques()).toEqual([]);
+      http
+        .expectOne('/api/v1/ligacoes/lig-1/recusar')
+        .flush({ message: 'Já atendida.' }, { status: 409, statusText: 'Conflict' });
+      await expect(promessa).resolves.toBeUndefined();
+      s.receber('ligacao.deixou_de_tocar', { ligacaoId: 'lig-1', motivo: 'recusada_por_voce' });
+      expect(servico.toques()).toEqual([]);
+    });
+
     it('atender: abre o microfone, manda a resposta SDP com CRLF e só então liga o áudio', async () => {
       const servico = iniciar();
       const s = await socket();
@@ -181,6 +195,42 @@ describe('LigacaoService (softphone)', () => {
       expect(servico.fim()?.tom).toBe('sucesso');
       expect(servico.encerradas()).toBe(1);
       expect(servico.streamLocal()).toBeNull();
+    });
+
+    it('"Encerrar" durante o "Conectando…": vira recusa e, se a API já aceitou o atendimento, desliga em seguida', async () => {
+      const servico = iniciar();
+      const s = await socket();
+      s.receber('ligacao.tocando', TOCANDO);
+      const atendendo = servico.atender('lig-1');
+      await microtarefas();
+      http.expectOne('/api/v1/ligacoes/configuracao-webrtc').flush({ stunUrls: [] });
+      await microtarefas();
+      const aceite = http.expectOne('/api/v1/ligacoes/lig-1/atender');
+      expect(servico.emCurso()?.fase).toBe('conectando');
+      const encerrando = servico.encerrar();
+      await microtarefas();
+      // Não chama /encerrar (a API recusaria: a ligação ainda toca); recusa e libera a barra.
+      http.expectNone('/api/v1/ligacoes/lig-1/encerrar');
+      expect(servico.emCurso()).toBeNull();
+      expect(navegador.conexoes[0].fechada).toBe(true);
+      http
+        .expectOne('/api/v1/ligacoes/lig-1/recusar')
+        .flush({ message: 'Já atendida.' }, { status: 409, statusText: 'Conflict' });
+      await encerrando;
+      // A API aceitou o atendimento que já estava a caminho: a barra não volta a "Em ligação".
+      aceite.flush(
+        ligacaoDeTeste({
+          id: 'lig-1',
+          estado: 'EM_ANDAMENTO',
+          atendidaEm: new Date().toISOString(),
+        }),
+      );
+      await atendendo;
+      await microtarefas();
+      expect(servico.emCurso()).toBeNull();
+      http
+        .expectOne('/api/v1/ligacoes/lig-1/encerrar')
+        .flush(ligacaoDeTeste({ estado: 'ENCERRADA' }));
     });
 
     it('o cliente desligou: ligacao.encerrada fecha a mídia sem chamar a API', async () => {

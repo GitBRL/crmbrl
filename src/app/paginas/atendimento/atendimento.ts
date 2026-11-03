@@ -2,22 +2,32 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 
+import { ehAtalho, rotuloDoAtalho, sistemaDeAtalhos } from '../../nucleo/atalhos/atalhos';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
+import { AbasAtendimento } from './abas-atendimento';
 import { Dica } from '../../ui/dica/dica';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { EstadoAtendimento, type AlvoFoco } from './estado-atendimento';
 import { ListaConversas } from './lista-conversas';
 
-/** Atalhos da página (Alt + tecla, pelo `code`: funciona igual em qualquer layout de teclado). */
+/**
+ * Atalhos da página, pelo `code` (funcionam igual em qualquer layout de teclado). O modificador
+ * é Alt no Windows e no Linux e Control+Shift no Mac (`nucleo/atalhos`).
+ */
 const ATALHOS_FOCO: Readonly<Record<string, AlvoFoco>> = {
-  KeyL: 'lista',
-  KeyB: 'busca',
-  KeyM: 'compositor',
-  KeyC: 'contato',
+  L: 'lista',
+  B: 'busca',
+  M: 'compositor',
+  C: 'contato',
 };
 
-export const TEXTO_ATALHOS =
-  'Alt+↓ e Alt+↑: próxima e anterior conversa da lista. Alt+L: vai para a lista (lá dentro, as setas andam e Enter abre). Alt+B: busca. Alt+M: escrever a mensagem. Alt+C: dados do contato. No campo de mensagem, Enter envia, Shift+Enter quebra a linha e "/" abre as respostas rápidas.';
+/** Texto da dica de atalhos, com o atalho certo para o sistema de quem usa. */
+export function textoDosAtalhos(sistema = sistemaDeAtalhos()): string {
+  const r = (tecla: string) => rotuloDoAtalho(tecla, sistema);
+  return `${r('ArrowDown')} e ${r('ArrowUp')}: próxima e anterior conversa da lista. ${r('L')}: vai para a lista (lá dentro, as setas andam e Enter abre). ${r('B')}: busca. ${r('M')}: escrever a mensagem. ${r('C')}: dados do contato. Durante uma ligação, ${r('S')} silencia o microfone e ${r('E')} encerra. No campo de mensagem, Enter envia, Shift+Enter quebra a linha e "/" abre as respostas rápidas.`;
+}
+
+export const TEXTO_ATALHOS = textoDosAtalhos('outro');
 
 /**
  * Atendimento (`/atendimento`, contrato da Onda A §7): a caixa de entrada omnichannel. No
@@ -29,7 +39,7 @@ export const TEXTO_ATALHOS =
  */
 @Component({
   selector: 'app-atendimento',
-  imports: [Dica, EstadoVazio, ListaConversas, RouterOutlet],
+  imports: [AbasAtendimento, Dica, EstadoVazio, ListaConversas, RouterOutlet],
   providers: [EstadoAtendimento],
   templateUrl: './atendimento.html',
   styleUrl: './atendimento.scss',
@@ -47,7 +57,7 @@ export class Atendimento {
 
   /** Há uma conversa aberta na rota filha (`/atendimento/:conversaId`). */
   protected readonly aberta = signal(false);
-  protected readonly textoAtalhos = TEXTO_ATALHOS;
+  protected readonly textoAtalhos = textoDosAtalhos();
 
   /** Como as conversas chegam e quem vê o quê (R12), pela posição de quem entrou. */
   protected readonly dicaFilas = computed(() => {
@@ -99,25 +109,28 @@ export class Atendimento {
   }
 
   protected aoTeclar(evento: KeyboardEvent): void {
-    if (!evento.altKey || evento.ctrlKey || evento.metaKey || evento.defaultPrevented) {
+    if (evento.defaultPrevented) {
       return;
     }
     // Dentro de um diálogo (modal, painel) os atalhos da página não valem.
     if ((evento.target as Element | null)?.closest?.('dialog')) {
       return;
     }
-    if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
-      const vizinha = this.estado.vizinha(evento.key === 'ArrowDown' ? 1 : -1);
-      evento.preventDefault();
-      if (vizinha) {
-        void this.router.navigate(['/atendimento', vizinha.id]);
+    for (const seta of ['ArrowDown', 'ArrowUp']) {
+      if (ehAtalho(evento, seta)) {
+        const vizinha = this.estado.vizinha(seta === 'ArrowDown' ? 1 : -1);
+        evento.preventDefault();
+        if (vizinha) {
+          void this.router.navigate(['/atendimento', vizinha.id]);
+        }
+        return;
       }
+    }
+    const tecla = Object.keys(ATALHOS_FOCO).find((letra) => ehAtalho(evento, letra));
+    if (!tecla) {
       return;
     }
-    const alvo = ATALHOS_FOCO[evento.code];
-    if (!alvo || evento.shiftKey) {
-      return;
-    }
+    const alvo = ATALHOS_FOCO[tecla];
     if ((alvo === 'compositor' || alvo === 'contato') && !this.aberta()) {
       return;
     }

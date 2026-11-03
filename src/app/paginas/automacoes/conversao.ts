@@ -246,6 +246,9 @@ export function horarioParaJanela(api: unknown): JanelaEnvio | null {
 
 export type FiltrosGatilho = Readonly<Record<string, string | number | null>>;
 
+/** Filtros que aceitam uma lista de valores (guardada na tela como "A, B"). */
+const FILTROS_EM_LISTA = new Set(['direcao', 'resultado']);
+
 const FILTROS_NUMERICOS = new Set([
   'diasAlemDoPrazo',
   'horasAlemDoVencimento',
@@ -264,6 +267,13 @@ export function filtrosParaConfig(filtros: FiltrosGatilho): Record<string, unkno
         .map((p) => p.trim())
         .filter(Boolean);
       if (palavras.length) config[chave] = palavras;
+    } else if (FILTROS_EM_LISTA.has(chave)) {
+      const valores = String(valor)
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+      if (valores.length === 1) config[chave] = valores[0];
+      else if (valores.length > 1) config[chave] = valores;
     } else if (FILTROS_NUMERICOS.has(chave)) {
       config[chave] = Number(valor);
     } else {

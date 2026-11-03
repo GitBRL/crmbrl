@@ -9,16 +9,25 @@ import {
   untracked,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LucideDynamicIcon, LucideRefreshCw } from '@lucide/angular';
+import {
+  LucideDynamicIcon,
+  LucidePhoneIncoming,
+  LucidePhoneMissed,
+  LucidePhoneOutgoing,
+  LucideRefreshCw,
+} from '@lucide/angular';
 import { firstValueFrom } from 'rxjs';
 
 import { erroDaApi, type ErroApi } from '../../nucleo/api/erro-api';
 import { formatarData, formatarDataHora, formatarHora, paraData } from '../../nucleo/formatos';
+import { formatarDuracao } from '../../nucleo/ligacoes/ligacoes.textos';
 import { Botao } from '../../ui/botao/botao';
 import { Dica } from '../../ui/dica/dica';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { FiltrosPilula, type OpcaoFiltro } from '../../ui/filtros-pilula/filtros-pilula';
+import { Selo } from '../../ui/selo/selo';
+import { PainelLigacao } from '../atendimento/painel-ligacao/painel-ligacao';
 import { ContatosApi, type DonoDoHistorico } from './contatos.api';
 import {
   type AlteracaoDeCampo,
@@ -26,6 +35,7 @@ import {
   type AtividadeDaLinhaDoTempo,
   type ConteudoDaLinhaDoTempo,
   type EventoDaLinhaDoTempo,
+  type LigacaoDaLinhaDoTempo,
   type RegistroDaLinhaDoTempo,
   resumoDoEvento,
   ROTULO_TIPO_ATIVIDADE,
@@ -38,6 +48,7 @@ const OPCOES: readonly OpcaoFiltro[] = [
   { id: 'tudo', rotulo: 'Tudo' },
   { id: 'eventos', rotulo: 'Alterações' },
   { id: 'atividades', rotulo: 'Atividades' },
+  { id: 'ligacoes', rotulo: 'Ligações' },
 ];
 
 const ROTULO_ATOR: Readonly<Record<EventoDaLinhaDoTempo['tipoAtor'], string>> = {
@@ -101,7 +112,11 @@ export function agruparPorDia(
       dias.push(grupo);
     }
     grupo.itens.push({
-      chave: registro.evento ? `e${registro.evento.id}` : `a${registro.atividade?.id ?? ''}`,
+      chave: registro.ligacao
+        ? `l${registro.ligacao.id}`
+        : registro.evento
+          ? `e${registro.evento.id}`
+          : `a${registro.atividade?.id ?? ''}`,
       registro,
       hora: formatarHora(registro.ocorridoEm),
       quando: formatarDataHora(registro.ocorridoEm),
@@ -112,14 +127,47 @@ export function agruparPorDia(
   return dias;
 }
 
+const ROTULO_RESULTADO_LIGACAO: Readonly<Record<string, string>> = {
+  atendida: 'Atendida',
+  perdida: 'Perdida',
+  recusada: 'Recusada',
+  sem_resposta: 'Sem resposta',
+  falhou: 'Falhou',
+};
+
+/** "Ligação recebida · perdida" / "Ligação feita · atendida, 2:05" (a frase do item). */
+export function frasePorLigacao(ligacao: LigacaoDaLinhaDoTempo): string {
+  const quem = ligacao.direcao === 'RECEBIDA' ? 'Ligação recebida' : 'Ligação feita';
+  const resultado = ligacao.resultado
+    ? (ROTULO_RESULTADO_LIGACAO[ligacao.resultado] ?? ligacao.resultado).toLowerCase()
+    : 'em andamento';
+  const duracao =
+    ligacao.resultado === 'atendida' && ligacao.duracaoSegundos !== null
+      ? `, ${formatarDuracao(ligacao.duracaoSegundos)}`
+      : '';
+  return `${quem} · ${resultado}${duracao}`;
+}
+
 /**
  * Linha do tempo de um contato ou de uma empresa (R3.5): as alterações registradas na
  * auditoria e as atividades (também as dos negócios dele), do mais recente ao mais antigo,
- * agrupadas por dia, com "Carregar mais". Filtro: tudo, só alterações ou só atividades.
+ * agrupadas por dia, com "Carregar mais". As ligações (Onda E) entram com
+ * duração, resultado e resumo, e abrem o painel com a gravação e a transcrição ali mesmo.
+ * Filtro: tudo, só alterações, só atividades ou só ligações.
  */
 @Component({
   selector: 'app-linha-do-tempo',
-  imports: [Botao, Dica, Esqueleto, EstadoVazio, FiltrosPilula, LucideDynamicIcon, RouterLink],
+  imports: [
+    Botao,
+    Dica,
+    Esqueleto,
+    EstadoVazio,
+    FiltrosPilula,
+    LucideDynamicIcon,
+    PainelLigacao,
+    RouterLink,
+    Selo,
+  ],
   templateUrl: './linha-do-tempo.html',
   styleUrl: './linha-do-tempo.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -133,7 +181,15 @@ export class LinhaDoTempo {
   private readonly api = inject(ContatosApi);
 
   protected readonly opcoes = OPCOES;
-  protected readonly icones = { tentar: LucideRefreshCw };
+  protected readonly icones = {
+    tentar: LucideRefreshCw,
+    recebida: LucidePhoneIncoming,
+    feita: LucidePhoneOutgoing,
+    perdida: LucidePhoneMissed,
+  };
+  protected readonly frasePorLigacao = frasePorLigacao;
+  /** Ligações com o painel (player e transcrição) aberto no próprio item. */
+  protected readonly abertas = signal<ReadonlySet<string>>(new Set());
   protected readonly rotuloTipo = ROTULO_TIPO_ATIVIDADE;
   protected readonly iconeTipo = ICONE_TIPO_ATIVIDADE;
   protected readonly iconeDoEvento = iconeDoEvento;
@@ -167,7 +223,12 @@ export class LinhaDoTempo {
   }
 
   protected escolher(filtro: string | null): void {
-    if (filtro === 'tudo' || filtro === 'eventos' || filtro === 'atividades') {
+    if (
+      filtro === 'tudo' ||
+      filtro === 'eventos' ||
+      filtro === 'atividades' ||
+      filtro === 'ligacoes'
+    ) {
       this.filtro.set(filtro);
     }
   }
@@ -178,6 +239,47 @@ export class LinhaDoTempo {
       return nome || ROTULO_ATOR.USUARIO;
     }
     return nome ? `${ROTULO_ATOR[evento.tipoAtor]} · ${nome}` : ROTULO_ATOR[evento.tipoAtor];
+  }
+
+  protected iconeDaLigacao(ligacao: LigacaoDaLinhaDoTempo) {
+    if (ligacao.resultado === 'perdida') {
+      return this.icones.perdida;
+    }
+    return ligacao.direcao === 'FEITA' ? this.icones.feita : this.icones.recebida;
+  }
+
+  protected varianteDaLigacao(ligacao: LigacaoDaLinhaDoTempo) {
+    switch (ligacao.resultado) {
+      case 'atendida':
+        return 'menta';
+      case 'perdida':
+      case 'falhou':
+        return 'coral';
+      case null:
+        return 'ciano';
+      default:
+        return 'neutro';
+    }
+  }
+
+  protected rotuloDoResultado(ligacao: LigacaoDaLinhaDoTempo): string {
+    return ligacao.resultado
+      ? (ROTULO_RESULTADO_LIGACAO[ligacao.resultado] ?? 'Encerrada')
+      : 'Em andamento';
+  }
+
+  protected temPainel(ligacao: LigacaoDaLinhaDoTempo): boolean {
+    return ligacao.temGravacao || ligacao.temTranscricao;
+  }
+
+  protected alternarPainel(id: string): void {
+    this.abertas.update((atuais) => {
+      const novas = new Set(atuais);
+      if (!novas.delete(id)) {
+        novas.add(id);
+      }
+      return novas;
+    });
   }
 
   protected situacao(atividade: AtividadeDaLinhaDoTempo): string {

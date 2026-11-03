@@ -161,6 +161,7 @@ export type EventoDeWebhook =
   | 'atividade.criada'
   | 'atividade.concluida'
   | 'usuario.desligado'
+  | 'ligacao.encerrada'
   | 'webhook.teste';
 
 export type StatusEntrega = 'PENDENTE' | 'ENTREGUE' | 'FALHOU';
@@ -322,6 +323,7 @@ export const ROTULO_EVENTO: Readonly<Record<EventoDeWebhook, string>> = {
   'atividade.criada': 'Atividade criada',
   'atividade.concluida': 'Atividade concluída',
   'usuario.desligado': 'Usuário desligado',
+  'ligacao.encerrada': 'Ligação encerrada',
   'webhook.teste': 'Evento de teste',
 };
 
@@ -334,6 +336,8 @@ const DESCRICAO_COMPLEMENTAR: Readonly<Partial<Record<EventoDeWebhook, string>>>
   'atividade.criada':
     'Atividade nova (tarefa, ligação, reunião, e-mail ou nota), com responsável e prazo.',
   'atividade.concluida': 'Atividade marcada como concluída, com quem concluiu e quando.',
+  'ligacao.encerrada':
+    'Ligação do WhatsApp que terminou (atendida, perdida, recusada, sem resposta ou com falha), com duração, espera, contato e atendente. Nunca leva áudio nem transcrição.',
 };
 
 export function descricaoDoEvento(evento: string, descricaoDaApi: string): string {

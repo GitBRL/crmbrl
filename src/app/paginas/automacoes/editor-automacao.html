@@ -277,6 +277,32 @@
                       (valorChange)="definirFiltro(f, $event)"
                     />
                   }
+                  @case ('direcao') {
+                    <div class="filtro-marcas">
+                      <span class="filtro-marcas__rotulo">{{ filtroRotulo[f].rotulo }}</span>
+                      <app-filtros-pilula
+                        multipla
+                        [rotulo]="filtroRotulo[f].rotulo"
+                        [opcoes]="opcoesDirecao"
+                        [selecionados]="valoresFiltro(f)"
+                        (selecionadosChange)="definirValoresFiltro(f, $event)"
+                      />
+                      <span class="filtro-marcas__dica">{{ filtroRotulo[f].dica }}</span>
+                    </div>
+                  }
+                  @case ('resultado') {
+                    <div class="filtro-marcas">
+                      <span class="filtro-marcas__rotulo">{{ filtroRotulo[f].rotulo }}</span>
+                      <app-filtros-pilula
+                        multipla
+                        [rotulo]="filtroRotulo[f].rotulo"
+                        [opcoes]="opcoesResultado"
+                        [selecionados]="valoresFiltro(f)"
+                        (selecionadosChange)="definirValoresFiltro(f, $event)"
+                      />
+                      <span class="filtro-marcas__dica">{{ filtroRotulo[f].dica }}</span>
+                    </div>
+                  }
                   @case ('campanhaId') {
                     <app-seletor
                       [rotulo]="filtroRotulo[f].rotulo"

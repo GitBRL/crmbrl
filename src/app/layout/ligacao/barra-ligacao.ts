@@ -12,6 +12,7 @@ import {
   LucideX,
 } from '@lucide/angular';
 
+import { atalhoAria, ehAtalho, rotuloDoAtalho } from '../../nucleo/atalhos/atalhos';
 import { LigacaoService } from '../../nucleo/ligacoes/ligacao.service';
 import {
   duracaoPorExtenso,
@@ -35,7 +36,9 @@ const PADRAO = '__padrao__';
  * vira uma faixa compacta que expande. Depois que a ligação termina, o resultado fica na barra
  * por alguns segundos.
  *
- * Atalhos: **Alt+E** encerra e **Alt+M** liga e desliga o mudo. O lugar do indicador "Gravando"
+ * Atalhos: **Alt+E** encerra e **Alt+S** (silenciar) liga e desliga o mudo; no Mac são
+ * **Control+Shift+E** e **Control+Shift+S** (ver `nucleo/atalhos`). O M ficou livre para a página
+ * do Atendimento (Alt+M: escrever a mensagem). O lugar do indicador "Gravando"
  * (E3) já existe: o `LigacaoService.definirGravando()` o acende.
  */
 @Component({
@@ -75,9 +78,13 @@ const PADRAO = '__padrao__';
               type="button"
               [variante]="mudo() ? 'invertido' : 'contorno'"
               [icone]="mudo() ? icones.mudo : icones.microfone"
-              [rotulo]="mudo() ? 'Ligar o microfone (Alt+M)' : 'Silenciar o microfone (Alt+M)'"
+              [rotulo]="
+                mudo()
+                  ? 'Ligar o microfone (' + atalhoMudo + ')'
+                  : 'Silenciar o microfone (' + atalhoMudo + ')'
+              "
               [attr.aria-pressed]="mudo()"
-              aria-keyshortcuts="Alt+M"
+              [attr.aria-keyshortcuts]="ariaMudo"
               [disabled]="!podeAgir()"
               (click)="ligacoes.alternarMudo()"
             ></button>
@@ -97,7 +104,7 @@ const PADRAO = '__padrao__';
               type="button"
               variante="destaque"
               [icone]="icones.encerrar"
-              aria-keyshortcuts="Alt+E"
+              [attr.aria-keyshortcuts]="ariaEncerrar"
               [disabled]="c.fase === 'encerrando'"
               (click)="ligacoes.encerrar()"
             >
@@ -308,14 +315,18 @@ export class BarraLigacao {
     void this.ligacoes.escolherAltoFalante(!valor || valor === PADRAO ? null : valor);
   }
 
+  protected readonly atalhoMudo = rotuloDoAtalho('S');
+  protected readonly ariaMudo = atalhoAria('S');
+  protected readonly ariaEncerrar = atalhoAria('E');
+
   protected aoTeclar(evento: KeyboardEvent): void {
-    if (!evento.altKey || evento.ctrlKey || evento.metaKey || evento.shiftKey || !this.curso()) {
+    if (!this.curso()) {
       return;
     }
-    if (evento.code === 'KeyE') {
+    if (ehAtalho(evento, 'E')) {
       evento.preventDefault();
       void this.ligacoes.encerrar();
-    } else if (evento.code === 'KeyM') {
+    } else if (ehAtalho(evento, 'S')) {
       evento.preventDefault();
       this.ligacoes.alternarMudo();
     }

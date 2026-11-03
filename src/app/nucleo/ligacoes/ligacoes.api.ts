@@ -13,7 +13,7 @@ import type {
   FiltrosLigacoes,
   Ligacao,
   LigacoesAtivas,
-  PaginaLigacoes,
+  HistoricoDeLigacoes,
   PermissaoDeLigacao,
 } from './ligacoes.tipos';
 
@@ -58,9 +58,11 @@ export class LigacoesApi {
     );
   }
 
-  listar(filtros: FiltrosLigacoes = {}): Promise<PaginaLigacoes> {
+  listar(filtros: FiltrosLigacoes = {}): Promise<HistoricoDeLigacoes> {
     return firstValueFrom(
-      this.http.get<PaginaLigacoes>(urlApi('ligacoes'), { params: parametros({ ...filtros }) }),
+      this.http.get<HistoricoDeLigacoes>(urlApi('ligacoes'), {
+        params: parametros({ ...filtros }),
+      }),
     );
   }
 
@@ -74,6 +76,11 @@ export class LigacoesApi {
 
   atender(id: string, sdp: string): Promise<Ligacao> {
     return firstValueFrom(this.http.post<Ligacao>(urlApi('ligacoes', id, 'atender'), { sdp }));
+  }
+
+  /** Recusa a ligação que toca para o usuário (idempotente; 403 se não tocou, 409 se já terminou). */
+  recusar(id: string): Promise<Ligacao> {
+    return firstValueFrom(this.http.post<Ligacao>(urlApi('ligacoes', id, 'recusar'), {}));
   }
 
   encerrar(id: string): Promise<Ligacao> {

@@ -77,9 +77,29 @@ export interface ConfiguracaoWebrtc {
   readonly stunUrls: readonly string[];
 }
 
+/** Trecho da transcrição que casou com a busca do histórico (até 3 por ligação). */
+export interface TrechoEncontrado {
+  readonly falante: 'atendente' | 'cliente' | 'participante';
+  /** Segundos desde o início da gravação. */
+  readonly inicio: number;
+  readonly texto: string;
+}
+
+/** Item de `GET /ligacoes`: a ligação mais os trechos que casaram com a busca. */
+export interface LigacaoDoHistorico extends Ligacao {
+  readonly trechosEncontrados: readonly TrechoEncontrado[];
+}
+
 export interface PaginaLigacoes {
   readonly itens: readonly Ligacao[];
   readonly proximoCursor: string | null;
+}
+
+/** `GET /ligacoes` (histórico): a página, o próximo cursor e o total que casa com os filtros. */
+export interface HistoricoDeLigacoes {
+  readonly itens: readonly LigacaoDoHistorico[];
+  readonly proximoCursor: string | null;
+  readonly total: number;
 }
 
 export type SituacaoPermissao =
@@ -132,6 +152,17 @@ export interface FiltrosLigacoes {
   readonly contatoId?: string;
   readonly conversaId?: string;
   readonly direcao?: DirecaoLigacao;
+  /** Hora em que a ligação começou (ISO). */
+  readonly de?: string;
+  readonly ate?: string;
+  /** Estados separados por vírgula (`ENCERRADA,PERDIDA`). */
+  readonly situacao?: string;
+  /** Uuid do atendente, ou `sem` (as perdidas, sem atendente). */
+  readonly atendenteId?: string;
+  readonly filaId?: string;
+  readonly canalId?: string;
+  /** Busca no texto das transcrições (até 200 caracteres). */
+  readonly busca?: string;
   readonly limite?: number;
   readonly cursor?: string;
 }
@@ -157,6 +188,8 @@ export interface ConfiguracaoLigacoes {
   /** Dias de guarda da gravação e da transcrição, e o arquivo do áudio de aviso (E3). */
   readonly retencaoDias: number;
   readonly avisoArquivoId: string | null;
+  /** Inclui o resumo do Claude no webhook `ligacao.encerrada` (o evento espera o resumo, até 20 min). */
+  readonly webhookIncluiResumo: boolean;
   readonly sincronizadaEm: string | null;
   readonly ultimoErroMeta: string | null;
   readonly campoDoWebhook: 'calls';
@@ -171,6 +204,7 @@ export type DadosConfiguracaoLigacoes = Partial<
     | 'gravar'
     | 'retencaoDias'
     | 'avisoArquivoId'
+    | 'webhookIncluiResumo'
     | 'tempoDeToqueSegundos'
     | 'mensagemPerdidaAtiva'
     | 'mensagemPerdida'
@@ -189,7 +223,13 @@ export interface EventoLigacaoTocando {
 }
 
 export type MotivoDeixouDeTocar =
-  'atendida_por_outro' | 'tempo_esgotado' | 'cliente_desligou' | 'falha' | 'encerrada';
+  | 'atendida_por_outro'
+  | 'tempo_esgotado'
+  | 'cliente_desligou'
+  | 'falha'
+  | 'encerrada'
+  | 'recusada_por_voce'
+  | 'recusada_por_todos';
 
 export interface EventoLigacaoDeixouDeTocar {
   readonly ligacaoId: string;

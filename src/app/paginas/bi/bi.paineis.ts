@@ -237,6 +237,50 @@ export const PAINEIS_BI: Readonly<Record<IdPainel, EspecificacaoPainel>> = {
         inteiro: true,
         clique: { tipo: 'pessoa', coluna: 'id' },
       },
+      // Ligações (Onda E, E4): recebidas e feitas por hora, atendidas e perdidas por hora e por
+      // atendente. As perdidas ficam em "Sem atendente" (id nulo: sem clique).
+      {
+        id: 'ligacoesPorHora',
+        tabela: 'ligacoesPorHora',
+        titulo: 'Ligações recebidas e feitas por hora',
+        grafico: {
+          categoria: 'hora',
+          tipoValor: 'numero',
+          series: [
+            { chave: 'recebidas', nome: 'Recebidas', cor: 0 },
+            { chave: 'feitas', nome: 'Feitas', cor: 2 },
+          ],
+        },
+      },
+      {
+        id: 'ligacoesResultadoPorHora',
+        tabela: 'ligacoesPorHora',
+        titulo: 'Ligações atendidas e perdidas por hora',
+        grafico: {
+          categoria: 'hora',
+          tipoValor: 'numero',
+          series: [
+            { chave: 'atendidas', nome: 'Atendidas', cor: 1, pilha: 'resultado' },
+            { chave: 'perdidas', nome: 'Perdidas', cor: 3, pilha: 'resultado' },
+          ],
+        },
+      },
+      {
+        id: 'ligacoesPorAtendente',
+        tabela: 'ligacoesPorAtendente',
+        inteiro: true,
+        clique: { tipo: 'pessoa', coluna: 'id' },
+        grafico: {
+          categoria: 'nome',
+          tipoValor: 'numero',
+          orientacao: 'barras',
+          chaveId: 'id',
+          series: [
+            { chave: 'atendidas', nome: 'Atendidas', cor: 1, pilha: 'resultado' },
+            { chave: 'perdidas', nome: 'Perdidas', cor: 3, pilha: 'resultado' },
+          ],
+        },
+      },
     ],
   },
   financeiro: {

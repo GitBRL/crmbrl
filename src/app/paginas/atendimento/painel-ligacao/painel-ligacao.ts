@@ -75,6 +75,8 @@ const VARIANTE_SENTIMENTO: Record<string, VarianteSelo> = {
 })
 export class PainelLigacao {
   readonly ligacaoId = input.required<string>();
+  /** Busca já digitada no texto da transcrição (vem da busca do histórico). */
+  readonly buscaInicial = input('');
 
   private readonly api = inject(LigacoesApi);
   private readonly gravacaoApi = inject(GravacaoApi);
@@ -150,7 +152,7 @@ export class PainelLigacao {
     effect(() => {
       this.ligacaoId();
       untracked(() => {
-        this.busca.set('');
+        this.busca.set(this.buscaInicial());
         this.segundos.set(0);
         this.leitura.set([]);
         this.erroDaTranscricao.set(null);

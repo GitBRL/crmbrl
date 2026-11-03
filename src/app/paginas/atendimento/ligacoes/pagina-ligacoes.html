@@ -1,0 +1,298 @@
+<header class="cabecalho">
+  <div class="cabecalho__texto">
+    <h1 class="cabecalho__titulo">
+      Atendimento<span class="tom-fraco sem-quebra">&nbsp;· Ligações</span>
+    </h1>
+    <p class="cabecalho__frase">
+      Todas as ligações recebidas e feitas pelo WhatsApp: filtre, ouça a gravação e procure uma
+      palavra dita na conversa.
+    </p>
+  </div>
+  <div class="cabecalho__dicas">
+    <app-dica
+      rotulo="Como buscar no que foi dito nas ligações"
+      titulo="Buscar nas transcrições"
+      texto='A busca procura nas transcrições das ligações gravadas e não diferencia maiúsculas, acentos nem plural. Use aspas para uma frase exata ("segunda via"), um traço para excluir uma palavra (boleto -cancelar) e "or" entre palavras para achar qualquer uma delas.'
+    />
+  </div>
+</header>
+<app-abas-atendimento class="abas-pagina" ativa="ligacoes" />
+
+@if (semAcesso()) {
+  <div class="sem-acesso">
+    <app-estado-vazio
+      variante="sem-acesso"
+      titulo="As ligações não fazem parte do seu papel"
+      texto="As ligações com clientes ficam com o Comercial e o Customer Success. Se você precisa acompanhar alguma, peça para a liderança dessas áreas."
+    />
+  </div>
+} @else {
+  <div class="caixa">
+    <section class="lista" aria-label="Histórico de ligações">
+      <div class="lista__topo">
+        <div class="lista__busca">
+          <app-campo-busca
+            rotulo="Buscar no texto das ligações"
+            placeholder="Palavra dita na ligação"
+            [valor]="termo()"
+            (valorChange)="digitar($event)"
+            (buscar)="aplicarBusca($event)"
+          />
+          <button
+            appBotaoIcone
+            type="button"
+            variante="contorno"
+            [icone]="icones.filtros"
+            [rotulo]="
+              ligados()
+                ? 'Filtros (' + ligados() + (ligados() === 1 ? ' ligado)' : ' ligados)')
+                : 'Filtros'
+            "
+            [contagem]="ligados() || null"
+            [attr.aria-expanded]="filtrosAbertos()"
+            [attr.aria-controls]="idFiltros"
+            (click)="filtrosAbertos.set(!filtrosAbertos())"
+          ></button>
+        </div>
+
+        <div class="lista__filtros" [id]="idFiltros" [hidden]="!filtrosAbertos()">
+          <div class="lista__filtro">
+            <span class="lista__filtro-rotulo" aria-hidden="true">Período</span>
+            <app-filtros-pilula
+              rotulo="Período"
+              [opcoes]="opcoesPeriodo"
+              [selecionado]="filtros().periodo"
+              (selecionadoChange)="escolherPeriodo($event)"
+            />
+            @if (filtros().periodo === 'outro') {
+              <div class="lista__datas">
+                <app-campo-data
+                  rotulo="De"
+                  [valor]="filtros().de"
+                  [maximo]="filtros().ate"
+                  (valorChange)="escolherDe($event)"
+                />
+                <app-campo-data
+                  rotulo="Até"
+                  [valor]="filtros().ate"
+                  [minimo]="filtros().de"
+                  (valorChange)="escolherAte($event)"
+                />
+              </div>
+            }
+          </div>
+          <div class="lista__filtro">
+            <span class="lista__filtro-rotulo" aria-hidden="true">Direção</span>
+            <app-filtros-pilula
+              rotulo="Direção"
+              [opcoes]="opcoesDirecao"
+              [selecionado]="filtros().direcao ?? 'TODAS'"
+              (selecionadoChange)="escolherDirecao($event)"
+            />
+          </div>
+          <div class="lista__filtro">
+            <span class="lista__filtro-rotulo" aria-hidden="true">Situação</span>
+            <app-filtros-pilula
+              rotulo="Situação"
+              multipla
+              [opcoes]="opcoesSituacao"
+              [selecionados]="filtros().situacoes"
+              (selecionadosChange)="escolherSituacoes($event)"
+            />
+          </div>
+          <div class="lista__seletores">
+            <app-seletor
+              rotulo="Atendente"
+              placeholder="Todos os atendentes"
+              permitirVazio
+              [opcoes]="opcoesAtendente()"
+              [valor]="filtros().atendenteId"
+              (valorChange)="escolherAtendente($event)"
+            />
+            <app-seletor
+              rotulo="Fila"
+              placeholder="Todas as filas"
+              permitirVazio
+              [opcoes]="opcoesFila()"
+              [valor]="filtros().filaId"
+              (valorChange)="escolherFila($event)"
+            />
+            <app-seletor
+              rotulo="Conta do canal"
+              placeholder="Todas as contas"
+              permitirVazio
+              [opcoes]="opcoesCanal()"
+              [valor]="filtros().canalId"
+              (valorChange)="escolherCanal($event)"
+            />
+          </div>
+          @if (ligados()) {
+            <button appBotao type="button" tamanho="sm" variante="contorno" (click)="limparTudo()">
+              Limpar filtros
+            </button>
+          }
+        </div>
+        <p class="lista__total" role="status" aria-live="polite">
+          @if (situacao() === 'pronta') {
+            {{ resumoTotal() }}
+            @if (buscando()) {
+              <span class="tom-fraco">com “{{ filtros().busca }}” no texto</span>
+            }
+          } @else if (situacao() === 'carregando') {
+            Carregando as ligações…
+          }
+        </p>
+      </div>
+
+      <div class="lista__rolagem" [attr.aria-busy]="situacao() === 'carregando' || null">
+        @switch (situacao()) {
+          @case ('carregando') {
+            <ul class="lista__itens" aria-hidden="true">
+              @for (n of [1, 2, 3, 4, 5]; track n) {
+                <li class="item item--esqueleto">
+                  <app-esqueleto forma="circulo" largura="40px" altura="40px" />
+                  <span class="item__corpo">
+                    <app-esqueleto forma="texto" [largura]="n % 2 ? '55%' : '40%'" />
+                    <app-esqueleto forma="texto" [largura]="n % 3 ? '85%' : '70%'" />
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+          @case ('erro') {
+            <app-estado-vazio
+              compacto
+              variante="erro"
+              titulo="Não deu para carregar as ligações"
+              [falha]="falha()"
+              [texto]="falha()?.mensagem ?? null"
+            >
+              <button appBotao type="button" variante="contorno" (click)="carregar()">
+                Tentar de novo
+              </button>
+            </app-estado-vazio>
+          }
+          @default {
+            @if (linhas().length) {
+              <ul class="lista__itens">
+                @for (linha of linhas(); track linha.ligacao.id) {
+                  @let ligacao = linha.ligacao;
+                  @let selecionada = ligacao.id === selecionadaId();
+                  <li>
+                    <a
+                      class="item"
+                      [class.item--selecionada]="selecionada"
+                      [routerLink]="['/atendimento/ligacoes', ligacao.id]"
+                      [queryParams]="buscando() ? { busca: filtros().busca } : null"
+                      [attr.aria-current]="selecionada ? 'page' : null"
+                      [attr.aria-label]="linha.rotulo"
+                    >
+                      <span class="item__icone" [attr.data-resultado]="linha.resultado">
+                        <svg [lucideIcon]="linha.icone" [size]="18" aria-hidden="true" />
+                      </span>
+                      <span class="item__corpo">
+                        <span class="item__linha">
+                          <span class="item__nome">{{ ligacao.contato.nome }}</span>
+                          <span class="item__hora numeros">{{ linha.quando }}</span>
+                        </span>
+                        <span class="item__meta">
+                          <app-selo tamanho="sm" [variante]="varianteResultado[linha.resultado]">{{
+                            rotuloResultado[linha.resultado]
+                          }}</app-selo>
+                          <span class="item__detalhe"
+                            >{{ rotuloDirecao[ligacao.direcao] }}
+                            @if (linha.duracao) {
+                              · <span class="numeros">{{ linha.duracao }}</span>
+                            }
+                            · {{ ligacao.atendente?.nome ?? 'Sem atendente' }}</span
+                          >
+                        </span>
+                        <span class="item__canal-nome">{{ ligacao.canal.nome }}</span>
+                        @if (linha.assunto) {
+                          <span class="item__assunto">{{ linha.assunto }}</span>
+                        }
+                        @if (linha.trechos.length) {
+                          <span class="item__trechos">
+                            @for (trecho of linha.trechos; track $index) {
+                              <span class="trecho">
+                                <span class="trecho__quem numeros"
+                                  >{{ trecho.falante }} · {{ trecho.marca }}</span
+                                >
+                                <span class="trecho__texto">
+                                  @for (pedaco of trecho.pedacos; track $index) {
+                                    @if (pedaco.achado) {
+                                      <mark>{{ pedaco.texto }}</mark>
+                                    } @else {
+                                      <span>{{ pedaco.texto }}</span>
+                                    }
+                                  }
+                                </span>
+                              </span>
+                            }
+                          </span>
+                        }
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ul>
+              @if (cursor()) {
+                <div class="lista__mais">
+                  @if (erroMais()) {
+                    <p class="lista__erro" role="alert">Não deu para carregar mais ligações.</p>
+                  }
+                  <button
+                    appBotao
+                    type="button"
+                    variante="contorno"
+                    [disabled]="carregandoMais()"
+                    (click)="carregarMais()"
+                  >
+                    {{ carregandoMais() ? 'Carregando…' : 'Mostrar mais ligações' }}
+                  </button>
+                </div>
+              }
+            } @else if (buscando()) {
+              <app-estado-vazio
+                compacto
+                titulo="Nenhuma ligação com essas palavras"
+                texto="A busca olha o texto das ligações gravadas e transcritas. Confira a grafia, tente outra palavra ou amplie o período."
+              >
+                <button appBotao type="button" variante="contorno" (click)="limparTudo()">
+                  Limpar a busca e os filtros
+                </button>
+              </app-estado-vazio>
+            } @else if (ligados()) {
+              <app-estado-vazio
+                compacto
+                titulo="Nenhuma ligação com esses filtros"
+                texto="Tente outro período ou tire algum filtro."
+              >
+                <button appBotao type="button" variante="contorno" (click)="limparTudo()">
+                  Limpar filtros
+                </button>
+              </app-estado-vazio>
+            } @else {
+              <app-estado-vazio
+                compacto
+                titulo="Ainda não há ligações"
+                texto="As ligações recebidas pelo WhatsApp oficial e as que você fizer pelo CRM aparecem aqui, com a gravação e a transcrição."
+              />
+            }
+          }
+        }
+      </div>
+    </section>
+
+    <section class="detalhe" aria-label="Ligação aberta">
+      <router-outlet (activate)="aoAtivar()" (deactivate)="aoDesativar()" />
+      @if (!aberta()) {
+        <app-estado-vazio
+          class="detalhe__vazio"
+          titulo="Escolha uma ligação"
+          texto="Abra uma ligação da lista para ouvir a gravação, ler a transcrição e ver o resumo."
+        />
+      }
+    </section>
+  </div>
+}

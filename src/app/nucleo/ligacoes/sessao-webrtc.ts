@@ -286,13 +286,26 @@ export class SessaoWebrtc {
       },
       video: false,
     });
+    const pararNovo = (): void => novo.getTracks().forEach((item) => item.stop());
     const faixa = novo.getAudioTracks()[0];
-    if (!faixa) {
+    if (!faixa || this.fechada || !this.pc) {
+      // A ligação terminou enquanto o navegador abria o microfone novo: solta-o (senão o
+      // indicador de gravação do navegador fica aceso).
+      pararNovo();
       return;
     }
     faixa.enabled = ativo;
     const emissor = this.pc.getSenders().find((item) => item.track?.kind === 'audio');
-    await emissor?.replaceTrack(faixa);
+    try {
+      await emissor?.replaceTrack(faixa);
+    } catch (falha) {
+      pararNovo();
+      throw falha;
+    }
+    if (this.fechada) {
+      pararNovo();
+      return;
+    }
     this.local?.getAudioTracks().forEach((antiga) => {
       antiga.stop();
       this.local?.removeTrack(antiga);

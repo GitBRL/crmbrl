@@ -521,6 +521,8 @@ export class LigacaoService {
       }
       const ligacao = await this.api.atender(ligacaoId, sdp);
       if (geracao !== this.geracao) {
+        // Encerrou durante o "Conectando…" e a API aceitou o atendimento mesmo assim: desliga.
+        void this.api.encerrar(ligacaoId).catch(() => undefined);
         return;
       }
       this.aoAceitar(ligacao);
@@ -533,9 +535,21 @@ export class LigacaoService {
   }
 
   /**
-   * "Recusar": a API não tem recusa por atendente (a ligação segue tocando para os outros e acaba
-   * no tempo de toque). Aqui só some o aviso e o som, nesta aba.
+   * "Recusar": avisa a API (`POST /ligacoes/:id/recusar`, idempotente). O aviso some na hora; os
+   * outros atendentes seguem sendo chamados e, se todos recusarem, a ligação vira perdida. Se a
+   * API disser que a ligação já foi atendida ou terminou (409) ou que ela não tocou para você
+   * (403), o aviso já saiu da tela mesmo assim. Nunca lança.
    */
+  async recusar(ligacaoId: string): Promise<void> {
+    this.dispensar(ligacaoId);
+    try {
+      await this.api.recusar(ligacaoId);
+    } catch {
+      // O tempo real (ligacao.deixou_de_tocar) e o recarregamento corrigem qualquer diferença.
+    }
+  }
+
+  /** Só some o aviso e o som, nesta aba (usado ao começar outra ligação). */
   dispensar(ligacaoId: string): void {
     this.dispensadas.add(ligacaoId);
     this.removerToque(ligacaoId);
@@ -656,6 +670,15 @@ export class LigacaoService {
       return;
     }
     const ligacaoId = curso.id;
+    if (curso.direcao === 'RECEBIDA' && curso.fase === 'conectando') {
+      // Desistiu durante o "Conectando…": a ligação ainda toca na API (que só aceita encerrar
+      // depois de atendida). Vale como recusar; se o `atender` em curso já foi aceito, ele mesmo
+      // pede o encerramento ao ver que a geração mudou.
+      this.geracao++;
+      this.abandonar();
+      await this.recusar(ligacaoId);
+      return;
+    }
     await this.gravarAnotacaoAgora();
     this.fecharMidia();
     this.definirCurso({ ...curso, fase: 'encerrando' });
@@ -776,6 +799,9 @@ export class LigacaoService {
     const tocava = this._toques().some((item) => item.ligacaoId === dados.ligacaoId);
     this.removerToque(dados.ligacaoId);
     this.dispensadas.delete(dados.ligacaoId);
+    if (dados.motivo === 'recusada_por_voce') {
+      return;
+    }
     const curso = this._emCurso();
     if (curso?.id === dados.ligacaoId && curso.fase === 'conectando') {
       // Outra pessoa atendeu primeiro (ou o cliente desligou) enquanto eu montava a resposta.

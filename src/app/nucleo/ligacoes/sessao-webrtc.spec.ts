@@ -163,6 +163,41 @@ describe('SessaoWebrtc — ciclo da ligação', () => {
     sessao.fechar(); // idempotente
   });
 
+  it('trocarMicrofone: se a ligação fecha enquanto o microfone novo abre, a faixa nova é solta', async () => {
+    const faixas: { kind: string; enabled: boolean; stop: ReturnType<typeof vi.fn> }[] = [];
+    let liberar: () => void = () => undefined;
+    let pedidos = 0;
+    const fabrica = {
+      criarConexao: (config: RTCConfiguration) =>
+        new ConexaoFalsa(config) as unknown as RTCPeerConnection,
+      midia: () =>
+        ({
+          getUserMedia: async () => {
+            pedidos++;
+            const faixa = { kind: 'audio', enabled: true, stop: vi.fn() };
+            faixas.push(faixa);
+            if (pedidos > 1) {
+              // O segundo pedido (o microfone novo) demora, como o pedido de permissão.
+              await new Promise<void>((resolver) => (liberar = resolver));
+            }
+            return {
+              getTracks: () => [faixa],
+              getAudioTracks: () => [faixa],
+            } as unknown as MediaStream;
+          },
+        }) as unknown as MediaDevices,
+    };
+    const sessao = new SessaoWebrtc({ fabrica });
+    await sessao.abrirMicrofone();
+    await sessao.oferecer();
+    const troca = sessao.trocarMicrofone('outro', true);
+    await Promise.resolve();
+    sessao.fechar(); // o cliente desligou
+    liberar();
+    await expect(troca).resolves.toBeUndefined();
+    expect(faixas[1].stop).toHaveBeenCalledTimes(1);
+  });
+
   it('microfone negado vira ErroDeMidia', async () => {
     const fabrica = {
       criarConexao: () => ({}) as RTCPeerConnection,

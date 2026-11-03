@@ -152,6 +152,21 @@
           </div>
         </app-cartao>
 
+        <app-cartao regiao titulo="Webhook de ligação encerrada" [nivel]="3">
+          <div class="formulario">
+            <p class="formulario__frase">
+              Quem assina o evento <strong>ligacao.encerrada</strong> em Integrações recebe os dados
+              de cada ligação deste número quando ela termina: quem ligou, quanto durou, como
+              terminou e quem atendeu. O áudio e a transcrição nunca são enviados.
+            </p>
+            <app-caixa-selecao
+              rotulo="Incluir o resumo da ligação no webhook"
+              dica="Liga o envio do assunto, dos pontos principais, dos combinados, dos próximos passos e do sentimento. Com isto ligado, o webhook só sai depois que o resumo ficar pronto (até 20 minutos depois do fim da ligação); desligado, sai assim que a ligação termina."
+              formControlName="webhookIncluiResumo"
+            />
+          </div>
+        </app-cartao>
+
         <app-cartao regiao titulo="Áudio de aviso ao cliente" [nivel]="3">
           <div class="formulario aviso-audio">
             <p class="formulario__frase">

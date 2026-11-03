@@ -229,6 +229,50 @@
       }
     </section>
 
+    <!-- Ligações -->
+    <section class="secao" aria-labelledby="painel-contato-ligacoes">
+      <h4 id="painel-contato-ligacoes" class="secao__titulo">Ligações</h4>
+      @switch (ligacoes().situacao) {
+        @case ('carregando') {
+          <app-esqueleto forma="texto" [linhas]="2" />
+        }
+        @case ('erro') {
+          <p class="secao__vazio">Não deu para carregar as ligações.</p>
+        }
+        @default {
+          @if (ligacoes(); as carga) {
+            @if (carga.situacao === 'pronta' && carga.dados.length) {
+              <ul class="itens itens--compactos">
+                @for (ligacao of carga.dados; track ligacao.id) {
+                  @let resultado = resultadoDoEstado(ligacao.estado);
+                  <li class="linha-atividade">
+                    <a
+                      class="linha-atividade__titulo"
+                      [routerLink]="['/atendimento/ligacoes', ligacao.id]"
+                      >{{ rotuloDirecao[ligacao.direcao] }} {{ quandoLigou(ligacao) }}</a
+                    >
+                    <span class="linha-atividade__detalhe">
+                      <app-selo tamanho="sm" [variante]="varianteResultado[resultado]">{{
+                        rotuloResultado[resultado]
+                      }}</app-selo>
+                      @if (ligacao.estado === 'ENCERRADA') {
+                        {{ duracaoDaLigacao(ligacao) }}
+                      }
+                      @if (ligacao.atendente) {
+                        · {{ ligacao.atendente.nome }}
+                      }
+                    </span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="secao__vazio">Nenhuma ligação com esta pessoa.</p>
+            }
+          }
+        }
+      }
+    </section>
+
     <!-- Conversas anteriores -->
     <section class="secao" aria-labelledby="painel-contato-conversas">
       <h4 id="painel-contato-conversas" class="secao__titulo">Outras conversas</h4>

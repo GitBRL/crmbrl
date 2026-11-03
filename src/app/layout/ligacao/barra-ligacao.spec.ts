@@ -36,7 +36,7 @@ describe('BarraLigacao (ligação fixa na tela)', () => {
       '1 minuto e 5 segundos',
     );
     expect(raiz.textContent).toContain('Em ligação');
-    const mudo = raiz.querySelector<HTMLButtonElement>('button[aria-keyshortcuts="Alt+M"]')!;
+    const mudo = raiz.querySelector<HTMLButtonElement>('button[aria-keyshortcuts="Alt+S"]')!;
     expect(mudo.getAttribute('aria-pressed')).toBe('false');
     mudo.click();
     expect(falso.alternarMudo).toHaveBeenCalled();
@@ -94,21 +94,21 @@ describe('BarraLigacao (ligação fixa na tela)', () => {
     falso.emCurso.set(cursoDeTeste({ semAudioNestaAba: true }));
     fixture.detectChanges();
     expect(
-      raiz.querySelector<HTMLButtonElement>('button[aria-keyshortcuts="Alt+M"]')!.disabled,
+      raiz.querySelector<HTMLButtonElement>('button[aria-keyshortcuts="Alt+S"]')!.disabled,
     ).toBe(true);
     raiz.querySelector<HTMLButtonElement>('button[aria-label^="Ajustes"]')!.click();
     fixture.detectChanges();
     expect(raiz.textContent).toContain('outra aba');
   });
 
-  it('atalhos Alt+E e Alt+M só valem durante uma ligação', () => {
+  it('atalhos Alt+E e Alt+S só valem durante uma ligação', () => {
     const { fixture } = criar();
     document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', altKey: true }));
     expect(falso.encerrar).not.toHaveBeenCalled();
     falso.emCurso.set(cursoDeTeste());
     fixture.detectChanges();
     document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', altKey: true }));
-    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM', altKey: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS', altKey: true }));
     expect(falso.encerrar).toHaveBeenCalledTimes(1);
     expect(falso.alternarMudo).toHaveBeenCalledTimes(1);
   });

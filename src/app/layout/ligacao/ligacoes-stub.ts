@@ -38,6 +38,7 @@ export function ligacaoServiceFalso() {
     ocupado: computed(() => emCurso() !== null),
     atender: vi.fn(),
     dispensar: vi.fn(),
+    recusar: vi.fn(() => Promise.resolve()),
     encerrar: vi.fn(() => Promise.resolve()),
     alternarMudo: vi.fn(() => mudo.update((m) => !m)),
     anotar: vi.fn(),

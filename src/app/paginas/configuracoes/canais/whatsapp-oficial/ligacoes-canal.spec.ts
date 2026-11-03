@@ -23,6 +23,7 @@ function configuracao(extra: Partial<ConfiguracaoLigacoes> = {}): ConfiguracaoLi
     gravar: true,
     retencaoDias: 365,
     avisoArquivoId: null,
+    webhookIncluiResumo: false,
     tempoDeToqueSegundos: 25,
     mensagemPerdidaAtiva: false,
     mensagemPerdida: null,
@@ -169,7 +170,11 @@ describe('LigacoesCanal (aba "Ligações" do WhatsApp oficial)', () => {
     botao('Salvar').click();
     await microtarefas();
     const pedido = http.expectOne(URL);
-    expect(pedido.request.body).toMatchObject({ retencaoDias: 90, gravar: true });
+    expect(pedido.request.body).toMatchObject({
+      retencaoDias: 90,
+      gravar: true,
+      webhookIncluiResumo: false,
+    });
     pedido.flush(configuracao({ ativa: true, retencaoDias: 90 }));
     await microtarefas();
   });

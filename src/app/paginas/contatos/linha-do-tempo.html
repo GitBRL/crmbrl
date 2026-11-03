@@ -54,7 +54,75 @@
         <ol class="linha__itens">
           @for (item of dia.itens; track item.chave) {
             <li class="item">
-              @if (item.registro.evento; as evento) {
+              @if (item.registro.ligacao; as ligacao) {
+                <span
+                  class="item__icone"
+                  aria-hidden="true"
+                  [class.item__icone--feita]="ligacao.resultado === 'atendida'"
+                  [class.item__icone--atrasada]="ligacao.resultado === 'perdida'"
+                >
+                  <svg [lucideIcon]="iconeDaLigacao(ligacao)" [size]="16" />
+                </span>
+                <div class="item__corpo">
+                  <p class="item__texto">
+                    <span class="item__tipo">{{ frasePorLigacao(ligacao) }}</span>
+                    <app-selo tamanho="sm" [variante]="varianteDaLigacao(ligacao)">{{
+                      rotuloDoResultado(ligacao)
+                    }}</app-selo>
+                  </p>
+                  @if (ligacao.resumoAssunto) {
+                    <p class="item__nota">
+                      <strong>{{ ligacao.resumoAssunto }}</strong>
+                      @if (ligacao.resumoTrecho) {
+                        <br />{{ ligacao.resumoTrecho }}
+                      }
+                    </p>
+                  } @else if (ligacao.motivoTexto && ligacao.resultado !== 'atendida') {
+                    <p class="item__nota">{{ ligacao.motivoTexto }}</p>
+                  }
+                  <p class="item__meta">
+                    {{ ligacao.atendente?.nome ?? 'Sem atendente' }}
+                    @if (ligacao.canalNome) {
+                      · {{ ligacao.canalNome }}
+                    }
+                    ·
+                    <time [attr.datetime]="item.registro.ocorridoEm" [attr.title]="item.quando">{{
+                      item.hora
+                    }}</time>
+                  </p>
+                  <div class="item__acoes">
+                    @if (temPainel(ligacao)) {
+                      <button
+                        appBotao
+                        type="button"
+                        variante="contorno"
+                        tamanho="sm"
+                        [attr.aria-expanded]="abertas().has(ligacao.id)"
+                        [attr.aria-controls]="'painel-' + ligacao.id"
+                        (click)="alternarPainel(ligacao.id)"
+                      >
+                        {{
+                          abertas().has(ligacao.id)
+                            ? 'Fechar a gravação'
+                            : 'Ouvir e ler a transcrição'
+                        }}
+                      </button>
+                    }
+                    <a
+                      appBotao
+                      variante="neutro"
+                      tamanho="sm"
+                      [routerLink]="['/atendimento/ligacoes', ligacao.id]"
+                      >Abrir a ligação</a
+                    >
+                  </div>
+                  @if (abertas().has(ligacao.id)) {
+                    <div class="item__painel" [id]="'painel-' + ligacao.id">
+                      <app-painel-ligacao [ligacaoId]="ligacao.id" />
+                    </div>
+                  }
+                </div>
+              } @else if (item.registro.evento; as evento) {
                 <span class="item__icone" aria-hidden="true">
                   <svg [lucideIcon]="iconeDoEvento(evento.acao)" [size]="16" />
                 </span>

@@ -18,6 +18,7 @@ import {
 } from '@lucide/angular';
 import { filter } from 'rxjs';
 
+import { atalhoAria, atalhoFalado, ehAtalho, rotuloDoAtalho } from '../../nucleo/atalhos/atalhos';
 import { LigacaoService, type Toque } from '../../nucleo/ligacoes/ligacao.service';
 import { formatarTelefone } from '../../nucleo/ligacoes/ligacoes.textos';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
@@ -34,8 +35,9 @@ const PASSO_DA_BARRA_MS = 250;
  * **Alt+A** (atender) e **Alt+R** (recusar) funcionam de qualquer lugar. Quando a ligação chega
  * pelo clique na notificação push (`?ligacao=<id>`), o botão Atender recebe o foco.
  *
- * "Recusar" só silencia o toque nesta aba: a API não tem recusa por atendente, a ligação segue
- * tocando para os outros e acaba no tempo de toque.
+ * "Recusar" usa a rota de recusa da API (`POST /ligacoes/:id/recusar`): o toque some para quem
+ * recusou, os outros seguem sendo chamados e, se todos recusarem, a ligação vira perdida.
+ * Os atalhos mudam por sistema (Alt no Windows e no Linux, Control+Shift no Mac).
  */
 @Component({
   selector: 'app-aviso-toque',
@@ -91,32 +93,32 @@ const PASSO_DA_BARRA_MS = 250;
                 variante="marca"
                 [icone]="icones.telefone"
                 [id]="'toque-atender-' + toque.ligacaoId"
-                [attr.aria-keyshortcuts]="primeiro ? 'Alt+A' : null"
+                [attr.aria-keyshortcuts]="primeiro ? ariaAtender : null"
                 (click)="atender(toque)"
               >
                 Atender
                 @if (primeiro) {
-                  <kbd class="toque__tecla" aria-hidden="true">Alt+A</kbd>
+                  <kbd class="toque__tecla" aria-hidden="true">{{ teclaAtender }}</kbd>
                 }
               </button>
               <button
                 appBotao
                 type="button"
                 variante="contorno"
-                [attr.aria-keyshortcuts]="primeiro ? 'Alt+R' : null"
+                [attr.aria-keyshortcuts]="primeiro ? ariaRecusar : null"
                 [attr.aria-describedby]="'toque-recusar-dica'"
                 (click)="recusar(toque)"
               >
                 Recusar
                 @if (primeiro) {
-                  <kbd class="toque__tecla" aria-hidden="true">Alt+R</kbd>
+                  <kbd class="toque__tecla" aria-hidden="true">{{ teclaRecusar }}</kbd>
                 }
               </button>
             </div>
           </article>
         }
         <p id="toque-recusar-dica" class="visualmente-oculto">
-          Recusar silencia o toque só para você. Os outros atendentes continuam sendo chamados.
+          Recusar tira a ligação de você. Os outros atendentes continuam sendo chamados.
         </p>
       </section>
     }
@@ -135,6 +137,10 @@ export class AvisoToque {
     telefone: LucidePhone,
     semSom: LucideVolumeX,
   };
+  protected readonly teclaAtender = rotuloDoAtalho('A');
+  protected readonly teclaRecusar = rotuloDoAtalho('R');
+  protected readonly ariaAtender = atalhoAria('A');
+  protected readonly ariaRecusar = atalhoAria('R');
   protected readonly toques = this.ligacoes.toques;
   protected readonly destaque = this.ligacoes.destaque;
   protected readonly somDesligado = this.ligacoes.somDesligado;
@@ -164,7 +170,7 @@ export class AvisoToque {
               Math.max(1000, Date.parse(toque.expiraEm) - Date.now()),
             );
             this.anunciador.announce(
-              `Ligação recebida de ${toque.contato.nome}, ${this.telefone(toque)}, pelo canal ${toque.canal.nome}. Alt A atende, Alt R recusa.`,
+              `Ligação recebida de ${toque.contato.nome}, ${this.telefone(toque)}, pelo canal ${toque.canal.nome}. ${atalhoFalado('A')} atende, ${atalhoFalado('R')} recusa.`,
               'assertive',
             );
           }
@@ -224,21 +230,18 @@ export class AvisoToque {
   }
 
   protected recusar(toque: Toque): void {
-    this.ligacoes.dispensar(toque.ligacaoId);
+    void this.ligacoes.recusar(toque.ligacaoId);
   }
 
   protected aoTeclar(evento: KeyboardEvent): void {
-    if (!evento.altKey || evento.ctrlKey || evento.metaKey || evento.shiftKey) {
-      return;
-    }
     const primeiro = this.toques()[0];
     if (!primeiro) {
       return;
     }
-    if (evento.code === 'KeyA') {
+    if (ehAtalho(evento, 'A')) {
       evento.preventDefault();
       this.atender(primeiro);
-    } else if (evento.code === 'KeyR') {
+    } else if (ehAtalho(evento, 'R')) {
       evento.preventDefault();
       this.recusar(primeiro);
     }

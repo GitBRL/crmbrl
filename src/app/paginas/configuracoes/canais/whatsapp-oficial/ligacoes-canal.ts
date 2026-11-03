@@ -179,6 +179,7 @@ export class LigacoesCanal {
     botaoVisivel: new FormControl(true, { nonNullable: true }),
     filaId: new FormControl<string | null>(null),
     gravar: new FormControl(true, { nonNullable: true }),
+    webhookIncluiResumo: new FormControl(false, { nonNullable: true }),
     retencaoDias: new FormControl(GUARDA_PADRAO_DIAS, {
       nonNullable: true,
       validators: [
@@ -232,6 +233,7 @@ export class LigacoesCanal {
       botaoVisivel: config.botaoVisivel,
       filaId: config.filaId,
       gravar: config.gravar,
+      webhookIncluiResumo: config.webhookIncluiResumo ?? false,
       retencaoDias: config.retencaoDias ?? GUARDA_PADRAO_DIAS,
       tempoDeToqueSegundos: config.tempoDeToqueSegundos,
       mensagemPerdidaAtiva: config.mensagemPerdidaAtiva,
@@ -373,6 +375,7 @@ export class LigacoesCanal {
       botaoVisivel: v.botaoVisivel,
       filaId: v.filaId,
       gravar: v.gravar,
+      webhookIncluiResumo: v.webhookIncluiResumo,
       retencaoDias: Number(v.retencaoDias),
       tempoDeToqueSegundos: Number(v.tempoDeToqueSegundos),
       mensagemPerdidaAtiva: v.mensagemPerdidaAtiva,
