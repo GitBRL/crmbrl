@@ -6,13 +6,14 @@ import { provideRouter, Router } from '@angular/router';
 import { entrarComo } from '../../../nucleo/sessao/sessao-de-teste';
 import { provideSocketFalso } from '../../../nucleo/tempo-real/tempo-real-de-teste';
 import { Canais } from './canais';
-import { email, falhaDaApi, meta, microtarefas, numero, site } from './dados-de-teste';
+import { email, falhaDaApi, meta, microtarefas, numero, oficial, site } from './dados-de-teste';
 
 const URLS = {
   whatsapp: '/api/v1/whatsapp/numeros',
   site: '/api/v1/webchat/canais',
   email: '/api/v1/email/canais',
   meta: '/api/v1/meta/canais',
+  oficial: '/api/v1/whatsapp-oficial/canais',
 };
 
 describe('Canais (lista por tipo)', () => {
@@ -89,6 +90,7 @@ describe('Canais (lista por tipo)', () => {
       site: [site()],
       email: [email({ ultimoErro: 'Senha recusada pelo servidor.' })],
       meta: [meta(), meta({ id: 'm-2', tipo: 'MESSENGER', nome: 'Página BRL' })],
+      oficial: [oficial()],
     });
     const whatsapp = grupo('WhatsApp');
     expect(whatsapp.textContent).toContain('2 números');
@@ -111,7 +113,34 @@ describe('Canais (lista por tipo)', () => {
       '/configuracoes/canais/meta/m-1',
     );
     expect(grupo('Messenger').textContent).toContain('Página BRL');
+    const oficialLinha = grupo('WhatsApp oficial').querySelector<HTMLAnchorElement>('a.canal')!;
+    expect(oficialLinha.getAttribute('href')).toBe('/configuracoes/canais/whatsapp-oficial/o-1');
+    expect(oficialLinha.textContent).toContain('Conectado');
+    expect(oficialLinha.textContent).toContain('BRL Educação');
+    expect(oficialLinha.textContent).toContain('2 templates · 1 aprovado');
     expect(raiz().textContent).not.toContain('Comece pelo WhatsApp');
+  });
+
+  it('o WhatsApp oficial com erro mostra "Com erro" e o novo leva à tela de criação', async () => {
+    await criar({
+      oficial: [
+        oficial({
+          estado: {
+            situacao: 'ERRO',
+            motivo: 'Token inválido',
+            conferidoEm: null,
+            nomeVerificado: null,
+            qualidade: null,
+          },
+        }),
+      ],
+    });
+    expect(grupo('WhatsApp oficial').textContent).toContain('Com erro');
+    const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    grupo('WhatsApp oficial')
+      .querySelector<HTMLButtonElement>('button[aria-label="Novo número oficial"]')!
+      .click();
+    expect(navegar).toHaveBeenCalledWith(['/configuracoes', 'canais', 'whatsapp-oficial', 'novo']);
   });
 
   it('um tipo que falha mostra o erro só no cartão dele', async () => {
@@ -151,7 +180,7 @@ describe('Canais (lista por tipo)', () => {
     const opcoes = Array.from(
       document.querySelectorAll<HTMLInputElement>('app-grupo-opcoes input[type=radio]'),
     );
-    expect(opcoes).toHaveLength(5);
+    expect(opcoes).toHaveLength(6);
     const email = opcoes.find((input) => input.closest('label')?.textContent?.includes('E-mail'))!;
     email.click();
     fixture.detectChanges();

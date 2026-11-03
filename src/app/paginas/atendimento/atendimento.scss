@@ -68,6 +68,10 @@ router-outlet {
   display: none;
 }
 
+.abas-pagina[hidden] {
+  display: none;
+}
+
 .sem-acesso {
   display: grid;
   flex: 1;
@@ -129,6 +133,7 @@ router-outlet {
 
   :host(.atendimento--aberta) {
     .cabecalho,
+    .abas-pagina,
     .caixa__lista {
       display: none;
     }

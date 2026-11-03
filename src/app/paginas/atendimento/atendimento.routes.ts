@@ -10,6 +10,18 @@ import type { Routes } from '@angular/router';
  * reorganizar estas rotas à vontade dentro desta pasta.
  */
 export const ROTAS_ATENDIMENTO: Routes = [
+  // Aba "Ligações" (Onda E, E4): o histórico, com o painel da ligação na rota filha.
+  {
+    path: 'ligacoes',
+    loadComponent: () => import('./ligacoes/pagina-ligacoes').then((m) => m.PaginaLigacoes),
+    children: [
+      { path: '', pathMatch: 'full', children: [] },
+      {
+        path: ':ligacaoId',
+        loadComponent: () => import('./ligacao-aberta').then((m) => m.LigacaoAberta),
+      },
+    ],
+  },
   {
     path: '',
     loadComponent: () => import('./atendimento').then((m) => m.Atendimento),

@@ -11,7 +11,8 @@
   --_folga: var(--esp-10);
 
   position: fixed;
-  inset: auto calc(var(--esp-6) - var(--_folga)) calc(var(--esp-6) - var(--_folga)) auto;
+  inset: auto calc(var(--esp-6) - var(--_folga))
+    calc(var(--esp-6) - var(--_folga) + var(--casca-ligacao, 0px)) auto;
   z-index: var(--z-flutuante);
   display: none;
   width: calc(min(420px, 100vw - 2 * var(--esp-4)) + 2 * var(--_folga));
@@ -35,7 +36,9 @@
   :host {
     // Acima da navegação inferior do celular, quando ela existe.
     inset: auto calc(var(--esp-3) - var(--_folga))
-      calc(var(--esp-3) - var(--_folga) + var(--casca-nav-inferior, 0px));
+      calc(
+        var(--esp-3) - var(--_folga) + var(--casca-nav-inferior, 0px) + var(--casca-ligacao, 0px)
+      );
     width: auto;
   }
 }

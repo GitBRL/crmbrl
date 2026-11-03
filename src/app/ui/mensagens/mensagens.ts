@@ -80,6 +80,8 @@ export interface MensagemConversa {
   readonly autor?: AutorMensagem | null;
   readonly respondeA?: RespostaCitada | null;
   readonly editada?: boolean;
+  /** Selo curto ao lado da hora (ex.: "template" nas mensagens de template do WhatsApp oficial). */
+  readonly etiqueta?: string | null;
   readonly excluida?: boolean;
 }
 

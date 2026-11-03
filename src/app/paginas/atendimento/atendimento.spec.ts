@@ -61,6 +61,7 @@ describe('Atendimento (página)', () => {
     document.dispatchEvent(
       new KeyboardEvent('keydown', {
         key: 'ArrowDown',
+        code: 'ArrowDown',
         altKey: true,
         bubbles: true,
         cancelable: true,
@@ -71,6 +72,7 @@ describe('Atendimento (página)', () => {
     document.dispatchEvent(
       new KeyboardEvent('keydown', {
         key: 'ArrowDown',
+        code: 'ArrowDown',
         altKey: true,
         bubbles: true,
         cancelable: true,
@@ -81,6 +83,7 @@ describe('Atendimento (página)', () => {
     document.dispatchEvent(
       new KeyboardEvent('keydown', {
         key: 'ArrowUp',
+        code: 'ArrowUp',
         altKey: true,
         bubbles: true,
         cancelable: true,

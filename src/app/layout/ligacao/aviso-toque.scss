@@ -1,0 +1,167 @@
+@use 'mixins' as m;
+
+// Só tokens.
+:host {
+  display: contents;
+}
+
+.toques {
+  position: fixed;
+  top: var(--esp-4);
+  right: var(--esp-4);
+  z-index: var(--z-flutuante);
+  display: grid;
+  gap: var(--esp-3);
+  width: min(26rem, calc(100vw - 2 * var(--esp-4)));
+  max-height: calc(100dvh - 2 * var(--esp-4));
+  overflow-y: auto;
+
+  @include m.abaixo(m.$md) {
+    top: max(var(--esp-3), env(safe-area-inset-top, 0px));
+    right: var(--esp-3);
+    left: var(--esp-3);
+    width: auto;
+  }
+}
+
+.toque {
+  display: grid;
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-xl);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+  animation: toque-entrada var(--duracao) var(--curva);
+
+  &--destaque {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.toque__etiqueta {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.toque__icone {
+  color: var(--cor-sucesso);
+  animation: toque-pulso 1.2s ease-in-out infinite;
+}
+
+.toque__canal {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toque__quem {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.toque__textos {
+  min-width: 0;
+}
+
+.toque__nome {
+  margin: 0;
+  overflow: hidden;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toque__info {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--cor-texto-suave);
+  font-size: 0.9375rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toque__nota {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.8125rem;
+}
+
+.toque__tempo {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--cor-superficie-3);
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--cor-sucesso);
+    transition: width 0.25s linear;
+  }
+}
+
+.toque__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+
+  > * {
+    flex: 1 1 8rem;
+  }
+}
+
+.toque__tecla {
+  margin-left: var(--esp-2);
+  padding: 1px 6px;
+  border-radius: var(--raio-sm);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+
+  @include m.abaixo(m.$md) {
+    display: none;
+  }
+}
+
+@keyframes toque-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes toque-pulso {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toque,
+  .toque__icone {
+    animation: none;
+  }
+
+  .toque__tempo span {
+    transition: none;
+  }
+}

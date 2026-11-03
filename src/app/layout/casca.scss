@@ -18,7 +18,11 @@
   --_navegacao: 288px;
   // Altura fixa de cima e de baixo (barra superior + navegação inferior do celular): as telas
   // de altura cheia (atendimento, chat, quadro) a descontam dos 100dvh.
-  --casca-reservado: calc(var(--casca-altura-topo) + var(--casca-nav-inferior, 0px));
+  // A barra de ligação (fixa no pé da tela) também reserva espaço: `--casca-ligacao` (posta no
+  // host pelo `casca.ts`) vale 0 sem ligação e a altura da barra enquanto ela existe.
+  --casca-reservado: calc(
+    var(--casca-altura-topo) + var(--casca-nav-inferior, 0px) + var(--casca-ligacao)
+  );
 
   display: grid;
   grid-template-columns:
@@ -178,7 +182,7 @@
 .casca__conteudo {
   grid-column: 4;
   min-width: 0;
-  padding: var(--esp-4) 0 var(--esp-16);
+  padding: var(--esp-4) 0 calc(var(--esp-16) + var(--casca-ligacao));
 }
 
 // Navegação demorada: barra de 2px no topo, na cor do foco, indo e voltando (parada com
@@ -244,7 +248,7 @@
     --casca-nav-inferior: calc(60px + env(safe-area-inset-bottom, 0px));
 
     .casca__conteudo {
-      padding-bottom: calc(var(--casca-nav-inferior) + var(--esp-16));
+      padding-bottom: calc(var(--casca-nav-inferior) + var(--esp-16) + var(--casca-ligacao));
     }
   }
 }

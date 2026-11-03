@@ -78,7 +78,9 @@
               class="bolha__espaco"
               aria-hidden="true"
               [class.bolha__espaco--status]="direcao() === 'SAIDA' && m.status"
-              [textContent]="(m.editada ? 'editada ' : '') + hora()"
+              [textContent]="
+                (m.editada ? 'editada ' : '') + (m.etiqueta ? m.etiqueta + ' ' : '') + hora()
+              "
             ></span>
           </p>
         }
@@ -87,6 +89,9 @@
       <span class="bolha__meta">
         @if (m.editada && !m.excluida) {
           <span class="bolha__editada">editada</span>
+        }
+        @if (m.etiqueta && !m.excluida) {
+          <span class="bolha__editada">{{ m.etiqueta }}</span>
         }
         <time [attr.datetime]="iso()" [textContent]="hora()"></time>
         @if (direcao() === 'SAIDA' && m.status) {

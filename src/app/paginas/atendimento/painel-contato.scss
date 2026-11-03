@@ -104,6 +104,10 @@
   }
 }
 
+.secao--ligar:not(:has(.ligar)) {
+  display: none;
+}
+
 .secao__cabeca {
   display: flex;
   align-items: center;

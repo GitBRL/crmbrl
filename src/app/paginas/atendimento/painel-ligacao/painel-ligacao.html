@@ -1,0 +1,358 @@
+<section class="painel" aria-label="Gravação, transcrição e resumo da ligação">
+  @if (carga.erro(); as erro) {
+    <app-estado-vazio
+      variante="erro"
+      titulo="Não foi possível abrir a ligação"
+      texto="Confira a conexão e tente de novo."
+      [falha]="erro"
+      compacto
+    >
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        [icone]="icones.tentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (!ligacao()) {
+    <div class="painel__carregando" role="status" aria-label="Carregando a ligação">
+      <app-esqueleto forma="bloco" altura="3rem" />
+      <app-esqueleto forma="texto" [linhas]="4" />
+    </div>
+  } @else if (gravacao(); as g) {
+    <header class="painel__status" aria-live="polite">
+      <ul class="painel__etapas">
+        <li>
+          Gravação
+          @switch (g.situacao) {
+            @case ('enviando') {
+              <app-selo variante="ciano" ponto>Recebendo</app-selo>
+            }
+            @case ('pronta') {
+              <app-selo variante="menta">{{ removida() ? 'Apagada' : 'Pronta' }}</app-selo>
+            }
+            @case ('falhou') {
+              <app-selo variante="coral">Falhou</app-selo>
+            }
+            @default {
+              <app-selo>Sem gravação</app-selo>
+            }
+          }
+        </li>
+        <li>
+          Transcrição
+          @switch (transcricao()?.situacao) {
+            @case ('pendente') {
+              <app-selo variante="ciano" ponto>Na fila</app-selo>
+            }
+            @case ('processando') {
+              <app-selo variante="ciano" ponto>Transcrevendo</app-selo>
+            }
+            @case ('pronta') {
+              <app-selo variante="menta">Pronta</app-selo>
+            }
+            @case ('falhou') {
+              <app-selo variante="coral">Falhou</app-selo>
+            }
+            @default {
+              <app-selo>Desativada</app-selo>
+            }
+          }
+        </li>
+        <li>
+          Resumo
+          @switch (resumoDaLigacao()?.situacao) {
+            @case ('pendente') {
+              <app-selo variante="ciano" ponto>Na fila</app-selo>
+            }
+            @case ('processando') {
+              <app-selo variante="ciano" ponto>Resumindo</app-selo>
+            }
+            @case ('pronto') {
+              <app-selo variante="menta">Pronto</app-selo>
+            }
+            @case ('falhou') {
+              <app-selo variante="coral">Falhou</app-selo>
+            }
+            @default {
+              <app-selo>Desativado</app-selo>
+            }
+          }
+        </li>
+      </ul>
+      @if (podeReprocessar()) {
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          [icone]="icones.tentar"
+          [carregando]="reprocessando()"
+          (click)="reprocessar()"
+        >
+          Reprocessar
+        </button>
+      }
+    </header>
+
+    @if (removida()) {
+      <p class="painel__aviso">
+        A gravação e a transcrição foram apagadas pelo prazo de guarda. O registro, a duração e o
+        resumo continuam aqui.
+      </p>
+    } @else if (g.situacao === 'sem') {
+      <p class="painel__aviso">Esta ligação não foi gravada.</p>
+    } @else if (g.situacao === 'falhou') {
+      <p class="painel__aviso painel__aviso--erro">
+        <svg [lucideIcon]="icones.aviso" [size]="16" aria-hidden="true" />
+        {{
+          g.erro ?? 'A gravação não chegou ao CRM por completo. Parte do áudio pode estar faltando.'
+        }}
+      </p>
+    }
+
+    @if (g.disponivel) {
+      <div class="painel__player">
+        <audio
+          #audio
+          controls
+          preload="metadata"
+          [src]="urlDoAudio()"
+          aria-label="Gravação da ligação"
+          (timeupdate)="aoTocar()"
+          (seeked)="aoTocar()"
+          (error)="erroDoAudio.set(true)"
+        ></audio>
+        @if (erroDoAudio()) {
+          <p class="painel__aviso painel__aviso--erro" role="alert">
+            Não foi possível carregar o áudio. Tente de novo em instantes.
+          </p>
+        }
+        <div class="painel__ferramentas">
+          <span class="painel__meta"> Duração {{ duracao() }} </span>
+          @if (g.podeBaixar) {
+            <a class="painel__baixar" [href]="urlParaBaixar()" download>
+              <svg [lucideIcon]="icones.baixar" [size]="16" aria-hidden="true" />
+              Baixar o áudio
+            </a>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Resumo -->
+    <section class="painel__bloco" aria-labelledby="resumo-titulo-{{ ligacaoId() }}">
+      <h3 class="painel__titulo" id="resumo-titulo-{{ ligacaoId() }}">Resumo</h3>
+      @switch (resumoDaLigacao()?.situacao) {
+        @case ('pronto') {
+          @if (resumo(); as r) {
+            <p class="painel__assunto">{{ r.assunto }}</p>
+            <p class="painel__sentimento">
+              Sentimento do cliente:
+              <app-selo [variante]="varianteDoSentimento(r.sentimento)">{{
+                rotuloSentimento[r.sentimento]
+              }}</app-selo>
+            </p>
+            @if (r.pontosPrincipais.length > 0) {
+              <h4 class="painel__subtitulo">Pontos principais</h4>
+              <ul class="painel__lista">
+                @for (item of r.pontosPrincipais; track $index) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            }
+            @if (r.combinados.length > 0) {
+              <h4 class="painel__subtitulo">Combinados</h4>
+              <ul class="painel__lista">
+                @for (item of r.combinados; track $index) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            }
+            @if (r.proximosPassos.length > 0) {
+              <h4 class="painel__subtitulo">Próximos passos</h4>
+              <ul class="painel__lista">
+                @for (item of r.proximosPassos; track $index) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            }
+            @if (r.sugestoes.length > 0) {
+              <h4 class="painel__subtitulo">Atividades sugeridas</h4>
+              <ul class="painel__sugestoes">
+                @for (sugestao of r.sugestoes; track sugestao.id) {
+                  <li class="sugestao">
+                    <div class="sugestao__texto">
+                      <p class="sugestao__titulo">
+                        <svg [lucideIcon]="icones.sugestao" [size]="14" aria-hidden="true" />
+                        {{ sugestao.titulo }}
+                      </p>
+                      <p class="sugestao__meta">
+                        {{ rotuloTipo[sugestao.tipo] }} · em {{ sugestao.prazoEmDias }}
+                        {{ sugestao.prazoEmDias === 1 ? 'dia' : 'dias' }}
+                      </p>
+                      @if (sugestao.descricao) {
+                        <p class="sugestao__descricao">{{ sugestao.descricao }}</p>
+                      }
+                    </div>
+                    @if (sugestao.atividadeId) {
+                      <app-selo variante="menta" [icone]="icones.criada">Criada</app-selo>
+                    } @else if (sugestao.descartadaEm) {
+                      <app-selo>Descartada</app-selo>
+                    } @else {
+                      <div class="sugestao__acoes">
+                        <button
+                          appBotao
+                          type="button"
+                          variante="contorno"
+                          tamanho="sm"
+                          [carregando]="criando() === sugestao.id"
+                          [attr.aria-label]="'Criar a atividade: ' + sugestao.titulo"
+                          (click)="criarAtividade(sugestao)"
+                        >
+                          Criar
+                        </button>
+                        <button
+                          appBotao
+                          type="button"
+                          variante="neutro"
+                          tamanho="sm"
+                          [carregando]="descartando() === sugestao.id"
+                          [attr.aria-label]="'Descartar a sugestão: ' + sugestao.titulo"
+                          (click)="descartarSugestao(sugestao)"
+                        >
+                          Descartar
+                        </button>
+                      </div>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          }
+        }
+        @case ('pendente') {
+          <p class="painel__aviso" role="status">
+            O resumo vai começar quando a transcrição terminar.
+          </p>
+        }
+        @case ('processando') {
+          <p class="painel__aviso" role="status">Preparando o resumo…</p>
+        }
+        @case ('falhou') {
+          <p class="painel__aviso painel__aviso--erro">
+            Não foi possível gerar o resumo.
+            @if (podeReprocessar()) {
+              Use “Reprocessar” para tentar de novo.
+            }
+          </p>
+        }
+        @default {
+          <p class="painel__aviso">
+            @if (resumoDaLigacao()?.situacao === 'desativado') {
+              {{ resumoDaLigacao()?.erro ?? 'O resumo automático está desativado.' }}
+            } @else {
+              O resumo automático está desativado.
+            }
+          </p>
+        }
+      }
+    </section>
+
+    <!-- Transcrição -->
+    <section class="painel__bloco" aria-labelledby="transcricao-titulo-{{ ligacaoId() }}">
+      <h3 class="painel__titulo" id="transcricao-titulo-{{ ligacaoId() }}">Transcrição</h3>
+      @switch (transcricao()?.situacao) {
+        @case ('pronta') {
+          @if (erroDaTranscricao(); as erroLeitura) {
+            <p class="painel__aviso painel__aviso--erro" role="alert">{{ erroLeitura }}</p>
+          } @else if (trechos().length === 0) {
+            <p class="painel__aviso">Nenhuma fala foi reconhecida nesta gravação.</p>
+          } @else {
+            <app-campo-busca
+              class="painel__busca"
+              rotulo="Buscar na transcrição"
+              placeholder="Buscar na transcrição…"
+              [(valor)]="busca"
+            />
+            <p class="painel__contagem" role="status">
+              @if (busca().trim()) {
+                {{ visiveis().length }}
+                {{ visiveis().length === 1 ? 'trecho encontrado' : 'trechos encontrados' }}
+              }
+            </p>
+            @if (visiveis().length === 0) {
+              <p class="painel__aviso">Nada encontrado para “{{ busca() }}”.</p>
+            } @else {
+              <ol class="trechos">
+                @for (item of visiveis(); track item.indice) {
+                  <li>
+                    <button
+                      type="button"
+                      class="trecho"
+                      [class.trecho--atual]="atual() === item.indice"
+                      [class.trecho--cliente]="item.trecho.falante === 'cliente'"
+                      [attr.aria-current]="atual() === item.indice ? 'true' : null"
+                      [disabled]="!g.disponivel"
+                      [attr.aria-label]="
+                        rotuloFalante[item.trecho.falante] +
+                        ', aos ' +
+                        marcaFalada(item.trecho.inicio) +
+                        ': ' +
+                        item.trecho.texto +
+                        '. Tocar este ponto.'
+                      "
+                      (click)="irPara(item.trecho)"
+                    >
+                      <span class="trecho__quem">
+                        {{ rotuloFalante[item.trecho.falante] }}
+                        <time class="trecho__tempo">{{ marcaDeTempo(item.trecho.inicio) }}</time>
+                      </span>
+                      <span class="trecho__texto" aria-hidden="true">
+                        @for (pedaco of destacar(item.trecho.texto, busca()); track $index) {
+                          @if (pedaco.achado) {
+                            <mark>{{ pedaco.texto }}</mark>
+                          } @else {
+                            <span>{{ pedaco.texto }}</span>
+                          }
+                        }
+                      </span>
+                    </button>
+                  </li>
+                }
+              </ol>
+            }
+          }
+        }
+        @case ('pendente') {
+          <p class="painel__aviso" role="status">Na fila para transcrever…</p>
+        }
+        @case ('processando') {
+          <p class="painel__aviso" role="status">Transcrevendo a conversa…</p>
+        }
+        @case ('falhou') {
+          <p class="painel__aviso painel__aviso--erro">
+            Não foi possível transcrever a gravação.
+            @if (podeReprocessar()) {
+              Use “Reprocessar” para tentar de novo.
+            }
+          </p>
+        }
+        @default {
+          <p class="painel__aviso">
+            @if (removida()) {
+              A transcrição foi apagada pelo prazo de guarda.
+            } @else {
+              A transcrição está desativada neste ambiente.
+            }
+          </p>
+        }
+      }
+    </section>
+  } @else {
+    <p class="painel__aviso">Esta ligação não tem gravação.</p>
+  }
+</section>

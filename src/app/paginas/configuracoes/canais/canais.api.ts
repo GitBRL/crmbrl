@@ -6,9 +6,11 @@ import { parametros, urlApi } from '../../../nucleo/api/api';
 import type {
   CanalEmail,
   CanalMeta,
+  CanalOficial,
   CanalSite,
   DadosCanalEmail,
   DadosCanalMeta,
+  DadosCanalOficial,
   DadosCanalSite,
   DadosConexaoEmail,
   DadosNumeroWhatsapp,
@@ -16,8 +18,11 @@ import type {
   EstadoDoNumero,
   FilaDoCanal,
   NumeroWhatsapp,
+  SincronizacaoDeTemplates,
+  TemplateDoCanal,
   TesteDeConexaoEmail,
   TesteDoCanalMeta,
+  TesteDoCanalOficial,
 } from './canais.modelos';
 
 /**
@@ -196,6 +201,69 @@ export class CanaisApi {
     return firstValueFrom(
       this.http.post<{ readonly tokenVerificacao: string }>(
         urlApi('meta', 'canais', id, 'token-verificacao'),
+        {},
+      ),
+    );
+  }
+
+  // WhatsApp oficial (API da Meta) ---------------------------------------------------------------
+
+  listarOficiais(): Promise<readonly CanalOficial[]> {
+    return firstValueFrom(
+      this.http.get<readonly CanalOficial[]>(urlApi('whatsapp-oficial', 'canais')),
+    );
+  }
+
+  detalharOficial(id: string): Promise<CanalOficial> {
+    return firstValueFrom(this.http.get<CanalOficial>(urlApi('whatsapp-oficial', 'canais', id)));
+  }
+
+  criarOficial(dados: DadosCanalOficial): Promise<CanalOficial> {
+    return firstValueFrom(
+      this.http.post<CanalOficial>(urlApi('whatsapp-oficial', 'canais'), dados),
+    );
+  }
+
+  atualizarOficial(id: string, dados: DadosCanalOficial): Promise<CanalOficial> {
+    return firstValueFrom(
+      this.http.patch<CanalOficial>(urlApi('whatsapp-oficial', 'canais', id), dados),
+    );
+  }
+
+  excluirOficial(id: string): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(urlApi('whatsapp-oficial', 'canais', id)));
+  }
+
+  /** Pergunta à Meta pelo número (200 sempre; `ok: false` traz o motivo e põe o canal em erro). */
+  testarOficial(id: string): Promise<TesteDoCanalOficial> {
+    return firstValueFrom(
+      this.http.post<TesteDoCanalOficial>(urlApi('whatsapp-oficial', 'canais', id, 'testar'), {}),
+    );
+  }
+
+  regenerarTokenOficial(id: string): Promise<{ readonly tokenVerificacao: string }> {
+    return firstValueFrom(
+      this.http.post<{ readonly tokenVerificacao: string }>(
+        urlApi('whatsapp-oficial', 'canais', id, 'token-verificacao'),
+        {},
+      ),
+    );
+  }
+
+  /** Todos os templates da WABA, com a situação na Meta (inclusive os não aprovados). */
+  templatesDoOficial(id: string): Promise<readonly TemplateDoCanal[]> {
+    return firstValueFrom(
+      this.http.get<readonly TemplateDoCanal[]>(
+        urlApi('whatsapp-oficial', 'canais', id, 'templates'),
+      ),
+    );
+  }
+
+  /** Busca os templates na Meta (503 com o motivo se ela falhou ou o token não vale). */
+  sincronizarTemplates(id: string): Promise<SincronizacaoDeTemplates> {
+    return firstValueFrom(
+      this.http.post<SincronizacaoDeTemplates>(
+        urlApi('whatsapp-oficial', 'canais', id, 'templates', 'sincronizar'),
         {},
       ),
     );

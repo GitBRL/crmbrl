@@ -353,14 +353,36 @@ export interface AtividadeDaLinhaDoTempo {
   readonly criadoEm: string;
 }
 
+/** Ligação na linha do tempo (Onda E, E4); o painel com player e transcrição abre pelo `id`. */
+export interface LigacaoDaLinhaDoTempo {
+  readonly id: string;
+  readonly direcao: 'RECEBIDA' | 'FEITA';
+  readonly estado: string;
+  readonly resultado: 'atendida' | 'perdida' | 'recusada' | 'sem_resposta' | 'falhou' | null;
+  readonly motivoTexto: string | null;
+  readonly duracaoSegundos: number | null;
+  readonly conversaId: string | null;
+  readonly canalId: string | null;
+  readonly canalNome: string | null;
+  readonly atendente: { readonly id: string; readonly nome: string } | null;
+  readonly iniciadaEm: string;
+  readonly encerradaEm: string | null;
+  readonly resumoAssunto: string | null;
+  readonly resumoTrecho: string | null;
+  readonly temGravacao: boolean;
+  readonly temTranscricao: boolean;
+}
+
 export interface RegistroDaLinhaDoTempo {
-  readonly tipo: 'evento' | 'atividade';
+  readonly tipo: 'evento' | 'atividade' | 'ligacao';
   readonly ocorridoEm: string;
   readonly evento: EventoDaLinhaDoTempo | null;
   readonly atividade: AtividadeDaLinhaDoTempo | null;
+  /** Só nos registros do tipo `ligacao`; `null` (ou ausente) nos outros. */
+  readonly ligacao?: LigacaoDaLinhaDoTempo | null;
 }
 
-export type ConteudoDaLinhaDoTempo = 'tudo' | 'eventos' | 'atividades';
+export type ConteudoDaLinhaDoTempo = 'tudo' | 'eventos' | 'atividades' | 'ligacoes';
 
 /** Uma alteração de campo registrada num evento (`dados.alteracoes`). */
 export interface AlteracaoDeCampo {

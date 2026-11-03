@@ -118,6 +118,17 @@ describe('conversão do gatilho', () => {
     });
   });
 
+  it('gatilhos de ligação: direção e resultado aceitam valor único ou lista', () => {
+    expect(filtrosParaConfig({ direcao: 'RECEBIDA', resultado: 'perdida, sem_resposta' })).toEqual({
+      direcao: 'RECEBIDA',
+      resultado: ['perdida', 'sem_resposta'],
+    });
+    expect(configParaFiltros({ direcao: ['RECEBIDA', 'FEITA'], resultado: 'falhou' })).toEqual({
+      direcao: 'RECEBIDA, FEITA',
+      resultado: 'falhou',
+    });
+  });
+
   it('recorrência semanal e mensal', () => {
     const semanal = {
       ...agendaPadrao('recorrente'),

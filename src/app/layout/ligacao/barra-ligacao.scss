@@ -1,0 +1,210 @@
+@use 'mixins' as m;
+
+// Só tokens. A barra reserva a própria altura em `--casca-ligacao` (casca.scss) para não cobrir
+// o fim das páginas nem o compositor do Atendimento.
+:host {
+  display: contents;
+}
+
+.barra {
+  position: fixed;
+  right: var(--esp-4);
+  bottom: calc(var(--casca-nav-inferior, 0px) + var(--esp-3));
+  left: var(--esp-4);
+  z-index: var(--z-flutuante);
+  display: grid;
+  gap: var(--esp-3);
+  max-width: 54rem;
+  margin-inline: auto;
+  padding: var(--esp-2) var(--esp-3);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-xl);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+
+  @include m.abaixo(m.$md) {
+    right: var(--esp-2);
+    bottom: calc(var(--casca-nav-inferior, 0px) + var(--esp-2));
+    left: var(--esp-2);
+  }
+}
+
+.barra--alerta {
+  border-color: var(--cor-aviso);
+}
+
+.barra--erro {
+  border-color: var(--cor-erro);
+}
+
+.barra__linha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.barra__avatar {
+  flex: none;
+}
+
+.barra__quem {
+  flex: 1;
+  min-width: 0;
+}
+
+.barra__nome {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.barra__estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--esp-2);
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.8125rem;
+}
+
+.barra__tempo {
+  color: var(--cor-texto);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.barra__gravando {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--cor-erro);
+  font-weight: 600;
+
+  svg {
+    animation: barra-gravando 1.4s ease-in-out infinite;
+  }
+}
+
+.barra__acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.barra__expandir {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+
+  svg {
+    transition: transform var(--duracao) var(--curva);
+  }
+
+  &[aria-expanded='true'] svg {
+    transform: rotate(180deg);
+  }
+}
+
+// Celular: faixa compacta (nome, tempo, mudo e encerrar); o resto abre ao expandir.
+@include m.abaixo(m.$md) {
+  .barra__acoes > [aria-controls] {
+    display: none;
+  }
+
+  .barra__expandir {
+    display: inline-flex;
+  }
+
+  .barra__encerrar-texto {
+    display: none;
+  }
+
+  .barra--fim .barra__acoes > [aria-controls] {
+    display: inline-flex;
+  }
+}
+
+.barra__lembrete,
+.barra__alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: var(--esp-2) var(--esp-3);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-3);
+  font-size: 0.8125rem;
+
+  svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--cor-aviso);
+  }
+}
+
+.barra__ajustes {
+  display: grid;
+  gap: var(--esp-3);
+  max-height: min(50dvh, 22rem);
+  padding-bottom: var(--esp-1);
+  overflow-y: auto;
+}
+
+.barra__dispositivos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--esp-3);
+}
+
+.barra__nota,
+.barra__dica {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.8125rem;
+}
+
+.barra__anotacao {
+  display: grid;
+  gap: var(--esp-1);
+}
+
+@keyframes barra-gravando {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barra__gravando svg {
+    animation: none;
+  }
+
+  .barra__expandir svg {
+    transition: none;
+  }
+}

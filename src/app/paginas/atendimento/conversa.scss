@@ -245,6 +245,29 @@ app-historico-conversa {
   gap: var(--esp-2);
 }
 
+.conversa__templates {
+  display: grid;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie);
+  min-width: 0;
+}
+
+.conversa__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  color: var(--cor-texto);
+  font: var(--fonte-corpo-sm);
+
+  svg {
+    flex: none;
+    margin-top: 2px;
+  }
+}
+
 .conversa__painel {
   min-height: 0;
 }

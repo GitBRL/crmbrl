@@ -12,6 +12,7 @@ import type {
   CanalDoAtendimento,
   ContatoDoPainel,
   ConversaDetalhe,
+  EnvioDeTemplate,
   Fila,
   FiltrosConversas,
   MensagemDaConversa,
@@ -20,6 +21,7 @@ import type {
   PaginaConversas,
   PaginaMensagens,
   RespostaRapida,
+  TemplatesDaConversa,
   Transferencia,
 } from './atendimento.tipos';
 
@@ -116,7 +118,12 @@ export class AtendimentoApi {
 
   enviar(
     id: string,
-    dados: { readonly texto?: string; readonly arquivoId?: string },
+    dados: {
+      readonly texto?: string;
+      readonly arquivoId?: string;
+      /** Template aprovado (WhatsApp oficial); não vai junto com `texto`. */
+      readonly template?: EnvioDeTemplate;
+    },
   ): Promise<MensagemDaConversa> {
     return firstValueFrom(
       this.http.post<MensagemDaConversa>(
@@ -124,6 +131,11 @@ export class AtendimentoApi {
         dados,
       ),
     );
+  }
+
+  /** Templates aprovados que a conversa pode usar (`suportado: false` nos canais sem templates). */
+  templates(id: string): Observable<TemplatesDaConversa> {
+    return this.http.get<TemplatesDaConversa>(urlApi('atendimento', 'conversas', id, 'templates'));
   }
 
   nota(id: string, texto: string): Promise<MensagemDaConversa> {

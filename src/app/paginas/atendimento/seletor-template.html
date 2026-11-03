@@ -1,0 +1,193 @@
+<div class="templates" aria-busy="{{ dados() === null && !erroCarga() }}">
+  @if (erroCarga(); as erro) {
+    <app-estado-vazio
+      compacto
+      variante="erro"
+      [falha]="erro"
+      titulo="Não conseguimos carregar os templates"
+      [texto]="erro.resumo"
+    >
+      <button appBotao type="button" tamanho="sm" variante="contorno" (click)="carregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (dados(); as d) {
+    @if (!d.suportado) {
+      <app-estado-vazio
+        compacto
+        titulo="Este canal não usa templates"
+        texto="Aqui é só escrever a mensagem."
+      />
+    } @else if (d.itens.length === 0) {
+      <app-estado-vazio
+        compacto
+        titulo="Nenhum template aprovado"
+        texto="O WhatsApp só deixa começar uma conversa com um template aprovado pela Meta. Peça ao Admin para criar um no Gerenciador do WhatsApp e sincronizar em Configurações → Canais."
+      />
+    } @else if (escolhido(); as t) {
+      <form class="templates__envio" novalidate (submit)="$event.preventDefault(); enviar()">
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="contorno"
+          class="templates__voltar"
+          [icone]="icones.voltar"
+          (click)="voltar()"
+        >
+          Outros templates
+        </button>
+        <h3 class="templates__titulo">
+          {{ t.nome }}
+          <span class="tom-fraco">· {{ categorias[t.categoria] }}</span>
+        </h3>
+
+        <div class="templates__previa" role="group" aria-label="Prévia do que o contato vai ver">
+          @if (previa(); as p) {
+            @if (precisaMidia()) {
+              <p class="previa__midia">
+                {{ rotuloMidia[t.cabecalho!.formato] }} no cabeçalho
+                @if (arquivo(); as a) {
+                  : {{ a.name }}
+                }
+              </p>
+            }
+            @if (p.cabecalho) {
+              <p class="previa__cabecalho">{{ p.cabecalho }}</p>
+            }
+            <p class="previa__corpo">{{ p.corpo }}</p>
+            @if (p.rodape) {
+              <p class="previa__rodape">{{ p.rodape }}</p>
+            }
+          }
+          @if (t.botoes.length > 0) {
+            <ul class="previa__botoes" aria-label="Botões do template">
+              @for (b of t.botoes; track $index) {
+                <li>{{ b.texto }}</li>
+              }
+            </ul>
+          }
+        </div>
+
+        @if (precisaMidia()) {
+          <div class="templates__arquivo">
+            <input
+              #seletorArquivo
+              class="visualmente-oculto"
+              type="file"
+              tabindex="-1"
+              aria-hidden="true"
+              [attr.accept]="aceita() || null"
+              (change)="escolherArquivo($event)"
+            />
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              [icone]="icones.arquivo"
+              (click)="seletorArquivo.click()"
+            >
+              {{
+                arquivo()
+                  ? 'Trocar arquivo'
+                  : 'Escolher ' + rotuloMidia[t.cabecalho!.formato].toLowerCase()
+              }}
+            </button>
+            <span class="templates__dica">
+              {{ arquivo()?.name ?? 'Este template pede um arquivo no cabeçalho.' }}
+            </span>
+          </div>
+        }
+
+        @if (t.cabecalho?.variaveis?.length || t.corpo.variaveis.length || t.botoes.length) {
+          <div class="templates__campos">
+            @for (nome of t.cabecalho?.variaveis ?? []; track $index) {
+              <app-campo-texto
+                [rotulo]="'Cabeçalho: variável ' + nome"
+                autocomplete="off"
+                [valor]="rascunho().cabecalho[$index]"
+                (valorChange)="mudar('cabecalho', $index, $event)"
+              />
+            }
+            @for (nome of t.corpo.variaveis; track $index) {
+              <app-campo-texto
+                [rotulo]="'Variável ' + nome"
+                autocomplete="off"
+                [valor]="rascunho().corpo[$index]"
+                (valorChange)="mudar('corpo', $index, $event)"
+              />
+            }
+            @for (b of t.botoes; track $index) {
+              @if (b.variaveis.length > 0) {
+                <app-campo-texto
+                  [rotulo]="'Final do link do botão “' + b.texto + '”'"
+                  autocomplete="off"
+                  [valor]="rascunho().botoes[$index]"
+                  (valorChange)="mudar('botoes', $index, $event)"
+                />
+              }
+            }
+          </div>
+        }
+
+        <div aria-live="polite">
+          @if (tentou() && (faltando().length > 0 || (precisaMidia() && !arquivo()))) {
+            <p class="templates__erro" role="alert">
+              @if (faltando().length > 0) {
+                Falta preencher: {{ faltando().join(', ') }}.
+              }
+              @if (precisaMidia() && !arquivo()) {
+                Escolha o arquivo do cabeçalho.
+              }
+            </p>
+          }
+          @if (erroEnvio(); as erro) {
+            <p class="templates__erro" role="alert">{{ erro }}</p>
+          }
+        </div>
+
+        <div class="templates__acoes">
+          <button
+            appBotao
+            type="submit"
+            variante="invertido"
+            [icone]="icones.enviar"
+            [carregando]="enviando()"
+          >
+            Enviar template
+          </button>
+        </div>
+      </form>
+    } @else {
+      <app-campo-busca
+        rotulo="Buscar template"
+        placeholder="Buscar template…"
+        [valor]="busca()"
+        (valorChange)="busca.set($event)"
+      />
+      @if (filtrados().length === 0) {
+        <p class="templates__vazio" role="status">Nenhum template com “{{ busca() }}”.</p>
+      } @else {
+        <ul class="templates__lista" aria-label="Templates aprovados">
+          @for (t of filtrados(); track t.id) {
+            <li>
+              <button type="button" class="item" (click)="escolher(t)">
+                <span class="item__linha">
+                  <strong class="item__nome">{{ t.nome }}</strong>
+                  <app-selo tamanho="sm" variante="contorno">{{
+                    categorias[t.categoria]
+                  }}</app-selo>
+                </span>
+                <span class="item__texto">{{ t.corpo.texto }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    }
+  } @else {
+    <p class="visualmente-oculto" role="status">Carregando os templates…</p>
+    <app-esqueleto [linhas]="3" />
+  }
+</div>

@@ -19,6 +19,7 @@
     <app-dica rotulo="Atalhos de teclado" titulo="Atalhos de teclado" [texto]="textoAtalhos" />
   </div>
 </header>
+<app-abas-atendimento class="abas-pagina" ativa="conversas" [hidden]="estado.semAcesso()" />
 
 @if (estado.semAcesso()) {
   <!-- A API recusou o Atendimento para este papel (R12: o Marketing não atende conversas). -->

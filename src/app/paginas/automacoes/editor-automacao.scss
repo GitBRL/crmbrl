@@ -129,3 +129,20 @@ app-cartao app-seletor-janela-envio {
   display: block;
   margin-bottom: var(--esp-4);
 }
+
+// Filtro de gatilho com várias marcas (direção e resultado das ligações).
+.filtro-marcas {
+  display: grid;
+  gap: var(--esp-2);
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.filtro-marcas__rotulo {
+  font: var(--fonte-rotulo);
+}
+
+.filtro-marcas__dica {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}

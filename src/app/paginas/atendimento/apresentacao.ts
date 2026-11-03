@@ -4,6 +4,7 @@ import {
   type LucideIconInput,
   LucideMail,
   LucideMessageCircle,
+  LucideMessageCircleMore,
   LucideMessagesSquare,
 } from '@lucide/angular';
 
@@ -40,6 +41,7 @@ export interface ApresentacaoCanal {
 
 export const CANAL: Readonly<Record<TipoCanal, ApresentacaoCanal>> = {
   WHATSAPP: { rotulo: 'WhatsApp', icone: LucideMessageCircle },
+  WHATSAPP_OFICIAL: { rotulo: 'WhatsApp oficial', icone: LucideMessageCircleMore },
   WEBCHAT: { rotulo: 'Chat do site', icone: LucideGlobe },
   EMAIL: { rotulo: 'E-mail', icone: LucideMail },
   INSTAGRAM: { rotulo: 'Instagram', icone: LucideCamera },
@@ -48,7 +50,7 @@ export const CANAL: Readonly<Record<TipoCanal, ApresentacaoCanal>> = {
 
 /** Canais da Meta: resposta comum só até 24 h depois da última mensagem do contato. */
 export function temJanela24h(tipo: TipoCanal): boolean {
-  return tipo === 'INSTAGRAM' || tipo === 'MESSENGER';
+  return tipo === 'INSTAGRAM' || tipo === 'MESSENGER' || tipo === 'WHATSAPP_OFICIAL';
 }
 
 // Status e prioridade -------------------------------------------------------------------------
@@ -196,7 +198,7 @@ export interface Janela24h {
   readonly frase: string;
 }
 
-/** Janela de 24 h da Meta (só Instagram e Messenger; `null` nos outros canais). */
+/** Janela de 24 h da Meta (Instagram, Messenger e WhatsApp oficial; `null` nos outros canais). */
 export function janela24h(conversa: ConversaResumo, agora: Date = new Date()): Janela24h | null {
   if (!temJanela24h(conversa.canal.tipo)) {
     return null;
@@ -345,6 +347,7 @@ export function paraMensagemConversa(
     direcao: dto.direcao,
     tipo: dto.tipo,
     texto: especial?.texto ?? dto.texto,
+    etiqueta: dto.metadados?.['template'] ? 'template' : null,
     trechos: especial?.trechos ?? (dto.texto ? trechosDoTexto(dto.texto) : null),
     anexo: dto.arquivo
       ? {

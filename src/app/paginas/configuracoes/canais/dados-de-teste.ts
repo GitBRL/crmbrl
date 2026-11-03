@@ -1,9 +1,11 @@
 import type {
   CanalEmail,
   CanalMeta,
+  CanalOficial,
   CanalSite,
   EnviosNoDia,
   NumeroWhatsapp,
+  TemplateDoCanal,
 } from './canais.modelos';
 
 /**
@@ -151,6 +153,56 @@ export function meta(ajustes: Partial<CanalMeta> = {}): CanalMeta {
       tokenVerificacao: 'vt_123456',
       campos: ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads'],
     },
+    ...ajustes,
+  };
+}
+
+export function oficial(ajustes: Partial<CanalOficial> = {}): CanalOficial {
+  return {
+    ...BASE,
+    id: 'o-1',
+    tipo: 'WHATSAPP_OFICIAL',
+    nome: 'WhatsApp Oficial (demo)',
+    idExterno: '100000000000001',
+    phoneNumberId: '100000000000001',
+    wabaId: '200000000000001',
+    numeroExibido: '5511999990000',
+    token: '••••••••Zx0P',
+    appSecret: '••••••••3f9a',
+    webhook: {
+      url: 'http://localhost:4200/api/v1/publico/meta/webhook',
+      tokenVerificacao: 'vt_oficial',
+      campos: ['messages'],
+    },
+    estado: {
+      situacao: 'CONECTADO',
+      motivo: null,
+      conferidoEm: '2026-10-26T11:59:00.000Z',
+      nomeVerificado: 'BRL Educação',
+      qualidade: 'GREEN',
+    },
+    templates: { total: 2, aprovados: 1, sincronizadoEm: '2026-10-26T03:00:00.000Z' },
+    ...ajustes,
+  };
+}
+
+export function templateDoCanal(ajustes: Partial<TemplateDoCanal> = {}): TemplateDoCanal {
+  return {
+    id: 't-1',
+    nome: 'pedido_atualizacao',
+    idioma: 'pt_BR',
+    categoria: 'UTILITY',
+    status: 'APPROVED',
+    usavel: true,
+    motivoIndisponivel: null,
+    cabecalho: null,
+    corpo: {
+      texto: 'Olá {{1}}, seu pedido {{2}} está {{3}}.',
+      variaveis: ['1', '2', '3'],
+    },
+    rodape: null,
+    botoes: [],
+    sincronizadoEm: '2026-10-26T03:00:00.000Z',
     ...ajustes,
   };
 }

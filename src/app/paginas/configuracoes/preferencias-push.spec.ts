@@ -13,6 +13,7 @@ const TIPOS: PreferenciasPush = {
   sla_estourado: true,
   negocio_atribuido: true,
   parcela_atrasada: false,
+  ligacao_recebida: true,
 };
 
 describe('cenário 139 — CartaoPush (avisos no aparelho)', () => {
@@ -92,12 +93,12 @@ describe('cenário 139 — CartaoPush (avisos no aparelho)', () => {
     expect(raiz.querySelector('details')).toBeNull();
   });
 
-  it('ativo: lista os seis tipos e salva a troca de um deles', () => {
+  it('ativo: lista os sete tipos e salva a troca de um deles', () => {
     situacao.set('ativo');
     const { fixture, raiz } = criar();
     const caixas = raiz.querySelectorAll<HTMLInputElement>('.push__tipos input[type=checkbox]');
-    expect(caixas).toHaveLength(6);
-    expect([...caixas].map((c) => c.checked)).toEqual([true, true, true, true, true, false]);
+    expect(caixas).toHaveLength(7);
+    expect([...caixas].map((c) => c.checked)).toEqual([true, true, true, true, true, false, true]);
     caixas[5].click();
     fixture.detectChanges();
     expect(push.salvarPreferencias).toHaveBeenCalledWith({ ...TIPOS, parcela_atrasada: true });

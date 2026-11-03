@@ -19,6 +19,7 @@ import {
 import {
   ANA,
   CANAL_INSTAGRAM,
+  CANAL_OFICIAL,
   conversaDetalhe,
   conversaResumo,
   EU,
@@ -132,8 +133,20 @@ describe('apresentação do Atendimento', () => {
   });
 
   describe('janela de 24 h', () => {
-    it('só no Instagram e no Messenger', () => {
+    it('só no Instagram, no Messenger e no WhatsApp oficial', () => {
       expect(janela24h(conversaResumo(), AGORA)).toBeNull();
+      expect(janela24h(conversaResumo({ canal: CANAL_OFICIAL, janelaAte: null }), AGORA)).toEqual(
+        expect.objectContaining({ aberta: false }),
+      );
+    });
+
+    it('a mensagem de template ganha a etiqueta "template"', () => {
+      const mensagem = paraMensagemConversa(
+        mensagemDto({ direcao: 'SAIDA', metadados: { template: { id: 't-1' } } }),
+        { contato: 'Ana' },
+      );
+      expect(mensagem.etiqueta).toBe('template');
+      expect(paraMensagemConversa(mensagemDto(), { contato: 'Ana' }).etiqueta).toBeNull();
     });
 
     it('aberta: até quando; fechada: quando fechou', () => {
