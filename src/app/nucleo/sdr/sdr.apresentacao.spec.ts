@@ -65,11 +65,12 @@ describe('apresentação do SDR com IA', () => {
       const texto = textoDoEvento(
         decisaoDeTeste({
           tipo: 'PASSOU_HUMANO',
-          titulo: 'Passou para a equipe: o lead pediu uma pessoa',
+          titulo: 'Passou para a equipe',
+          motivo: 'o lead pediu uma pessoa',
           resumo: 'x'.repeat(400),
         }),
       );
-      expect(texto).toContain('Passou para a equipe: o lead pediu uma pessoa.');
+      expect(texto).toContain('Passou para a equipe. Motivo: o lead pediu uma pessoa');
       expect(texto).toContain('Resumo: xxx');
       expect(texto!.length).toBeLessThan(330);
       expect(texto).toMatch(/…$/);

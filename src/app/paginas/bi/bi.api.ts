@@ -22,6 +22,7 @@ export const FILTROS_DO_PAINEL: Readonly<
   comercial: ['equipeId', 'pessoaId', 'funilId'],
   cs: ['equipeId', 'pessoaId', 'funilId'],
   atendimento: ['area', 'equipeId', 'pessoaId', 'canalId', 'filaId'],
+  sdr: ['area', 'equipeId', 'pessoaId', 'canalId', 'filaId'],
   financeiro: ['equipeId', 'pessoaId'],
 };
 

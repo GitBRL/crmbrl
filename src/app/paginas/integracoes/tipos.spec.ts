@@ -7,4 +7,15 @@ describe('eventos de webhook de saída', () => {
     expect(descricao).toContain('duração');
     expect(descricao).toContain('Nunca leva áudio nem transcrição');
   });
+
+  it('eventos do SDR com IA têm rótulo e descrição do que chega', () => {
+    expect(rotuloDoEvento('sdr.lead_qualificado')).toBe('Lead qualificado pela IA');
+    expect(rotuloDoEvento('sdr.lead_desqualificado')).toBe('Lead desqualificado pela IA');
+    expect(descricaoDoEvento('sdr.lead_qualificado', 'Lead qualificado pela IA.')).toContain(
+      'temperatura',
+    );
+    expect(descricaoDoEvento('sdr.lead_desqualificado', 'Lead desqualificado pela IA')).toContain(
+      'motivo',
+    );
+  });
 });

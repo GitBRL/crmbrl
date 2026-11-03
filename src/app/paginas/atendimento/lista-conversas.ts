@@ -277,18 +277,6 @@ export class ListaConversas {
         }
       });
     });
-    // "Atendidas pela IA" filtra as conversas já carregadas: busca mais páginas até aparecer o bastante.
-    effect(() => {
-      if (
-        this.filtros().atendidasPelaIa &&
-        this.estado.situacao() === 'pronta' &&
-        this.linhas().length < 10 &&
-        this.estado.temMais() &&
-        !this.estado.carregandoMais()
-      ) {
-        untracked(() => this.estado.carregarMais());
-      }
-    });
     inject(DestroyRef).onDestroy(() => clearTimeout(this.esperaBusca));
   }
 

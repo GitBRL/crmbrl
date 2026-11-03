@@ -80,6 +80,8 @@ export function paraFiltrosDaApi(
     etiqueta: filtros.etiqueta ? [filtros.etiqueta] : [],
     naoLidas: filtros.naoLidas || undefined,
     slaEstourado: filtros.slaEstourado || undefined,
+    // "Atendidas pela IA" = a IA está falando com o lead agora (situação ATIVA).
+    ...(filtros.atendidasPelaIa ? { atendidasPelaIa: true, sdrSituacao: 'ATIVA' } : {}),
     busca: filtros.busca.trim() || undefined,
     ...(filtros.filaId ? { filaId: filtros.filaId } : {}),
     ...(filtros.canalId ? { canalId: filtros.canalId } : {}),
@@ -181,7 +183,6 @@ export class EstadoAtendimento {
           this.chaveFiltros,
           JSON.stringify({ escopo: filtros.escopo, situacao: filtros.situacao }),
         );
-        // "Atendidas pela IA" filtra na tela: a API não é consultada de novo por ele.
         const pedido = JSON.stringify(paraFiltrosDaApi(filtros));
         if (pedido !== this.ultimoPedido) {
           this.ultimoPedido = pedido;

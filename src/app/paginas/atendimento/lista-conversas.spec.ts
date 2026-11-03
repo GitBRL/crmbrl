@@ -247,6 +247,21 @@ describe('ListaConversas', () => {
     expect(itensNaTela()[0].getAttribute('aria-label')).toContain('IA atendendo');
     estado.mudarFiltros({ atendidasPelaIa: true });
     await fixture.whenStable();
+    // O filtro vai para a API (atendidasPelaIa e sdrSituacao) e a lista é recarregada.
+    const pedido = http.expectOne(
+      (r) => r.url === CONVERSAS && r.params.get('atendidasPelaIa') === 'true',
+    );
+    expect(pedido.request.params.get('sdrSituacao')).toBe('ATIVA');
+    pedido.flush(
+      paginaConversas([
+        conversaResumo({
+          id: 'ia',
+          contato: { id: 'ct2', nome: 'Lead da IA', email: null, telefone: null },
+          sdr: { situacao: 'ATIVA', modo: 'AUTOMATICO', nota: 20, temperatura: 'FRIO' },
+        }),
+      ]),
+    );
+    await fixture.whenStable();
     expect(itensNaTela().map((a) => a.getAttribute('data-conversa'))).toEqual(['ia']);
     expect(texto(raiz.querySelector('.lista__filtros'))).toContain('Atendidas pela IA');
   });

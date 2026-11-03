@@ -162,6 +162,8 @@ export type EventoDeWebhook =
   | 'atividade.concluida'
   | 'usuario.desligado'
   | 'ligacao.encerrada'
+  | 'sdr.lead_qualificado'
+  | 'sdr.lead_desqualificado'
   | 'webhook.teste';
 
 export type StatusEntrega = 'PENDENTE' | 'ENTREGUE' | 'FALHOU';
@@ -324,6 +326,8 @@ export const ROTULO_EVENTO: Readonly<Record<EventoDeWebhook, string>> = {
   'atividade.concluida': 'Atividade concluída',
   'usuario.desligado': 'Usuário desligado',
   'ligacao.encerrada': 'Ligação encerrada',
+  'sdr.lead_qualificado': 'Lead qualificado pela IA',
+  'sdr.lead_desqualificado': 'Lead desqualificado pela IA',
   'webhook.teste': 'Evento de teste',
 };
 
@@ -338,6 +342,10 @@ const DESCRICAO_COMPLEMENTAR: Readonly<Partial<Record<EventoDeWebhook, string>>>
   'atividade.concluida': 'Atividade marcada como concluída, com quem concluiu e quando.',
   'ligacao.encerrada':
     'Ligação do WhatsApp que terminou (atendida, perdida, recusada, sem resposta ou com falha), com duração, espera, contato e atendente. Nunca leva áudio nem transcrição.',
+  'sdr.lead_qualificado':
+    'O SDR com IA qualificou o lead e passou o negócio para o Comercial: contato, negócio, vendedor, canal, nota, temperatura, critérios e resumo.',
+  'sdr.lead_desqualificado':
+    'O SDR com IA desqualificou o lead: contato, canal, nota, temperatura, critérios, motivo e resumo. Nenhum vendedor é escolhido.',
 };
 
 export function descricaoDoEvento(evento: string, descricaoDaApi: string): string {

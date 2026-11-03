@@ -166,6 +166,9 @@ export interface FiltrosConversas {
   readonly etiqueta?: readonly string[];
   readonly naoLidas?: boolean;
   readonly slaEstourado?: boolean;
+  /** Filtros do SDR com IA (Onda G): a API filtra, inclusive nas páginas ainda não carregadas. */
+  readonly atendidasPelaIa?: boolean;
+  readonly sdrSituacao?: string;
   readonly contatoId?: string;
   readonly busca?: string;
   readonly pagina?: number;

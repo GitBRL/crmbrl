@@ -92,7 +92,7 @@ suas e as sem responsável da área). Marketing não acessa.
   Comercial, passou para a equipe e por quê, com o resumo). **Assumir** faz a IA parar e a conversa ficar com você;
   **Devolver para a IA** a põe para atender de novo (os dois pedem uma confirmação curta). No modo sugestão, o
   painel **Resposta sugerida pela IA** fica acima do campo de mensagem: **Enviar**, **Editar e enviar** ou
-  **Descartar**. O filtro **Atendidas pela IA** (em **Filtros**) mostra só essas conversas. Artigo:
+  **Descartar**. O filtro **Atendidas pela IA** (em **Filtros**) mostra só as conversas em que a IA está atendendo agora, entre todas as que você pode ver. Artigo:
   `atendimento-sdr-ia.md`.
 - **Atalhos de teclado.** Funcionam pela posição da tecla (em qualquer layout): **Alt** no Windows e no Linux,
   **Control+Shift** no Mac. A dica de atalhos do Atendimento mostra os certos.
@@ -173,17 +173,21 @@ Detalhes: `disparos-*.md`, `configuracoes-disparos.md`, `chatbot-*.md`.
 
 ## 8. BI e relatórios
 
-Cada papel vê as abas do seu painel (Marketing, Comercial, Sucesso do cliente, Atendimento e Financeiro para
-Admin e C-level). Use os filtros de período e clique nos números para ver o detalhe; **Exportar** gera XLSX
+Cada papel vê as abas do seu painel (Marketing, Comercial, Sucesso do cliente, Atendimento, SDR com IA e Financeiro
+para Admin e C-level). Use os filtros de período e clique nos números para ver o detalhe; **Exportar** gera XLSX
 ou CSV. O Admin tem ainda **Analisar com IA**, que lê só números agregados, sem dados pessoais. A aba
 **Atendimento** mostra também as **ligações**: recebidas, feitas, atendidas, perdidas, taxa de atendimento, espera
-e duração média, e os gráficos por hora do dia e por atendente.
+e duração média, e os gráficos por hora do dia e por atendente. A aba **SDR com IA** (Admin, C-level, líder e
+membro de Comercial e CS) mostra o que a assistente virtual atendeu, qualificou, desqualificou e passou para a
+equipe, o tempo de primeira resposta, a conversão para o Comercial e os motivos das passagens; o gasto em tokens
+só aparece para Admin e C-level. Artigo: `bi-usar-paineis.md`.
 
 ## 9. Automações
 
 Admin e C-level (todas) e líderes (da área) criam regras do tipo "quando acontecer X, faça Y". Sempre **teste**
 antes de ligar. Os membros não acessam. Há gatilhos de **ligação perdida** (ligação recebida que ninguém
-atendeu) e de **ligação encerrada** (com filtros de canal, direção e resultado).
+atendeu) e de **ligação encerrada** (com filtros de canal, direção e resultado). O gatilho **Lead qualificado pela IA** roda para o negócio que o SDR
+abriu no Comercial, com filtros de temperatura (quente, morno, frio), tipo de canal e canal.
 
 ## 10. Financeiro
 
@@ -308,7 +312,7 @@ CRM: para não perder ligações, mantenha o CRM aberto ou atenda pelo computado
   ligação nem ligação por telefone comum.
 - Disparos são graduais, não envio instantâneo em massa; quem pediu opt-out não recebe.
 - Não move negócio direto de um funil a outro (só pelas passagens) e não exclui os três funis.
-- Sem bancos, boleto, Pix ou nota fiscal; sem agenda externa (Google, Outlook); integrações só por webhooks.
+- Sem bancos, boleto, Pix ou nota fiscal; sem agenda externa (Google, Outlook); integrações só por webhooks (os de saída incluem os eventos **Lead qualificado pela IA** e **Lead desqualificado pela IA**).
 - A interface é só em português, e o app é o próprio navegador (não há loja de aplicativos).
 
 Lista completa: `limites-o-que-o-crm-nao-faz.md`.

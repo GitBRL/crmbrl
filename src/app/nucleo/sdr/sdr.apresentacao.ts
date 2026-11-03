@@ -121,7 +121,8 @@ export function textoDoEvento(decisao: DecisaoDoSdr): string | null {
     case 'DESQUALIFICADO':
       return `IA: ${fim(decisao.titulo)}${decisao.motivo ? ` Motivo: ${encurtar(decisao.motivo, 160)}` : ''}`;
     case 'PASSOU_HUMANO':
-      return `IA: ${fim(decisao.titulo)}${resumoDe(decisao)}`;
+      // O título padrão não leva o motivo (ele vai no campo próprio); os de bloqueio e falha já o dizem.
+      return `IA: ${fim(decisao.titulo)}${decisao.motivo && decisao.titulo === 'Passou para a equipe' ? ` Motivo: ${encurtar(decisao.motivo, 160)}` : ''}${resumoDe(decisao)}`;
     case 'DEVOLVIDA':
       return fim(decisao.titulo);
     case 'BLOQUEIO':

@@ -246,6 +246,37 @@ describe('BI (página)', () => {
     expect(raiz.textContent).toContain('Conversas em aberto');
   });
 
+  it('painel do SDR: cartões, gráficos, bloco de tokens só com a coluna e filtro de canal', async () => {
+    const { harness, raiz } = await abrir('/bi/sdr', ['atendimento', 'sdr']);
+    expect(raiz.textContent).toContain('Atendidas pela IA');
+    expect(raiz.textContent).toContain('Em atendimento agora');
+    expect(raiz.textContent).toContain('Conversas da IA por dia');
+    expect(raiz.textContent).toContain('Tokens gastos por dia');
+    expect(raiz.textContent).toContain('Motivos das passagens');
+    expect(grafico.opcoes.length).toBeGreaterThanOrEqual(4);
+    // Sem a coluna de tokens (quem não vê o custo), o bloco some.
+    const semCusto = {
+      ...PAINEIS_DE_TESTE.sdr,
+      tabelas: {
+        ...PAINEIS_DE_TESTE.sdr.tabelas,
+        porDia: {
+          ...PAINEIS_DE_TESTE.sdr.tabelas['porDia'],
+          colunas: PAINEIS_DE_TESTE.sdr.tabelas['porDia'].colunas.filter(
+            (c) => c.chave !== 'tokens',
+          ),
+        },
+      },
+    };
+    [...raiz.querySelectorAll<HTMLElement>('[role="radio"]')]
+      .find((e) => texto(e) === '7 dias')
+      ?.click();
+    await estabilizar(harness);
+    http.expectOne((r) => r.url === '/api/v1/bi/sdr').flush(semCusto);
+    await estabilizar(harness);
+    expect(raiz.textContent).not.toContain('Tokens gastos por dia');
+    expect(raiz.textContent).toContain('Conversas da IA por dia');
+  });
+
   it('o período de 7 dias refaz a consulta', async () => {
     const { harness, raiz } = await abrir('/bi/comercial', ['comercial']);
     [...raiz.querySelectorAll<HTMLElement>('[role="radio"]')]

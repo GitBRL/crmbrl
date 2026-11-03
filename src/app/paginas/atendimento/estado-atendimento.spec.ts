@@ -231,6 +231,9 @@ describe('filtros da lista', () => {
         porPagina: 50,
       }),
     );
+    expect(paraFiltrosDaApi({ ...FILTROS_PADRAO, atendidasPelaIa: true })).toEqual(
+      expect.objectContaining({ atendidasPelaIa: true, sdrSituacao: 'ATIVA' }),
+    );
   });
 
   it('contam os ligados além do escopo e da busca', () => {
