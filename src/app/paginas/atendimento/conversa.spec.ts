@@ -6,8 +6,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 
 import { AvisosService } from '../../nucleo/avisos.service';
+import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
 import { provideSocketFalso } from '../../nucleo/tempo-real/tempo-real-de-teste';
+import { estadoSdrDeTeste, estadoSdrSemIa } from '../../nucleo/sdr/sdr-de-teste';
+import type { EstadoDoSdr } from '../../nucleo/sdr/sdr.tipos';
 import type { ConversaDetalhe, MensagemDaConversa } from './atendimento.tipos';
 import { templateDoCanal } from '../configuracoes/canais/dados-de-teste';
 import { Conversa } from './conversa';
@@ -26,9 +29,11 @@ import {
   texto,
 } from './dados-de-teste';
 import { EstadoAtendimento } from './estado-atendimento';
+import { decisaoDeTeste } from '../../nucleo/sdr/sdr-de-teste';
 
 const DETALHE = '/api/v1/atendimento/conversas/c1';
 const MENSAGENS = '/api/v1/atendimento/conversas/c1/mensagens';
+const SDR = '/api/v1/sdr/conversas/c1';
 
 @Component({
   imports: [Conversa],
@@ -133,6 +138,7 @@ describe('Conversa (Atendimento)', () => {
   async function criar(
     detalhe: ConversaDetalhe = conversaDetalhe(),
     mensagens: MensagemDaConversa[] = [mensagemDto()],
+    sdr: EstadoDoSdr = estadoSdrSemIa(),
   ) {
     const fixture = TestBed.createComponent(Hospedeiro);
     await fixture.whenStable();
@@ -144,6 +150,7 @@ describe('Conversa (Atendimento)', () => {
       http.match(`/api/v1/atendimento/${apoio}`).forEach((p) => p.flush([]));
     }
     http.expectOne(DETALHE).flush(detalhe);
+    http.expectOne(SDR).flush(sdr);
     http.expectOne((r) => r.url === MENSAGENS).flush(paginaMensagens(mensagens));
     await assentar();
     await fixture.whenStable();
@@ -550,5 +557,184 @@ describe('Conversa (Atendimento)', () => {
     const raiz = fixture.nativeElement as HTMLElement;
     expect(texto(raiz)).toContain('Conversa não encontrada');
     expect(texto(raiz)).toContain('Voltar para a lista');
+  });
+
+  describe('SDR com IA', () => {
+    const SEM_RESPONSAVEL = conversaDetalhe({
+      responsavel: null,
+      sdr: { situacao: 'ATIVA', modo: 'AUTOMATICO', nota: 40, temperatura: 'MORNO' },
+      acoes: {
+        assumir: true,
+        transferir: false,
+        resolver: false,
+        reabrir: false,
+        responder: true,
+        criarNegocio: true,
+      },
+    });
+
+    function confirmarSempre(): void {
+      vi.spyOn(TestBed.inject(ConfirmacaoService), 'confirmar').mockImplementation(
+        async (pedido) => {
+          await pedido.executar?.();
+          return true;
+        },
+      );
+    }
+
+    it('selo "IA atendendo" no cabeçalho e as decisões como avisos discretos (sem repetir as da mensagem)', async () => {
+      const { raiz, bolhas } = await criar(
+        SEM_RESPONSAVEL,
+        [
+          mensagemDto({ id: 'm1', ocorridaEm: ha(10) }),
+          mensagemDto({
+            id: 'm2',
+            direcao: 'SISTEMA',
+            autorTipo: 'IA',
+            texto: 'A IA passou a conversa para a equipe.',
+            ocorridaEm: ha(2),
+          }),
+        ],
+        estadoSdrDeTeste({
+          situacao: 'ATIVA',
+          decisoes: [
+            decisaoDeTeste({ id: 'd1', tipo: 'ASSUMIU', titulo: 'A IA assumiu', criadoEm: ha(9) }),
+            decisaoDeTeste({
+              id: 'd2',
+              tipo: 'TURNO',
+              acao: 'CONTINUAR',
+              titulo: 'Respondeu · descobriu: Curso de interesse, Cidade · nota 40',
+              nota: 40,
+              criadoEm: ha(8),
+            }),
+            decisaoDeTeste({
+              id: 'd3',
+              tipo: 'PASSOU_HUMANO',
+              titulo: 'Passou para a equipe: o lead pediu uma pessoa',
+              resumo: 'Quer Direito em Campinas.',
+              criadoEm: ha(2),
+            }),
+          ],
+        }),
+      );
+      expect(texto(raiz.querySelector('.cabeca__ia'))).toContain('IA atendendo');
+      const linhas = bolhas();
+      expect(linhas.some((l) => l?.includes('A IA descobriu: Curso de interesse, Cidade'))).toBe(
+        true,
+      );
+      expect(linhas.some((l) => l?.includes('Resumo: Quer Direito em Campinas.'))).toBe(true);
+      expect(linhas.filter((l) => l?.includes('passou a conversa para a equipe'))).toHaveLength(0);
+      expect(texto(raiz.querySelector('app-faixa-sdr'))).toContain(
+        'Modo automático: a IA responde este lead sozinha',
+      );
+    });
+
+    it('"Assumir" com a IA atendendo pede confirmação e usa a rota do SDR', async () => {
+      confirmarSempre();
+      const { fixture, raiz } = await criar(SEM_RESPONSAVEL, [mensagemDto()], estadoSdrDeTeste());
+      [...raiz.querySelectorAll<HTMLButtonElement>('app-faixa-sdr button')]
+        .find((b) => b.textContent?.includes('Assumir'))!
+        .click();
+      const pedido = http.expectOne(`${SDR}/assumir`);
+      expect(pedido.request.method).toBe('POST');
+      pedido.flush(
+        estadoSdrDeTeste({ situacao: 'HUMANO', ativa: false, acoes: { devolver: true } }),
+      );
+      await assentar();
+      await fixture.whenStable();
+      http.match(DETALHE).forEach((p) => p.flush(conversaDetalhe()));
+      expect(texto(raiz.querySelector('app-faixa-sdr'))).toContain('Devolver para a IA');
+      expect(raiz.querySelector('.cabeca__ia')).toBeNull();
+    });
+
+    it('modo sugestão: painel com a resposta, "Editar e enviar" manda o texto editado', async () => {
+      const { fixture, raiz } = await criar(
+        SEM_RESPONSAVEL,
+        [mensagemDto()],
+        estadoSdrDeTeste({
+          modo: 'SUGESTAO',
+          sugestao: {
+            id: 's1',
+            texto: 'Olá! Qual curso você procura?',
+            acao: 'CONTINUAR',
+            motivo: null,
+            resumo: null,
+            criadoEm: ha(1),
+          },
+          acoes: { aprovarSugestao: true, descartarSugestao: true },
+        }),
+      );
+      const painel = raiz.querySelector('app-painel-sugestao')!;
+      expect(texto(painel)).toContain('Olá! Qual curso você procura?');
+      [...painel.querySelectorAll<HTMLButtonElement>('button')]
+        .find((b) => b.textContent?.includes('Editar e enviar'))!
+        .click();
+      await fixture.whenStable();
+      const campo = painel.querySelector<HTMLTextAreaElement>('textarea')!;
+      digitar(campo, 'Olá! Qual curso e em qual cidade?');
+      await fixture.whenStable();
+      [...painel.querySelectorAll<HTMLButtonElement>('button')]
+        .find((b) => b.textContent?.includes('Enviar editada'))!
+        .click();
+      const pedido = http.expectOne('/api/v1/sdr/sugestoes/s1/aprovar');
+      expect(pedido.request.body).toEqual({ texto: 'Olá! Qual curso e em qual cidade?' });
+      pedido.flush(estadoSdrDeTeste({ modo: 'SUGESTAO', sugestao: null }));
+      await assentar();
+      await fixture.whenStable();
+      http.match(DETALHE).forEach((p) => p.flush(SEM_RESPONSAVEL));
+      expect(raiz.querySelector('app-painel-sugestao')).toBeNull();
+    });
+
+    it('descartar a sugestão não envia nada', async () => {
+      const { fixture, raiz } = await criar(
+        SEM_RESPONSAVEL,
+        [mensagemDto()],
+        estadoSdrDeTeste({
+          modo: 'SUGESTAO',
+          sugestao: {
+            id: 's1',
+            texto: 'Oi!',
+            acao: 'CONTINUAR',
+            motivo: null,
+            resumo: null,
+            criadoEm: ha(1),
+          },
+          acoes: { aprovarSugestao: true, descartarSugestao: true },
+        }),
+      );
+      [...raiz.querySelectorAll<HTMLButtonElement>('app-painel-sugestao button')]
+        .find((b) => b.textContent?.includes('Descartar'))!
+        .click();
+      http
+        .expectOne('/api/v1/sdr/sugestoes/s1/descartar')
+        .flush(estadoSdrDeTeste({ modo: 'SUGESTAO', sugestao: null }));
+      await assentar();
+      await fixture.whenStable();
+      http.match(DETALHE).forEach((p) => p.flush(SEM_RESPONSAVEL));
+      expect(raiz.querySelector('app-painel-sugestao')).toBeNull();
+    });
+
+    it('o tempo real avisa que o SDR mudou e a faixa se atualiza', async () => {
+      const { fixture, raiz } = await criar(SEM_RESPONSAVEL, [mensagemDto()], estadoSdrDeTeste());
+      socket.ultimo().simularConexao();
+      socket.ultimo().receber('sdr.atualizado', {
+        conversaId: 'c1',
+        situacao: 'PASSADA_HUMANO',
+        modo: 'AUTOMATICO',
+        nota: 0,
+        temperatura: 'FRIO',
+        sugestaoPendente: false,
+        motivo: 'passou_humano',
+      });
+      await new Promise((resolver) => setTimeout(resolver, 450));
+      http
+        .expectOne(SDR)
+        .flush(
+          estadoSdrDeTeste({ situacao: 'PASSADA_HUMANO', ativa: false, acoes: { devolver: true } }),
+        );
+      await fixture.whenStable();
+      expect(texto(raiz.querySelector('app-faixa-sdr'))).toContain('Passada para a equipe');
+      expect(raiz.querySelector('.cabeca__ia')).toBeNull();
+    });
   });
 });

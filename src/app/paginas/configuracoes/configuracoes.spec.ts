@@ -43,7 +43,7 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     );
   }
 
-  it('Admin: usuários, distribuição, passagens, canais, atendimento, assistente e perfil', () => {
+  it('Admin: usuários, distribuição, passagens, canais, atendimento, assistente, SDR com IA e perfil', () => {
     expect(secoesDe('ADMIN')).toEqual([
       'Usuários',
       'Distribuição de leads',
@@ -52,6 +52,7 @@ describe('Configuracoes (moldura e seções por papel)', () => {
       'Atendimento',
       'Disparos',
       'Assistente de ajuda',
+      'SDR com IA',
       'Meu perfil',
     ]);
   });
@@ -63,7 +64,7 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     expect(
       (admin.nativeElement as HTMLElement).querySelector('.configuracoes__frase')?.textContent,
     ).toBe(
-      'Quem usa o CRM, a distribuição dos leads, as passagens entre funis, os canais de atendimento, as filas e os horários do atendimento, os limites dos disparos, o assistente de ajuda e o seu perfil.',
+      'Quem usa o CRM, a distribuição dos leads, as passagens entre funis, os canais de atendimento, as filas e os horários do atendimento, os limites dos disparos, o assistente de ajuda, o SDR com IA e o seu perfil.',
     );
     entrarComo('MARKETING');
     const membro = TestBed.createComponent(Configuracoes);

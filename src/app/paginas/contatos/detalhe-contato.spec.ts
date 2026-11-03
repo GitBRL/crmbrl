@@ -88,6 +88,10 @@ describe('DetalheContato (/contatos/:id)', () => {
     for (const pedido of http.match((req) => req.url.includes('/financeiro/risco-churn'))) {
       pedido.flush({ risco: null });
     }
+    // O cartão de qualificação do SDR com IA também consulta sozinho.
+    for (const pedido of http.match((req) => req.url.startsWith('/api/v1/sdr/'))) {
+      pedido.flush({ qualificacao: null });
+    }
     http.verify({ ignoreCancelled: true });
   });
 

@@ -144,6 +144,8 @@
         }
         @if (n.funil.area === 'CS') {
           <app-risco-churn [negocioId]="n.id" />
+        } @else {
+          <app-cartao-qualificacao [negocioId]="n.id" />
         }
 
         <dl class="vinculos">

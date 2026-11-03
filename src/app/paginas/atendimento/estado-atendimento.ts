@@ -38,6 +38,8 @@ export interface FiltrosLista {
   readonly etiqueta: string | null;
   readonly naoLidas: boolean;
   readonly slaEstourado: boolean;
+  /** Só as conversas em que a IA (SDR) está atendendo; o filtro é feito na tela. */
+  readonly atendidasPelaIa: boolean;
   readonly busca: string;
 }
 
@@ -50,6 +52,7 @@ export const FILTROS_PADRAO: FiltrosLista = {
   etiqueta: null,
   naoLidas: false,
   slaEstourado: false,
+  atendidasPelaIa: false,
   busca: '',
 };
 
@@ -94,7 +97,8 @@ export function filtrosLigados(filtros: FiltrosLista): number {
     (filtros.canalId ? 1 : 0) +
     (filtros.etiqueta ? 1 : 0) +
     (filtros.naoLidas ? 1 : 0) +
-    (filtros.slaEstourado ? 1 : 0)
+    (filtros.slaEstourado ? 1 : 0) +
+    (filtros.atendidasPelaIa ? 1 : 0)
   );
 }
 
@@ -165,6 +169,7 @@ export class EstadoAtendimento {
   readonly foco = signal<{ readonly alvo: AlvoFoco; readonly vez: number } | null>(null);
 
   private pagina = 1;
+  private ultimoPedido = '';
   private carga: Subscription | null = null;
   private conferencia: ReturnType<typeof setTimeout> | undefined;
 
@@ -176,7 +181,12 @@ export class EstadoAtendimento {
           this.chaveFiltros,
           JSON.stringify({ escopo: filtros.escopo, situacao: filtros.situacao }),
         );
-        this.carregar(filtros);
+        // "Atendidas pela IA" filtra na tela: a API não é consultada de novo por ele.
+        const pedido = JSON.stringify(paraFiltrosDaApi(filtros));
+        if (pedido !== this.ultimoPedido) {
+          this.ultimoPedido = pedido;
+          this.carregar(filtros);
+        }
       });
     });
     effect(() =>

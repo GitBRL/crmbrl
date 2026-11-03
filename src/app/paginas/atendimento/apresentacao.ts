@@ -339,7 +339,7 @@ export function paraMensagemConversa(
       : dto.autor
         ? { id: dto.autor.id, nome: dto.autor.nome, foto: dto.autor.avatarUrl ?? null }
         : dto.direcao === 'SAIDA'
-          ? { nome: 'Resposta automática' }
+          ? { nome: dto.autorTipo === 'IA' ? 'IA' : 'Resposta automática' }
           : null;
   const citada = dto.respostaA;
   return {
@@ -347,7 +347,7 @@ export function paraMensagemConversa(
     direcao: dto.direcao,
     tipo: dto.tipo,
     texto: especial?.texto ?? dto.texto,
-    etiqueta: dto.metadados?.['template'] ? 'template' : null,
+    etiqueta: dto.metadados?.['template'] ? 'template' : dto.autorTipo === 'IA' ? 'IA' : null,
     trechos: especial?.trechos ?? (dto.texto ? trechosDoTexto(dto.texto) : null),
     anexo: dto.arquivo
       ? {

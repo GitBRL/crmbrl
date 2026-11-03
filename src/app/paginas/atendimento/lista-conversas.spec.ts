@@ -226,4 +226,28 @@ describe('ListaConversas', () => {
     [...raiz.querySelectorAll('button')].find((b) => texto(b) === 'Tentar de novo')!.click();
     http.expectOne((r) => r.url === CONVERSAS).flush(paginaConversas([]));
   });
+
+  it('selo "IA atendendo" na linha e o filtro "Atendidas pela IA" mostra só essas', async () => {
+    const { fixture, raiz, itensNaTela, estado } = await criar([
+      conversaResumo({
+        id: 'ia',
+        contato: { id: 'ct2', nome: 'Lead da IA', email: null, telefone: null },
+        sdr: { situacao: 'ATIVA', modo: 'AUTOMATICO', nota: 20, temperatura: 'FRIO' },
+      }),
+      conversaResumo({ id: 'humano' }),
+      conversaResumo({
+        id: 'passada',
+        sdr: { situacao: 'PASSADA_HUMANO', modo: 'AUTOMATICO', nota: 0, temperatura: 'FRIO' },
+      }),
+    ]);
+    expect(itensNaTela()).toHaveLength(3);
+    const comSelo = raiz.querySelectorAll('a.item app-selo-ia app-selo');
+    expect(comSelo).toHaveLength(1);
+    expect(texto(itensNaTela()[0])).toContain('IA atendendo');
+    expect(itensNaTela()[0].getAttribute('aria-label')).toContain('IA atendendo');
+    estado.mudarFiltros({ atendidasPelaIa: true });
+    await fixture.whenStable();
+    expect(itensNaTela().map((a) => a.getAttribute('data-conversa'))).toEqual(['ia']);
+    expect(texto(raiz.querySelector('.lista__filtros'))).toContain('Atendidas pela IA');
+  });
 });

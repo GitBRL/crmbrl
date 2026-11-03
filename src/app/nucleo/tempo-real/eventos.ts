@@ -39,6 +39,7 @@ import type { Notificacao } from '../notificacoes.service';
  * | `ligacao.estado`      | `{ ligacaoId, estado, motivo?, atendidaEm? }` (E2)                     |
  * | `ligacao.encerrada`   | `{ ligacaoId, estado, duracaoSegundos, motivo, motivoTexto }` (E2)     |
  * | `ligacao.permissao`   | a permissão de ligar do contato (sala `conversa:<id>`) (E2)            |
+ * | `sdr.atualizado`      | `{ conversaId, situacao, modo, nota, temperatura, sugestaoPendente, motivo }` (G) |
  *
  * Cliente → servidor (com confirmação `{ ok }` ou `{ ok: false, erro, mensagem }`):
  * `conversa.entrar`/`sair` `{ conversaId }`, `chat.entrar`/`sair` `{ canalId }` e `digitando`
@@ -207,6 +208,21 @@ export interface EventoReguaProgresso {
   readonly situacao?: string;
 }
 
+/**
+ * O estado do SDR com IA numa conversa mudou (a IA assumiu, nova sugestão, critério descoberto,
+ * qualificada, passou para humano…). Sala `conversa:<id>`; recarregue `GET /sdr/conversas/:id`.
+ */
+export interface EventoSdrAtualizado {
+  readonly conversaId: string;
+  readonly situacao: string;
+  readonly modo: string;
+  readonly nota: number | null;
+  readonly temperatura: string | null;
+  /** Há uma sugestão da IA esperando o atendente (modo sugestão). */
+  readonly sugestaoPendente: boolean;
+  readonly motivo: string;
+}
+
 /** Servidor → cliente. */
 export interface EventosServidor {
   'notificacao.nova': EventoNotificacaoNova;
@@ -231,6 +247,7 @@ export interface EventosServidor {
   'ligacao.encerrada': EventoLigacaoEncerrada;
   'ligacao.processada': EventoLigacaoProcessada;
   'ligacao.permissao': EventoLigacaoPermissao;
+  'sdr.atualizado': EventoSdrAtualizado;
 }
 
 export type EventoServidor = keyof EventosServidor;

@@ -1,0 +1,92 @@
+<app-cartao
+  titulo="Qualificação"
+  [nivel]="nivel()"
+  dica="O SDR com IA conversa com o lead, descobre os critérios que o Admin configurou e dá uma nota de 0 a 100 e uma temperatura (quente, morno ou frio). Cada valor mostra quem o descobriu e a confiança da IA."
+>
+  @if (carregando()) {
+    <div class="qual__carregando" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando a qualificação…</p>
+      <app-esqueleto forma="texto" largura="60%" />
+      <app-esqueleto forma="texto" largura="90%" />
+      <app-esqueleto forma="texto" largura="75%" />
+    </div>
+  } @else if (falha(); as erro) {
+    <div class="qual__aviso" role="alert">
+      @if (erro.ehSemPermissao) {
+        <p>Você não tem acesso à qualificação deste lead.</p>
+      } @else {
+        <p>Não deu para carregar a qualificação. {{ erro.mensagem }}</p>
+        <button appBotao type="button" tamanho="sm" variante="contorno" (click)="tentarDeNovo()">
+          Tentar de novo
+        </button>
+      }
+    </div>
+  } @else if (qualificacao(); as q) {
+    <div class="qual__resumo">
+      <app-selo [variante]="varianteSituacao[q.situacao]">{{
+        rotuloSituacao[q.situacao]
+      }}</app-selo>
+      <app-selo-temperatura [temperatura]="q.temperatura" [nota]="q.nota" />
+      @if (q.nota !== null) {
+        <p class="qual__nota numeros">
+          Nota <strong>{{ q.nota }}</strong> de 100
+          <span class="qual__minima">(a partir de {{ q.notaMinima }} qualifica)</span>
+        </p>
+      } @else {
+        <p class="qual__nota">Ainda sem nota.</p>
+      }
+    </div>
+
+    @if (q.criterios.length) {
+      <h4 class="qual__subtitulo">
+        Critérios
+        <span class="qual__contagem numeros">{{ descobertos() }} de {{ q.criterios.length }}</span>
+      </h4>
+      <ul class="qual__criterios" aria-label="Critérios de qualificação">
+        @for (criterio of q.criterios; track criterio.chave) {
+          <li class="criterio" [class.criterio--vazio]="!criterio.descoberto">
+            <span class="criterio__rotulo">
+              {{ criterio.rotulo }}
+              @if (criterio.obrigatorio) {
+                <span class="criterio__obrigatorio">obrigatório</span>
+              }
+            </span>
+            @if (criterio.descoberto) {
+              <span class="criterio__valor">{{ criterio.valorFormatado }}</span>
+              <span class="criterio__meta">
+                {{ rotuloDaOrigem(criterio.origem) ?? 'IA' }}
+                @if (percentual(criterio.confianca); as confianca) {
+                  · confiança {{ confianca }}
+                }
+              </span>
+            } @else {
+              <span class="criterio__valor criterio__valor--vazio">
+                {{ faltaObrigatorio(criterio.chave) ? 'Falta descobrir' : 'Ainda não descoberto' }}
+              </span>
+            }
+          </li>
+        }
+      </ul>
+    }
+
+    @if (q.motivo && (q.situacao === 'DESQUALIFICADA' || q.situacao === 'PASSADA_HUMANO')) {
+      <p class="qual__texto"><strong>Motivo:</strong> {{ q.motivo }}</p>
+    }
+    @if (q.resumo) {
+      <details class="qual__detalhe">
+        <summary>Resumo da IA</summary>
+        <p class="qual__texto">{{ q.resumo }}</p>
+      </details>
+    }
+
+    <p class="qual__rodape">
+      Atualizada {{ formatarDataHora(q.atualizadoEm) }} ·
+      <a class="qual__link" [routerLink]="['/atendimento', q.conversaId]">Abrir a conversa</a>
+    </p>
+  } @else {
+    <p class="qual__vazio">
+      A IA ainda não conversou com este lead. Quando ela atender, os critérios, a nota e a
+      temperatura aparecem aqui.
+    </p>
+  }
+</app-cartao>

@@ -86,6 +86,14 @@ suas e as sem responsável da área). Marketing não acessa.
   transcrição (clique num trecho para ouvir aquele ponto) e ver o resumo e as atividades sugeridas. As ligações
   também aparecem na **linha do tempo** do contato e da empresa, com resultado, duração e resumo, e as últimas
   cinco no painel do contato. Artigo: `atendimento-historico-de-ligacoes.md`.
+- **Conversas atendidas pela IA (SDR).** Nos canais em que o Admin ligou o SDR com IA, o lead novo é atendido pela
+  assistente virtual: a conversa ganha o selo **IA atendendo** (**IA sugerindo** no modo sugestão), uma faixa que
+  explica a situação e linhas discretas com o que a IA decidiu (critério descoberto, qualificado e passado para o
+  Comercial, passou para a equipe e por quê, com o resumo). **Assumir** faz a IA parar e a conversa ficar com você;
+  **Devolver para a IA** a põe para atender de novo (os dois pedem uma confirmação curta). No modo sugestão, o
+  painel **Resposta sugerida pela IA** fica acima do campo de mensagem: **Enviar**, **Editar e enviar** ou
+  **Descartar**. O filtro **Atendidas pela IA** (em **Filtros**) mostra só essas conversas. Artigo:
+  `atendimento-sdr-ia.md`.
 - **Atalhos de teclado.** Funcionam pela posição da tecla (em qualquer layout): **Alt** no Windows e no Linux,
   **Control+Shift** no Mac. A dica de atalhos do Atendimento mostra os certos.
 - **Painel do contato.** Ao lado da conversa estão os dados do contato, os negócios e o histórico.
@@ -103,6 +111,9 @@ Detalhes: artigos `atendimento-*.md`.
 - **Criar contato ou empresa:** botão de novo cadastro. O CRM avisa de possíveis duplicados (telefone e e-mail).
 - **Importar de planilha** (Admin, C-level e líderes): assistente em quatro passos (Arquivo, Colunas, Opções,
   Importação) com relatório em Excel.
+- **Qualificação (SDR com IA):** o detalhe do contato tem o cartão **Qualificação**, com a nota de 0 a 100, a
+  temperatura (**Quente**, **Morno** ou **Frio**, sempre em texto), cada critério que a IA descobriu (valor, quem
+  descobriu e confiança) e o resumo. Se a IA nunca conversou com o contato, o cartão diz isso.
 - **Privacidade (LGPD):** marque **opt-out** ou **Não contatar por WhatsApp** quando o cliente pedir. Só o Admin
   exporta os dados pessoais de um contato (botão **Exportar dados pessoais**, baixa um arquivo `.json` para
   enviar à própria pessoa) ou o anonimiza, e a anonimização não volta atrás.
@@ -117,6 +128,9 @@ Há um funil por área: **Marketing**, **Comercial** e **Customer Success** (men
   próxima atividade. "Parado" em coral indica prazo da etapa vencido. Filtros: Meus, Da equipe, Todos.
 - **Mover um negócio:** arraste o cartão (mouse, dedo ou teclado) ou use "⋯" > **Mover para…**. Na etapa de
   perda o CRM pede o motivo; na de ganho, o negócio segue para o Customer Success.
+- **Temperatura do lead:** quando o negócio veio de uma conversa atendida pela IA, o cartão mostra **Quente**,
+  **Morno** ou **Frio** (ícone, cor e texto) e a nota, por exemplo "Quente 100/100". No detalhe do negócio, o cartão
+  **Qualificação** traz os critérios e o resumo. Artigo: `atendimento-sdr-ia.md`.
 - **Assumir** um negócio sem responsável: botão **Assumir** no cartão.
 - **Novo negócio** e **detalhe do negócio:** editar, registrar atividades, marcar como perdido e reabrir
   (reabrir é do líder da área, C-level e Admin).
@@ -214,6 +228,16 @@ O CRM não emite boleto, Pix nem nota fiscal e não se conecta a bancos: a baixa
 - **Assistente de ajuda (Admin):** quantas perguntas cada pessoa pode fazer por dia (0 desliga o assistente), o
   orçamento mensal da IA e para onde vão os chamados (TicketHub, webhook ou nenhum). Segredos nunca aparecem na
   tela depois de salvos.
+- **SDR com IA (Admin):** uma assistente virtual que responde o lead novo, descobre os critérios de qualificação e
+  passa o lead qualificado para o Comercial. Seis partes: **Canais** (por canal: desligado, automático ou sugestão;
+  avisa quando uma automação, como "Boas-vindas ao lead", manda mensagem a todo lead novo antes da IA),
+  **Persona** (nome, tom, apresentação como assistente virtual e mensagem de passagem), **Base de conhecimento**
+  (artigos em texto, versões e publicar; a IA só afirma o que estiver neles), **Critérios** (o que descobrir, tipo,
+  onde gravar, peso e obrigatório; arrastar para ordenar; restaurar o modelo de captação de alunos),
+  **Temperatura e limites** (notas de quente, morno e qualificado, quando passar para uma pessoa, orçamento mensal
+  com o consumo, mensagens por conversa, espera de agrupamento e modelo) e **Simulador** (conversa de teste que
+  mostra a cada resposta os critérios descobertos, a nota, a temperatura e a ação, sem enviar nada nem gravar no
+  contato). Artigo: `configuracoes-sdr-ia.md`.
 
 ## 12. Administração e Saúde do sistema (Admin)
 
