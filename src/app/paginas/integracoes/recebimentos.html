@@ -55,7 +55,12 @@
                 <span class="historico__app">· {{ recebimento.aplicativoNome }}</span></span
               >
             }
-            {{ recebimento.mensagem ?? 'Aguardando a fila processar este envio.' }}
+            @if (evento(recebimento); as evento_) {
+              <span class="historico__evento" [title]="evento_.codigo ?? ''" data-teste="evento">{{
+                evento_.nome
+              }}</span>
+            }
+            {{ acao(recebimento) ?? 'Aguardando a fila processar este envio.' }}
           </span>
           <time
             class="historico__meta"
@@ -73,6 +78,23 @@
                 <dt>Recebido em</dt>
                 <dd>{{ dataHora(recebimento.recebidoEm) }}</dd>
               </div>
+              @if (evento(recebimento); as evento_) {
+                <div>
+                  <dt>Evento</dt>
+                  <dd data-teste="evento-detalhe">
+                    {{ evento_.nome }}
+                    @if (evento_.codigo) {
+                      <code class="historico__codigo">{{ evento_.codigo }}</code>
+                    }
+                  </dd>
+                </div>
+                @if (acao(recebimento); as aplicada) {
+                  <div>
+                    <dt>Ação aplicada</dt>
+                    <dd data-teste="acao-aplicada">{{ aplicada }}</dd>
+                  </div>
+                }
+              }
               <div>
                 <dt>Processado em</dt>
                 <dd>{{ dataHora(recebimento.processadoEm) }}</dd>

@@ -249,20 +249,24 @@ O CRM não emite boleto, Pix nem nota fiscal e não se conecta a bancos: a baixa
 (histórico de perguntas ao assistente, temas sem resposta e chamados) são só do Admin, assim como os webhooks de
 entrada (captar leads) e de saída (avisar outros sistemas) em Integrações.
 
+### Integrações (Admin)
+
+Menu **Sistema > Integrações** reúne **Aplicativos**, **Histórico** e **Webhooks de saída**. No catálogo (com busca) estão ActiveCampaign, Eduzz, Elementor, Facebook Lead Ads, Great Pages, Hotmart, Kiwify, Lead Lovers, ManyChat, RD Station, Typeform e o **Webhook** genérico. Cada um abre um assistente em passos: **Começar** (o passo a passo dentro da ferramenta), **Ação e nome** (o que receber, Negócio ou Contato, e o modo **Criar**, **Atualizar** ou **Criar ou atualizar**; credencial quando o aplicativo pede), **Endereço**, **Mapeamento** (campos recebidos à esquerda, campos do CRM à direita, incluindo etapa, dono e status), **Configurações** (funil, etapa, status inicial, etiquetas e distribuição) e **Salvar e ativar**. O **Facebook Lead Ads** troca o endereço por conectar a página e escolher o formulário (exige app da Meta com `leads_retrieval` e o CRM liberado em Leads Access na Central de Leads); **Hotmart, Kiwify e Eduzz** têm uma tabela de eventos que define o que cada evento faz (ganho com valor, negócio aberto, perdido com motivo, só etiquetar) e filtro por produto. O **Histórico** guarda 90 dias de recebimentos, com avisos, o corpo recebido e **Reprocessar**. Em **Configurações > Usuários** o Admin define o **Identificador nas integrações** de cada pessoa, usado para indicar o dono do negócio. Artigos: `administracao-integracoes-webhooks.md` (visão geral) e um por aplicativo, `integracoes-<aplicativo>.md` (`integracoes-webhook.md`, `integracoes-elementor.md`, `integracoes-facebook-lead-ads.md`, `integracoes-great-pages.md`, `integracoes-lead-lovers.md`, `integracoes-manychat.md`, `integracoes-rd-station.md`, `integracoes-typeform.md`, `integracoes-activecampaign.md`, `integracoes-hotmart.md`, `integracoes-kiwify.md` e `integracoes-eduzz.md`).
+
 ### Saúde do sistema
 
 Administração > **Saúde do sistema** reúne, numa tela só, o que o Admin precisa conferir:
 
 ![Saúde do sistema](guia/saude.png)
 
-| Cartão                       | O que mostra                                                        | Quando agir                                              |
-| ---------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
-| **O que precisa de atenção** | Alertas, cada um com **O que fazer**                                | Sempre que houver um alerta crítico                      |
-| **WhatsApp**                 | Gateway no ar ou fora, e a situação de cada número                  | Número desconectado ou banido; gateway fora              |
-| **Backup e disco**           | Último backup, tamanho do arquivo, espaço livre e tamanho do banco  | Backup com falha ou atrasado; espaço livre abaixo de 15% |
-| **Filas de trabalho**        | Trabalhos esperando, em andamento, com falha e o mais antigo parado | Fila marcada como "travada"                              |
-| **Canais**                   | Último erro de e-mail, Instagram, Messenger, WhatsApp oficial e chat do site         | Erro recente de login ou de conexão                      |
-| **Erros recentes**           | Os últimos erros dos logs técnicos                                  | Muitos erros em pouco tempo                              |
+| Cartão                       | O que mostra                                                                 | Quando agir                                              |
+| ---------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **O que precisa de atenção** | Alertas, cada um com **O que fazer**                                         | Sempre que houver um alerta crítico                      |
+| **WhatsApp**                 | Gateway no ar ou fora, e a situação de cada número                           | Número desconectado ou banido; gateway fora              |
+| **Backup e disco**           | Último backup, tamanho do arquivo, espaço livre e tamanho do banco           | Backup com falha ou atrasado; espaço livre abaixo de 15% |
+| **Filas de trabalho**        | Trabalhos esperando, em andamento, com falha e o mais antigo parado          | Fila marcada como "travada"                              |
+| **Canais**                   | Último erro de e-mail, Instagram, Messenger, WhatsApp oficial e chat do site | Erro recente de login ou de conexão                      |
+| **Erros recentes**           | Os últimos erros dos logs técnicos                                           | Muitos erros em pouco tempo                              |
 
 A tela se atualiza sozinha a cada 30 segundos (com a aba escondida ela não consulta);
 **Atualizar agora** força a consulta.
@@ -312,7 +316,7 @@ CRM: para não perder ligações, mantenha o CRM aberto ou atenda pelo computado
   ligação nem ligação por telefone comum.
 - Disparos são graduais, não envio instantâneo em massa; quem pediu opt-out não recebe.
 - Não move negócio direto de um funil a outro (só pelas passagens) e não exclui os três funis.
-- Sem bancos, boleto, Pix ou nota fiscal; sem agenda externa (Google, Outlook); integrações só por webhooks (os de saída incluem os eventos **Lead qualificado pela IA** e **Lead desqualificado pela IA**).
+- Sem bancos, boleto, Pix ou nota fiscal; sem agenda externa (Google, Outlook); integrações pelos aplicativos do catálogo e por webhooks (os de saída incluem os eventos **Lead qualificado pela IA** e **Lead desqualificado pela IA**).
 - A interface é só em português, e o app é o próprio navegador (não há loja de aplicativos).
 
 Lista completa: `limites-o-que-o-crm-nao-faz.md`.

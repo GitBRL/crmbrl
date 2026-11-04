@@ -1,0 +1,236 @@
+@use 'mixins' as m;
+
+:host {
+  display: grid;
+  gap: var(--esp-5);
+  min-width: 0;
+}
+
+.conexao__titulo {
+  font: var(--fonte-h3);
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 4px;
+    border-radius: var(--raio-sm);
+  }
+}
+
+.conexao__frase {
+  margin-top: calc(-1 * var(--esp-3));
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo);
+}
+
+.conexao__subtitulo,
+.conexao__legenda {
+  font: var(--fonte-rotulo);
+}
+
+.conexao__aviso {
+  display: flex;
+  gap: var(--esp-3);
+  padding: var(--esp-4) var(--esp-5);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+  box-shadow: inset 0 0 0 1px var(--cor-aviso);
+  font: var(--fonte-corpo-sm);
+
+  svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--cor-aviso);
+  }
+
+  div {
+    display: grid;
+    gap: var(--esp-2);
+    min-width: 0;
+  }
+
+  p {
+    overflow-wrap: anywhere;
+  }
+}
+
+code {
+  font-family: var(--familia-mono);
+  font-size: 0.92em;
+}
+
+.conexao__retorno {
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-md);
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.conexao__retorno--ok {
+  border-color: var(--cor-sucesso);
+  color: var(--cor-sucesso);
+}
+
+.conexao__retorno--erro {
+  border-color: var(--cor-erro);
+  color: var(--cor-erro);
+}
+
+.conexao__mensagem {
+  display: block;
+  margin-top: var(--esp-1);
+  font-weight: 400;
+}
+
+.conexao__carregando,
+.conexao__nova {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.conexao__nova {
+  padding: var(--esp-4) var(--esp-5) var(--esp-5);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+}
+
+.conexao__grupo {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.conexao__lista {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.conexao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2) var(--esp-4);
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+}
+
+.conexao--marcada {
+  border-color: var(--cor-inverso);
+  box-shadow: inset 0 0 0 1px var(--cor-inverso);
+}
+
+.conexao__escolha {
+  display: flex;
+  flex: 1 1 16rem;
+  align-items: flex-start;
+  gap: var(--esp-3);
+  min-width: 0;
+  cursor: pointer;
+
+  input {
+    flex: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: 0.2rem;
+    accent-color: var(--cor-inverso);
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+
+  input:disabled,
+  input:disabled ~ .conexao__texto .conexao__nome {
+    cursor: not-allowed;
+  }
+}
+
+.conexao__texto {
+  display: grid;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.conexao__nome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  font: var(--fonte-rotulo);
+  overflow-wrap: anywhere;
+}
+
+.conexao__detalhes,
+.conexao__nota {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.conexao__atencao {
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+  overflow-wrap: anywhere;
+}
+
+.conexao__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.conexao__vazio {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.conexao__dupla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-4);
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.conexao__linha-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.conexao__nota--aviso {
+  color: var(--cor-aviso);
+}
+
+.conexao__retorno-oauth {
+  display: grid;
+  gap: var(--esp-3);
+  padding-top: var(--esp-4);
+  border-top: 1px solid var(--cor-borda);
+
+  > summary {
+    font: var(--fonte-rotulo);
+    cursor: pointer;
+  }
+
+  &[open] > summary {
+    margin-bottom: var(--esp-3);
+  }
+}

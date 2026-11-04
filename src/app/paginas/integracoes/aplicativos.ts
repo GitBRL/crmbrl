@@ -35,6 +35,12 @@ import { Selo } from '../../ui/selo/selo';
 import { AssistenteAplicativo } from './assistente-aplicativo';
 import { LogotipoAplicativo } from './comum/logotipo-aplicativo';
 import { exemploCurlEntrada } from './exemplos';
+import {
+  type ContextoDoLogin,
+  consumirContextoDoLogin,
+  lerRetornoDoFacebook,
+  type RetornoDoFacebook,
+} from './facebook.tipos';
 import { IntegracoesApi } from './integracoes.api';
 import { ModalSegredoEntrada } from './modal-segredo-entrada';
 import { ResultadoUnico, type ResultadoUnicoDados } from './resultado-unico';
@@ -109,6 +115,11 @@ export class Aplicativos {
   readonly funil = input<string | null>(null);
   /** Integração a editar (query `integracao`, link das notificações). */
   readonly integracao = input<string | null>(null);
+  /** Retorno do login do Facebook (a API redireciona a `/integracoes?facebook=…&conexao=…`). */
+  readonly facebook = input<string | null>(null);
+  readonly conexao = input<string | null>(null);
+  readonly motivo = input<string | null>(null);
+  readonly mensagem = input<string | null>(null);
 
   protected readonly filtros = FILTROS;
   protected readonly fimDoEndereco = fimDoEndereco;
@@ -137,6 +148,9 @@ export class Aplicativos {
   protected readonly emEdicao = signal<WebhookEntrada | null>(null);
   protected readonly alvoDoSegredo = signal<WebhookEntrada | null>(null);
   protected readonly resultadoUnico = signal<ResultadoUnicoDados | null>(null);
+  protected readonly retornoFacebook = signal<RetornoDoFacebook | null>(null);
+  protected readonly contextoDoLogin = signal<ContextoDoLogin | null>(null);
+  private retornoTratado = false;
 
   /** Catálogo em ordem alfabética, filtrado pela busca. */
   protected readonly cartoes = computed(() => {
@@ -198,6 +212,31 @@ export class Aplicativos {
         untracked(() => this.abrirPorLink(id, itens, catalogo));
       }
     });
+
+    // Volta do login do Facebook: reabre o assistente no passo da conexão.
+    effect(() => {
+      const retorno = lerRetornoDoFacebook({
+        facebook: this.facebook(),
+        conexao: this.conexao(),
+        motivo: this.motivo(),
+        mensagem: this.mensagem(),
+      });
+      const itens = this.integracoes();
+      const catalogo = this.catalogo();
+      if (!retorno) {
+        this.retornoTratado = false;
+      } else if (itens && catalogo && !this.retornoTratado) {
+        this.retornoTratado = true;
+        untracked(() => this.abrirRetornoDoFacebook(retorno, itens, catalogo));
+      }
+    });
+
+    // O retorno só vale para a abertura que ele provocou.
+    effect(() => {
+      if (!this.assistenteAberto()) {
+        untracked(() => this.retornoFacebook.set(null));
+      }
+    });
   }
 
   // --- Carregamento ----------------------------------------------------------------------------
@@ -251,6 +290,8 @@ export class Aplicativos {
       return;
     }
     this.emEdicao.set(null);
+    this.retornoFacebook.set(null);
+    this.contextoDoLogin.set(null);
     this.aplicativoEscolhido.set(app);
     this.assistenteAberto.set(true);
   }
@@ -360,6 +401,32 @@ export class Aplicativos {
     } else {
       this.avisos.erro('Não encontramos essa integração. Ela pode ter sido excluída.');
     }
+  }
+
+  private abrirRetornoDoFacebook(
+    retorno: RetornoDoFacebook,
+    itens: readonly WebhookEntrada[],
+    catalogo: readonly AplicativoDoCatalogo[],
+  ): void {
+    const contexto = consumirContextoDoLogin();
+    void this.router.navigate([], {
+      queryParams: { facebook: null, conexao: null, motivo: null, mensagem: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    const app = catalogo.find((a) => a.aplicativo === 'FACEBOOK_LEAD_ADS');
+    if (!app?.disponivel) {
+      this.avisos.erro('A integração com o Facebook Lead Ads não está disponível agora.');
+      return;
+    }
+    const emEdicao = contexto?.integracaoId
+      ? (itens.find((i) => i.id === contexto.integracaoId) ?? null)
+      : null;
+    this.retornoFacebook.set(retorno);
+    this.contextoDoLogin.set(contexto);
+    this.emEdicao.set(emEdicao);
+    this.aplicativoEscolhido.set(app);
+    this.assistenteAberto.set(true);
   }
 
   // --- Assistente ------------------------------------------------------------------------------

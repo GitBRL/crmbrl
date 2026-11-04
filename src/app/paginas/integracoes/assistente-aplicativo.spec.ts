@@ -16,6 +16,9 @@ import {
 } from './assistente-aplicativo';
 import {
   APLICATIVO_ELEMENTOR,
+  APLICATIVO_FACEBOOK,
+  APLICATIVO_HOTMART_COM_EVENTOS,
+  CONEXAO_FACEBOOK,
   APLICATIVO_TYPEFORM,
   APLICATIVO_WEBHOOK,
   CATALOGO,
@@ -432,5 +435,185 @@ describe('AssistenteAplicativo (um aplicativo, em passos)', () => {
     fixture.detectChanges();
     expect(elemento().textContent).toContain('Informe o motivo de perda padrão');
     expect(passoAtual()).toContain('Configurações');
+  });
+
+  function escolher(rotulo: string, texto: string): void {
+    const seletor = Array.from(elemento().querySelectorAll('app-seletor')).find((s) =>
+      s.textContent?.replace(/\s+/g, ' ').includes(rotulo),
+    )!;
+    const selecao = seletor.querySelector<HTMLSelectElement>('select')!;
+    const opcao = Array.from(selecao.options).find((o) => o.textContent?.trim().startsWith(texto))!;
+    selecao.value = opcao.value;
+    selecao.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  }
+
+  it('Facebook: Conexão antes de tudo; a integração só nasce depois da página e do formulário', async () => {
+    await abrir(APLICATIVO_FACEBOOK);
+    expect(
+      Array.from(elemento().querySelectorAll('.assistente__nome-passo')).map((e) =>
+        e.textContent?.trim(),
+      ),
+    ).toEqual([
+      'Começar',
+      'Conexão',
+      'Ação e nome',
+      'Página e formulário',
+      'Mapeamento',
+      'Configurações',
+      'Salvar',
+    ]);
+    botao('Começar').click();
+    fixture.detectChanges();
+    expect(passoAtual()).toContain('Conexão');
+    http.expectOne('/api/v1/webhooks/facebook/conexoes').flush([CONEXAO_FACEBOOK]);
+    http.expectOne('/api/v1/webhooks/facebook/configuracao').flush({
+      enderecoDeRetorno: 'https://crm.exemplo.com.br/api/v1/publico/facebook/oauth/retorno',
+      escopos: [],
+      versaoDaGraph: 'v24.0',
+      enderecoPublicoHttps: true,
+    });
+    http.expectOne('/api/v1/webhooks/facebook/canais').flush([]);
+    await aguardar();
+
+    // Sem escolher a conexão, não avança.
+    botao('Continuar').click();
+    fixture.detectChanges();
+    expect(elemento().textContent).toContain('Escolha uma conexão com o Facebook');
+    elemento().querySelector<HTMLInputElement>('input[name="conexao-facebook"]')!.click();
+    fixture.detectChanges();
+    botao('Continuar').click();
+    fixture.detectChanges();
+    expect(passoAtual()).toContain('Ação e nome');
+
+    // "Ação e nome" não cria nada: a API exige conexão, página e formulário.
+    digitar(campo('Nome da integração'), 'Facebook — matrículas');
+    fixture.detectChanges();
+    botao('Continuar').click();
+    fixture.detectChanges();
+    expect(passoAtual()).toContain('Página e formulário');
+    http.expectNone('/api/v1/webhooks/entradas');
+    botao('Criar e continuar').click();
+    fixture.detectChanges();
+    expect(elemento().textContent).toContain('Escolha a página e o formulário de leads.');
+
+    escolher('Página do Facebook', 'Escola Demo BRL');
+    http.expectOne('/api/v1/webhooks/facebook/conexoes/cx1/paginas/p1/formularios').flush([
+      {
+        id: 'f1',
+        nome: 'Interesse 2027',
+        status: 'ACTIVE',
+        idioma: 'pt_BR',
+        criadoEm: null,
+        leads: 10,
+      },
+    ]);
+    await aguardar();
+    escolher('Formulário de leads', 'Interesse 2027');
+    botao('Criar e continuar').click();
+    const criar = http.expectOne('/api/v1/webhooks/entradas');
+    expect(criar.request.body).toMatchObject({
+      aplicativo: 'FACEBOOK_LEAD_ADS',
+      nome: 'Facebook — matrículas',
+      ativo: false,
+      configuracao: { conexaoId: 'cx1', paginaId: 'p1', formularioId: 'f1' },
+    });
+    criar.flush({
+      webhook: webhookEntrada({
+        id: 'we-fb',
+        aplicativo: 'FACEBOOK_LEAD_ADS',
+        aplicativoNome: 'Facebook Lead Ads',
+        ativo: false,
+        configuracao: { conexaoId: 'cx1', paginaId: 'p1', formularioId: 'f1' },
+      }),
+      url: 'http://x/api/v1/webhooks/entrada/inutil',
+    });
+    await aguardar();
+    http.expectOne('/api/v1/webhooks/entradas/we-fb/campos-recebidos?limite=20').flush({
+      campos: [],
+      recebimentosLidos: 0,
+      ultimoRecebimentoEm: null,
+    });
+    await aguardar();
+    expect(passoAtual()).toContain('Mapeamento');
+    // As perguntas do formulário são buscadas na Meta ao entrar no mapeamento.
+    http.expectOne('/api/v1/webhooks/entradas/we-fb/buscar-campos').flush({
+      campos: [{ caminho: 'cidade', rotulo: 'Cidade', tipo: 'texto' }],
+      buscadosEm: '2026-11-04T12:00:00Z',
+    });
+    await aguardar();
+    expect(elemento().textContent).toContain('1 perguntas e dados do lead buscados no formulário.');
+    expect(elemento().textContent).toContain('Buscar perguntas do formulário');
+  });
+
+  it('plataforma de curso: passo Eventos com a tabela salva; perda sem motivo exige o motivo padrão', async () => {
+    await abrir(
+      APLICATIVO_HOTMART_COM_EVENTOS,
+      webhookEntrada({
+        id: 'we-ht',
+        nome: 'Hotmart — cursos',
+        aplicativo: 'HOTMART',
+        aplicativoNome: 'Hotmart',
+        funil: { id: 'f-com', nome: 'Comercial', area: 'COMERCIAL' },
+        etapa: { id: 'c-novo', nome: 'Novo', tipo: 'ABERTA' },
+        configuracao: {
+          produtos: ['Curso A'],
+          eventos: { PURCHASE_BILLET_PRINTED: { acao: 'IGNORAR' } },
+        },
+      }),
+    );
+    expect(elemento().querySelectorAll('button.assistente__passo-botao')).toHaveLength(7);
+    passo('Eventos').click();
+    fixture.detectChanges();
+    expect(elemento().textContent).toContain('O que fazer em cada evento');
+    expect(
+      elemento()
+        .querySelector('[data-evento="PURCHASE_BILLET_PRINTED"] select')
+        ?.querySelector('option:checked')
+        ?.textContent?.trim(),
+    ).toBe('Ignorar');
+    expect(elemento().querySelector<HTMLInputElement>('.eventos__filtro input')?.value).toBe(
+      'Curso A',
+    );
+
+    // O reembolso fica sem motivo próprio: o motivo padrão passa a ser obrigatório.
+    const motivo = elemento().querySelector<HTMLInputElement>(
+      '[data-evento="PURCHASE_REFUNDED"] input[type=text]',
+    )!;
+    digitar(motivo, '');
+    fixture.detectChanges();
+    passo('Configurações').click();
+    fixture.detectChanges();
+    expect(elemento().textContent).not.toContain('Status inicial');
+    botao('Continuar').click();
+    fixture.detectChanges();
+    expect(elemento().textContent).toContain('Informe o motivo de perda padrão');
+    digitar(campo('Motivo de perda padrão'), 'Cancelou');
+    fixture.detectChanges();
+    botao('Continuar').click();
+    fixture.detectChanges();
+    expect(passoAtual()).toContain('Salvar');
+    expect(elemento().textContent).toContain('Definida por evento');
+    expect(elemento().textContent).toContain('Curso A');
+
+    botao('Salvar alterações').click();
+    const salvar = http.expectOne('/api/v1/webhooks/entradas/we-ht');
+    expect(salvar.request.method).toBe('PATCH');
+    expect(salvar.request.body.statusInicial).toBe('ABERTO');
+    expect(salvar.request.body.motivoPerdaPadrao).toBe('Cancelou');
+    expect(salvar.request.body.configuracao.produtos).toEqual(['Curso A']);
+    expect(salvar.request.body.configuracao.eventos.PURCHASE_BILLET_PRINTED).toEqual({
+      acao: 'IGNORAR',
+      etapaId: null,
+      motivoPerda: null,
+      etiquetas: [],
+    });
+    expect(salvar.request.body.configuracao.eventos.PURCHASE_REFUNDED).toMatchObject({
+      acao: 'PERDIDO',
+      motivoPerda: null,
+    });
+    salvar.flush(webhookEntrada({ id: 'we-ht', aplicativo: 'HOTMART' }));
+    await aguardar();
+    expect(fixture.componentInstance.aberto()).toBe(false);
   });
 });

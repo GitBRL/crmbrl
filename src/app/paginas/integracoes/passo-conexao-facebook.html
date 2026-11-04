@@ -1,0 +1,300 @@
+<h3 class="conexao__titulo" tabindex="-1">Conexão com o Facebook</h3>
+<p class="conexao__frase">
+  Escolha a conexão que lê os leads das suas páginas ou crie uma. Os leads chegam pelo Facebook, sem
+  copiar nenhum endereço.
+</p>
+
+<div class="conexao__aviso" role="note" data-teste="aviso-leads">
+  <svg lucideTriangleAlert [size]="18" aria-hidden="true" />
+  <div>
+    <p>
+      <strong>Antes de conectar:</strong> o app da Meta precisa ter a permissão
+      <code>leads_retrieval</code> aprovada, e o CRM precisa ser liberado em
+      <strong>Leads Access</strong> (Acesso a leads), na Central de Leads da Meta, para a página que
+      vai usar.
+    </p>
+    <p>
+      Sem isso a Meta não entrega os leads, mesmo com o login funcionando. Enquanto o app está em
+      modo de desenvolvimento, só chegam leads de quem tem função no app.
+    </p>
+  </div>
+</div>
+
+@if (retorno(); as r) {
+  @switch (r.resultado) {
+    @case ('conectado') {
+      <p class="conexao__retorno conexao__retorno--ok" role="status">
+        Conexão feita com o Facebook. Ela já está marcada abaixo.
+      </p>
+    }
+    @case ('cancelado') {
+      <p class="conexao__retorno" role="status">
+        Você cancelou o login no Facebook. Nada foi conectado; tente de novo quando quiser.
+      </p>
+    }
+    @default {
+      <p class="conexao__retorno conexao__retorno--erro" role="alert">
+        {{ erroDoRetorno() }}
+        @if (r.mensagem) {
+          <span class="conexao__mensagem">Mensagem do Facebook: {{ r.mensagem }}</span>
+        }
+      </p>
+    }
+  }
+}
+
+@if (carregando()) {
+  <div aria-busy="true" class="conexao__carregando">
+    <p class="visualmente-oculto" role="status">Carregando as conexões…</p>
+    <app-esqueleto forma="pilula" />
+    <app-esqueleto forma="pilula" />
+  </div>
+} @else if (erro(); as falha) {
+  <app-estado-vazio
+    compacto
+    variante="erro"
+    [falha]="falha"
+    titulo="Não conseguimos carregar as conexões"
+    [texto]="falha.resumo"
+    [codigo]="falha.requisicaoId"
+  >
+    <button appBotao type="button" variante="contorno" tamanho="sm" (click)="carregar()">
+      Tentar de novo
+    </button>
+  </app-estado-vazio>
+} @else {
+  @if (conexoes(); as lista) {
+    @if (lista.length) {
+      <fieldset class="conexao__grupo">
+        <legend class="conexao__legenda">Conexão que lê os leads</legend>
+        <ul class="conexao__lista">
+          @for (c of lista; track c.id) {
+            <li class="conexao" [class.conexao--marcada]="marcada() === c.id">
+              <label class="conexao__escolha">
+                <input
+                  type="radio"
+                  name="conexao-facebook"
+                  [value]="c.id"
+                  [checked]="marcada() === c.id"
+                  [disabled]="!usavel(c)"
+                  (change)="marcar(c.id)"
+                />
+                <span class="conexao__texto">
+                  <span class="conexao__nome">
+                    {{ c.nome }}
+                    <app-selo tamanho="sm" [variante]="situacao(c).variante" ponto>{{
+                      situacao(c).rotulo
+                    }}</app-selo>
+                  </span>
+                  <span class="conexao__detalhes">{{ detalhes(c) }}</span>
+                  @if (c.precisaAtencao && c.atencaoMotivo) {
+                    <span class="conexao__atencao">{{ c.atencaoMotivo }}</span>
+                  }
+                  @if (c.precisaAtencao && c.tipo === 'PAGINA') {
+                    <span class="conexao__detalhes"
+                      >Token de página não se renova: crie outra conexão com um token novo.</span
+                    >
+                  }
+                  @if (!c.conectada && !c.precisaAtencao) {
+                    <span class="conexao__atencao"
+                      >O login nunca terminou. Conecte de novo para poder usá-la.</span
+                    >
+                  }
+                </span>
+              </label>
+              <div class="conexao__acoes">
+                @if (podeReconectar(c)) {
+                  <button
+                    appBotao
+                    type="button"
+                    tamanho="sm"
+                    [variante]="c.precisaAtencao || !c.conectada ? 'invertido' : 'contorno'"
+                    [carregando]="ocupada() === c.id"
+                    [attr.aria-label]="'Conectar de novo ' + c.nome"
+                    (click)="reconectar(c)"
+                  >
+                    Conectar de novo
+                  </button>
+                }
+                @if (usavel(c) && c.tipo === 'USUARIO') {
+                  <button
+                    appBotao
+                    type="button"
+                    tamanho="sm"
+                    variante="neutro"
+                    [attr.aria-label]="'Atualizar as páginas de ' + c.nome"
+                    [carregando]="ocupada() === c.id"
+                    (click)="atualizarPaginas(c)"
+                  >
+                    Atualizar páginas
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </fieldset>
+      @if (!novaAberta()) {
+        <div>
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            tamanho="sm"
+            (click)="novaAberta.set(true)"
+          >
+            Criar outra conexão
+          </button>
+        </div>
+      }
+    } @else {
+      <p class="conexao__vazio" role="status">
+        Nenhuma conexão ainda. Crie a primeira logo abaixo.
+      </p>
+    }
+  }
+
+  @if (mostraNova()) {
+    <section class="conexao__nova" aria-labelledby="titulo-nova-conexao">
+      <h4 class="conexao__subtitulo" id="titulo-nova-conexao">Nova conexão</h4>
+      <app-grupo-opcoes
+        rotulo="Como entrar"
+        disposicao="pilulas"
+        [opcoes]="opcoesForma"
+        [valor]="forma()"
+        (valorChange)="forma.set($event ?? 'LOGIN'); erroDoForm.set(null)"
+      />
+
+      @if (opcoesOrigem().length > 1) {
+        <app-grupo-opcoes
+          rotulo="App da Meta"
+          [opcoes]="opcoesOrigem()"
+          [valor]="origemDoApp()"
+          (valorChange)="origemDoApp.set($event ?? 'DIGITAR')"
+        />
+      }
+      @if (usaCanal()) {
+        <app-seletor
+          rotulo="Canal"
+          placeholder="Escolha o canal"
+          [opcoes]="opcoesCanal()"
+          [valor]="canalId()"
+          [erro]="erroDoCanal()"
+          (valorChange)="canalId.set($event)"
+        />
+      } @else {
+        <div class="conexao__dupla">
+          <app-campo-texto
+            rotulo="Id do app"
+            obrigatorio
+            autocomplete="off"
+            teclado="numeric"
+            dica="Está em Configurações do app > Básico, no painel de desenvolvedores da Meta."
+            [valor]="appId()"
+            [erro]="erroDoCampo(appId(), 'Informe o id do app.')"
+            (valorChange)="definirTexto('appId', $event)"
+          />
+          <app-campo-senha
+            rotulo="Segredo do app"
+            obrigatorio
+            autocomplete="off"
+            dica="Fica cifrado no CRM e nunca é mostrado de novo."
+            [valor]="appSecret()"
+            [erro]="erroDoCampo(appSecret(), 'Informe o segredo do app.')"
+            (valorChange)="definirTexto('appSecret', $event)"
+          />
+        </div>
+      }
+
+      @if (forma() === 'TOKEN') {
+        <div class="conexao__dupla">
+          <app-campo-senha
+            rotulo="Token da página"
+            obrigatorio
+            autocomplete="off"
+            dica="O token de acesso da página, com a permissão leads_retrieval."
+            [valor]="tokenDaPagina()"
+            [erro]="erroDoCampo(tokenDaPagina(), 'Cole o token da página.')"
+            (valorChange)="definirTexto('token', $event)"
+          />
+          <app-campo-texto
+            rotulo="Id da página"
+            opcional
+            autocomplete="off"
+            teclado="numeric"
+            dica="Recomendado: confirma de qual página é o token."
+            [valor]="paginaId()"
+            (valorChange)="definirTexto('pagina', $event)"
+          />
+        </div>
+      }
+
+      <app-campo-texto
+        rotulo="Nome da conexão"
+        opcional
+        [maximoCaracteres]="100"
+        placeholder="Facebook da escola"
+        dica="Só para você reconhecer na lista. Em branco, usamos o nome da conta."
+        [valor]="nomeDaConexao()"
+        (valorChange)="definirTexto('nome', $event)"
+      />
+
+      @if (erroDoForm(); as mensagem) {
+        <p class="conexao__retorno conexao__retorno--erro" role="alert">{{ mensagem }}</p>
+      }
+
+      <div class="conexao__linha-acoes">
+        @if (forma() === 'LOGIN') {
+          <button
+            appBotao
+            type="button"
+            variante="invertido"
+            [carregando]="enviando()"
+            (click)="entrarComOFacebook()"
+          >
+            Entrar com o Facebook
+          </button>
+          <span class="conexao__nota">
+            Você vai ao Facebook e volta para cá. O assistente reabre neste passo.
+          </span>
+        } @else {
+          <button
+            appBotao
+            type="button"
+            variante="invertido"
+            [carregando]="enviando()"
+            (click)="colarToken()"
+          >
+            Conectar com o token
+          </button>
+        }
+        @if ((conexoes() ?? []).length) {
+          <button appBotao type="button" variante="neutro" (click)="novaAberta.set(false)">
+            Fechar
+          </button>
+        }
+      </div>
+    </section>
+  }
+
+  @if (configuracao(); as c) {
+    <details class="conexao__retorno-oauth">
+      <summary>Endereço de retorno do login (para o app da Meta)</summary>
+      <p class="conexao__nota">
+        Cadastre este endereço em <strong>URIs de redirecionamento OAuth válidos</strong>, nas
+        configurações do Login do Facebook do app. Sem isso o login volta com erro.
+      </p>
+      <app-valor-unico
+        rotulo="Endereço de retorno"
+        oQue="Endereço de retorno"
+        [valor]="c.enderecoDeRetorno"
+        [aviso]="null"
+      />
+      @if (!c.enderecoPublicoHttps) {
+        <p class="conexao__nota conexao__nota--aviso">
+          Este endereço não é um HTTPS público. A Meta só aceita HTTPS fora do modo de testes.
+        </p>
+      }
+    </details>
+  }
+}

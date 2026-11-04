@@ -1,6 +1,7 @@
 import type { VarianteSelo } from '../../ui/selo/selo';
 import type { Area } from '../../nucleo/sessao/perfil';
 import { semCodigoDeRegra } from '../../nucleo/formatos';
+import type { EventosDoAplicativo, RegraDoEvento } from './eventos.tipos';
 
 /**
  * Tipos dos webhooks (crmbrl-api, `/webhooks/entradas` e `/webhooks/saidas`; contrato no
@@ -106,6 +107,8 @@ export interface AplicativoDoCatalogo {
     readonly exemplo: Record<string, unknown>;
   } | null;
   readonly dicas: readonly string[];
+  /** Tabela de eventos (plataformas de curso); `null` nos demais aplicativos. */
+  readonly eventos?: EventosDoAplicativo | null;
 }
 
 export interface CatalogoDeAplicativos {
@@ -190,6 +193,15 @@ export interface WebhookEntrada {
       readonly em: string;
     };
     readonly webhookErro?: string;
+    // Facebook Lead Ads
+    readonly conexaoId?: string;
+    readonly paginaId?: string;
+    readonly paginaNome?: string;
+    readonly formularioNome?: string;
+    readonly assinaturaErro?: string;
+    // Plataformas de curso
+    readonly eventos?: Readonly<Record<string, RegraDoEvento>> | null;
+    readonly produtos?: readonly string[] | null;
   };
   readonly camposBuscados: readonly CampoDeIntegracao[] | null;
   readonly camposBuscadosEm: string | null;
@@ -219,6 +231,10 @@ export interface DadosWebhookEntrada {
   readonly configuracao?: {
     readonly formularioId?: string | null;
     readonly cabecalhoDeAutenticacao?: string | null;
+    readonly conexaoId?: string;
+    readonly paginaId?: string;
+    readonly eventos?: Readonly<Record<string, RegraDoEvento>> | null;
+    readonly produtos?: readonly string[] | null;
   };
   readonly funilId: string;
   readonly etapaId: string;
@@ -281,6 +297,9 @@ export interface ItemDoRecebimento {
   readonly contatoId: string | null;
   readonly negocioId: string | null;
   readonly avisos: readonly string[];
+  /** Código do evento da plataforma (plataformas de curso), como `PURCHASE_APPROVED`. */
+  readonly evento?: string | null;
+  readonly chave?: string | null;
 }
 
 export interface Recebimento {
@@ -627,7 +646,7 @@ export function fimDoEndereco(endereco: string): string {
 // Aplicativos, modos e situação (Onda H)
 // ---------------------------------------------------------------------------------------------
 
-/** Arquivo do logotipo de cada aplicativo (`public/assets/integracoes/`, origem em FONTES.md). */
+/** Arquivo do logotipo de cada aplicativo (`public/assets/integracoes/`, origem em docs/LOGOTIPOS-INTEGRACOES.md). */
 const ARQUIVO_LOGOTIPO: Readonly<Record<AplicativoIntegracao, string>> = {
   ACTIVE_CAMPAIGN: 'activecampaign.svg',
   EDUZZ: 'eduzz.svg',
@@ -637,7 +656,7 @@ const ARQUIVO_LOGOTIPO: Readonly<Record<AplicativoIntegracao, string>> = {
   HOTMART: 'hotmart.svg',
   KIWIFY: 'kiwify.svg',
   LEAD_LOVERS: 'leadlovers.png',
-  MANYCHAT: 'manychat.svg',
+  MANYCHAT: 'manychat.png',
   RD_STATION: 'rdstation.svg',
   TYPEFORM: 'typeform.svg',
   WEBHOOK: 'webhook.svg',

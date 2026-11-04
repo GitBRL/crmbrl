@@ -1,0 +1,152 @@
+<h3 class="eventos__titulo assistente__titulo-passo" tabindex="-1">O que fazer em cada evento</h3>
+<p class="eventos__frase">
+  A plataforma avisa de cada passo da venda. Escolha o que o CRM faz com cada aviso. Comece por um
+  modelo pronto e ajuste só o que for diferente. As etiquetas vão para o contato; separe várias por
+  vírgula.
+</p>
+
+<app-grupo-opcoes
+  rotulo="Modelo pronto"
+  disposicao="pilulas"
+  ajuda="Aplicar um modelo troca a tabela inteira. Depois, mude as linhas que quiser."
+  [opcoes]="opcoesModelo()"
+  [valor]="modeloAtual()"
+  (valorChange)="escolherModelo($event)"
+/>
+<p class="eventos__nota" aria-live="polite" data-teste="modelo-atual">
+  @if (nomeDoModelo(); as nome) {
+    Tabela igual ao modelo <strong>{{ nome }}</strong
+    >.
+  } @else {
+    Tabela <strong>personalizada</strong>: você mudou algo em relação aos modelos.
+  }
+  @if (funilNome(); as funil) {
+    Os negócios entram no funil <strong>{{ funil }}</strong
+    >; para trocar, use o passo “Configurações”.
+  }
+</p>
+
+@for (grupo of grupos(); track grupo.codigo) {
+  <section class="eventos__grupo" [attr.aria-labelledby]="'grupo-evento-' + grupo.codigo">
+    <h4 class="eventos__subtitulo" [id]="'grupo-evento-' + grupo.codigo">{{ grupo.titulo }}</h4>
+    <ul class="eventos__lista">
+      @for (linha of grupo.linhas; track linha.codigo) {
+        <li class="evento" [attr.data-evento]="linha.codigo">
+          <div class="evento__nome">
+            <strong>{{ linha.nome }}</strong>
+            <span class="evento__descricao">{{ linha.descricao }}</span>
+            @if (!linha.extra) {
+              <code class="evento__codigo">{{ linha.codigo }}</code>
+            }
+          </div>
+          <app-seletor
+            class="evento__acao"
+            rotuloOculto
+            [rotulo]="'Ação para ' + linha.nome"
+            [opcoes]="opcoesAcao"
+            [valor]="linha.regra.acao"
+            (valorChange)="acao(linha.codigo, $event)"
+          />
+          <div class="evento__extra">
+            @switch (linha.regra.acao) {
+              @case ('ABRIR') {
+                <app-seletor
+                  rotuloOculto
+                  [rotulo]="'Etapa para ' + linha.nome"
+                  placeholder="Etapa de entrada"
+                  permitirVazio
+                  [opcoes]="etapas()"
+                  [valor]="linha.regra.etapaId ?? null"
+                  (valorChange)="etapa(linha.codigo, $event)"
+                />
+              }
+              @case ('PERDIDO') {
+                <app-campo-texto
+                  rotuloOculto
+                  [rotulo]="'Motivo de perda para ' + linha.nome"
+                  placeholder="Motivo da perda"
+                  [maximoCaracteres]="100"
+                  [valor]="linha.regra.motivoPerda ?? ''"
+                  (valorChange)="motivo(linha.codigo, $event)"
+                />
+              }
+              @case ('IGNORAR') {
+                <span class="evento__nota">Nada é criado nem alterado.</span>
+              }
+              @case ('GANHO') {
+                <span class="evento__nota">Fecha como ganho, com valor e produto.</span>
+              }
+              @default {
+                <span class="evento__nota">Só marca o contato.</span>
+              }
+            }
+          </div>
+          <app-campo-texto
+            class="evento__etiquetas"
+            rotuloOculto
+            [rotulo]="'Etiquetas para ' + linha.nome"
+            placeholder="Etiquetas"
+            [desabilitado]="linha.regra.acao === 'IGNORAR'"
+            [valor]="textoDasEtiquetas(linha)"
+            (valorChange)="etiquetas(linha.codigo, $event)"
+          />
+          @if (linha.extra) {
+            <button
+              appBotaoIcone
+              type="button"
+              variante="contorno"
+              class="evento__remover"
+              [icone]="icones.remover"
+              [rotulo]="'Remover o evento ' + linha.codigo"
+              (click)="removerEvento(linha.codigo)"
+            ></button>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+<details class="eventos__outro">
+  <summary>Acrescentar um evento que não está na lista</summary>
+  <div class="eventos__outro-form">
+    <app-campo-texto
+      rotulo="Código do evento"
+      placeholder="PURCHASE_DELAYED"
+      autocomplete="off"
+      dica="Exatamente como a plataforma envia no corpo do aviso."
+      [erro]="erroDoCodigo()"
+      [valor]="novoCodigo()"
+      (valorChange)="novoCodigo.set('' + $event); erroDoCodigo.set(null)"
+    />
+    <button
+      appBotao
+      type="button"
+      variante="contorno"
+      [icone]="icones.adicionar"
+      (click)="adicionarEvento()"
+    >
+      Acrescentar
+    </button>
+  </div>
+</details>
+
+@if (eventos().filtroPorProduto) {
+  <fieldset class="eventos__filtro">
+    <legend class="eventos__subtitulo">
+      Filtro de produto
+      <app-dica
+        rotulo="Sobre o filtro de produto"
+        texto="Com produtos listados, só as vendas deles geram ações; as de outros produtos ficam no histórico como ignoradas. Em branco, vale para todos os produtos."
+      />
+    </legend>
+    <app-campo-texto
+      rotulo="Produtos"
+      opcional
+      placeholder="Curso Online BRL, 1234567"
+      dica="Nomes ou ids de produto, separados por vírgula. Em branco, todos os produtos entram."
+      [valor]="produtos()"
+      (valorChange)="produtos.set('' + $event)"
+    />
+  </fieldset>
+}

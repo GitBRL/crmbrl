@@ -16,6 +16,24 @@
   }
 }
 
+.historico__evento {
+  display: inline-block;
+  margin-right: var(--esp-2);
+  padding: 0 var(--esp-2);
+  border-radius: var(--raio-pilula);
+  box-shadow: inset 0 0 0 1px var(--cor-borda-forte);
+  font: var(--fonte-micro);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.historico__codigo {
+  margin-left: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font-family: var(--familia-mono);
+  font-size: 0.8em;
+}
+
 .historico__app {
   color: var(--cor-texto-fraco);
   font-weight: 400;

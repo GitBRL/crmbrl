@@ -1,4 +1,6 @@
 import type { Pagina } from '../../nucleo/api/api';
+import type { EventosDoAplicativo } from './eventos.tipos';
+import type { ConexaoFacebook } from './facebook.tipos';
 import type {
   AplicativoDoCatalogo,
   CatalogoDeAplicativos,
@@ -472,4 +474,126 @@ export const FORMATO_CLINT: FormatoClint = {
     },
   ],
   metodos: ['POST', 'GET'],
+};
+
+// --- Facebook Lead Ads e plataformas de curso (H3) --------------------------------------------
+
+export const APLICATIVO_FACEBOOK: AplicativoDoCatalogo = {
+  ...APLICATIVO_ELEMENTOR,
+  aplicativo: 'FACEBOOK_LEAD_ADS',
+  nome: 'Facebook Lead Ads',
+  descricao: 'Receba os leads dos formulários de cadastro do Facebook.',
+  entrega: 'API',
+  buscaCampos: true,
+  escolheFormulario: true,
+  passoAPasso: {
+    titulo: 'No Facebook',
+    passos: ['O app precisa de leads_retrieval aprovado.', 'Libere o CRM em Leads Access.'],
+  },
+};
+
+export const EVENTOS_HOTMART: EventosDoAplicativo = {
+  filtroPorProduto: true,
+  eventos: [
+    {
+      codigo: 'PURCHASE_APPROVED',
+      nome: 'Compra aprovada',
+      descricao: 'O pagamento foi aprovado.',
+      grupo: 'COMPRA',
+      padrao: { acao: 'GANHO', etapaId: null, motivoPerda: null, etiquetas: [] },
+    },
+    {
+      codigo: 'PURCHASE_BILLET_PRINTED',
+      nome: 'Boleto gerado',
+      descricao: 'O comprador gerou o boleto.',
+      grupo: 'PAGAMENTO_PENDENTE',
+      padrao: { acao: 'ABRIR', etapaId: null, motivoPerda: null, etiquetas: [] },
+    },
+    {
+      codigo: 'PURCHASE_REFUNDED',
+      nome: 'Compra reembolsada',
+      descricao: 'A compra foi reembolsada.',
+      grupo: 'POS_VENDA',
+      padrao: {
+        acao: 'PERDIDO',
+        etapaId: null,
+        motivoPerda: 'Reembolso',
+        etiquetas: ['reembolso'],
+      },
+    },
+  ],
+  modelos: [
+    {
+      codigo: 'VENDAS',
+      nome: 'Vendas completas',
+      descricao: 'Compra, carrinho, boleto e reembolso.',
+      regras: {
+        PURCHASE_APPROVED: { acao: 'GANHO', etapaId: null, motivoPerda: null, etiquetas: [] },
+        PURCHASE_BILLET_PRINTED: { acao: 'ABRIR', etapaId: null, motivoPerda: null, etiquetas: [] },
+        PURCHASE_REFUNDED: {
+          acao: 'PERDIDO',
+          etapaId: null,
+          motivoPerda: 'Reembolso',
+          etiquetas: ['reembolso'],
+        },
+      },
+    },
+    {
+      codigo: 'SO_COMPRAS',
+      nome: 'Só compras aprovadas',
+      descricao: 'Só a compra aprovada.',
+      regras: {
+        PURCHASE_APPROVED: { acao: 'GANHO', etapaId: null, motivoPerda: null, etiquetas: [] },
+      },
+    },
+  ],
+};
+
+export const APLICATIVO_HOTMART_COM_EVENTOS: AplicativoDoCatalogo = {
+  ...APLICATIVO_ELEMENTOR,
+  aplicativo: 'HOTMART',
+  nome: 'Hotmart',
+  descricao: 'Compras da Hotmart.',
+  autenticidade: {
+    tipo: 'HOTMART_HOTTOK',
+    descricao: 'A Hotmart envia o Hottok no cabeçalho X-HOTMART-HOTTOK.',
+    segredo: 'OPCIONAL',
+    rotuloDoSegredo: 'Hottok',
+    cabecalho: 'X-HOTMART-HOTTOK',
+  },
+  passoAPasso: {
+    titulo: 'Na Hotmart',
+    passos: ['Abra Ferramentas > Webhook.', 'Cole o endereço da integração.'],
+  },
+  eventos: EVENTOS_HOTMART,
+};
+
+export const CONEXAO_FACEBOOK: ConexaoFacebook = {
+  id: 'cx1',
+  nome: 'H3 Facebook (OAuth)',
+  tipo: 'USUARIO',
+  appId: '900000000000001',
+  appSecretMascarado: '••••1234',
+  conectada: true,
+  usuarioFacebook: { id: 'u1', nome: 'Victor' },
+  expiraEm: '2027-01-03T12:00:00Z',
+  conectadaEm: '2026-11-04T12:00:00Z',
+  canalOrigemId: null,
+  paginas: [
+    { id: 'p1', nome: 'Escola Demo BRL', categoria: 'Educação' },
+    { id: 'p2', nome: 'Clínica Demo BRL', categoria: 'Saúde' },
+  ],
+  integracoes: 1,
+  precisaAtencao: false,
+  atencaoMotivo: null,
+  criadoEm: '2026-11-04T12:00:00Z',
+};
+
+export const CONEXAO_COM_ATENCAO: ConexaoFacebook = {
+  ...CONEXAO_FACEBOOK,
+  id: 'cx2',
+  nome: 'H3 Facebook (token ruim)',
+  tipo: 'PAGINA',
+  precisaAtencao: true,
+  atencaoMotivo: 'O Facebook recusou o token.',
 };

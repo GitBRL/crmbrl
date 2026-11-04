@@ -111,6 +111,16 @@
               }
             }
 
+            <!-- Conexão (Facebook Lead Ads) -->
+            @case ('conexao') {
+              <app-passo-conexao-facebook
+                [selecionadaId]="conexaoInicial()"
+                [contexto]="contextoParaOLogin()"
+                [retorno]="retornoFacebook()"
+                (escolhida)="escolherConexao($event)"
+              />
+            }
+
             <!-- 2. Ação e nome -->
             @case ('acao') {
               <h3 class="assistente__titulo-passo" tabindex="-1">Ação e nome</h3>
@@ -127,24 +137,32 @@
                 [erro]="erroDoNome()"
                 dica="Vira a origem dos contatos que chegarem por aqui."
               />
-              <div class="assistente__dupla">
-                <app-grupo-opcoes
-                  rotulo="O que receber"
-                  [opcoes]="opcoesAlvo()"
-                  [valor]="alvo()"
-                  (valorChange)="alvo.set($event ?? 'NEGOCIO')"
-                />
-                <app-grupo-opcoes
-                  rotulo="O que fazer"
-                  [opcoes]="opcoesModo()"
-                  [valor]="modo()"
-                  (valorChange)="modo.set($event ?? 'CRIAR_OU_ATUALIZAR')"
-                />
-              </div>
-              <p class="assistente__nota">
-                Ação escolhida: <strong>{{ acaoEscolhida() }}</strong
-                >. Todo recebimento precisa de e-mail ou telefone.
-              </p>
+              @if (ehCurso()) {
+                <p class="assistente__nota" data-teste="acao-por-evento">
+                  O que o CRM faz depende do evento que a plataforma avisar (compra aprovada,
+                  reembolso, carrinho abandonado…). Você define isso na tabela do passo “Eventos”.
+                  Todo aviso precisa de e-mail ou telefone do comprador.
+                </p>
+              } @else {
+                <div class="assistente__dupla">
+                  <app-grupo-opcoes
+                    rotulo="O que receber"
+                    [opcoes]="opcoesAlvo()"
+                    [valor]="alvo()"
+                    (valorChange)="alvo.set($event ?? 'NEGOCIO')"
+                  />
+                  <app-grupo-opcoes
+                    rotulo="O que fazer"
+                    [opcoes]="opcoesModo()"
+                    [valor]="modo()"
+                    (valorChange)="modo.set($event ?? 'CRIAR_OU_ATUALIZAR')"
+                  />
+                </div>
+                <p class="assistente__nota">
+                  Ação escolhida: <strong>{{ acaoEscolhida() }}</strong
+                  >. Todo recebimento precisa de e-mail ou telefone.
+                </p>
+              }
 
               @if (credenciais().length) {
                 <fieldset class="assistente__grupo">
@@ -200,7 +218,7 @@
                 </fieldset>
               }
 
-              @if (!editando() && segredoOpcional()) {
+              @if (!editando() && segredoOpcional() && !ehCurso()) {
                 <fieldset class="assistente__grupo">
                   <legend class="assistente__legenda">Segurança</legend>
                   <app-grupo-opcoes
@@ -230,7 +248,7 @@
                     />
                   }
                 </fieldset>
-              } @else if (editando() && segredoOpcional()) {
+              } @else if (editando() && segredoOpcional() && !ehCurso()) {
                 <p class="assistente__nota">
                   Assinatura:
                   <strong>{{
@@ -246,7 +264,49 @@
 
             <!-- 3. Endereço (ou formulário, no Typeform) -->
             @case ('endereco') {
-              @if (escolheFormulario()) {
+              @if (ehFacebook()) {
+                @if (conexaoFacebook(); as conexao) {
+                  <h3 class="assistente__titulo-passo" tabindex="-1">Página e formulário</h3>
+                  <p class="assistente__frase">
+                    Escolha a página do Facebook e o formulário de leads (Lead Ads). Cada lead novo
+                    vira um contato e um negócio, em segundos.
+                  </p>
+                  <p class="assistente__nota">
+                    Conexão: <strong>{{ conexao.nome }}</strong
+                    >.
+                  </p>
+                  <app-passo-formulario-facebook
+                    [conexao]="conexao"
+                    [mostrarErros]="tocou()"
+                    [(paginaId)]="paginaFacebook"
+                    [(formularioId)]="formularioFacebook"
+                    (formularioEscolhido)="formularioFacebookEscolhido.set($event)"
+                    (paginasAtualizadas)="atualizarConexaoDasPaginas($event)"
+                  />
+                  @if (atual()?.configuracao?.assinaturaErro; as erroDaAssinatura) {
+                    <p class="assistente__alerta" role="alert">
+                      A Meta recusou a assinatura da página: {{ erroDaAssinatura }}
+                    </p>
+                  }
+                } @else {
+                  <h3 class="assistente__titulo-passo" tabindex="-1">Página e formulário</h3>
+                  <app-estado-vazio
+                    compacto
+                    titulo="Escolha a conexão primeiro"
+                    texto="A página e o formulário vêm da conexão com o Facebook, no passo “Conexão”."
+                  >
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      (click)="irPara('conexao')"
+                    >
+                      Ir para a conexão
+                    </button>
+                  </app-estado-vazio>
+                }
+              } @else if (escolheFormulario()) {
                 <h3 class="assistente__titulo-passo" tabindex="-1">Escolha o formulário</h3>
                 <p class="assistente__frase">
                   O CRM registra o webhook no formulário escolhido, com um segredo próprio. Você não
@@ -375,6 +435,74 @@
                     Configure este segredo na ferramenta: {{ a.autenticidade.descricao }}
                   </p>
                 }
+                @if (ehCurso() && atual()) {
+                  <fieldset class="assistente__grupo" data-teste="segredo-plataforma">
+                    <legend class="assistente__legenda">
+                      {{ rotuloDoSegredo() }}
+                      <app-dica
+                        rotulo="Para que serve"
+                        [texto]="
+                          'Confere que o aviso veio mesmo da plataforma. ' +
+                          a.autenticidade.descricao
+                        "
+                      />
+                    </legend>
+                    <p class="assistente__nota" aria-live="polite">
+                      @if (atual()?.exigeAssinatura) {
+                        Conferência <strong>ligada</strong> ({{ atual()?.segredoMascarado }}):
+                        avisos sem a chave certa são recusados com 401.
+                      } @else {
+                        Conferência <strong>desligada</strong>: quem tiver o endereço consegue
+                        enviar avisos. Cole a chave abaixo para ligar.
+                      }
+                    </p>
+                    <app-campo-senha
+                      [rotulo]="'Nova chave (' + rotuloDoSegredo() + ')'"
+                      autocomplete="off"
+                      dica="De 16 a 200 caracteres. Copie da plataforma; depois ela só aparece mascarada."
+                      [erro]="erroDoSegredo()"
+                      [valor]="segredoNovo()"
+                      (valorChange)="segredoNovo.set('' + $event); erroDoSegredo.set(null)"
+                    />
+                    <div class="assistente__linha-acoes">
+                      <button
+                        appBotao
+                        type="button"
+                        variante="contorno"
+                        [carregando]="salvandoSegredo()"
+                        [disabled]="!segredoNovo().trim()"
+                        (click)="salvarSegredoDaPlataforma()"
+                      >
+                        {{ atual()?.exigeAssinatura ? 'Trocar a chave' : 'Guardar a chave' }}
+                      </button>
+                      @if (atual()?.exigeAssinatura) {
+                        <button
+                          appBotao
+                          type="button"
+                          variante="neutro"
+                          [disabled]="salvandoSegredo()"
+                          (click)="removerSegredoDaPlataforma()"
+                        >
+                          Deixar de conferir
+                        </button>
+                      }
+                    </div>
+                  </fieldset>
+                }
+                @if (a.entrega === 'WEBHOOK' && a.passoAPasso.passos.length) {
+                  <section
+                    class="assistente__bloco"
+                    aria-labelledby="onde-colar"
+                    data-teste="onde-colar"
+                  >
+                    <h4 class="assistente__subtitulo" id="onde-colar">Onde colar o endereço</h4>
+                    <ol class="assistente__lista-passos">
+                      @for (texto of a.passoAPasso.passos; track $index) {
+                        <li>{{ texto }}</li>
+                      }
+                    </ol>
+                  </section>
+                }
                 @if (curl()) {
                   <app-bloco-codigo
                     rotulo="Teste com curl"
@@ -383,6 +511,19 @@
                     [codigo]="curl()"
                   />
                 }
+              }
+            }
+
+            <!-- Eventos (plataformas de curso) -->
+            @case ('eventos') {
+              @if (eventosDoApp(); as eventos) {
+                <app-tabela-de-eventos
+                  [eventos]="eventos"
+                  [etapas]="opcoesEtapaAberta()"
+                  [funilNome]="nomeDoFunil()"
+                  [(tabela)]="tabelaDeEventos"
+                  [(produtos)]="produtos"
+                />
               }
             }
 
@@ -426,7 +567,7 @@
                     [carregando]="buscandoCampos()"
                     (click)="buscarCampos()"
                   >
-                    Buscar campos da integração
+                    Buscar {{ nomeDaBusca() }}
                   </button>
                 }
                 <button
@@ -607,7 +748,7 @@
                   (valorChange)="etapaId.set($event)"
                 />
               </div>
-              @if (!ehContato()) {
+              @if (!ehContato() && !ehCurso()) {
                 <app-grupo-opcoes
                   rotulo="Status inicial"
                   ajuda="Como o negócio criado por esta integração nasce. Status mapeado no recebimento (aberto, ganho, perdido) vale mais."
@@ -616,12 +757,18 @@
                   [valor]="statusInicial()"
                   (valorChange)="statusInicial.set($event ?? 'ABERTO')"
                 />
+              }
+              @if (!ehContato()) {
                 <app-campo-texto
                   rotulo="Motivo de perda padrão"
-                  [opcional]="!ehPerdido()"
-                  [obrigatorio]="ehPerdido()"
+                  [opcional]="!motivoPadraoObrigatorio()"
+                  [obrigatorio]="motivoPadraoObrigatorio()"
                   placeholder="Perdido por integração"
-                  dica="Usado quando o negócio é perdido por esta integração e o recebimento não traz um motivo."
+                  [dica]="
+                    ehCurso()
+                      ? 'Usado nos eventos de perda da tabela que não têm um motivo próprio.'
+                      : 'Usado quando o negócio é perdido por esta integração e o recebimento não traz um motivo.'
+                  "
                   [valor]="motivoPerda()"
                   (valorChange)="motivoPerda.set('' + $event)"
                 />
@@ -671,19 +818,49 @@
                   <dt>Nome</dt>
                   <dd>{{ resumo().nome }}</dd>
                 </div>
+                @if (ehFacebook()) {
+                  <div>
+                    <dt>Conexão</dt>
+                    <dd>{{ resumo().conexao }}</dd>
+                  </div>
+                  <div>
+                    <dt>Página</dt>
+                    <dd>{{ resumo().pagina }}</dd>
+                  </div>
+                  <div>
+                    <dt>Formulário</dt>
+                    <dd>{{ resumo().formulario }}</dd>
+                  </div>
+                }
                 <div>
                   <dt>Ação</dt>
-                  <dd>{{ resumo().acao }}</dd>
+                  <dd>{{ ehCurso() ? 'Definida por evento' : resumo().acao }}</dd>
                 </div>
+                @if (ehCurso()) {
+                  <div>
+                    <dt>Eventos</dt>
+                    <dd>{{ resumo().eventos }}</dd>
+                  </div>
+                  <div>
+                    <dt>Produtos</dt>
+                    <dd>{{ resumo().produtos }}</dd>
+                  </div>
+                  <div>
+                    <dt>Chave da plataforma</dt>
+                    <dd>{{ atual()?.exigeAssinatura ? 'conferida' : 'não conferida' }}</dd>
+                  </div>
+                }
                 <div>
                   <dt>Entra em</dt>
                   <dd>{{ resumo().destino }}</dd>
                 </div>
-                @if (!ehContato()) {
+                @if (!ehContato() && !ehCurso()) {
                   <div>
                     <dt>Status inicial</dt>
                     <dd>{{ resumo().status }}</dd>
                   </div>
+                }
+                @if (!ehContato()) {
                   <div>
                     <dt>Quem fica com o lead</dt>
                     <dd>{{ resumo().distribuicao }}</dd>

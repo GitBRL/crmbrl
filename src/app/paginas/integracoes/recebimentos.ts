@@ -52,6 +52,25 @@ export function motivoSemReprocessar(recebimento: Recebimento): string | null {
   return 'O corpo deste envio não foi guardado.';
 }
 
+const PREFIXO_DO_EVENTO = /^Evento "([^"]+)";\s*/;
+
+/** O evento da plataforma (Hotmart, Kiwify, Eduzz) que o recebimento trouxe, com o nome amigável. */
+export function eventoDoRecebimento(
+  recebimento: Recebimento,
+  nomes: ReadonlyMap<string, string> = new Map(),
+): { codigo: string | null; nome: string } | null {
+  const codigo = recebimento.itens?.find((item) => item.evento)?.evento ?? null;
+  const dito = PREFIXO_DO_EVENTO.exec(recebimento.mensagem ?? '')?.[1] ?? null;
+  const nome = (codigo && nomes.get(codigo)) || dito || codigo;
+  return nome ? { codigo, nome } : null;
+}
+
+/** O que o CRM fez com o evento: a mensagem do processamento sem o "Evento "X";" do começo. */
+export function acaoAplicada(recebimento: Recebimento): string | null {
+  const texto = (recebimento.mensagem ?? '').replace(PREFIXO_DO_EVENTO, '').trim();
+  return texto || null;
+}
+
 /**
  * Recebimentos das integrações (R8.6, Onda H): a lista de uma consulta (filtros vindos de quem
  * usa: data, status, aplicativo e integração), em que cada recebimento abre no lugar com o
@@ -105,6 +124,9 @@ export class Recebimentos {
   protected readonly detalhes = signal<ReadonlyMap<string, RecebimentoDetalhe>>(new Map());
   protected readonly carregandoDetalhe = signal<string | null>(null);
   protected readonly erroDetalhe = signal<ErroApi | null>(null);
+  /** Nome amigável dos eventos das plataformas de curso, do catálogo (só buscado se houver eventos). */
+  protected readonly nomesDosEventos = signal<ReadonlyMap<string, string>>(new Map());
+  private buscouNomes = false;
   protected readonly simulacoes = signal<ReadonlyMap<string, ResultadoDaPrevia>>(new Map());
   protected readonly simulando = signal<string | null>(null);
   protected readonly reprocessando = signal<string | null>(null);
@@ -132,7 +154,32 @@ export class Recebimentos {
       void [this.chaveDaConsulta(), this.pagina()];
       untracked(() => void this.carregar());
     });
+    effect(() => {
+      const comEvento = this.itens().some((r) => r.itens?.some((item) => !!item.evento));
+      if (comEvento) {
+        untracked(() => void this.carregarNomesDosEventos());
+      }
+    });
     inject(DestroyRef).onDestroy(() => this.pararConferencia());
+  }
+
+  private async carregarNomesDosEventos(): Promise<void> {
+    if (this.buscouNomes) {
+      return;
+    }
+    this.buscouNomes = true;
+    try {
+      const catalogo = await this.api.catalogo();
+      this.nomesDosEventos.set(
+        new Map(
+          catalogo.aplicativos.flatMap((app) =>
+            (app.eventos?.eventos ?? []).map((e) => [e.codigo, e.nome] as const),
+          ),
+        ),
+      );
+    } catch {
+      // Sem o catálogo, o nome vem da mensagem do próprio recebimento.
+    }
   }
 
   async carregar(): Promise<void> {
@@ -210,6 +257,15 @@ export class Recebimentos {
     } finally {
       this.simulando.set(null);
     }
+  }
+
+  protected evento(recebimento: Recebimento): { codigo: string | null; nome: string } | null {
+    return eventoDoRecebimento(recebimento, this.nomesDosEventos());
+  }
+
+  /** A mensagem sem o prefixo do evento, quando há um evento; senão a mensagem inteira. */
+  protected acao(recebimento: Recebimento): string | null {
+    return this.evento(recebimento) ? acaoAplicada(recebimento) : recebimento.mensagem;
   }
 
   protected motivo(recebimento: Recebimento): string | null {

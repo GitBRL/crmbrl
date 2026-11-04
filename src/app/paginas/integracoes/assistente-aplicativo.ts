@@ -38,8 +38,26 @@ import {
   type LinhaDoMapa,
 } from './linha-do-mapa';
 import { ValorUnico } from './comum/valor-unico';
+import {
+  listaDoTexto,
+  perdidosSemMotivo,
+  ROTULO_ACAO_DO_EVENTO,
+  type TabelaDeEventos,
+  tabelaInicial,
+  tabelaParaApi,
+} from './eventos.tipos';
 import { exemploCurlEntrada } from './exemplos';
+import { FacebookApi } from './facebook.api';
+import {
+  type ConexaoFacebook,
+  type ContextoDoLogin,
+  type FormularioFacebook,
+  type RetornoDoFacebook,
+} from './facebook.tipos';
 import { IntegracoesApi } from './integracoes.api';
+import { PassoConexaoFacebook } from './passo-conexao-facebook';
+import { PassoFormularioFacebook } from './passo-formulario-facebook';
+import { TabelaDeEventosPasso } from './tabela-de-eventos';
 import { PreviaMapeamento } from './previa-mapeamento';
 import {
   type AlvoIntegracao,
@@ -73,7 +91,15 @@ import {
 
 export { DESTINO_DO_CONTATO, DESTINO_DO_NEGOCIO };
 
-export type IdDoPasso = 'comecar' | 'acao' | 'endereco' | 'mapeamento' | 'configuracoes' | 'salvar';
+export type IdDoPasso =
+  | 'comecar'
+  | 'conexao'
+  | 'acao'
+  | 'endereco'
+  | 'eventos'
+  | 'mapeamento'
+  | 'configuracoes'
+  | 'salvar';
 
 const TAMANHO_MINIMO_SEGREDO = 16;
 const TAMANHO_MAXIMO_SEGREDO = 200;
@@ -182,6 +208,11 @@ export function juntarDestino(linha: Pick<LinhaDoMapa, 'destino' | 'chave'>): st
  * criada **inativa** e só vira ativa no "Salvar". Quem fecha no meio a encontra na lista, como
  * inativa, e continua de onde parou. Typeform troca o endereço pela escolha do formulário (o
  * CRM registra o webhook lá).
+ *
+ * Facebook Lead Ads (R32.14) começa pela **Conexão** (login do Facebook ou token de página) e
+ * escolhe página e formulário no lugar do endereço; a integração só é criada (inativa) ao sair
+ * desse passo, porque a API exige a escolha completa. Hotmart, Kiwify e Eduzz (R32.15) ganham o
+ * passo **Eventos**, com a tabela de ações por evento e o filtro de produto.
  */
 @Component({
   selector: 'app-assistente-aplicativo',
@@ -203,6 +234,9 @@ export function juntarDestino(linha: Pick<LinhaDoMapa, 'destino' | 'chave'>): st
     LogotipoAplicativo,
     LucideCheck,
     LinhaDoMapaCampo,
+    PassoConexaoFacebook,
+    PassoFormularioFacebook,
+    TabelaDeEventosPasso,
   ],
   templateUrl: './assistente-aplicativo.html',
   styleUrl: './assistente-aplicativo.scss',
@@ -210,6 +244,7 @@ export function juntarDestino(linha: Pick<LinhaDoMapa, 'destino' | 'chave'>): st
 })
 export class AssistenteAplicativo {
   private readonly api = inject(IntegracoesApi);
+  private readonly apiFacebook = inject(FacebookApi);
   private readonly avisos = inject(AvisosService);
   private readonly confirmacao = inject(ConfirmacaoService);
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -223,6 +258,10 @@ export class AssistenteAplicativo {
   readonly destinos = input<readonly DestinoDeMapeamento[]>([]);
   /** Funil já escolhido (vindo das configurações do funil). */
   readonly funilInicial = input<string | null>(null);
+  /** O que o login do Facebook devolveu a `/integracoes`: o assistente reabre no passo da conexão. */
+  readonly retornoFacebook = input<RetornoDoFacebook | null>(null);
+  /** O que o assistente guardou antes de sair para o Facebook (o nome já digitado). */
+  readonly contextoDoLogin = input<ContextoDoLogin | null>(null);
   readonly criado = output<WebhookEntradaCriado>();
   readonly salvo = output<WebhookEntrada>();
 
@@ -276,6 +315,20 @@ export class AssistenteAplicativo {
   protected readonly erroFormularios = signal<ErroApi | null>(null);
   protected readonly formularioId = signal<string | null>(null);
 
+  // Facebook Lead Ads
+  protected readonly conexaoFacebook = signal<ConexaoFacebook | null>(null);
+  protected readonly paginaFacebook = signal<string | null>(null);
+  protected readonly formularioFacebook = signal<string | null>(null);
+  protected readonly formularioFacebookEscolhido = signal<FormularioFacebook | null>(null);
+  private chaveDasPerguntas = '';
+
+  // Plataformas de curso
+  protected readonly tabelaDeEventos = signal<TabelaDeEventos>({});
+  protected readonly produtos = signal('');
+  protected readonly segredoNovo = signal('');
+  protected readonly salvandoSegredo = signal(false);
+  protected readonly erroDoSegredo = signal<string | null>(null);
+
   // Mapeamento
   protected readonly linhas = signal<readonly LinhaDoMapa[]>([]);
   protected readonly condicoes = signal<readonly CondicaoEditavel[]>([]);
@@ -314,15 +367,58 @@ export class AssistenteAplicativo {
   protected readonly ehPerdido = computed(() => this.statusInicial() === 'PERDIDO');
   protected readonly ehFixo = computed(() => this.estrategia() === 'RESPONSAVEL_FIXO');
   protected readonly ehRd = computed(() => this.app()?.aplicativo === 'RD_STATION');
+  protected readonly ehFacebook = computed(() => this.app()?.aplicativo === 'FACEBOOK_LEAD_ADS');
+  protected readonly eventosDoApp = computed(() => this.app()?.eventos ?? null);
+  /** Hotmart, Kiwify e Eduzz: a ação vem da tabela de eventos, não do modo escolhido. */
+  protected readonly ehCurso = computed(() => !!this.eventosDoApp());
+  protected readonly rotuloDoSegredo = computed(
+    () => this.app()?.autenticidade.rotuloDoSegredo ?? 'Segredo',
+  );
+  protected readonly nomeDaBusca = computed(() =>
+    this.ehFacebook() ? 'perguntas do formulário' : 'campos da integração',
+  );
+  protected readonly motivoPadraoObrigatorio = computed(() => {
+    const tabela = this.tabelaDeEventos();
+    return this.ehPerdido() || perdidosSemMotivo(tabela).length > 0;
+  });
 
   protected readonly passos = computed<readonly { id: IdDoPasso; nome: string }[]>(() => [
     { id: 'comecar', nome: 'Começar' },
+    ...(this.ehFacebook() ? [{ id: 'conexao' as const, nome: 'Conexão' }] : []),
     { id: 'acao', nome: 'Ação e nome' },
-    { id: 'endereco', nome: this.escolheFormulario() ? 'Formulário' : 'Endereço' },
+    {
+      id: 'endereco',
+      nome: this.ehFacebook()
+        ? 'Página e formulário'
+        : this.escolheFormulario()
+          ? 'Formulário'
+          : 'Endereço',
+    },
+    ...(this.ehCurso() ? [{ id: 'eventos' as const, nome: 'Eventos' }] : []),
     { id: 'mapeamento', nome: 'Mapeamento' },
     { id: 'configuracoes', nome: 'Configurações' },
     { id: 'salvar', nome: 'Salvar' },
   ]);
+  protected readonly contextoParaOLogin = computed<ContextoDoLogin>(() => ({
+    integracaoId: this.atual()?.id ?? this.integracao()?.id ?? null,
+    nome: this.nome(),
+  }));
+  protected readonly opcoesEtapaAberta = computed<readonly OpcaoSeletor<string>[]>(() =>
+    (this.funilEscolhido()?.etapas ?? [])
+      .filter((etapa) => etapa.tipo === 'ABERTA')
+      .map((etapa) => ({ valor: etapa.id, rotulo: etapa.nome })),
+  );
+  /** A conexão que já vale (a da integração ou a que voltou do login), para o passo marcá-la. */
+  protected readonly conexaoInicial = computed(() => {
+    const retorno = this.retornoFacebook();
+    return (
+      this.conexaoFacebook()?.id ??
+      (retorno?.resultado === 'conectado' ? retorno.conexaoId : null) ??
+      this.integracao()?.configuracao.conexaoId ??
+      null
+    );
+  });
+  protected readonly nomeDoFunil = computed(() => this.funilEscolhido()?.nome ?? null);
   protected readonly indice = computed(() =>
     this.passos().findIndex((p) => p.id === this.passoAtual()),
   );
@@ -423,10 +519,10 @@ export class AssistenteAplicativo {
 
   /** O que chegou ou foi buscado/adicionado vem primeiro; os caminhos do modelo sem uso, depois. */
   protected readonly linhasPrincipais = computed(() =>
-    this.linhas().filter((l) => l.origem !== 'modelo' || l.exemplo !== null),
+    this.linhas().filter((l) => l.origem !== 'modelo' || l.exemplo !== null || l.rotulo !== null),
   );
   protected readonly linhasDoModelo = computed(() =>
-    this.linhas().filter((l) => l.origem === 'modelo' && l.exemplo === null),
+    this.linhas().filter((l) => l.origem === 'modelo' && l.exemplo === null && l.rotulo === null),
   );
   protected readonly totalMapeados = computed(
     () => this.linhas().filter((l) => !!l.destino).length,
@@ -449,6 +545,15 @@ export class AssistenteAplicativo {
           : ROTULO_ESTRATEGIA[estrategia],
       mapeamento: this.modificado() ? 'Personalizado' : `${mapeados.length} campos do modelo`,
       etiquetas: separarEtiquetas(this.etiquetas()).join(', ') || 'nenhuma',
+      conexao: this.conexaoFacebook()?.nome ?? '—',
+      pagina:
+        this.conexaoFacebook()?.paginas.find((p) => p.id === this.paginaFacebook())?.nome ?? '—',
+      formulario:
+        this.formularioFacebookEscolhido()?.nome ??
+        this.integracao()?.configuracao.formularioNome ??
+        '—',
+      eventos: this.resumoDosEventos(),
+      produtos: listaDoTexto(this.produtos()).join(', ') || 'todos os produtos',
     };
   });
 
@@ -487,6 +592,7 @@ export class AssistenteAplicativo {
         if (!funil.etapas.some((e) => e.id === etapa && e.tipo !== 'PERDIDO')) {
           this.etapaId.set(funil.etapas.find((e) => e.tipo === 'ABERTA')?.id ?? null);
         }
+        this.limparEtapasDaTabela(funil);
       });
     });
   }
@@ -514,11 +620,24 @@ export class AssistenteAplicativo {
     this.erroGeral.set(null);
     const passo = this.passoAtual();
     if (passo === 'comecar') {
+      this.irPara(this.passos()[this.indice() + 1].id);
+      return;
+    }
+    if (passo === 'conexao') {
+      if (!this.conexaoFacebook()) {
+        this.erroGeral.set('Escolha uma conexão com o Facebook, ou crie uma nova.');
+        return;
+      }
       this.irPara('acao');
       return;
     }
     if (passo === 'acao') {
       if (!this.validarAcao()) {
+        return;
+      }
+      // O Facebook só cria a integração depois de escolher página e formulário.
+      if (this.ehFacebook() && !this.atual()) {
+        this.irPara('endereco');
         return;
       }
       if (await this.gravarAcao()) {
@@ -527,9 +646,17 @@ export class AssistenteAplicativo {
       return;
     }
     if (passo === 'endereco') {
-      if (this.escolheFormulario() && !(await this.gravarFormulario())) {
+      if (this.ehFacebook()) {
+        if (!(await this.gravarFacebook())) {
+          return;
+        }
+      } else if (this.escolheFormulario() && !(await this.gravarFormulario())) {
         return;
       }
+      this.irPara(this.passos()[this.indice() + 1].id);
+      return;
+    }
+    if (passo === 'eventos') {
       this.irPara('mapeamento');
       return;
     }
@@ -567,7 +694,9 @@ export class AssistenteAplicativo {
       case 'comecar':
         return this.editando() ? 'Continuar' : 'Começar';
       case 'acao':
-        return this.atual() ? 'Continuar' : 'Criar e continuar';
+        return this.atual() || this.ehFacebook() ? 'Continuar' : 'Criar e continuar';
+      case 'endereco':
+        return this.ehFacebook() && !this.atual() ? 'Criar e continuar' : 'Continuar';
       case 'salvar':
         return this.editando() ? 'Salvar alterações' : 'Salvar e ativar';
       default:
@@ -694,25 +823,14 @@ export class AssistenteAplicativo {
     try {
       const atual = this.atual();
       if (!atual) {
-        const dados: DadosWebhookEntrada = {
-          ...this.dadosBase(),
-          aplicativo: app.aplicativo,
-          ativo: false,
+        await this.criarInativa({
           ...(Object.keys(digitada).length ? { credencial: digitada } : {}),
           ...(this.ehRd() && this.cabecalhoDeAutenticacao().trim()
             ? { configuracao: { cabecalhoDeAutenticacao: this.cabecalhoDeAutenticacao().trim() } }
             : {}),
           ...(this.seguranca() === 'GERAR' ? { gerarSegredo: true } : {}),
           ...(this.seguranca() === 'INFORMAR' ? { segredo: this.segredoInformado().trim() } : {}),
-        };
-        const criado = await this.api.criarEntrada(dados);
-        this.atual.set(criado.webhook);
-        this.urlCompleta.set(criado.url);
-        this.segredoGerado.set(criado.segredo ?? null);
-        this.criadaAgora = true;
-        this.houveMudanca = true;
-        this.criado.emit(criado);
-        this.carregarCamposDoModelo();
+        });
       } else {
         const atualizado = await this.api.atualizarEntrada(atual.id, {
           nome: this.nome().trim(),
@@ -730,6 +848,190 @@ export class AssistenteAplicativo {
       return false;
     } finally {
       this.enviando.set(false);
+    }
+  }
+
+  /** Cria a integração inativa (o "Salvar" do fim é que a ativa) e guarda o que só vem agora. */
+  private async criarInativa(extra: Partial<DadosWebhookEntrada>): Promise<void> {
+    const app = this.app();
+    if (!app) {
+      return;
+    }
+    const criado = await this.api.criarEntrada({
+      ...this.dadosBase(),
+      aplicativo: app.aplicativo,
+      ativo: false,
+      ...extra,
+    });
+    this.atual.set(criado.webhook);
+    this.urlCompleta.set(criado.url);
+    this.segredoGerado.set(criado.segredo ?? null);
+    this.criadaAgora = true;
+    this.houveMudanca = true;
+    this.criado.emit(criado);
+    this.carregarCamposDoModelo();
+  }
+
+  // --- Facebook Lead Ads -----------------------------------------------------------------------
+
+  protected escolherConexao(conexao: ConexaoFacebook | null): void {
+    if (conexao?.id !== this.conexaoFacebook()?.id) {
+      this.paginaFacebook.set(null);
+      this.formularioFacebook.set(null);
+      this.formularioFacebookEscolhido.set(null);
+    }
+    this.conexaoFacebook.set(conexao);
+    this.erroGeral.set(null);
+  }
+
+  protected atualizarConexaoDasPaginas(conexao: ConexaoFacebook): void {
+    this.conexaoFacebook.set(conexao);
+  }
+
+  /** Cria (inativa) ou ajusta a integração com a conexão, a página e o formulário escolhidos. */
+  private async gravarFacebook(): Promise<boolean> {
+    const conexao = this.conexaoFacebook();
+    const paginaId = this.paginaFacebook();
+    const formularioId = this.formularioFacebook();
+    if (!conexao || !paginaId || !formularioId) {
+      this.tocou.set(true);
+      this.erroGeral.set('Escolha a página e o formulário de leads.');
+      return false;
+    }
+    const configuracao = { conexaoId: conexao.id, paginaId, formularioId };
+    this.enviando.set(true);
+    try {
+      const atual = this.atual();
+      if (!atual) {
+        await this.criarInativa({ configuracao });
+      } else {
+        const antiga = atual.configuracao;
+        const mudou =
+          antiga.conexaoId !== conexao.id ||
+          antiga.paginaId !== paginaId ||
+          antiga.formularioId !== formularioId;
+        if (mudou) {
+          this.atual.set(await this.api.atualizarEntrada(atual.id, { configuracao }));
+          this.houveMudanca = true;
+        }
+      }
+      this.chaveDasPerguntas = '';
+      return true;
+    } catch (falha) {
+      this.tratarErro(erroDaApi(falha), 'endereco');
+      return false;
+    } finally {
+      this.enviando.set(false);
+    }
+  }
+
+  /** Editar: a conexão da integração, para o passo da página e do formulário. */
+  private async carregarConexaoDaIntegracao(id: string | undefined): Promise<void> {
+    if (!id || this.conexaoFacebook()) {
+      return;
+    }
+    try {
+      const conexao = (await this.apiFacebook.conexoes()).find((c) => c.id === id) ?? null;
+      if (!this.conexaoFacebook()) {
+        this.conexaoFacebook.set(conexao);
+      }
+    } catch {
+      // O passo "Conexão" mostra o erro, com "Tentar de novo".
+    }
+  }
+
+  /** Busca as perguntas do formulário escolhido (uma vez por formulário) para o mapeamento. */
+  private async buscarPerguntas(): Promise<void> {
+    const chave = `${this.paginaFacebook()}/${this.formularioFacebook()}`;
+    if (!this.atual() || this.chaveDasPerguntas === chave) {
+      return;
+    }
+    this.chaveDasPerguntas = chave;
+    this.linhas.update((lista) => lista.filter((l) => l.origem !== 'buscado'));
+    await this.buscarCampos();
+  }
+
+  // --- Plataformas de curso --------------------------------------------------------------------
+
+  private resumoDosEventos(): string {
+    const tabela = this.tabelaDeEventos();
+    if (!this.ehCurso()) {
+      return '—';
+    }
+    const contagem = new Map<string, number>();
+    for (const regra of Object.values(tabela)) {
+      if (regra.acao !== 'IGNORAR') {
+        const rotulo = ROTULO_ACAO_DO_EVENTO[regra.acao];
+        contagem.set(rotulo, (contagem.get(rotulo) ?? 0) + 1);
+      }
+    }
+    const partes = [...contagem].map(
+      ([rotulo, total]) => `${total} × ${rotulo.toLocaleLowerCase('pt-BR')}`,
+    );
+    return partes.length ? partes.join(', ') : 'todos ignorados';
+  }
+
+  /** Mudar o funil zera as etapas escolhidas na tabela: elas eram do funil anterior. */
+  private limparEtapasDaTabela(funil: FunilDoDestino): void {
+    const tabela = this.tabelaDeEventos();
+    if (!tabela) {
+      return;
+    }
+    const abertas = new Set(funil.etapas.filter((e) => e.tipo === 'ABERTA').map((e) => e.id));
+    if (!Object.values(tabela).some((r) => r.etapaId && !abertas.has(r.etapaId))) {
+      return;
+    }
+    this.tabelaDeEventos.set(
+      Object.fromEntries(
+        Object.entries(tabela).map(([codigo, regra]) => [
+          codigo,
+          regra.etapaId && !abertas.has(regra.etapaId) ? { ...regra, etapaId: null } : regra,
+        ]),
+      ),
+    );
+  }
+
+  /** A chave que a plataforma gerou (Hottok, token do webhook…), colada depois do endereço. */
+  protected async salvarSegredoDaPlataforma(): Promise<void> {
+    const atual = this.atual();
+    const segredo = this.segredoNovo().trim();
+    if (!atual) {
+      return;
+    }
+    if (segredo.length < TAMANHO_MINIMO_SEGREDO || segredo.length > TAMANHO_MAXIMO_SEGREDO) {
+      this.erroDoSegredo.set('A chave precisa ter de 16 a 200 caracteres.');
+      return;
+    }
+    this.salvandoSegredo.set(true);
+    this.erroDoSegredo.set(null);
+    try {
+      const resposta = await this.api.definirSegredo(atual.id, segredo);
+      this.atual.set(resposta.webhook);
+      this.segredoNovo.set('');
+      this.houveMudanca = true;
+      this.avisos.sucesso(`${this.rotuloDoSegredo()} guardado.`);
+    } catch (falha) {
+      this.erroDoSegredo.set(erroDaApi(falha).resumo);
+    } finally {
+      this.salvandoSegredo.set(false);
+    }
+  }
+
+  protected async removerSegredoDaPlataforma(): Promise<void> {
+    const atual = this.atual();
+    if (!atual) {
+      return;
+    }
+    this.salvandoSegredo.set(true);
+    this.erroDoSegredo.set(null);
+    try {
+      this.atual.set(await this.api.removerSegredo(atual.id));
+      this.houveMudanca = true;
+      this.avisos.sucesso('A integração deixou de conferir a chave.');
+    } catch (falha) {
+      this.erroDoSegredo.set(erroDaApi(falha).resumo);
+    } finally {
+      this.salvandoSegredo.set(false);
     }
   }
 
@@ -940,10 +1242,15 @@ export class AssistenteAplicativo {
     try {
       const resposta = await this.api.buscarCampos(atual.id);
       this.mesclarBuscados(resposta.campos);
+      const total = resposta.campos.length;
       this.avisoDosCampos.set(
-        resposta.campos.length
-          ? `${resposta.campos.length} campos buscados na ferramenta.`
-          : 'A ferramenta não devolveu nenhum campo.',
+        this.ehFacebook()
+          ? total
+            ? `${total} perguntas e dados do lead buscados no formulário.`
+            : 'O Facebook não devolveu nenhuma pergunta deste formulário.'
+          : total
+            ? `${total} campos buscados na ferramenta.`
+            : 'A ferramenta não devolveu nenhum campo.',
       );
     } catch (falha) {
       const erro = erroDaApi(falha);
@@ -1132,7 +1439,10 @@ export class AssistenteAplicativo {
     if (this.ehFixo() && !this.responsavelId() && !this.ehContato()) {
       return 'Escolha o responsável fixo.';
     }
-    if (this.ehPerdido() && !this.motivoPerda().trim() && !this.ehContato()) {
+    if (this.ehCurso() && this.motivoPadraoObrigatorio() && !this.motivoPerda().trim()) {
+      return 'Informe o motivo de perda padrão: há eventos de perda na tabela sem motivo próprio.';
+    }
+    if (!this.ehCurso() && this.ehPerdido() && !this.motivoPerda().trim() && !this.ehContato()) {
       return 'Informe o motivo de perda padrão para negócios que já entram como perdidos.';
     }
     return null;
@@ -1148,7 +1458,7 @@ export class AssistenteAplicativo {
       modo: this.modo(),
       funilId: this.funilId() ?? '',
       etapaId: this.etapaId() ?? '',
-      statusInicial: contato ? 'ABERTO' : this.statusInicial(),
+      statusInicial: contato || this.ehCurso() ? 'ABERTO' : this.statusInicial(),
       motivoPerdaPadrao: this.motivoPerda().trim() || null,
       estrategia: this.estrategia(),
       responsavelFixoId: this.ehFixo() ? this.responsavelId() : null,
@@ -1167,12 +1477,25 @@ export class AssistenteAplicativo {
       const dados: Partial<DadosWebhookEntrada> = {
         ...this.dadosBase(),
         ...this.dadosDoMapeamento(),
+        ...(this.ehCurso()
+          ? {
+              configuracao: {
+                eventos: tabelaParaApi(this.tabelaDeEventos()),
+                produtos: listaDoTexto(this.produtos()),
+              },
+            }
+          : {}),
         ...(this.editando() ? {} : { ativo: true }),
       };
       const salvo = await this.api.atualizarEntrada(atual.id, dados);
       this.atual.set(salvo);
       this.finalizada = true;
       this.salvo.emit(salvo);
+      if (salvo.configuracao.assinaturaErro) {
+        this.avisos.atencao(
+          `A integração foi salva, mas a Meta recusou a assinatura da página: ${salvo.configuracao.assinaturaErro}`,
+        );
+      }
       this.avisos.sucesso(
         this.editando()
           ? `Integração “${salvo.nome}” atualizada.`
@@ -1213,14 +1536,19 @@ export class AssistenteAplicativo {
   // --- Abrir e fechar --------------------------------------------------------------------------
 
   private aoEntrarNoPasso(id: IdDoPasso): void {
-    if (id === 'endereco') {
+    if (id === 'endereco' && !this.ehFacebook()) {
       if (this.escolheFormulario()) {
         void this.carregarFormularios();
       } else {
         void this.carregarEndereco();
       }
     }
-    if (id === 'mapeamento') {
+    if (id === 'mapeamento' && this.ehFacebook()) {
+      if (!this.linhas().length && !this.modificado()) {
+        this.restaurarModelo();
+      }
+      void this.buscarPerguntas();
+    } else if (id === 'mapeamento') {
       if (!this.linhas().length && !this.modificado()) {
         this.restaurarModelo();
       } else {
@@ -1239,7 +1567,8 @@ export class AssistenteAplicativo {
   private iniciar(): void {
     const app = this.app();
     const integracao = this.integracao();
-    this.passoAtual.set('comecar');
+    const retorno = this.retornoFacebook();
+    this.passoAtual.set(app?.aplicativo === 'FACEBOOK_LEAD_ADS' && retorno ? 'conexao' : 'comecar');
     this.erroGeral.set(null);
     this.erroNome.set(null);
     this.erroEndereco.set(null);
@@ -1261,7 +1590,9 @@ export class AssistenteAplicativo {
     this.linhas.set([]);
     this.condicoes.set([]);
     this.modificado.set(false);
-    this.nome.set(integracao?.nome ?? (app ? `${app.nome} — ` : ''));
+    this.nome.set(
+      integracao?.nome ?? (this.contextoDoLogin()?.nome || (app ? `${app.nome} — ` : '')),
+    );
     this.alvo.set(integracao?.alvo ?? 'NEGOCIO');
     this.modo.set(integracao?.modo ?? 'CRIAR_OU_ATUALIZAR');
     this.statusInicial.set(integracao?.statusInicial ?? 'ABERTO');
@@ -1272,6 +1603,17 @@ export class AssistenteAplicativo {
     this.funilId.set(integracao?.funil.id ?? this.funilInicial());
     this.etapaId.set(integracao?.etapa.id ?? null);
     this.formularioId.set(integracao?.configuracao.formularioId ?? null);
+    this.conexaoFacebook.set(null);
+    this.paginaFacebook.set(integracao?.configuracao.paginaId ?? null);
+    this.formularioFacebook.set(integracao?.configuracao.formularioId ?? null);
+    this.formularioFacebookEscolhido.set(null);
+    this.chaveDasPerguntas = '';
+    this.segredoNovo.set('');
+    this.erroDoSegredo.set(null);
+    this.tabelaDeEventos.set(
+      app?.eventos ? tabelaInicial(app.eventos, integracao?.configuracao.eventos) : {},
+    );
+    this.produtos.set(integracao?.configuracao.produtos?.join(', ') ?? '');
     this.exemplo.set('');
     this.exemploEhDeModelo = true;
     this.modeloEscolhido.set(
@@ -1283,6 +1625,9 @@ export class AssistenteAplicativo {
     );
     if (integracao) {
       this.carregarDaIntegracao(integracao);
+      if (integracao.aplicativo === 'FACEBOOK_LEAD_ADS') {
+        void this.carregarConexaoDaIntegracao(integracao.configuracao.conexaoId);
+      }
     }
     void this.carregarApoio();
   }
@@ -1351,8 +1696,9 @@ export class AssistenteAplicativo {
   /** Funil de Marketing (ou o primeiro ativo) e o exemplo do modelo, quando ainda não escolhidos. */
   private aplicarPadroes(): void {
     if (!this.funilId() || !this.funis().some((f) => f.id === this.funilId())) {
+      const areaPadrao = this.ehCurso() ? 'COMERCIAL' : 'MARKETING';
       const padrao =
-        this.funis().find((f) => f.area === 'MARKETING' && f.ativo) ??
+        this.funis().find((f) => f.area === areaPadrao && f.ativo) ??
         this.funis().find((f) => f.ativo);
       this.funilId.set(padrao?.id ?? null);
     }

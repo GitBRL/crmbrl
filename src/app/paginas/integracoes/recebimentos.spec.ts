@@ -11,7 +11,13 @@ import {
   recebimento,
   recebimentoDetalhe,
 } from './dados-de-teste';
-import { motivoSemReprocessar, Recebimentos } from './recebimentos';
+import {
+  acaoAplicada,
+  eventoDoRecebimento,
+  motivoSemReprocessar,
+  Recebimentos,
+} from './recebimentos';
+import { APLICATIVO_HOTMART_COM_EVENTOS } from './dados-de-teste';
 
 const BASE = '/api/v1/webhooks/recebimentos';
 const LISTA = `${BASE}?integracaoId=we1&pagina=1&porPagina=10`;
@@ -82,6 +88,78 @@ describe('Recebimentos (histórico das integrações)', () => {
     await microtarefas();
     fixture.detectChanges();
   }
+
+  it('mostra o evento da plataforma e a ação aplicada, com o nome amigável do catálogo', async () => {
+    const compra = recebimento({
+      id: 'r1',
+      aplicativo: 'HOTMART',
+      aplicativoNome: 'Hotmart',
+      status: 'PROCESSADO',
+      mensagem:
+        'Evento "Compra aprovada"; Contato "Ana" criado; negócio criado em Comercial / Ganho.',
+      podeReprocessar: false,
+      itens: [
+        {
+          indice: 0,
+          rotulo: null,
+          status: 'PROCESSADO',
+          mensagem: 'x',
+          contatoId: 'c1',
+          negocioId: 'n1',
+          avisos: [],
+          evento: 'PURCHASE_APPROVED',
+          chave: 'id:1',
+        },
+      ],
+    });
+    const ignorado = recebimento({
+      id: 'r2',
+      status: 'IGNORADO',
+      mensagem: 'Produto fora do filtro desta integração (X): evento ignorado.',
+      podeReprocessar: false,
+      itens: [
+        {
+          indice: 0,
+          rotulo: null,
+          status: 'IGNORADO',
+          mensagem: 'x',
+          contatoId: null,
+          negocioId: null,
+          avisos: [],
+          evento: 'PURCHASE_REFUNDED',
+          chave: null,
+        },
+      ],
+    });
+    await criar([compra, ignorado]);
+    http
+      .expectOne('/api/v1/webhooks/aplicativos')
+      .flush({ aplicativos: [APLICATIVO_HOTMART_COM_EVENTOS], destinos: [] });
+    await microtarefas();
+    fixture.detectChanges();
+    const itens = elemento().querySelectorAll('.historico__item');
+    expect(itens[0].querySelector('[data-teste=evento]')?.textContent?.trim()).toBe(
+      'Compra aprovada',
+    );
+    expect(itens[0].querySelector('.historico__texto')?.textContent).toContain(
+      'negócio criado em Comercial / Ganho',
+    );
+    expect(itens[0].querySelector('.historico__texto')?.textContent).not.toContain('Evento "');
+    // Sem prefixo na mensagem, o nome vem do catálogo pelo código.
+    expect(itens[1].querySelector('[data-teste=evento]')?.textContent?.trim()).toBe(
+      'Compra reembolsada',
+    );
+    itens[0].querySelector<HTMLButtonElement>('.historico__resumo')!.click();
+    http.expectOne(`${BASE}/r1`).flush(recebimentoDetalhe({ id: 'r1' }));
+    await microtarefas();
+    fixture.detectChanges();
+    expect(elemento().querySelector('[data-teste=evento-detalhe]')?.textContent).toContain(
+      'PURCHASE_APPROVED',
+    );
+    expect(elemento().querySelector('[data-teste=acao-aplicada]')?.textContent).toContain(
+      'Contato "Ana" criado',
+    );
+  });
 
   it('lista com status, mensagem, origem e tempo; a consulta nova vai para a API', async () => {
     await criar();
@@ -204,5 +282,34 @@ describe('Recebimentos (histórico das integrações)', () => {
     fixture.componentInstance.editarIntegracao.subscribe(editar);
     botao('Editar integração').click();
     expect(editar).toHaveBeenCalledWith('we1');
+  });
+});
+
+describe('evento e ação aplicada de um recebimento', () => {
+  it('lê o nome do evento da mensagem, do código ou do catálogo, e separa a ação', () => {
+    const comPrefixo = recebimento({ mensagem: 'Evento "Chargeback"; Contato "A" etiquetado.' });
+    expect(eventoDoRecebimento(comPrefixo)).toEqual({ codigo: null, nome: 'Chargeback' });
+    expect(acaoAplicada(comPrefixo)).toBe('Contato "A" etiquetado.');
+
+    const soCodigo = recebimento({
+      mensagem: 'Evento repetido.',
+      itens: [
+        {
+          indice: 0,
+          rotulo: null,
+          status: 'IGNORADO',
+          mensagem: '',
+          contatoId: null,
+          negocioId: null,
+          avisos: [],
+          evento: 'order_approved',
+        },
+      ],
+    });
+    expect(eventoDoRecebimento(soCodigo)?.nome).toBe('order_approved');
+    expect(
+      eventoDoRecebimento(soCodigo, new Map([['order_approved', 'Compra aprovada']]))?.nome,
+    ).toBe('Compra aprovada');
+    expect(eventoDoRecebimento(recebimento())).toBeNull();
   });
 });
