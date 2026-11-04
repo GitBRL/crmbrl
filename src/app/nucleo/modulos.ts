@@ -288,7 +288,7 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     fase: null,
     descricao: 'Conecte o CRM a outros sistemas.',
     funcionalidades: [
-      'Webhooks de entrada (captação de leads) e de saída (eventos)',
+      'Aplicativos e webhooks de entrada (captação de leads), histórico dos recebimentos e webhooks de saída (eventos)',
       'WhatsApp (gateway próprio)',
       'TicketHub e outros sistemas de chamados',
       'Registro de cada chamada',

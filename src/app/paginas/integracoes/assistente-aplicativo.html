@@ -1,0 +1,727 @@
+<app-modal [(aberto)]="aberto" largura="xl" [titulo]="titulo()" [complemento]="complemento()">
+  <div class="assistente">
+    @if (aberto() && app(); as a) {
+      <ol class="assistente__passos" aria-label="Passos do assistente">
+        @for (p of passos(); track p.id; let i = $index) {
+          <li
+            class="assistente__passo"
+            [class.assistente__passo--atual]="indice() === i"
+            [class.assistente__passo--feito]="indice() > i"
+          >
+            @if (editando() || (atual() && i > 0 && i <= indice())) {
+              <button
+                type="button"
+                class="assistente__passo-botao"
+                [attr.aria-current]="indice() === i ? 'step' : null"
+                (click)="irPara(p.id)"
+              >
+                <span class="assistente__numero" aria-hidden="true">
+                  @if (indice() > i) {
+                    <svg lucideCheck [size]="14" />
+                  } @else {
+                    {{ i + 1 }}
+                  }
+                </span>
+                <span class="assistente__nome-passo">{{ p.nome }}</span>
+              </button>
+            } @else {
+              <span
+                class="assistente__passo-botao"
+                [attr.aria-current]="indice() === i ? 'step' : null"
+              >
+                <span class="assistente__numero" aria-hidden="true">
+                  @if (indice() > i) {
+                    <svg lucideCheck [size]="14" />
+                  } @else {
+                    {{ i + 1 }}
+                  }
+                </span>
+                <span class="assistente__nome-passo">{{ p.nome }}</span>
+              </span>
+            }
+          </li>
+        }
+      </ol>
+
+      @if (carregandoApoio()) {
+        <div class="assistente__carregando" aria-busy="true">
+          <p class="visualmente-oculto" role="status">Carregando…</p>
+          <app-esqueleto forma="texto" largura="40%" />
+          <app-esqueleto forma="pilula" />
+          <app-esqueleto forma="pilula" />
+          <app-esqueleto forma="bloco" altura="9rem" />
+        </div>
+      } @else if (erroApoio(); as erro) {
+        <app-estado-vazio
+          variante="erro"
+          [falha]="erro"
+          compacto
+          titulo="Não conseguimos carregar os funis"
+          [texto]="erro.resumo"
+          [codigo]="erro.requisicaoId"
+        >
+          <button appBotao type="button" variante="invertido" (click)="recarregarApoio()">
+            Tentar de novo
+          </button>
+        </app-estado-vazio>
+      } @else {
+        <div class="assistente__form">
+          @if (erroGeral(); as mensagem) {
+            <p class="assistente__alerta" role="alert">{{ mensagem }}</p>
+          }
+
+          @switch (passoAtual()) {
+            <!-- 1. Começar -->
+            @case ('comecar') {
+              <div class="comecar">
+                <app-logotipo-aplicativo
+                  [aplicativo]="a.aplicativo"
+                  tamanho="lg"
+                  class="comecar__logo"
+                />
+                <div class="comecar__texto">
+                  <h3 class="assistente__titulo-passo" tabindex="-1">O que esta integração faz</h3>
+                  <p class="assistente__frase">{{ a.descricao }}</p>
+                  <p class="assistente__nota">
+                    {{ a.autenticidade.descricao }}
+                    @if (a.tiposDeConteudo.length) {
+                      Formatos aceitos: {{ a.tiposDeConteudo.join(', ') }}.
+                    }
+                  </p>
+                </div>
+              </div>
+
+              <section class="assistente__bloco" aria-labelledby="passo-a-passo">
+                <h4 class="assistente__subtitulo" id="passo-a-passo">{{ a.passoAPasso.titulo }}</h4>
+                <ol class="assistente__lista-passos">
+                  @for (texto of a.passoAPasso.passos; track $index) {
+                    <li>{{ texto }}</li>
+                  }
+                </ol>
+              </section>
+              @if (a.dicas.length) {
+                <section class="assistente__bloco" aria-labelledby="dicas">
+                  <h4 class="assistente__subtitulo" id="dicas">Boas ideias</h4>
+                  <ul class="assistente__dicas">
+                    @for (texto of a.dicas; track $index) {
+                      <li>{{ texto }}</li>
+                    }
+                  </ul>
+                </section>
+              }
+            }
+
+            <!-- 2. Ação e nome -->
+            @case ('acao') {
+              <h3 class="assistente__titulo-passo" tabindex="-1">Ação e nome</h3>
+              <p class="assistente__frase">
+                Dê um nome que diga de onde os dados vêm e escolha o que o CRM faz quando eles
+                chegam.
+              </p>
+              <app-campo-texto
+                rotulo="Nome da integração"
+                obrigatorio
+                [maximoCaracteres]="100"
+                [valor]="nome()"
+                (valorChange)="nome.set('' + $event); erroNome.set(null)"
+                [erro]="erroDoNome()"
+                dica="Vira a origem dos contatos que chegarem por aqui."
+              />
+              <div class="assistente__dupla">
+                <app-grupo-opcoes
+                  rotulo="O que receber"
+                  [opcoes]="opcoesAlvo()"
+                  [valor]="alvo()"
+                  (valorChange)="alvo.set($event ?? 'NEGOCIO')"
+                />
+                <app-grupo-opcoes
+                  rotulo="O que fazer"
+                  [opcoes]="opcoesModo()"
+                  [valor]="modo()"
+                  (valorChange)="modo.set($event ?? 'CRIAR_OU_ATUALIZAR')"
+                />
+              </div>
+              <p class="assistente__nota">
+                Ação escolhida: <strong>{{ acaoEscolhida() }}</strong
+                >. Todo recebimento precisa de e-mail ou telefone.
+              </p>
+
+              @if (credenciais().length) {
+                <fieldset class="assistente__grupo">
+                  <legend class="assistente__legenda">
+                    Credencial
+                    <app-dica
+                      rotulo="Para que serve a credencial"
+                      texto="Permite que o CRM consulte a ferramenta (para buscar campos ou registrar o webhook). Fica cifrada e depois só aparece mascarada."
+                    />
+                  </legend>
+                  @for (c of credenciais(); track c.chave) {
+                    @if (c.secreto) {
+                      <app-campo-senha
+                        [rotulo]="c.rotulo"
+                        autocomplete="off"
+                        [obrigatorio]="c.obrigatorio && !credencialSalva(c.chave)"
+                        [valor]="valorDaCredencial(c.chave)"
+                        (valorChange)="definirCredencial(c.chave, $event)"
+                        [dica]="dicaDaCredencial(c.chave, c.descricao)"
+                      />
+                    } @else {
+                      <app-campo-texto
+                        [rotulo]="c.rotulo"
+                        [placeholder]="c.exemplo ?? null"
+                        [obrigatorio]="c.obrigatorio && !credencialSalva(c.chave)"
+                        [valor]="valorDaCredencial(c.chave) || valorSalvo(c.chave)"
+                        (valorChange)="definirCredencial(c.chave, $event)"
+                        [dica]="c.descricao"
+                      />
+                    }
+                  }
+                  <div class="assistente__linha-acoes">
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      [carregando]="testando()"
+                      (click)="testarCredencial()"
+                    >
+                      Testar
+                    </button>
+                    <span aria-live="polite" class="assistente__resultado-teste">
+                      @if (testeDaCredencial(); as teste) {
+                        <span
+                          [class.assistente__ok]="teste.valida"
+                          [class.assistente__falha]="!teste.valida"
+                        >
+                          {{ teste.valida ? 'Funcionou. ' : 'Não funcionou. ' }}{{ teste.mensagem }}
+                        </span>
+                      }
+                    </span>
+                  </div>
+                </fieldset>
+              }
+
+              @if (!editando() && segredoOpcional()) {
+                <fieldset class="assistente__grupo">
+                  <legend class="assistente__legenda">Segurança</legend>
+                  <app-grupo-opcoes
+                    rotulo="Assinatura das chamadas"
+                    [ajuda]="a.autenticidade.descricao"
+                    [opcoes]="opcoesSeguranca"
+                    [valor]="seguranca()"
+                    (valorChange)="seguranca.set($event ?? 'NENHUMA')"
+                  />
+                  @if (seguranca() === 'INFORMAR') {
+                    <app-campo-senha
+                      [rotulo]="a.autenticidade.rotuloDoSegredo ?? 'Segredo'"
+                      autocomplete="off"
+                      dica="De 16 a 200 caracteres. Depois ele só aparece mascarado."
+                      [valor]="segredoInformado()"
+                      (valorChange)="segredoInformado.set('' + $event)"
+                    />
+                  }
+                  @if (ehRd()) {
+                    <app-campo-texto
+                      rotulo="Nome do cabeçalho da chave"
+                      opcional
+                      placeholder="X-RD-Chave"
+                      dica="O cabeçalho em que o RD Station envia a chave. Em branco, usamos X-RD-Chave."
+                      [valor]="cabecalhoDeAutenticacao()"
+                      (valorChange)="cabecalhoDeAutenticacao.set('' + $event)"
+                    />
+                  }
+                </fieldset>
+              } @else if (editando() && segredoOpcional()) {
+                <p class="assistente__nota">
+                  Assinatura:
+                  <strong>{{
+                    atual()?.exigeAssinatura
+                      ? 'exigida (' + atual()?.segredoMascarado + ')'
+                      : 'não exigida'
+                  }}</strong
+                  >. Para trocar, use “Exigir assinatura” ou “Trocar o segredo” no menu da
+                  integração, na lista.
+                </p>
+              }
+            }
+
+            <!-- 3. Endereço (ou formulário, no Typeform) -->
+            @case ('endereco') {
+              @if (escolheFormulario()) {
+                <h3 class="assistente__titulo-passo" tabindex="-1">Escolha o formulário</h3>
+                <p class="assistente__frase">
+                  O CRM registra o webhook no formulário escolhido, com um segredo próprio. Você não
+                  precisa copiar nenhum endereço.
+                </p>
+                @if (carregandoFormularios()) {
+                  <div aria-busy="true">
+                    <p class="visualmente-oculto" role="status">Carregando os formulários…</p>
+                    <app-esqueleto forma="pilula" />
+                  </div>
+                } @else if (erroFormularios(); as falha) {
+                  <app-estado-vazio
+                    compacto
+                    variante="erro"
+                    [falha]="falha"
+                    titulo="Não conseguimos listar os formulários"
+                    [texto]="
+                      falha.resumo +
+                      ' Confira se o token ainda vale (passo anterior, botão Testar).'
+                    "
+                    [codigo]="falha.requisicaoId"
+                  >
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      (click)="carregarFormularios()"
+                    >
+                      Tentar de novo
+                    </button>
+                  </app-estado-vazio>
+                } @else if (!formularios().length) {
+                  <app-estado-vazio
+                    compacto
+                    titulo="Nenhum formulário na conta"
+                    texto="Crie o formulário no Typeform e volte aqui."
+                  >
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      (click)="carregarFormularios()"
+                    >
+                      Atualizar a lista
+                    </button>
+                  </app-estado-vazio>
+                } @else {
+                  <app-seletor
+                    rotulo="Formulário"
+                    placeholder="Escolha o formulário"
+                    [opcoes]="opcoesFormulario()"
+                    [valor]="formularioId()"
+                    (valorChange)="escolherFormulario($event)"
+                  />
+                }
+                @if (atual()?.configuracao?.webhookRegistrado; as registrado) {
+                  <p class="assistente__nota">
+                    Webhook registrado no Typeform ({{ registrado.ativo ? 'ativo' : 'inativo' }}).
+                  </p>
+                }
+              } @else {
+                <h3 class="assistente__titulo-passo" tabindex="-1">Endereço da integração</h3>
+                <p class="assistente__frase">
+                  Cole este endereço na ferramenta, como mostrado no passo “Começar”. Quem chamar
+                  este endereço cria ou atualiza contatos no CRM: não compartilhe.
+                </p>
+                @if (carregandoEndereco()) {
+                  <app-esqueleto forma="pilula" />
+                } @else if (urlCompleta(); as url) {
+                  <app-valor-unico
+                    rotulo="Endereço da integração"
+                    oQue="Endereço"
+                    [valor]="url"
+                    [aviso]="null"
+                  />
+                } @else if (erroEndereco(); as falha) {
+                  <app-estado-vazio
+                    compacto
+                    variante="erro"
+                    [falha]="falha"
+                    titulo="Não conseguimos mostrar o endereço"
+                    [texto]="falha.resumo"
+                    [codigo]="falha.requisicaoId"
+                  >
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      (click)="carregarEndereco()"
+                    >
+                      Tentar de novo
+                    </button>
+                  </app-estado-vazio>
+                } @else if (atual() && !atual()?.enderecoDisponivel) {
+                  <div class="assistente__antigo" role="status" data-teste="endereco-antigo">
+                    <p>
+                      <strong>Esta integração é antiga e não guardou o endereço completo.</strong>
+                      O endereço que a ferramenta já usa continua funcionando, mas o CRM não
+                      consegue mostrá-lo de novo (guardamos só uma impressão dele). Para ter um
+                      endereço que possa copiar quando quiser, gere um novo: o atual deixa de
+                      funcionar na hora e você precisa trocá-lo na ferramenta.
+                    </p>
+                    <p class="assistente__nota">
+                      Endereço atual: <code>{{ atual()?.enderecoMascarado }}</code>
+                    </p>
+                    <button
+                      appBotao
+                      type="button"
+                      variante="invertido"
+                      (click)="gerarNovoEndereco()"
+                    >
+                      Gerar novo endereço
+                    </button>
+                  </div>
+                }
+                @if (segredoGerado(); as segredo) {
+                  <app-valor-unico
+                    [rotulo]="a.autenticidade.rotuloDoSegredo ?? 'Segredo da assinatura'"
+                    oQue="Segredo"
+                    [valor]="segredo"
+                  />
+                  <p class="assistente__nota">
+                    Configure este segredo na ferramenta: {{ a.autenticidade.descricao }}
+                  </p>
+                }
+                @if (curl()) {
+                  <app-bloco-codigo
+                    rotulo="Teste com curl"
+                    oQue="Exemplo"
+                    alturaMaxima="12rem"
+                    [codigo]="curl()"
+                  />
+                }
+              }
+            }
+
+            <!-- 4. Mapeamento -->
+            @case ('mapeamento') {
+              <h3 class="assistente__titulo-passo" tabindex="-1">Mapeamento</h3>
+              <p class="assistente__frase">
+                À esquerda ficam os campos que a ferramenta envia; à direita, escolha o campo do CRM
+                onde cada um entra. Campo sem destino é ignorado.
+              </p>
+
+              @if (ehWebhook() && opcoesModeloWebhook().length && !modificado()) {
+                <app-grupo-opcoes
+                  rotulo="Formato do envio"
+                  disposicao="pilulas"
+                  ajuda="Genérico: campos name, email, phone e utm_*. Disparos BRL: o formato que o sistema de disparos já envia. Ao editar uma linha, o mapeamento vira personalizado."
+                  [opcoes]="opcoesModeloWebhook()"
+                  [valor]="modeloEscolhido()"
+                  (valorChange)="escolherModelo($event)"
+                />
+              }
+
+              <div class="mapa__barra">
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  [icone]="icones.atualizar"
+                  [carregando]="atualizandoRecebidos()"
+                  (click)="atualizarRecebidos()"
+                >
+                  Atualizar campos recebidos
+                </button>
+                @if (buscaCampos()) {
+                  <button
+                    appBotao
+                    type="button"
+                    variante="contorno"
+                    tamanho="sm"
+                    [carregando]="buscandoCampos()"
+                    (click)="buscarCampos()"
+                  >
+                    Buscar campos da integração
+                  </button>
+                }
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  [icone]="icones.adicionar"
+                  (click)="adicionarCampo()"
+                >
+                  Adicionar campo
+                </button>
+                @if (modificado()) {
+                  <button
+                    appBotao
+                    type="button"
+                    variante="neutro"
+                    tamanho="sm"
+                    (click)="restaurarModelo()"
+                  >
+                    Voltar ao modelo
+                  </button>
+                }
+              </div>
+              <p class="assistente__nota" aria-live="polite" data-teste="aviso-campos">
+                @if (avisoDosCampos(); as aviso) {
+                  {{ aviso }}
+                } @else {
+                  Envie um teste pela ferramenta e use “Atualizar campos recebidos” para ver o que
+                  chegou.
+                  {{ totalMapeados() }}
+                  {{ totalMapeados() === 1 ? 'campo mapeado' : 'campos mapeados' }}.
+                }
+              </p>
+
+              <div class="mapa" role="group" aria-label="Campos recebidos e campos do CRM">
+                <div class="mapa__cabecalho" aria-hidden="true">
+                  <span>Campo recebido</span>
+                  <span>Campo do CRM</span>
+                </div>
+                @if (!linhasPrincipais().length) {
+                  <p class="mapa__vazio">
+                    Nenhum campo recebido ainda. Use “Atualizar campos recebidos” depois de um envio
+                    de teste, ou “Adicionar campo” para digitar o caminho.
+                  </p>
+                }
+                @for (l of linhasPrincipais(); track l.id) {
+                  <app-linha-do-mapa
+                    [linha]="l"
+                    [opcoesDestino]="opcoesDestino()"
+                    (caminhoChange)="editarLinha(l.id, { caminho: $event })"
+                    (destinoChange)="definirDestino(l.id, $event)"
+                    (chaveChange)="editarLinha(l.id, { chave: $event })"
+                    (remover)="removerLinha(l.id)"
+                  />
+                }
+                @if (linhasDoModelo().length) {
+                  <h4 class="mapa__grupo">
+                    Caminhos do modelo ainda sem recebimento
+                    <app-dica
+                      rotulo="Sobre os caminhos do modelo"
+                      texto="O modelo já reconhece estes nomes de campo. Eles só valem se a ferramenta enviar um campo com esse nome."
+                    />
+                  </h4>
+                  @for (l of linhasDoModelo(); track l.id) {
+                    <app-linha-do-mapa
+                      [linha]="l"
+                      [opcoesDestino]="opcoesDestino()"
+                      (caminhoChange)="editarLinha(l.id, { caminho: $event })"
+                      (destinoChange)="definirDestino(l.id, $event)"
+                      (chaveChange)="editarLinha(l.id, { chave: $event })"
+                      (remover)="removerLinha(l.id)"
+                    />
+                  }
+                }
+              </div>
+
+              @if (modificado()) {
+                <fieldset class="assistente__grupo">
+                  <legend class="assistente__legenda">
+                    Ignorar envios
+                    <app-dica
+                      rotulo="Quando ignorar"
+                      texto="Se o campo vier com este valor (sem diferenciar maiúsculas), o envio é registrado como ignorado e nada é criado. Ex.: teste = true."
+                    />
+                  </legend>
+                  @for (c of condicoes(); track c.id; let i = $index) {
+                    <div class="condicao">
+                      <app-campo-texto
+                        rotuloOculto
+                        [rotulo]="'Campo da condição ' + (i + 1)"
+                        placeholder="teste"
+                        [valor]="c.caminho"
+                        (valorChange)="editarCondicao(c.id, { caminho: '' + $event })"
+                      />
+                      <app-campo-texto
+                        rotuloOculto
+                        [rotulo]="'Valor da condição ' + (i + 1)"
+                        placeholder="true"
+                        [valor]="c.valor"
+                        (valorChange)="editarCondicao(c.id, { valor: '' + $event })"
+                      />
+                      <button
+                        appBotaoIcone
+                        type="button"
+                        variante="contorno"
+                        [icone]="icones.remover"
+                        [rotulo]="'Remover a condição ' + (i + 1)"
+                        (click)="removerCondicao(c.id)"
+                      ></button>
+                    </div>
+                  }
+                  <div>
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      [icone]="icones.adicionar"
+                      (click)="adicionarCondicao()"
+                    >
+                      Adicionar condição
+                    </button>
+                  </div>
+                </fieldset>
+              }
+
+              <details class="assistente__previa">
+                <summary>Conferir com um exemplo</summary>
+                <app-area-texto
+                  rotulo="Corpo de exemplo (JSON)"
+                  monoespacado
+                  dica="O CRM aplica o mapeamento a este exemplo e mostra o que faria. Nada é gravado."
+                  [linhas]="6"
+                  [maximoLinhas]="12"
+                  [erro]="erroExemplo()"
+                  [valor]="exemplo()"
+                  (valorChange)="editarExemplo($event)"
+                />
+                <div>
+                  <button
+                    appBotao
+                    type="button"
+                    variante="contorno"
+                    [icone]="icones.previa"
+                    [carregando]="carregandoPrevia()"
+                    (click)="verPrevia()"
+                  >
+                    Ver prévia
+                  </button>
+                </div>
+                <div aria-live="polite">
+                  @if (previa(); as resultadoDaPrevia) {
+                    <app-previa-mapeamento [resultado]="resultadoDaPrevia" />
+                  }
+                </div>
+              </details>
+            }
+
+            <!-- 5. Configurações adicionais -->
+            @case ('configuracoes') {
+              <h3 class="assistente__titulo-passo" tabindex="-1">Configurações adicionais</h3>
+              <p class="assistente__frase">
+                Onde o negócio entra, em que situação nasce e quem fica com ele.
+              </p>
+              <div class="assistente__dupla">
+                <app-seletor
+                  rotulo="Funil"
+                  [opcoes]="opcoesFunil()"
+                  [valor]="funilId()"
+                  (valorChange)="funilId.set($event)"
+                />
+                <app-seletor
+                  rotulo="Etapa de entrada"
+                  ajuda="Onde o negócio novo começa. A etapa de perda não pode receber leads."
+                  [opcoes]="opcoesEtapa()"
+                  [valor]="etapaId()"
+                  (valorChange)="etapaId.set($event)"
+                />
+              </div>
+              @if (!ehContato()) {
+                <app-grupo-opcoes
+                  rotulo="Status inicial"
+                  ajuda="Como o negócio criado por esta integração nasce. Status mapeado no recebimento (aberto, ganho, perdido) vale mais."
+                  disposicao="pilulas"
+                  [opcoes]="opcoesStatus()"
+                  [valor]="statusInicial()"
+                  (valorChange)="statusInicial.set($event ?? 'ABERTO')"
+                />
+                <app-campo-texto
+                  rotulo="Motivo de perda padrão"
+                  [opcional]="!ehPerdido()"
+                  [obrigatorio]="ehPerdido()"
+                  placeholder="Perdido por integração"
+                  dica="Usado quando o negócio é perdido por esta integração e o recebimento não traz um motivo."
+                  [valor]="motivoPerda()"
+                  (valorChange)="motivoPerda.set('' + $event)"
+                />
+              }
+              <app-campo-texto
+                rotulo="Etiquetas fixas"
+                opcional
+                placeholder="Landing, Black Friday"
+                dica="Separe por vírgula. Todo contato que chegar por aqui ganha essas etiquetas."
+                [valor]="etiquetas()"
+                (valorChange)="etiquetas.set('' + $event)"
+              />
+              <app-grupo-opcoes
+                rotulo="Quem fica com o lead"
+                ajuda="Como o negócio criado ganha um responsável. Um lead que volta (reconversão) segue as regras do funil."
+                [opcoes]="opcoesEstrategia()"
+                [valor]="estrategia()"
+                (valorChange)="estrategia.set($event ?? 'RODIZIO')"
+              />
+              @if (ehFixo()) {
+                <app-seletor
+                  rotulo="Responsável fixo"
+                  dica="Só aparecem pessoas ativas que veem este funil."
+                  [opcoes]="opcoesResponsavel()"
+                  [valor]="responsavelId()"
+                  (valorChange)="responsavelId.set($event)"
+                />
+              }
+            }
+
+            <!-- 6. Salvar -->
+            @case ('salvar') {
+              <h3 class="assistente__titulo-passo" tabindex="-1">Confira e salve</h3>
+              <p class="assistente__frase">
+                @if (editando()) {
+                  Revise e salve as alterações.
+                } @else {
+                  Ao salvar, a integração é ativada e já pode receber dados.
+                }
+              </p>
+              <dl class="assistente__dados">
+                <div>
+                  <dt>Aplicativo</dt>
+                  <dd>{{ a.nome }}</dd>
+                </div>
+                <div>
+                  <dt>Nome</dt>
+                  <dd>{{ resumo().nome }}</dd>
+                </div>
+                <div>
+                  <dt>Ação</dt>
+                  <dd>{{ resumo().acao }}</dd>
+                </div>
+                <div>
+                  <dt>Entra em</dt>
+                  <dd>{{ resumo().destino }}</dd>
+                </div>
+                @if (!ehContato()) {
+                  <div>
+                    <dt>Status inicial</dt>
+                    <dd>{{ resumo().status }}</dd>
+                  </div>
+                  <div>
+                    <dt>Quem fica com o lead</dt>
+                    <dd>{{ resumo().distribuicao }}</dd>
+                  </div>
+                }
+                <div>
+                  <dt>Mapeamento</dt>
+                  <dd>{{ resumo().mapeamento }}</dd>
+                </div>
+                <div>
+                  <dt>Etiquetas fixas</dt>
+                  <dd>{{ resumo().etiquetas }}</dd>
+                </div>
+              </dl>
+            }
+          }
+        </div>
+      }
+    }
+  </div>
+
+  <div modal-rodape class="assistente__rodape">
+    @if (passoAtual() === 'comecar') {
+      <button appBotao type="button" variante="contorno" (click)="fechar()">Cancelar</button>
+    } @else {
+      <button appBotao type="button" variante="contorno" [disabled]="enviando()" (click)="voltar()">
+        Voltar
+      </button>
+    }
+    <button
+      appBotao
+      type="button"
+      variante="invertido"
+      [carregando]="enviando()"
+      [disabled]="carregandoApoio() || !!erroApoio()"
+      (click)="avancar()"
+    >
+      {{ rotuloAvancar() }}
+    </button>
+  </div>
+</app-modal>

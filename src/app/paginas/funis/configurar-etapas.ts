@@ -32,6 +32,8 @@ import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
 import { CampoTexto, type ValorCampoTexto } from '../../ui/campo-texto/campo-texto';
 import { Modal } from '../../ui/modal/modal';
 import { Selo } from '../../ui/selo/selo';
+import { SessaoService } from '../../nucleo/sessao/sessao.service';
+import { IntegracoesDoFunil } from '../integracoes/integracoes-do-funil';
 import { FunisApi } from './funis.api';
 import type { AlteracaoEtapa, Etapa, Funil } from './funis.tipos';
 import { ordenarEtapas } from './regras-funis';
@@ -116,6 +118,7 @@ export function textoEtapaComNegocios(quantos: number): string {
     CdkDrag,
     CdkDragHandle,
     CdkDropList,
+    IntegracoesDoFunil,
     LucideGripVertical,
     Modal,
     Selo,
@@ -135,6 +138,7 @@ export class ConfigurarEtapas {
   private readonly anunciador = inject(LiveAnnouncer);
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
+  protected readonly sessao = inject(SessaoService);
 
   protected readonly icones = {
     subir: LucideArrowUp,

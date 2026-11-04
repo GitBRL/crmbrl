@@ -1,0 +1,62 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+}
+
+.linha-mapa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--esp-2) var(--esp-4);
+  align-items: start;
+  padding: var(--esp-3) var(--esp-4);
+  border-top: 1px solid var(--cor-borda);
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.linha-mapa__recebido,
+.linha-mapa__destino {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.linha-mapa__destino {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--esp-2);
+  align-items: start;
+
+  > app-seletor,
+  > app-campo-texto {
+    grid-column: 1;
+  }
+
+  > button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+.linha-mapa__caminho {
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+
+.linha-mapa__rotulo,
+.linha-mapa__exemplo {
+  overflow: hidden;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linha-mapa__origem {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

@@ -10,12 +10,11 @@ import {
   PREVIA_VALIDA,
   recebimento,
   recebimentoDetalhe,
-  webhookEntrada,
 } from './dados-de-teste';
 import { motivoSemReprocessar, Recebimentos } from './recebimentos';
 
-const BASE = '/api/v1/webhooks/entradas/we1/recebimentos';
-const LISTA = `${BASE}?pagina=1&porPagina=10`;
+const BASE = '/api/v1/webhooks/recebimentos';
+const LISTA = `${BASE}?integracaoId=we1&pagina=1&porPagina=10`;
 
 describe('motivoSemReprocessar', () => {
   it('explica por que não dá para reprocessar', () => {
@@ -29,7 +28,7 @@ describe('motivoSemReprocessar', () => {
   });
 });
 
-describe('Recebimentos (aba do webhook de entrada)', () => {
+describe('Recebimentos (histórico das integrações)', () => {
   let http: HttpTestingController;
   let fixture: ComponentFixture<Recebimentos>;
 
@@ -69,7 +68,8 @@ describe('Recebimentos (aba do webhook de entrada)', () => {
     ],
   ) {
     fixture = TestBed.createComponent(Recebimentos);
-    fixture.componentRef.setInput('webhook', webhookEntrada());
+    fixture.componentRef.setInput('consulta', { integracaoId: 'we1' });
+    fixture.componentRef.setInput('funilDaIntegracao', new Map([['we1', 'f-mkt']]));
     fixture.detectChanges();
     http.expectOne(LISTA).flush(pagina(itens, 10));
     await microtarefas();
@@ -83,19 +83,23 @@ describe('Recebimentos (aba do webhook de entrada)', () => {
     fixture.detectChanges();
   }
 
-  it('lista com status, mensagem e tempo; o filtro vai para a API', async () => {
+  it('lista com status, mensagem, origem e tempo; a consulta nova vai para a API', async () => {
     await criar();
     const itens = elemento().querySelectorAll('.historico__item');
     expect(itens).toHaveLength(2);
     expect(itens[0].textContent).toContain('Erro');
     expect(itens[0].textContent).toContain('Sem e-mail nem telefone');
+    expect(itens[0].textContent).toContain('H1 Elementor');
     expect(itens[0].textContent).toContain('há 5 min');
-    botao('Com erro').click();
+    fixture.componentRef.setInput('consulta', { integracaoId: 'we1', status: ['ERRO'] });
     fixture.detectChanges();
-    http.expectOne(`${BASE}?pagina=1&porPagina=10&status=ERRO`).flush(pagina([], 10));
+    await microtarefas();
+    http
+      .expectOne(`${BASE}?integracaoId=we1&status=ERRO&pagina=1&porPagina=10`)
+      .flush(pagina([], 10));
     await microtarefas();
     fixture.detectChanges();
-    expect(elemento().textContent).toContain('Nenhum recebimento com erro');
+    expect(elemento().textContent).toContain('Nenhum recebimento com esses filtros');
   });
 
   it('abre no lugar com o corpo e os cabeçalhos guardados', async () => {
@@ -117,7 +121,7 @@ describe('Recebimentos (aba do webhook de entrada)', () => {
     const links = Array.from(elemento().querySelectorAll<HTMLAnchorElement>('.historico__link'));
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       '/contatos/c1',
-      '/funis/marketing/n1',
+      '/funis/f-mkt?negocio=n1',
     ]);
     expect(botao('Reprocessar').disabled).toBe(true);
     expect(elemento().textContent).toContain('Já foi processado');
@@ -162,6 +166,43 @@ describe('Recebimentos (aba do webhook de entrada)', () => {
 
   it('sem nenhum recebimento, explica o que vai aparecer', async () => {
     await criar([]);
-    expect(elemento().textContent).toContain('Nenhum recebimento ainda');
+    expect(elemento().textContent).toContain('Nenhum recebimento com esses filtros');
+  });
+
+  it('mostra os avisos, o resultado de cada lead e emite "Editar integração"', async () => {
+    await criar([
+      recebimento({
+        status: 'PROCESSADO',
+        mensagem: 'Processado.',
+        avisos: ['etapa "X" não existe no funil Comercial'],
+        itens: [
+          {
+            indice: 0,
+            rotulo: 'lead 1 de 2',
+            status: 'PROCESSADO',
+            mensagem: 'Criado.',
+            contatoId: 'c1',
+            negocioId: 'n1',
+            avisos: [],
+          },
+          {
+            indice: 1,
+            rotulo: 'lead 2 de 2',
+            status: 'ERRO',
+            mensagem: 'Sem e-mail nem telefone.',
+            contatoId: null,
+            negocioId: null,
+            avisos: [],
+          },
+        ],
+      }),
+    ]);
+    await abrirPrimeiro();
+    expect(elemento().textContent).toContain('etapa "X" não existe no funil Comercial');
+    expect(elemento().textContent).toContain('lead 2 de 2: Sem e-mail nem telefone.');
+    const editar = vi.fn();
+    fixture.componentInstance.editarIntegracao.subscribe(editar);
+    botao('Editar integração').click();
+    expect(editar).toHaveBeenCalledWith('we1');
   });
 });

@@ -269,6 +269,10 @@
         </button>
       </div>
     </form>
+
+    @if (sessao.ehAdmin()) {
+      <app-integracoes-do-funil [funilId]="funil().id" />
+    }
   </div>
 
   <div modal-rodape>

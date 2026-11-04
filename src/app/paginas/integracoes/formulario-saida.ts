@@ -28,7 +28,9 @@ import { CampoTexto } from '../../ui/campo-texto/campo-texto';
 import { Dica } from '../../ui/dica/dica';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
+import { GrupoOpcoes, type OpcaoGrupo } from '../../ui/grupo-opcoes/grupo-opcoes';
 import { Modal } from '../../ui/modal/modal';
+import { type OpcaoSeletor, Seletor } from '../../ui/seletor/seletor';
 import { ValorUnico } from './comum/valor-unico';
 import { IntegracoesApi } from './integracoes.api';
 import {
@@ -36,10 +38,56 @@ import {
   type EventoDeWebhook,
   type EventoDisponivel,
   descricaoDoEvento,
+  type FormatoClint,
+  type FormatoDeSaida,
+  type FunilDoDestino,
+  type GatilhoDeSaida,
+  type MetodoDeSaida,
   ROTULO_EVENTO,
+  ROTULO_GATILHO,
+  ROTULO_STATUS_INICIAL,
+  type StatusInicial,
+  type TipoDeGatilho,
   type WebhookSaida,
   type WebhookSaidaComSegredo,
 } from './tipos';
+
+/** Identificador de um campo do envio no formato Clint (a API aceita estes caracteres). */
+const IDENTIFICADOR_VALIDO = /^[A-Za-z0-9_.[\]-]{1,100}$/;
+
+interface GatilhoEditavel {
+  readonly id: number;
+  readonly tipo: TipoDeGatilho;
+  readonly funilId: string | null;
+  readonly etapaId: string | null;
+  readonly status: StatusInicial | null;
+}
+
+interface CampoEditavel {
+  readonly origem: string;
+  readonly rotulo: string;
+  readonly grupo: string;
+  readonly marcado: boolean;
+  readonly identificador: string;
+}
+
+const OPCOES_FORMATO: readonly OpcaoGrupo<FormatoDeSaida>[] = [
+  {
+    valor: 'ENVELOPE_CRM',
+    rotulo: 'Envelope do CRM',
+    dica: 'Um POST com { id, evento, ocorridoEm, dados } a cada evento marcado, assinado com HMAC. Serve para integrações próprias.',
+  },
+  {
+    valor: 'CLINT',
+    rotulo: 'Formato Clint',
+    dica: 'Você escolhe os gatilhos (negócio criado, entrou na etapa, mudou de status) e os campos enviados, cada um com o nome que o destino espera. POST com JSON ou GET com parâmetros na URL.',
+  },
+];
+
+const OPCOES_METODO: readonly OpcaoGrupo<MetodoDeSaida>[] = [
+  { valor: 'POST', rotulo: 'POST (JSON)', dica: 'Os campos vão num corpo JSON.' },
+  { valor: 'GET', rotulo: 'GET (URL)', dica: 'Os campos vão como parâmetros na própria URL.' },
+];
 
 /** Nome de cabeçalho HTTP válido (token da RFC 9110). */
 const NOME_DE_CABECALHO = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
@@ -62,6 +110,8 @@ const CABECALHOS_MAXIMOS = 20;
     Dica,
     EstadoVazio,
     Esqueleto,
+    GrupoOpcoes,
+    Seletor,
     ValorUnico,
   ],
   templateUrl: './formulario-saida.html',
@@ -99,6 +149,76 @@ export class FormularioSaida {
   protected readonly enviando = signal(false);
   protected readonly erroGeral = signal<string | null>(null);
   protected readonly segredoCriado = signal<WebhookSaidaComSegredo | null>(null);
+
+  // Formato Clint (Onda H)
+  protected readonly opcoesFormato = OPCOES_FORMATO;
+  protected readonly opcoesMetodo = OPCOES_METODO;
+  protected readonly formato = signal<FormatoDeSaida>('ENVELOPE_CRM');
+  protected readonly metodo = signal<MetodoDeSaida>('POST');
+  protected readonly gatilhos = signal<readonly GatilhoEditavel[]>([]);
+  protected readonly campos = signal<readonly CampoEditavel[]>([]);
+  private readonly formatoClint = signal<FormatoClint | null>(null);
+  private readonly funis = signal<readonly FunilDoDestino[]>([]);
+  protected readonly carregandoClint = signal(false);
+  protected readonly erroClint = signal<ErroApi | null>(null);
+  private proximoGatilho = 1;
+  protected readonly ehClint = computed(() => this.formato() === 'CLINT');
+
+  protected readonly opcoesTipoGatilho = computed<readonly OpcaoSeletor<TipoDeGatilho>[]>(() =>
+    (this.formatoClint()?.gatilhos ?? []).map((g) => ({
+      valor: g.tipo,
+      rotulo: ROTULO_GATILHO[g.tipo],
+    })),
+  );
+  protected readonly opcoesFunil = computed<readonly OpcaoSeletor<string>[]>(() =>
+    this.funis()
+      .filter((funil) => funil.ativo)
+      .map((funil) => ({ valor: funil.id, rotulo: funil.nome })),
+  );
+  protected readonly opcoesStatusGatilho: readonly OpcaoSeletor<StatusInicial>[] = [
+    { valor: 'ABERTO', rotulo: ROTULO_STATUS_INICIAL.ABERTO },
+    { valor: 'GANHO', rotulo: ROTULO_STATUS_INICIAL.GANHO },
+    { valor: 'PERDIDO', rotulo: ROTULO_STATUS_INICIAL.PERDIDO },
+  ];
+  protected readonly gruposDeCampos = computed(() => {
+    const grupos = new Map<string, CampoEditavel[]>();
+    for (const campo of this.campos()) {
+      grupos.set(campo.grupo, [...(grupos.get(campo.grupo) ?? []), campo]);
+    }
+    return [...grupos.entries()].map(([nome, itens]) => ({ nome, itens }));
+  });
+  protected readonly erroDosCampos = computed(() => {
+    if (!this.tocouEventos() || !this.ehClint()) {
+      return null;
+    }
+    const marcados = this.campos().filter((c) => c.marcado);
+    if (!marcados.length) {
+      return 'Escolha pelo menos um campo para enviar.';
+    }
+    const ruim = marcados.find((c) => !IDENTIFICADOR_VALIDO.test(c.identificador));
+    if (ruim) {
+      return `O identificador de “${ruim.rotulo}” deve ter de 1 a 100 caracteres: letras, números e _ - . [ ].`;
+    }
+    const vistos = new Set<string>();
+    for (const c of marcados) {
+      if (vistos.has(c.identificador)) {
+        return `O identificador “${c.identificador}” aparece em mais de um campo.`;
+      }
+      vistos.add(c.identificador);
+    }
+    return null;
+  });
+  protected readonly erroDosGatilhos = computed(() => {
+    if (!this.tocouEventos() || !this.ehClint()) {
+      return null;
+    }
+    if (!this.gatilhos().length) {
+      return 'Adicione pelo menos um gatilho.';
+    }
+    return this.gatilhos().some((g) => g.tipo === 'ENTRA_NA_ETAPA' && !g.etapaId)
+      ? 'Escolha a etapa do gatilho “Negócio entra na etapa”.'
+      : null;
+  });
 
   protected readonly form = this.fb.group({
     nome: ['', [Validators.required, Validators.maxLength(100)]],
@@ -220,7 +340,12 @@ export class FormularioSaida {
     this.erroGeral.set(null);
     this.form.markAllAsTouched();
     this.tocouEventos.set(true);
-    if (this.form.invalid || this.marcados().size === 0) {
+    const semEventos = !this.ehClint() && this.marcados().size === 0;
+    if (
+      this.form.invalid ||
+      semEventos ||
+      (this.ehClint() && (this.erroDosCampos() || this.erroDosGatilhos()))
+    ) {
       setTimeout(() =>
         this.elemento.nativeElement
           .querySelector<HTMLElement>(
@@ -266,6 +391,30 @@ export class FormularioSaida {
     ) as Record<string, string | null>;
     const removidos = Object.fromEntries([...this.removidos()].map((nome) => [nome, null]));
     const cabecalhos = { ...removidos, ...novos };
+    const comCabecalhos = Object.keys(cabecalhos).length ? { cabecalhos } : {};
+    if (this.ehClint()) {
+      const gatilhos: GatilhoDeSaida[] = this.gatilhos().map((g) => ({
+        tipo: g.tipo,
+        ...(g.tipo === 'ENTRA_NA_ETAPA'
+          ? { etapaId: g.etapaId }
+          : g.funilId
+            ? { funilId: g.funilId }
+            : {}),
+        ...(g.tipo === 'MUDA_DE_STATUS' && g.status ? { status: g.status } : {}),
+      }));
+      return {
+        nome: valores.nome.trim(),
+        url: valores.url.trim(),
+        // O formato não muda depois de criado: só vai no cadastro.
+        ...(this.editando() ? {} : { formato: 'CLINT' as const }),
+        metodo: this.metodo(),
+        gatilhos,
+        campos: this.campos()
+          .filter((c) => c.marcado)
+          .map((c) => ({ origem: c.origem, identificador: c.identificador.trim() })),
+        ...comCabecalhos,
+      };
+    }
     const eventos = this.opcoesEvento()
       .map((item) => item.evento)
       .filter((evento) => this.marcados().has(evento));
@@ -273,8 +422,123 @@ export class FormularioSaida {
       nome: valores.nome.trim(),
       url: valores.url.trim(),
       eventos,
-      ...(Object.keys(cabecalhos).length ? { cabecalhos } : {}),
+      ...comCabecalhos,
     };
+  }
+
+  // --- Formato Clint ---------------------------------------------------------------------------
+
+  protected escolherFormato(formato: FormatoDeSaida | null): void {
+    this.formato.set(formato ?? 'ENVELOPE_CRM');
+    this.tocouEventos.set(false);
+    if (this.ehClint()) {
+      void this.carregarClint();
+    }
+  }
+
+  protected adicionarGatilho(): void {
+    this.gatilhos.update((lista) => [
+      ...lista,
+      {
+        id: this.proximoGatilho++,
+        tipo: 'NEGOCIO_CRIADO',
+        funilId: null,
+        etapaId: null,
+        status: null,
+      },
+    ]);
+  }
+
+  protected removerGatilho(id: number): void {
+    this.gatilhos.update((lista) => lista.filter((g) => g.id !== id));
+  }
+
+  protected editarGatilho(id: number, mudanca: Partial<GatilhoEditavel>): void {
+    this.gatilhos.update((lista) => lista.map((g) => (g.id === id ? { ...g, ...mudanca } : g)));
+  }
+
+  protected opcoesEtapa(funilId: string | null): readonly OpcaoSeletor<string>[] {
+    return (this.funis().find((f) => f.id === funilId)?.etapas ?? []).map((etapa) => ({
+      valor: etapa.id,
+      rotulo: etapa.nome,
+    }));
+  }
+
+  protected exigeEtapa(tipo: TipoDeGatilho): boolean {
+    return tipo === 'ENTRA_NA_ETAPA';
+  }
+
+  protected marcarCampo(origem: string, marcado: boolean): void {
+    this.tocouEventos.set(true);
+    this.campos.update((lista) => lista.map((c) => (c.origem === origem ? { ...c, marcado } : c)));
+  }
+
+  protected editarIdentificador(origem: string, identificador: string): void {
+    this.campos.update((lista) =>
+      lista.map((c) => (c.origem === origem ? { ...c, identificador } : c)),
+    );
+  }
+
+  protected async recarregarClint(): Promise<void> {
+    await this.carregarClint(true);
+  }
+
+  private async carregarClint(forcar = false): Promise<void> {
+    if (this.formatoClint() && this.funis().length && !forcar) {
+      this.prepararClint();
+      return;
+    }
+    this.carregandoClint.set(true);
+    this.erroClint.set(null);
+    try {
+      const [formato, funis] = await Promise.all([this.api.formatoClint(), this.api.funis()]);
+      this.formatoClint.set(formato);
+      this.funis.set(funis);
+      this.prepararClint();
+    } catch (falha) {
+      this.erroClint.set(erroDaApi(falha));
+    } finally {
+      this.carregandoClint.set(false);
+    }
+  }
+
+  /** Monta a lista de campos (marcando os do destino em edição) e o primeiro gatilho. */
+  private prepararClint(): void {
+    const formato = this.formatoClint();
+    if (!formato) {
+      return;
+    }
+    const salvo = this.webhook();
+    const escolhidos = new Map((salvo?.campos ?? []).map((c) => [c.origem, c.identificador]));
+    if (!this.campos().length) {
+      const padrao = salvo
+        ? null
+        : new Set(['contato.nome', 'contato.email', 'contato.telefone', 'negocio.valor']);
+      this.campos.set(
+        formato.campos.map((campo) => ({
+          origem: campo.origem,
+          rotulo: campo.rotulo,
+          grupo: campo.grupo,
+          marcado: salvo ? escolhidos.has(campo.origem) : !!padrao?.has(campo.origem),
+          identificador: escolhidos.get(campo.origem) ?? campo.identificadorPadrao,
+        })),
+      );
+    }
+    if (!this.gatilhos().length && !salvo) {
+      this.adicionarGatilho();
+    }
+    // O gatilho de etapa guarda só a etapa: o funil sai dela, para o seletor de etapas.
+    this.gatilhos.update((lista) =>
+      lista.map((g) =>
+        g.etapaId && !g.funilId
+          ? {
+              ...g,
+              funilId:
+                this.funis().find((f) => f.etapas.some((e) => e.id === g.etapaId))?.id ?? null,
+            }
+          : g,
+      ),
+    );
   }
 
   private tratarErro(erro: ErroApi): void {
@@ -314,7 +578,23 @@ export class FormularioSaida {
     this.marcados.set(
       new Set(webhook?.eventos.filter((evento) => evento !== 'webhook.teste') ?? []),
     );
-    void this.carregarEventos();
+    this.formato.set(webhook?.formato ?? 'ENVELOPE_CRM');
+    this.metodo.set(webhook?.metodo ?? 'POST');
+    this.campos.set([]);
+    this.gatilhos.set(
+      (webhook?.gatilhos ?? []).map((g) => ({
+        id: this.proximoGatilho++,
+        tipo: g.tipo,
+        funilId: g.funilId ?? null,
+        etapaId: g.etapaId ?? null,
+        status: g.status ?? null,
+      })),
+    );
+    if (this.ehClint()) {
+      void this.carregarClint();
+    } else {
+      void this.carregarEventos();
+    }
   }
 
   private async carregarEventos(forcar = false): Promise<void> {

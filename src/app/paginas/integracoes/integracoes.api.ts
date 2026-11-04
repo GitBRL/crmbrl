@@ -4,17 +4,25 @@ import { firstValueFrom } from 'rxjs';
 
 import { type Pagina, POR_PAGINA_MAXIMO, parametros, urlApi } from '../../nucleo/api/api';
 import type {
+  AplicativoIntegracao,
+  CampoDeIntegracao,
+  CamposRecebidos,
+  CatalogoDeAplicativos,
   DadosWebhookEntrada,
   DadosWebhookSaida,
   Entrega,
   EntregaDetalhe,
   EventoDisponivel,
+  FormatoClint,
+  FormularioDoTypeform,
   FunilDoDestino,
   Mapeamento,
   ModeloMapeamento,
   ModelosDeMapeamento,
+  ModoIntegracao,
   Recebimento,
   RecebimentoDetalhe,
+  ResultadoDaCredencial,
   ResultadoDaPrevia,
   StatusEntrega,
   StatusRecebimento,
@@ -31,12 +39,21 @@ export interface FiltroLista {
   readonly busca?: string;
   /** Só os ativos (`true`) ou só os desativados (`false`). */
   readonly ativo?: boolean;
+  readonly aplicativo?: readonly AplicativoIntegracao[];
+  readonly funilId?: string;
+  readonly precisaAtencao?: boolean;
 }
 
+/** Histórico de recebimentos (global; `integracaoId` restringe a uma integração). */
 export interface FiltroRecebimentos {
   readonly pagina?: number;
   readonly porPagina?: number;
   readonly status?: readonly StatusRecebimento[];
+  readonly aplicativo?: readonly AplicativoIntegracao[];
+  readonly integracaoId?: string;
+  /** Datas `AAAA-MM-DD` (inclusivas). */
+  readonly de?: string;
+  readonly ate?: string;
 }
 
 export interface FiltroEntregas {
@@ -46,6 +63,8 @@ export interface FiltroEntregas {
 }
 
 export interface PedidoDePrevia {
+  readonly aplicativo?: AplicativoIntegracao;
+  readonly modo?: ModoIntegracao;
   readonly modeloMapeamento: ModeloMapeamento;
   readonly mapeamento?: Mapeamento;
   readonly etiquetasFixas?: readonly string[];
@@ -66,7 +85,7 @@ export class IntegracoesApi {
   listarEntradas(filtro: FiltroLista = {}): Promise<Pagina<WebhookEntrada>> {
     return firstValueFrom(
       this.http.get<Pagina<WebhookEntrada>>(urlApi('webhooks', 'entradas'), {
-        params: parametros({ ...filtro }),
+        params: parametros({ ...filtro, aplicativo: filtro.aplicativo?.join(',') }),
       }),
     );
   }
@@ -140,30 +159,107 @@ export class IntegracoesApi {
     );
   }
 
-  listarRecebimentos(
-    webhookId: string,
-    filtro: FiltroRecebimentos = {},
-  ): Promise<Pagina<Recebimento>> {
+  /** Histórico global (R32): filtros de data, status, aplicativo e integração. */
+  listarRecebimentos(filtro: FiltroRecebimentos = {}): Promise<Pagina<Recebimento>> {
     return firstValueFrom(
-      this.http.get<Pagina<Recebimento>>(
-        urlApi('webhooks', 'entradas', webhookId, 'recebimentos'),
-        { params: parametros({ ...filtro }) },
+      this.http.get<Pagina<Recebimento>>(urlApi('webhooks', 'recebimentos'), {
+        params: parametros({
+          ...filtro,
+          status: filtro.status?.join(','),
+          aplicativo: filtro.aplicativo?.join(','),
+        }),
+      }),
+    );
+  }
+
+  /** Com cabeçalhos e corpo (para copiar o JSON). */
+  obterRecebimento(recebimentoId: string): Promise<RecebimentoDetalhe> {
+    return firstValueFrom(
+      this.http.get<RecebimentoDetalhe>(urlApi('webhooks', 'recebimentos', recebimentoId)),
+    );
+  }
+
+  reprocessar(recebimentoId: string): Promise<unknown> {
+    return firstValueFrom(
+      this.http.post<unknown>(urlApi('webhooks', 'recebimentos', recebimentoId, 'reprocessar'), {}),
+    );
+  }
+
+  // --- Aplicativos e assistente ----------------------------------------------------------------
+
+  catalogo(): Promise<CatalogoDeAplicativos> {
+    return firstValueFrom(this.http.get<CatalogoDeAplicativos>(urlApi('webhooks', 'aplicativos')));
+  }
+
+  /** O endereço completo (422 em integração antiga: a saída é regenerar o token). */
+  async endereco(id: string): Promise<string> {
+    const resposta = await firstValueFrom(
+      this.http.get<{ url: string }>(urlApi('webhooks', 'entradas', id, 'endereco')),
+    );
+    return resposta.url;
+  }
+
+  /** Confere a credencial antes de gravar (nada é salvo). */
+  testarCredencialNova(
+    aplicativo: AplicativoIntegracao,
+    credencial: Readonly<Record<string, string>>,
+  ): Promise<ResultadoDaCredencial> {
+    return firstValueFrom(
+      this.http.post<ResultadoDaCredencial>(urlApi('webhooks', 'entradas', 'testar-credencial'), {
+        aplicativo,
+        credencial,
+      }),
+    );
+  }
+
+  /** Confere a credencial salva; se recusada, a integração passa a "precisa de atenção". */
+  testarCredencial(id: string): Promise<ResultadoDaCredencial> {
+    return firstValueFrom(
+      this.http.post<ResultadoDaCredencial>(
+        urlApi('webhooks', 'entradas', id, 'testar-credencial'),
+        {},
       ),
     );
   }
 
-  obterRecebimento(webhookId: string, recebimentoId: string): Promise<RecebimentoDetalhe> {
+  buscarCampos(id: string): Promise<{ campos: readonly CampoDeIntegracao[]; buscadosEm: string }> {
     return firstValueFrom(
-      this.http.get<RecebimentoDetalhe>(
-        urlApi('webhooks', 'entradas', webhookId, 'recebimentos', recebimentoId),
+      this.http.post<{ campos: readonly CampoDeIntegracao[]; buscadosEm: string }>(
+        urlApi('webhooks', 'entradas', id, 'buscar-campos'),
+        {},
       ),
     );
   }
 
-  reprocessar(webhookId: string, recebimentoId: string): Promise<Recebimento> {
+  camposRecebidos(id: string, limite = 20): Promise<CamposRecebidos> {
     return firstValueFrom(
-      this.http.post<Recebimento>(
-        urlApi('webhooks', 'entradas', webhookId, 'recebimentos', recebimentoId, 'reprocessar'),
+      this.http.get<CamposRecebidos>(urlApi('webhooks', 'entradas', id, 'campos-recebidos'), {
+        params: parametros({ limite }),
+      }),
+    );
+  }
+
+  formularios(id: string, busca?: string): Promise<readonly FormularioDoTypeform[]> {
+    return firstValueFrom(
+      this.http.get<readonly FormularioDoTypeform[]>(
+        urlApi('webhooks', 'entradas', id, 'formularios'),
+        { params: parametros({ busca }) },
+      ),
+    );
+  }
+
+  camposDoFormulario(id: string, formularioId: string): Promise<readonly CampoDeIntegracao[]> {
+    return firstValueFrom(
+      this.http.get<readonly CampoDeIntegracao[]>(
+        urlApi('webhooks', 'entradas', id, 'formularios', formularioId, 'campos'),
+      ),
+    );
+  }
+
+  sincronizar(id: string): Promise<{ registrado: boolean; erro: string | null }> {
+    return firstValueFrom(
+      this.http.post<{ registrado: boolean; erro: string | null }>(
+        urlApi('webhooks', 'entradas', id, 'sincronizar'),
         {},
       ),
     );
@@ -181,6 +277,12 @@ export class IntegracoesApi {
 
   obterSaida(id: string): Promise<WebhookSaida> {
     return firstValueFrom(this.http.get<WebhookSaida>(urlApi('webhooks', 'saidas', id)));
+  }
+
+  formatoClint(): Promise<FormatoClint> {
+    return firstValueFrom(
+      this.http.get<FormatoClint>(urlApi('webhooks', 'saidas', 'formato-clint')),
+    );
   }
 
   eventos(): Promise<readonly EventoDisponivel[]> {

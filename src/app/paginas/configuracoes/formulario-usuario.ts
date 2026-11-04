@@ -93,6 +93,9 @@ export class FormularioUsuario {
   protected readonly opcoesAcesso = OPCOES_ACESSO;
   protected readonly opcoesPapel = OPCOES_PAPEL;
   protected readonly ajudaLider = AJUDA_LIDER;
+  protected readonly mensagensIdentificador = {
+    pattern: 'Use só letras, números e . _ - @ + :',
+  };
   protected readonly senhaMinimo = SENHA_MINIMO;
 
   protected readonly formulario = new FormGroup({
@@ -107,6 +110,10 @@ export class FormularioUsuario {
     papel: new FormControl<Papel | null>(null, { validators: [Validators.required] }),
     liderId: new FormControl<string | null>(null),
     telefone: new FormControl('', { nonNullable: true }),
+    identificador: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(100), Validators.pattern(/^[A-Za-z0-9._@+:-]*$/)],
+    }),
     acesso: new FormControl<Acesso>('convite', { nonNullable: true }),
     senha: new FormControl('', { nonNullable: true }),
   });
@@ -253,6 +260,9 @@ export class FormularioUsuario {
       papel,
       ...(liderEsperado(papel) ? { liderId: valor.liderId } : {}),
       ...(telefone ? { telefone } : {}),
+      ...(valor.identificador.trim()
+        ? { identificadorIntegracao: valor.identificador.trim() }
+        : {}),
       ...(valor.acesso === 'senha' ? { senhaTemporaria: valor.senha } : {}),
     };
     const criado = await this.api.criarUsuario(dados);
@@ -295,12 +305,16 @@ export class FormularioUsuario {
     const papel = valor.papel!;
     const liderId = liderEsperado(papel) ? valor.liderId : null;
     const telefone = valor.telefone.trim();
+    const identificador = valor.identificador.trim();
     return {
       ...(valor.nome.trim() !== usuario.nome ? { nome: valor.nome.trim() } : {}),
       ...(valor.email.trim().toLowerCase() !== usuario.email ? { email: valor.email.trim() } : {}),
       ...(papel !== usuario.papel ? { papel } : {}),
       ...(liderId !== (usuario.lider?.id ?? null) ? { liderId } : {}),
       ...(telefone !== formatarTelefone(usuario.telefone) ? { telefone: telefone || null } : {}),
+      ...(identificador !== (usuario.identificadorIntegracao ?? '')
+        ? { identificadorIntegracao: identificador || null }
+        : {}),
     };
   }
 
@@ -317,6 +331,7 @@ export class FormularioUsuario {
       papel: c.papel as FormControl<unknown>,
       liderId: c.liderId as FormControl<unknown>,
       telefone: c.telefone as FormControl<unknown>,
+      identificadorIntegracao: c.identificador as FormControl<unknown>,
       senhaTemporaria: c.senha as FormControl<unknown>,
     };
     let noLugar = false;
@@ -334,15 +349,17 @@ export class FormularioUsuario {
       const alvo =
         regra === 'R1.1' || (erro.ehConflito && /e-mail/i.test(erro.resumo))
           ? porCampo['email']
-          : regra === 'R1.2'
-            ? this.liderNecessario()
-              ? porCampo['liderId']
-              : porCampo['papel']
-            : regra === 'R1.3' || regra === 'R1.4'
-              ? porCampo['papel']
-              : regra === 'R2.8'
-                ? (c.acesso as FormControl<unknown>)
-                : null;
+          : erro.ehConflito && /identificador/i.test(erro.resumo)
+            ? porCampo['identificadorIntegracao']
+            : regra === 'R1.2'
+              ? this.liderNecessario()
+                ? porCampo['liderId']
+                : porCampo['papel']
+              : regra === 'R1.3' || regra === 'R1.4'
+                ? porCampo['papel']
+                : regra === 'R2.8'
+                  ? (c.acesso as FormControl<unknown>)
+                  : null;
       if (alvo) {
         noCampo(alvo, erro.resumo);
         noLugar = true;
@@ -366,6 +383,7 @@ export class FormularioUsuario {
         papel: usuario?.papel ?? null,
         liderId: usuario?.lider?.id ?? null,
         telefone: formatarTelefone(usuario?.telefone ?? null),
+        identificador: usuario?.identificadorIntegracao ?? '',
         acesso: 'convite',
         senha: '',
       },
