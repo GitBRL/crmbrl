@@ -234,3 +234,11 @@ code {
     margin-bottom: var(--esp-3);
   }
 }
+
+.conexao__webhook {
+  display: grid;
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+}

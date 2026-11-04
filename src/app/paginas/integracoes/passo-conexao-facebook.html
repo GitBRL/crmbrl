@@ -134,6 +134,36 @@
           }
         </ul>
       </fieldset>
+      @if (conexaoMarcada(); as marcadaAgora) {
+        <section
+          class="conexao__webhook"
+          aria-labelledby="titulo-webhook-paginas"
+          data-teste="webhook-paginas"
+        >
+          <h4 class="conexao__subtitulo" id="titulo-webhook-paginas">
+            Webhook de páginas no app da Meta
+          </h4>
+          <p class="conexao__nota">
+            No app da Meta, vá em <strong>Webhooks</strong> → <strong>Page</strong>, cole o endereço
+            e o token de verificação abaixo e assine o campo <code>leadgen</code>. Sem isso a Meta
+            não avisa o CRM e os leads só chegam pela conferência de 15 em 15 minutos. O token vale
+            para a conexão <strong>{{ marcadaAgora.nome }}</strong
+            >.
+          </p>
+          <app-valor-unico
+            rotulo="Endereço do webhook"
+            oQue="Endereço do webhook"
+            [valor]="marcadaAgora.webhook.url"
+            [aviso]="null"
+          />
+          <app-valor-unico
+            rotulo="Token de verificação"
+            oQue="Token de verificação"
+            [valor]="marcadaAgora.webhook.tokenVerificacao"
+            [aviso]="null"
+          />
+        </section>
+      }
       @if (!novaAberta()) {
         <div>
           <button

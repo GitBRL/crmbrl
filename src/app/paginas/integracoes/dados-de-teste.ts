@@ -584,6 +584,11 @@ export const CONEXAO_FACEBOOK: ConexaoFacebook = {
     { id: 'p2', nome: 'Clínica Demo BRL', categoria: 'Saúde' },
   ],
   integracoes: 1,
+  webhook: {
+    url: 'https://crm.exemplo.com.br/api/v1/publico/meta/webhook',
+    tokenVerificacao: 'token-verificacao-cx1',
+    campos: ['leadgen'],
+  },
   precisaAtencao: false,
   atencaoMotivo: null,
   criadoEm: '2026-11-04T12:00:00Z',

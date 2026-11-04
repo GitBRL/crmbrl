@@ -11,6 +11,13 @@ export interface PaginaFacebook {
   readonly categoria: string | null;
 }
 
+/** Webhook de páginas no app da Meta: o endereço e o token de verificação desta conexão (R32.14). */
+export interface WebhookDaConexaoFacebook {
+  readonly url: string;
+  readonly tokenVerificacao: string;
+  readonly campos: readonly string[];
+}
+
 export interface ConexaoFacebook {
   readonly id: string;
   readonly nome: string;
@@ -27,6 +34,7 @@ export interface ConexaoFacebook {
   readonly paginas: readonly PaginaFacebook[];
   /** Quantas integrações usam esta conexão. */
   readonly integracoes: number;
+  readonly webhook: WebhookDaConexaoFacebook;
   readonly precisaAtencao: boolean;
   readonly atencaoMotivo: string | null;
   readonly criadoEm: string;

@@ -273,4 +273,21 @@ describe('PassoConexaoFacebook', () => {
     await aguardar();
     expect(elemento().textContent).toContain('H3 Facebook (OAuth)');
   });
+
+  it('mostra o webhook de páginas da conexão marcada, com endereço e token para copiar', async () => {
+    await abrir([CONEXAO_FACEBOOK], { selecionada: 'cx1' });
+    const secao = elemento().querySelector<HTMLElement>('[data-teste="webhook-paginas"]')!;
+    expect(secao).not.toBeNull();
+    const texto = secao.textContent ?? '';
+    expect(texto).toContain('Webhook de páginas no app da Meta');
+    expect(texto).toContain('leadgen');
+    expect(texto).toContain('https://crm.exemplo.com.br/api/v1/publico/meta/webhook');
+    expect(texto).toContain('token-verificacao-cx1');
+    expect(secao.querySelectorAll('app-botao-copiar')).toHaveLength(2);
+  });
+
+  it('sem conexão marcada não mostra o webhook de páginas', async () => {
+    await abrir([CONEXAO_FACEBOOK]);
+    expect(elemento().querySelector('[data-teste="webhook-paginas"]')).toBeNull();
+  });
 });

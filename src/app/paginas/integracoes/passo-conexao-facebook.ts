@@ -122,6 +122,9 @@ export class PassoConexaoFacebook {
   protected readonly erroDoForm = signal<string | null>(null);
   protected readonly tocou = signal(false);
 
+  protected readonly conexaoMarcada = computed(
+    () => (this.conexoes() ?? []).find(({ id }) => id === this.marcada()) ?? null,
+  );
   protected readonly usaCanal = computed(() => this.origemDoApp() === 'CANAL');
   protected readonly opcoesOrigem = computed<readonly OpcaoGrupo<OrigemDoApp>[]>(() => [
     { valor: 'DIGITAR', rotulo: 'Digitar o id e o segredo do app' },
