@@ -170,10 +170,12 @@ export class Bi {
       this.api.pessoas(),
       this.diretoria() ? this.api.lideres() : Promise.resolve([]),
       this.api.funis(),
-      lista.includes('atendimento') || lista.includes('marketing')
+      lista.includes('atendimento') || lista.includes('marketing') || lista.includes('sdr')
         ? this.api.canais()
         : Promise.resolve([]),
-      lista.includes('atendimento') ? this.api.filas() : Promise.resolve([]),
+      lista.includes('atendimento') || lista.includes('sdr')
+        ? this.api.filas()
+        : Promise.resolve([]),
     ]);
     this.opcoes.set({ pessoas, lideres, funis, canais, filas });
   }

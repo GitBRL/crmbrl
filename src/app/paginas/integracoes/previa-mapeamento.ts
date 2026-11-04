@@ -264,7 +264,7 @@ export class PreviaMapeamento {
   });
 
   protected readonly negocio = computed<readonly Linha[]>(() => {
-    const { negocio, utm } = this.resultado();
+    const { negocio, utm, atualizacoes } = this.resultado();
     const linhas: Linha[] = [
       negocio.titulo
         ? linha('Título', negocio.titulo)
@@ -275,6 +275,19 @@ export class PreviaMapeamento {
     }
     if (negocio.valorRecorrente) {
       linhas.push(linha('Recorrente', formatarMoeda(negocio.valorRecorrente)));
+    }
+    // Etapa, dono, status e motivo vindos do recebimento (modo atualizar).
+    if (atualizacoes?.etapa) {
+      linhas.push(linha('Etapa', atualizacoes.etapa));
+    }
+    if (atualizacoes?.dono) {
+      linhas.push(linha('Dono', atualizacoes.dono));
+    }
+    if (atualizacoes?.status) {
+      linhas.push(linha('Status', atualizacoes.status));
+    }
+    if (atualizacoes?.motivoPerda) {
+      linhas.push(linha('Motivo da perda', atualizacoes.motivoPerda));
     }
     const utms = Object.entries(utm ?? {}).filter(([, valor]) => !!valor);
     for (const [chave, valor] of utms) {

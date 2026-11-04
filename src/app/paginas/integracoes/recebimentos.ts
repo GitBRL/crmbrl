@@ -6,27 +6,25 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
   untracked,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LucideChevronDown, LucideEye, LucideRefreshCw } from '@lucide/angular';
+import { LucideChevronDown, LucideEye, LucidePencil, LucideRefreshCw } from '@lucide/angular';
 
 import type { Pagina } from '../../nucleo/api/api';
 import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarDataHora, formatarTempoRelativo } from '../../nucleo/formatos';
-import { SLUG_AREA } from '../../nucleo/sessao/perfil';
 import { Botao } from '../../ui/botao/botao';
-import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
-import { FiltrosPilula, type OpcaoFiltro } from '../../ui/filtros-pilula/filtros-pilula';
 import { Paginacao } from '../../ui/paginacao/paginacao';
 import { Selo } from '../../ui/selo/selo';
 import { BlocoCodigo } from './comum/bloco-codigo';
 import { formatarIp, formatarJson } from './comum/copiar';
-import { IntegracoesApi } from './integracoes.api';
+import { type FiltroRecebimentos, IntegracoesApi } from './integracoes.api';
 import { PreviaMapeamento } from './previa-mapeamento';
 import {
   type Recebimento,
@@ -34,28 +32,11 @@ import {
   type ResultadoDaPrevia,
   ROTULO_STATUS_RECEBIMENTO,
   SELO_STATUS_RECEBIMENTO,
-  type StatusRecebimento,
-  type WebhookEntrada,
 } from './tipos';
 
 const POR_PAGINA = 10;
 /** Depois de reprocessar, confere de novo quando a fila já deve ter processado. */
 const ESPERA_PARA_CONFERIR_MS = 4_000;
-
-const FILTROS: readonly OpcaoFiltro[] = [
-  { id: 'todos', rotulo: 'Todos' },
-  { id: 'ERRO', rotulo: 'Com erro' },
-  { id: 'IGNORADO', rotulo: 'Ignorados' },
-  { id: 'PROCESSADO', rotulo: 'Processados' },
-  { id: 'RECEBIDO', rotulo: 'Na fila' },
-];
-
-const VAZIO_DO_FILTRO: Readonly<Record<string, string>> = {
-  ERRO: 'Nenhum recebimento com erro',
-  IGNORADO: 'Nenhum recebimento ignorado',
-  PROCESSADO: 'Nenhum recebimento processado',
-  RECEBIDO: 'Nada na fila agora',
-};
 
 /** Por que um recebimento não pode ser reprocessado (R8.6). */
 export function motivoSemReprocessar(recebimento: Recebimento): string | null {
@@ -71,20 +52,39 @@ export function motivoSemReprocessar(recebimento: Recebimento): string | null {
   return 'O corpo deste envio não foi guardado.';
 }
 
+const PREFIXO_DO_EVENTO = /^Evento "([^"]+)";\s*/;
+
+/** O evento da plataforma (Hotmart, Kiwify, Eduzz) que o recebimento trouxe, com o nome amigável. */
+export function eventoDoRecebimento(
+  recebimento: Recebimento,
+  nomes: ReadonlyMap<string, string> = new Map(),
+): { codigo: string | null; nome: string } | null {
+  const codigo = recebimento.itens?.find((item) => item.evento)?.evento ?? null;
+  const dito = PREFIXO_DO_EVENTO.exec(recebimento.mensagem ?? '')?.[1] ?? null;
+  const nome = (codigo && nomes.get(codigo)) || dito || codigo;
+  return nome ? { codigo, nome } : null;
+}
+
+/** O que o CRM fez com o evento: a mensagem do processamento sem o "Evento "X";" do começo. */
+export function acaoAplicada(recebimento: Recebimento): string | null {
+  const texto = (recebimento.mensagem ?? '').replace(PREFIXO_DO_EVENTO, '').trim();
+  return texto || null;
+}
+
 /**
- * Recebimentos de um webhook de entrada (TELAS-FASE1 §7, R8.6): filtro por status, cada
- * recebimento abre no lugar com o resultado, o corpo e os cabeçalhos guardados, e as ações
- * "Reprocessar" (com a configuração atual) e "Simular" (a prévia sobre o corpo guardado).
+ * Recebimentos das integrações (R8.6, Onda H): a lista de uma consulta (filtros vindos de quem
+ * usa: data, status, aplicativo e integração), em que cada recebimento abre no lugar com o
+ * resultado, os avisos, o que foi criado, o corpo e os cabeçalhos guardados, e as ações
+ * "Reprocessar" (com a configuração atual), "Simular" (a prévia sobre o corpo guardado) e
+ * "Editar integração".
  */
 @Component({
   selector: 'app-recebimentos',
   imports: [
     RouterLink,
     Botao,
-    BotaoIcone,
     EstadoVazio,
     Esqueleto,
-    FiltrosPilula,
     Paginacao,
     Selo,
     BlocoCodigo,
@@ -99,15 +99,23 @@ export class Recebimentos {
   private readonly api = inject(IntegracoesApi);
   private readonly avisos = inject(AvisosService);
 
-  readonly webhook = input.required<WebhookEntrada>();
+  /** Filtros da consulta (sem paginação, que a lista faz sozinha). */
+  readonly consulta = input<Omit<FiltroRecebimentos, 'pagina' | 'porPagina'>>({});
+  /** Mostra o nome da integração e do aplicativo em cada linha (no histórico global). */
+  readonly mostrarOrigem = input(true);
+  /** Funil de cada integração (id da integração → id do funil), para o link do negócio. */
+  readonly funilDaIntegracao = input<ReadonlyMap<string, string>>(new Map());
+  readonly editarIntegracao = output<string>();
 
-  protected readonly filtros = FILTROS;
   protected readonly porPagina = POR_PAGINA;
-  protected readonly icones = { atualizar: LucideRefreshCw, simular: LucideEye };
+  protected readonly icones = {
+    atualizar: LucideRefreshCw,
+    simular: LucideEye,
+    editar: LucidePencil,
+  };
   protected readonly rotuloStatus = ROTULO_STATUS_RECEBIMENTO;
   protected readonly seloStatus = SELO_STATUS_RECEBIMENTO;
 
-  protected readonly filtro = signal<string | null>('todos');
   protected readonly pagina = signal(1);
   protected readonly resposta = signal<Pagina<Recebimento> | null>(null);
   protected readonly carregando = signal(true);
@@ -116,47 +124,73 @@ export class Recebimentos {
   protected readonly detalhes = signal<ReadonlyMap<string, RecebimentoDetalhe>>(new Map());
   protected readonly carregandoDetalhe = signal<string | null>(null);
   protected readonly erroDetalhe = signal<ErroApi | null>(null);
+  /** Nome amigável dos eventos das plataformas de curso, do catálogo (só buscado se houver eventos). */
+  protected readonly nomesDosEventos = signal<ReadonlyMap<string, string>>(new Map());
+  private buscouNomes = false;
   protected readonly simulacoes = signal<ReadonlyMap<string, ResultadoDaPrevia>>(new Map());
   protected readonly simulando = signal<string | null>(null);
   protected readonly reprocessando = signal<string | null>(null);
 
   protected readonly itens = computed(() => this.resposta()?.itens ?? []);
   protected readonly total = computed(() => this.resposta()?.total ?? 0);
-  protected readonly filtrado = computed(() => (this.filtro() ?? 'todos') !== 'todos');
-  protected readonly tituloVazio = computed(
-    () => VAZIO_DO_FILTRO[this.filtro() ?? ''] ?? 'Nenhum recebimento ainda',
-  );
-  protected readonly slugArea = computed(() => SLUG_AREA[this.webhook().funil.area]);
-  /** Só o id: o webhook atualizado (mesmo id) não recarrega a lista. */
-  private readonly idDoWebhook = computed(() => this.webhook().id);
+  protected readonly filtrado = computed(() => {
+    const c = this.consulta();
+    return !!(c.status?.length || c.aplicativo?.length || c.integracaoId || c.de || c.ate);
+  });
+  /** Só a chave da consulta: o mesmo filtro (outro objeto) não recarrega a lista. */
+  private readonly chaveDaConsulta = computed(() => JSON.stringify(this.consulta()));
 
   private versao = 0;
   private conferencia: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // Consulta nova (outro filtro): volta à primeira página.
     effect(() => {
-      // Recarrega quando muda o webhook, o filtro ou a página.
-      void [this.idDoWebhook(), this.filtro(), this.pagina()];
+      void this.chaveDaConsulta();
+      untracked(() => this.pagina.set(1));
+    });
+    effect(() => {
+      // Recarrega quando muda a consulta ou a página.
+      void [this.chaveDaConsulta(), this.pagina()];
       untracked(() => void this.carregar());
+    });
+    effect(() => {
+      const comEvento = this.itens().some((r) => r.itens?.some((item) => !!item.evento));
+      if (comEvento) {
+        untracked(() => void this.carregarNomesDosEventos());
+      }
     });
     inject(DestroyRef).onDestroy(() => this.pararConferencia());
   }
 
-  protected escolherFiltro(id: string | null): void {
-    this.filtro.set(id ?? 'todos');
-    this.pagina.set(1);
+  private async carregarNomesDosEventos(): Promise<void> {
+    if (this.buscouNomes) {
+      return;
+    }
+    this.buscouNomes = true;
+    try {
+      const catalogo = await this.api.catalogo();
+      this.nomesDosEventos.set(
+        new Map(
+          catalogo.aplicativos.flatMap((app) =>
+            (app.eventos?.eventos ?? []).map((e) => [e.codigo, e.nome] as const),
+          ),
+        ),
+      );
+    } catch {
+      // Sem o catálogo, o nome vem da mensagem do próprio recebimento.
+    }
   }
 
   async carregar(): Promise<void> {
     const versao = ++this.versao;
-    const status = this.filtro();
     this.carregando.set(true);
     this.erro.set(null);
     try {
-      const resposta = await this.api.listarRecebimentos(this.webhook().id, {
+      const resposta = await this.api.listarRecebimentos({
+        ...this.consulta(),
         pagina: this.pagina(),
         porPagina: POR_PAGINA,
-        status: status && status !== 'todos' ? [status as StatusRecebimento] : undefined,
       });
       if (versao === this.versao) {
         this.resposta.set(resposta);
@@ -185,7 +219,7 @@ export class Recebimentos {
     this.erroDetalhe.set(null);
     this.carregandoDetalhe.set(id);
     try {
-      const detalhe = await this.api.obterRecebimento(this.webhook().id, id);
+      const detalhe = await this.api.obterRecebimento(id);
       this.detalhes.update((mapa) => new Map(mapa).set(id, detalhe));
     } catch (falha) {
       this.erroDetalhe.set(erroDaApi(falha));
@@ -197,7 +231,7 @@ export class Recebimentos {
   protected async reprocessar(recebimento: Recebimento): Promise<void> {
     this.reprocessando.set(recebimento.id);
     try {
-      await this.api.reprocessar(this.webhook().id, recebimento.id);
+      await this.api.reprocessar(recebimento.id);
       this.avisos.sucesso('Recebimento enviado de novo para a fila. O resultado aparece aqui.');
       this.simulacoes.update((mapa) => {
         const novo = new Map(mapa);
@@ -216,13 +250,22 @@ export class Recebimentos {
   protected async simular(recebimento: Recebimento): Promise<void> {
     this.simulando.set(recebimento.id);
     try {
-      const resultado = await this.api.previaDoRecebimento(this.webhook().id, recebimento.id);
+      const resultado = await this.api.previaDoRecebimento(recebimento.webhookId, recebimento.id);
       this.simulacoes.update((mapa) => new Map(mapa).set(recebimento.id, resultado));
     } catch (falha) {
       this.avisos.erro(falha);
     } finally {
       this.simulando.set(null);
     }
+  }
+
+  protected evento(recebimento: Recebimento): { codigo: string | null; nome: string } | null {
+    return eventoDoRecebimento(recebimento, this.nomesDosEventos());
+  }
+
+  /** A mensagem sem o prefixo do evento, quando há um evento; senão a mensagem inteira. */
+  protected acao(recebimento: Recebimento): string | null {
+    return this.evento(recebimento) ? acaoAplicada(recebimento) : recebimento.mensagem;
   }
 
   protected motivo(recebimento: Recebimento): string | null {
@@ -235,6 +278,10 @@ export class Recebimentos {
 
   protected ip(ip: string | null): string {
     return formatarIp(ip);
+  }
+
+  protected funilDe(recebimento: Recebimento): string | null {
+    return this.funilDaIntegracao().get(recebimento.webhookId) ?? null;
   }
 
   protected quando(iso: string | null): string {

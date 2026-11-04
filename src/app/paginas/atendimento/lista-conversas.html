@@ -63,9 +63,9 @@
       <div class="lista__filtro-cabeca">
         <span class="lista__filtro-rotulo" aria-hidden="true">Só as que</span>
         <app-dica
-          rotulo="O que é o prazo estourado"
-          titulo="Prazo (SLA)"
-          texto="Cada fila tem um prazo para a primeira resposta e outro para resolver a conversa (o SLA). Quando passa do prazo, o tempo de espera fica coral e a liderança da área é avisada."
+          rotulo="O que são estes filtros"
+          titulo="Só as que…"
+          texto="Prazo estourado: cada fila tem um prazo para a primeira resposta e outro para resolver a conversa (o SLA); quando passa, o tempo de espera fica coral e a liderança da área é avisada. Atendidas pela IA: conversas em que o SDR com IA está falando com o lead agora."
         />
       </div>
       <app-filtros-pilula
@@ -183,6 +183,7 @@
                   </span>
                   @if (
                     linha.espera ||
+                    conversa.sdr?.situacao === 'ATIVA' ||
                     !conversa.responsavel ||
                     linha.responsavel ||
                     linha.prioridade ||
@@ -190,6 +191,9 @@
                     conversa.status !== 'ABERTA'
                   ) {
                     <span class="item__meta">
+                      @if (conversa.sdr?.situacao === 'ATIVA') {
+                        <app-selo-ia tamanho="sm" [sdr]="conversa.sdr" />
+                      }
                       @if (linha.espera) {
                         <app-selo
                           tamanho="sm"

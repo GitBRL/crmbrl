@@ -244,6 +244,32 @@ describe('FormularioUsuario (convidar e editar)', () => {
     expect(raiz().textContent).toContain(mensagem);
   });
 
+  it('o identificador nas integrações vai na edição e o 409 volta para o campo', async () => {
+    await abrir({ modo: 'editar', usuario: CAMILA });
+    await responder(C_LEVELS, pagina([HELENA]));
+    expect(
+      (campoPeloRotulo(raiz(), 'Identificador nas integrações') as HTMLInputElement).value,
+    ).toBe('');
+    digitar(raiz(), 'Identificador nas integrações', 'camila.rocha');
+    fixture.detectChanges();
+    botaoComTexto(raiz(), 'Salvar alterações').click();
+    const pedido = http.expectOne('/api/v1/usuarios/u-camila');
+    expect(pedido.request.method).toBe('PATCH');
+    expect(pedido.request.body).toEqual({ identificadorIntegracao: 'camila.rocha' });
+    const falha = erroDaApiFalso(
+      409,
+      'conflito',
+      'Já existe um usuário com esse identificador nas integrações.',
+    );
+    pedido.flush(falha.corpo, falha.opcoes);
+    await microtarefas();
+    fixture.detectChanges();
+    expect(
+      campoPeloRotulo(raiz(), 'Identificador nas integrações').getAttribute('aria-invalid'),
+    ).toBe('true');
+    expect(raiz().textContent).toContain('Já existe um usuário com esse identificador');
+  });
+
   it('editar sem mudar nada só fecha', async () => {
     const info = vi.spyOn(avisos, 'info');
     await abrir({ modo: 'editar', usuario: CAMILA });

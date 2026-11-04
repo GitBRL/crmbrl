@@ -25,6 +25,7 @@ import {
 import { type Area, areaDoSlug, ROTULO_AREA, SLUG_AREA } from '../../nucleo/sessao/perfil';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Abas, type ItemAba } from '../../ui/abas/abas';
+import { CartaoQualificacao } from '../../nucleo/sdr/cartao-qualificacao';
 import { RiscoChurnCartao } from '../financeiro/risco-churn';
 import { SugestaoContrato } from '../financeiro/sugestao-contrato';
 import { AreaTexto } from '../../ui/area-texto/area-texto';
@@ -121,6 +122,7 @@ interface Vinculo {
     MenuAcoes,
     MotivoPerda,
     PainelLateral,
+    CartaoQualificacao,
     RiscoChurnCartao,
     RouterLink,
     Seletor,

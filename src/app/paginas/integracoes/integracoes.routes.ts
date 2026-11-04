@@ -4,8 +4,9 @@ import { redirecionar } from '../../nucleo/sessao/guardas';
 
 /**
  * Rotas de `/integracoes` (carregadas sob demanda por app.routes.ts; o módulo inteiro é do
- * Admin, conferido pela casca). `/integracoes` sozinho abre os webhooks de entrada — ou os de
- * saída quando o link traz `?webhookSaida=<id>` (notificações de falha de entrega).
+ * Admin, conferido pela casca). `/integracoes` sozinho abre os aplicativos — ou os webhooks de
+ * saída quando o link traz `?webhookSaida=<id>` (notificações de falha de entrega). Os links
+ * antigos de `/integracoes/entrada` seguem para os aplicativos.
  */
 export const ROTAS_INTEGRACOES: Routes = [
   {
@@ -17,15 +18,28 @@ export const ROTAS_INTEGRACOES: Routes = [
         pathMatch: 'full',
         canActivate: [
           redirecionar((rota) =>
-            rota.queryParamMap.has('webhookSaida') ? '/integracoes/saida' : '/integracoes/entrada',
+            rota.queryParamMap.has('webhookSaida')
+              ? '/integracoes/saida'
+              : '/integracoes/aplicativos',
           ),
         ],
         children: [],
       },
       {
         path: 'entrada',
-        title: 'Webhooks de entrada',
-        loadComponent: () => import('./webhooks-entrada').then((m) => m.WebhooksEntrada),
+        pathMatch: 'full',
+        canActivate: [redirecionar(() => '/integracoes/aplicativos')],
+        children: [],
+      },
+      {
+        path: 'aplicativos',
+        title: 'Aplicativos',
+        loadComponent: () => import('./aplicativos').then((m) => m.Aplicativos),
+      },
+      {
+        path: 'historico',
+        title: 'Histórico de recebimentos',
+        loadComponent: () => import('./historico').then((m) => m.Historico),
       },
       {
         path: 'saida',

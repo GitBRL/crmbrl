@@ -39,7 +39,7 @@
   class="lista"
   titulo="Webhooks de saída"
   [complemento]="resposta() ? '· ' + total() : null"
-  dica="Cada destino recebe um POST com JSON quando os eventos marcados acontecem no CRM (negócio ganho, contato criado…). Falhas são tentadas de novo por cerca de 32 horas; com 20 falhas seguidas, o destino é desativado e o Admin é avisado."
+  dica="Cada destino recebe uma chamada quando algo acontece no CRM: pelo envelope do CRM (POST com JSON, a cada evento marcado) ou pelo formato Clint (gatilhos de negócio e os campos que você escolher, em POST ou GET). Falhas são tentadas de novo por cerca de 32 horas; com 20 falhas seguidas, o destino é desativado e o Admin é avisado."
 >
   @if (erro(); as falha) {
     <app-estado-vazio

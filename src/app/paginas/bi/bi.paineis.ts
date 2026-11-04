@@ -24,6 +24,8 @@ export interface BlocoBi {
   readonly clique?: DestinoClique;
   /** Ocupa a linha toda (séries longas no tempo e tabelas largas). */
   readonly inteiro?: boolean;
+  /** Só aparece quando a tabela tem esta coluna (o custo em tokens vem só para Admin e C-level). */
+  readonly soComColuna?: string;
 }
 
 export interface EspecificacaoPainel {
@@ -279,6 +281,68 @@ export const PAINEIS_BI: Readonly<Record<IdPainel, EspecificacaoPainel>> = {
             { chave: 'atendidas', nome: 'Atendidas', cor: 1, pilha: 'resultado' },
             { chave: 'perdidas', nome: 'Perdidas', cor: 3, pilha: 'resultado' },
           ],
+        },
+      },
+    ],
+  },
+  // SDR com IA (Onda G): o que a IA atendeu, qualificou e passou para a equipe. Os blocos de custo
+  // (tokens) só chegam para Admin e C-level.
+  sdr: {
+    agora: ['emAtendimento'],
+    blocos: [
+      {
+        id: 'porDia',
+        tabela: 'porDia',
+        titulo: 'Conversas da IA por dia',
+        inteiro: true,
+        grafico: {
+          categoria: 'dia',
+          tipoValor: 'numero',
+          series: [
+            { chave: 'atendidas', nome: 'Atendidas', cor: 0, tipo: 'linha' },
+            { chave: 'qualificadas', nome: 'Qualificadas', cor: 1, tipo: 'linha' },
+            { chave: 'desqualificadas', nome: 'Desqualificadas', cor: 2, tipo: 'linha' },
+            { chave: 'passadas', nome: 'Passadas para a equipe', cor: 3, tipo: 'linha' },
+          ],
+        },
+      },
+      {
+        id: 'porCanal',
+        tabela: 'porCanal',
+        inteiro: true,
+        clique: { tipo: 'canal', coluna: 'id' },
+        grafico: {
+          categoria: 'nome',
+          tipoValor: 'numero',
+          orientacao: 'barras',
+          chaveId: 'id',
+          series: [
+            { chave: 'atendidas', nome: 'Atendidas', cor: 0 },
+            { chave: 'qualificadas', nome: 'Qualificadas', cor: 1 },
+          ],
+        },
+      },
+      {
+        id: 'passagensPorMotivo',
+        tabela: 'passagensPorMotivo',
+        inteiro: true,
+        grafico: {
+          categoria: 'motivo',
+          tipoValor: 'numero',
+          orientacao: 'barras',
+          series: [{ chave: 'total', nome: 'Passagens', cor: 3 }],
+        },
+      },
+      {
+        id: 'tokensPorDia',
+        tabela: 'porDia',
+        titulo: 'Tokens gastos por dia',
+        inteiro: true,
+        soComColuna: 'tokens',
+        grafico: {
+          categoria: 'dia',
+          tipoValor: 'numero',
+          series: [{ chave: 'tokens', nome: 'Tokens', cor: 2 }],
         },
       },
     ],

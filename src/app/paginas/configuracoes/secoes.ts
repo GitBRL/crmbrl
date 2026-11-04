@@ -31,7 +31,7 @@ export const SECOES_CONFIGURACOES: readonly SecaoConfiguracoes[] = [
     permite: (p) => p.configurarRodizio !== 'NENHUM',
   },
   { caminho: 'passagens', rotulo: 'Passagens entre funis', permite: (p) => p.configurarPassagens },
-  // Canais e Atendimento moram em subpastas (rotas em app.routes.ts) e a mesma regra libera a rota.
+  // Canais, Atendimento e SDR com IA moram em subpastas (rotas em app.routes.ts) e a mesma regra libera a rota.
   { caminho: 'canais', rotulo: 'Canais', permite: podeGerenciarCanais },
   { caminho: 'atendimento', rotulo: 'Atendimento', permite: podeConfigurarAtendimento },
   {
@@ -42,6 +42,11 @@ export const SECOES_CONFIGURACOES: readonly SecaoConfiguracoes[] = [
   {
     caminho: 'assistente',
     rotulo: 'Assistente de ajuda',
+    permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN',
+  },
+  {
+    caminho: 'sdr',
+    rotulo: 'SDR com IA',
     permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN',
   },
   { caminho: 'perfil', rotulo: 'Meu perfil', permite: () => true },

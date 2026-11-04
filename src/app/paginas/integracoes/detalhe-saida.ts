@@ -7,7 +7,14 @@ import { Botao } from '../../ui/botao/botao';
 import { Selo, type VarianteSelo } from '../../ui/selo/selo';
 import { ComoValidarAssinatura } from './como-validar-assinatura';
 import { Entregas } from './entregas';
-import { rotuloDoEvento, TOTAL_EVENTOS_ASSINAVEIS, type WebhookSaida } from './tipos';
+import {
+  type GatilhoDeSaida,
+  resumoDoEnvio,
+  ROTULO_GATILHO,
+  rotuloDoEvento,
+  type TipoDeGatilho,
+  type WebhookSaida,
+} from './tipos';
 
 export type AbaSaida = 'entregas' | 'configuracao';
 
@@ -94,7 +101,7 @@ export function saudeDoDestino(
         </dd>
       </div>
       <div class="detalhe__fato">
-        <dt>Eventos</dt>
+        <dt>{{ ehClint() ? 'Envio' : 'Eventos' }}</dt>
         <dd>{{ resumoEventos() }}</dd>
       </div>
       <div class="detalhe__fato">
@@ -117,17 +124,44 @@ export function saudeDoDestino(
       @switch (aba()) {
         @case ('configuracao') {
           <div class="detalhe__config">
-            <section class="detalhe__secao" aria-labelledby="saida-eventos">
-              <h3 class="detalhe__subtitulo" id="saida-eventos">Eventos assinados</h3>
-              <ul class="detalhe__eventos">
-                @for (evento of w.eventos; track evento) {
-                  <li>
-                    <span>{{ rotuloEvento(evento) }}</span>
-                    <code>{{ evento }}</code>
-                  </li>
-                }
-              </ul>
-            </section>
+            @if (ehClint()) {
+              <section class="detalhe__secao" aria-labelledby="saida-gatilhos">
+                <h3 class="detalhe__subtitulo" id="saida-gatilhos">
+                  Gatilhos ({{ w.metodo ?? 'POST' }})
+                </h3>
+                <ul class="detalhe__eventos">
+                  @for (gatilho of w.gatilhos ?? []; track $index) {
+                    <li>
+                      <span>{{ rotuloGatilho(gatilho.tipo) }}</span>
+                      <code>{{ detalheDoGatilho(gatilho) }}</code>
+                    </li>
+                  }
+                </ul>
+              </section>
+              <section class="detalhe__secao" aria-labelledby="saida-campos">
+                <h3 class="detalhe__subtitulo" id="saida-campos">Campos enviados</h3>
+                <ul class="detalhe__eventos">
+                  @for (campo of w.campos ?? []; track campo.identificador) {
+                    <li>
+                      <span>{{ campo.origem }}</span>
+                      <code>{{ campo.identificador }}</code>
+                    </li>
+                  }
+                </ul>
+              </section>
+            } @else {
+              <section class="detalhe__secao" aria-labelledby="saida-eventos">
+                <h3 class="detalhe__subtitulo" id="saida-eventos">Eventos assinados</h3>
+                <ul class="detalhe__eventos">
+                  @for (evento of w.eventos; track evento) {
+                    <li>
+                      <span>{{ rotuloEvento(evento) }}</span>
+                      <code>{{ evento }}</code>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
 
             <dl class="detalhe__dados">
               <div>
@@ -242,15 +276,17 @@ export class DetalheSaida {
 
   protected readonly saude = computed(() => saudeDoDestino(this.webhook()));
 
-  protected readonly resumoEventos = computed(() => {
-    const eventos = this.webhook().eventos;
-    if (eventos.length >= TOTAL_EVENTOS_ASSINAVEIS) {
-      return 'Todos os eventos';
-    }
-    return eventos.length <= 2
-      ? eventos.map((evento) => rotuloDoEvento(evento)).join(' e ')
-      : `${eventos.length} eventos`;
-  });
+  protected readonly ehClint = computed(() => this.webhook().formato === 'CLINT');
+  protected readonly resumoEventos = computed(() => resumoDoEnvio(this.webhook()));
+
+  protected rotuloGatilho(tipo: TipoDeGatilho): string {
+    return ROTULO_GATILHO[tipo];
+  }
+
+  /** "Funil: Comercial", "Etapa …", "Status ganho" ou "Todos os funis". */
+  protected detalheDoGatilho(gatilho: GatilhoDeSaida): string {
+    return gatilho.status ?? gatilho.etapaId ?? gatilho.funilId ?? 'todos os funis';
+  }
 
   protected readonly desativadoEm = computed(() => {
     const em = this.webhook().desativadoAutomaticamenteEm;

@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { EVENTOS, microtarefas, webhookSaida } from './dados-de-teste';
+import { EVENTOS, FORMATO_CLINT, FUNIS, microtarefas, webhookSaida } from './dados-de-teste';
 import { FormularioSaida } from './formulario-saida';
 
 describe('FormularioSaida (cadastro e edição de webhook de saída)', () => {
@@ -153,5 +153,92 @@ describe('FormularioSaida (cadastro e edição de webhook de saída)', () => {
     patch.flush(webhookSaida({ cabecalhos: [] }));
     await microtarefas();
     expect(fixture.componentInstance.aberto()).toBe(false);
+  });
+
+  describe('formato Clint', () => {
+    async function escolherClint() {
+      const radio = Array.from(
+        elemento().querySelectorAll<HTMLInputElement>('input[type="radio"]'),
+      ).find((item) => item.closest('label')?.textContent?.includes('Formato Clint'))!;
+      radio.click();
+      fixture.detectChanges();
+      http.expectOne('/api/v1/webhooks/saidas/formato-clint').flush(FORMATO_CLINT);
+      http.expectOne('/api/v1/funis').flush(FUNIS);
+      await microtarefas();
+      fixture.detectChanges();
+    }
+
+    it('mostra método, gatilhos e campos com identificador editável; cadastra no formato', async () => {
+      await abrir();
+      digitar(campo('Nome'), 'CRM do parceiro');
+      digitar(campo('URL do destino'), 'https://parceiro.exemplo.com/hook');
+      await escolherClint();
+      const texto = elemento().textContent ?? '';
+      expect(texto).toContain('Quando enviar');
+      expect(texto).toContain('Campos enviados');
+      expect(texto).toContain('POST (JSON)');
+      expect(texto).toContain('GET (URL)');
+      // Os eventos do envelope somem.
+      expect(texto).not.toContain('Todos os eventos');
+      // Nome, e-mail, telefone e valor já vêm marcados, com o identificador padrão.
+      expect(campo('Identificador de E-mail do contato').value).toBe('email');
+      digitar(campo('Identificador de E-mail do contato'), 'email_lead');
+      fixture.detectChanges();
+      botao('Cadastrar destino').click();
+      const criar = http.expectOne('/api/v1/webhooks/saidas');
+      expect(criar.request.body).toEqual({
+        nome: 'CRM do parceiro',
+        url: 'https://parceiro.exemplo.com/hook',
+        formato: 'CLINT',
+        metodo: 'POST',
+        gatilhos: [{ tipo: 'NEGOCIO_CRIADO' }],
+        campos: [
+          { origem: 'contato.nome', identificador: 'nome' },
+          { origem: 'contato.email', identificador: 'email_lead' },
+          { origem: 'contato.telefone', identificador: 'telefone' },
+          { origem: 'negocio.valor', identificador: 'valor' },
+        ],
+      });
+      criar.flush({
+        webhook: webhookSaida({ nome: 'CRM do parceiro', formato: 'CLINT' }),
+        segredo: 'seg',
+      });
+      await microtarefas();
+    });
+
+    it('identificadores repetidos ou inválidos são recusados antes de enviar', async () => {
+      await abrir();
+      digitar(campo('Nome'), 'CRM do parceiro');
+      digitar(campo('URL do destino'), 'https://parceiro.exemplo.com/hook');
+      await escolherClint();
+      digitar(campo('Identificador de Nome do contato'), 'email');
+      fixture.detectChanges();
+      botao('Cadastrar destino').click();
+      fixture.detectChanges();
+      expect(elemento().textContent).toContain('aparece em mais de um campo');
+      digitar(campo('Identificador de Nome do contato'), 'nome completo');
+      fixture.detectChanges();
+      botao('Cadastrar destino').click();
+      fixture.detectChanges();
+      expect(elemento().textContent).toContain('letras, números e _ - . [ ]');
+      http.expectNone('/api/v1/webhooks/saidas');
+    });
+
+    it('gatilho de etapa exige a etapa e usa as etapas do funil escolhido', async () => {
+      await abrir();
+      digitar(campo('Nome'), 'CRM do parceiro');
+      digitar(campo('URL do destino'), 'https://parceiro.exemplo.com/hook');
+      await escolherClint();
+      const tipo = elemento().querySelector<HTMLSelectElement>('select')!;
+      const opcao = Array.from(tipo.options).find(
+        (o) => o.textContent?.trim() === 'Negócio entra na etapa…',
+      )!;
+      tipo.value = opcao.value;
+      tipo.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      botao('Cadastrar destino').click();
+      fixture.detectChanges();
+      expect(elemento().textContent).toContain('Escolha a etapa do gatilho');
+    });
   });
 });

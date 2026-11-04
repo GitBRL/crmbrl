@@ -119,6 +119,10 @@ const FILTRO_ROTULO: Readonly<Record<string, { rotulo: string; dica?: string }>>
     rotulo: 'Quem ligou',
     dica: 'Nenhuma marcada: ligações recebidas e feitas. Marque uma ou as duas.',
   },
+  temperatura: {
+    rotulo: 'Temperatura do lead',
+    dica: 'Nenhuma marcada: qualquer temperatura. Marque uma ou mais.',
+  },
   resultado: {
     rotulo: 'Como a ligação terminou',
     dica: 'Nenhuma marcada: qualquer resultado. Marque um ou mais.',
@@ -136,6 +140,12 @@ const OPCOES_RESULTADO: readonly OpcaoFiltro[] = [
   { id: 'recusada', rotulo: 'Recusada' },
   { id: 'sem_resposta', rotulo: 'Sem resposta' },
   { id: 'falhou', rotulo: 'Falhou' },
+];
+
+const OPCOES_TEMPERATURA: readonly OpcaoFiltro[] = [
+  { id: 'QUENTE', rotulo: 'Quente' },
+  { id: 'MORNO', rotulo: 'Morno' },
+  { id: 'FRIO', rotulo: 'Frio' },
 ];
 
 const ORIGENS: readonly OpcaoSeletor<string>[] = [
@@ -293,6 +303,7 @@ export class EditorAutomacao {
   protected readonly origens = ORIGENS;
   protected readonly opcoesDirecao = OPCOES_DIRECAO;
   protected readonly opcoesResultado = OPCOES_RESULTADO;
+  protected readonly opcoesTemperatura = OPCOES_TEMPERATURA;
   protected readonly tiposCanal = TIPOS_CANAL;
   protected readonly tiposAtividade = TIPOS_ATIVIDADE;
   protected readonly iconeVoltar = LucideArrowLeft;

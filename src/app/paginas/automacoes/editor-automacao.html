@@ -303,6 +303,19 @@
                       <span class="filtro-marcas__dica">{{ filtroRotulo[f].dica }}</span>
                     </div>
                   }
+                  @case ('temperatura') {
+                    <div class="filtro-marcas">
+                      <span class="filtro-marcas__rotulo">{{ filtroRotulo[f].rotulo }}</span>
+                      <app-filtros-pilula
+                        multipla
+                        [rotulo]="filtroRotulo[f].rotulo"
+                        [opcoes]="opcoesTemperatura"
+                        [selecionados]="valoresFiltro(f)"
+                        (selecionadosChange)="definirValoresFiltro(f, $event)"
+                      />
+                      <span class="filtro-marcas__dica">{{ filtroRotulo[f].dica }}</span>
+                    </div>
+                  }
                   @case ('campanhaId') {
                     <app-seletor
                       [rotulo]="filtroRotulo[f].rotulo"
