@@ -147,3 +147,47 @@ code {
 .formulario__rodape {
   display: contents;
 }
+
+.gatilho {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: var(--esp-2) var(--esp-3);
+  align-items: end;
+  padding-bottom: var(--esp-3);
+  border-bottom: 1px solid var(--cor-borda);
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    > :not(.gatilho__remover) {
+      grid-column: 1 / -1;
+    }
+
+    .gatilho__remover {
+      grid-column: 2;
+      justify-self: end;
+    }
+  }
+}
+
+.campos-grupo {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.campos-grupo__nome {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+  font-weight: 500;
+}
+
+.campo-clint {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--esp-3);
+  align-items: center;
+
+  @include m.abaixo(m.$sm) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

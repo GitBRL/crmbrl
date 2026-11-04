@@ -6,3 +6,59 @@
   min-width: 0;
   container-type: inline-size;
 }
+
+.historico__origem {
+  font-weight: 500;
+
+  &::after {
+    content: ' — ';
+    font-weight: 400;
+  }
+}
+
+.historico__evento {
+  display: inline-block;
+  margin-right: var(--esp-2);
+  padding: 0 var(--esp-2);
+  border-radius: var(--raio-pilula);
+  box-shadow: inset 0 0 0 1px var(--cor-borda-forte);
+  font: var(--fonte-micro);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.historico__codigo {
+  margin-left: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font-family: var(--familia-mono);
+  font-size: 0.8em;
+}
+
+.historico__app {
+  color: var(--cor-texto-fraco);
+  font-weight: 400;
+}
+
+.historico__avisos,
+.historico__itens {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: var(--fonte-corpo-sm);
+}
+
+.historico__avisos {
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+  box-shadow: inset 0 0 0 1px var(--cor-aviso);
+}
+
+.historico__itens li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}

@@ -35,6 +35,13 @@ import { Subscription } from 'rxjs';
 
 import { erroDaApi, type ErroApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
+import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
+import { SdrAtendimentoApi } from '../../nucleo/sdr/sdr.api';
+import { eventosDoSdr, repetidaPelaDecisao } from '../../nucleo/sdr/sdr.apresentacao';
+import type { EstadoDoSdr, SdrDaConversa } from '../../nucleo/sdr/sdr.tipos';
+import { FaixaSdr } from '../../nucleo/sdr/faixa-sdr';
+import { PainelSugestao } from '../../nucleo/sdr/painel-sugestao';
+import { SeloIa } from '../../nucleo/sdr/selo-ia';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import {
   acompanharSala,
@@ -129,14 +136,17 @@ interface Pendente {
     EditarEtiquetas,
     EstadoVazio,
     Esqueleto,
+    FaixaSdr,
     HistoricoConversa,
     ListaMensagens,
     LucideDynamicIcon,
     MenuAcoes,
     PainelContato,
     PainelLateral,
+    PainelSugestao,
     RouterLink,
     Selo,
+    SeloIa,
     TransferirConversa,
     SeletorTemplate,
     Modal,
@@ -154,6 +164,8 @@ export class Conversa {
   protected readonly estado = inject(EstadoAtendimento);
   private readonly api = inject(AtendimentoApi);
   private readonly avisos = inject(AvisosService);
+  private readonly confirmacao = inject(ConfirmacaoService);
+  private readonly sdrApi = inject(SdrAtendimentoApi);
   private readonly sessao = inject(SessaoService);
   private readonly router = inject(Router);
   private readonly documento = inject(DOCUMENT);
@@ -195,6 +207,32 @@ export class Conversa {
   protected readonly temAnteriores = computed(() => this.cursor() !== null);
 
   protected readonly acao = signal<string | null>(null);
+
+  /** O SDR com IA nesta conversa (situação, sugestão pendente, decisões); nulo até carregar. */
+  protected readonly sdr = signal<EstadoDoSdr | null>(null);
+  protected readonly acaoSdr = signal<'assumir' | 'devolver' | 'enviar' | 'descartar' | null>(null);
+  /** O selo "IA atendendo" do cabeçalho: o estado mais novo do SDR, ou o que veio com a conversa. */
+  protected readonly seloSdr = computed<SdrDaConversa | null>(() => {
+    const estado = this.sdr();
+    const dados: SdrDaConversa | null = estado
+      ? estado.situacao && estado.modo
+        ? {
+            situacao: estado.situacao,
+            modo: estado.modo,
+            nota: estado.qualificacao?.nota ?? null,
+            temperatura: estado.qualificacao?.temperatura ?? null,
+          }
+        : null
+      : (this.detalhe()?.sdr ?? null);
+    return dados?.situacao === 'ATIVA' ? dados : null;
+  });
+  /** A IA está atendendo agora (o "Assumir" passa pelo SDR e a IA para). */
+  protected readonly iaAtendendo = computed(() => this.sdr()?.situacao === 'ATIVA');
+  /** Sugestão pendente: só aparece com a IA ativa e a conversa em aberto. */
+  protected readonly sugestao = computed(() => {
+    const sdr = this.sdr();
+    return sdr?.situacao === 'ATIVA' && sdr.acoes.aprovarSugestao ? sdr.sugestao : null;
+  });
   protected readonly modo = signal<ModoCompositor>('mensagem');
   /** Rascunho por conversa (fica enquanto a página estiver aberta). */
   private readonly rascunhos = new Map<string, string>();
@@ -233,10 +271,23 @@ export class Conversa {
 
   protected readonly mensagens = computed<readonly MensagemConversa[]>(() => {
     const contexto = { contato: this.nome() || 'Contato' };
-    return [
-      ...this.dtos().map((dto) => paraMensagemConversa(dto, contexto)),
-      ...this.pendentes().map((pendente) => pendente.mensagem),
-    ];
+    const decisoes = this.sdr()?.decisoes ?? [];
+    // Os avisos da IA vêm das decisões (com o motivo e o resumo): os da mensagem repetem.
+    const dtos = decisoes.length
+      ? this.dtos().filter((dto) => !repetidaPelaDecisao(dto))
+      : this.dtos();
+    const confirmadas = dtos.map((dto) => paraMensagemConversa(dto, contexto));
+    // Com mensagens antigas ainda por carregar, só entram os eventos do trecho já carregado.
+    const desde = this.temAnteriores() ? (this.dtos()[0]?.ocorridaEm ?? null) : null;
+    const eventos = eventosDoSdr(decisoes).filter(
+      (evento) => !desde || new Date(evento.criadaEm).getTime() >= new Date(desde).getTime(),
+    );
+    const todas = eventos.length
+      ? [...confirmadas, ...eventos].sort(
+          (a, b) => new Date(a.criadaEm).getTime() - new Date(b.criadaEm).getTime(),
+        )
+      : confirmadas;
+    return [...todas, ...this.pendentes().map((pendente) => pendente.mensagem)];
   });
 
   protected readonly responsavelRotulo = computed(() => {
@@ -342,6 +393,10 @@ export class Conversa {
     if (!acoes) {
       return null;
     }
+    // Com a IA atendendo, "Assumir" fica na faixa do SDR (explica o que acontece).
+    if (acoes.assumir && this.iaAtendendo()) {
+      return acoes.resolver ? 'resolver' : null;
+    }
     return acoes.assumir
       ? 'assumir'
       : acoes.resolver
@@ -425,6 +480,7 @@ export class Conversa {
   private carga: Subscription | null = null;
   private esperaLida: ReturnType<typeof setTimeout> | undefined;
   private esperaDetalhe: ReturnType<typeof setTimeout> | undefined;
+  private esperaSdr: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
     acompanharSala(() => (this.conversaId() ? { tipo: 'conversa', id: this.conversaId() } : null));
@@ -494,6 +550,11 @@ export class Conversa {
       // As ações e o "pode responder" dependem de quem pede: confere no detalhe.
       this.conferirDetalhe();
     });
+    aoReceber('sdr.atualizado', ({ conversaId }) => {
+      if (conversaId === this.conversaId()) {
+        this.conferirSdr();
+      }
+    });
     aoReconectar(() => this.recarregar());
 
     afterNextRender(() => {
@@ -515,6 +576,7 @@ export class Conversa {
       this.carga?.unsubscribe();
       clearTimeout(this.esperaLida);
       clearTimeout(this.esperaDetalhe);
+      clearTimeout(this.esperaSdr);
       for (const pendente of this.pendentes()) {
         this.liberarPrevia(pendente.mensagem);
       }
@@ -526,7 +588,10 @@ export class Conversa {
   private abrir(id: string): void {
     this.carga?.unsubscribe();
     clearTimeout(this.esperaLida);
+    clearTimeout(this.esperaSdr);
     this.detalhe.set(null);
+    this.sdr.set(null);
+    this.acaoSdr.set(null);
     this.situacao.set('carregando');
     this.falha.set(null);
     this.dtos.set([]);
@@ -557,6 +622,13 @@ export class Conversa {
       }),
     );
     this.carga.add(
+      this.sdrApi.estado(id).subscribe({
+        next: (estado) => this.sdr.set(estado),
+        // O SDR é um apoio: sem ele, a conversa abre como sempre.
+        error: () => undefined,
+      }),
+    );
+    this.carga.add(
       this.api.mensagens(id).subscribe({
         next: (pagina) => {
           this.dtos.set(juntarMensagens([], pagina.itens));
@@ -580,6 +652,22 @@ export class Conversa {
       },
       error: () => undefined,
     });
+  }
+
+  /** O estado do SDR mudou (tempo real) ou uma ação mexeu nele: confere na API. */
+  protected conferirSdr(espera = 300): void {
+    clearTimeout(this.esperaSdr);
+    this.esperaSdr = setTimeout(() => {
+      const id = this.conversaId();
+      this.sdrApi.estado(id).subscribe({
+        next: (estado) => {
+          if (id === this.conversaId()) {
+            this.sdr.set(estado);
+          }
+        },
+        error: () => undefined,
+      });
+    }, espera);
   }
 
   protected conferirDetalhe(espera = 400): void {
@@ -690,6 +778,10 @@ export class Conversa {
   }
 
   protected async assumir(): Promise<void> {
+    if (this.iaAtendendo()) {
+      await this.assumirDaIa();
+      return;
+    }
     const id = this.conversaId();
     await this.executar(
       'assumir',
@@ -699,6 +791,99 @@ export class Conversa {
         this.compositor()?.focar();
       },
     );
+  }
+
+  /** "Assumir" com a IA atendendo: confirma, a IA para e a conversa fica com a pessoa. */
+  protected async assumirDaIa(): Promise<void> {
+    if (this.acaoSdr()) {
+      return;
+    }
+    const id = this.conversaId();
+    const confirmou = await this.confirmacao.confirmar({
+      titulo: 'Assumir esta conversa?',
+      mensagem:
+        'A IA para de responder este lead e a conversa fica com você. Depois, dá para devolvê-la para a IA.',
+      confirmar: 'Assumir',
+      executar: () => this.executarSdr('assumir', () => this.sdrApi.assumir(id)),
+    });
+    if (confirmou) {
+      this.avisos.sucesso('A conversa agora é sua. A IA parou de responder.');
+      this.compositor()?.focar();
+    }
+  }
+
+  protected async devolverParaIa(): Promise<void> {
+    if (this.acaoSdr()) {
+      return;
+    }
+    const id = this.conversaId();
+    const confirmou = await this.confirmacao.confirmar({
+      titulo: 'Devolver para a IA?',
+      mensagem:
+        'A IA volta a atender este lead e responde o que ficou sem resposta. Você pode assumir de novo quando quiser.',
+      confirmar: 'Devolver para a IA',
+      executar: () => this.executarSdr('devolver', () => this.sdrApi.devolver(id)),
+    });
+    if (confirmou) {
+      this.avisos.sucesso('A conversa voltou para a IA.');
+    }
+  }
+
+  protected async enviarSugestao(texto: string | undefined): Promise<void> {
+    const sugestao = this.sugestao();
+    if (!sugestao || this.acaoSdr()) {
+      return;
+    }
+    try {
+      await this.executarSdr('enviar', () => this.sdrApi.aprovarSugestao(sugestao.id, texto));
+      this.avisos.sucesso('Resposta enviada ao lead.');
+    } catch {
+      // O aviso do erro já saiu em `executarSdr`.
+    }
+  }
+
+  protected async descartarSugestao(): Promise<void> {
+    const sugestao = this.sugestao();
+    if (!sugestao || this.acaoSdr()) {
+      return;
+    }
+    try {
+      await this.executarSdr('descartar', () => this.sdrApi.descartarSugestao(sugestao.id));
+      this.avisos.sucesso('Sugestão descartada. Nada foi enviado.');
+    } catch {
+      // O aviso do erro já saiu em `executarSdr`.
+    }
+  }
+
+  /**
+   * Roda uma ação do SDR e aplica o estado novo. Relança o erro para o modal de confirmação
+   * mostrá-lo; as ações sem modal avisam aqui.
+   */
+  private async executarSdr(
+    nome: 'assumir' | 'devolver' | 'enviar' | 'descartar',
+    acao: () => Promise<EstadoDoSdr>,
+  ): Promise<void> {
+    this.acaoSdr.set(nome);
+    try {
+      const estado = await acao();
+      if (estado.conversaId === this.conversaId()) {
+        this.sdr.set(estado);
+      }
+      // As ações da conversa (assumir, responder) e as mensagens dependem do SDR.
+      this.conferirDetalhe(0);
+    } catch (falha) {
+      const erro = erroDaApi(falha);
+      if (nome === 'enviar' || nome === 'descartar') {
+        this.avisos.erro(falha);
+      }
+      if (erro.status === 409 || erro.status === 422) {
+        this.conferirSdr(0);
+        this.conferirDetalhe(0);
+      }
+      throw falha;
+    } finally {
+      this.acaoSdr.set(null);
+    }
   }
 
   protected async resolver(): Promise<void> {

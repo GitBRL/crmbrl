@@ -57,10 +57,12 @@ const rotasDeConfiguracoes = (): Promise<Routes> =>
     import('./paginas/configuracoes/configuracoes.routes'),
     import('./paginas/configuracoes/canais/canais.routes'),
     import('./paginas/configuracoes/atendimento/atendimento.routes'),
-  ]).then(([base, canais, atendimento]) =>
+    import('./paginas/configuracoes/sdr/sdr.routes'),
+  ]).then(([base, canais, atendimento, sdr]) =>
     acrescentarSecoes(base.ROTAS_CONFIGURACOES, [
       ...canais.ROTAS_CONFIG_CANAIS,
       ...atendimento.ROTAS_CONFIG_ATENDIMENTO,
+      ...sdr.ROTAS_CONFIG_SDR,
     ]),
   );
 

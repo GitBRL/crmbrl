@@ -149,4 +149,23 @@ describe('CartaoNegocio', () => {
     expect(mover.map((item) => item.id)).toEqual(['mover:novo', 'mover:proposta', 'mover:perdido']);
     expect(mover.every((item) => item.desabilitado && item.motivo?.includes('reabrem'))).toBe(true);
   });
+
+  it('SDR com IA: mostra a temperatura com texto e a nota; sem SDR, nada', () => {
+    montar(
+      negocioDeTeste('q', PROPOSTA, {
+        sdr: { temperatura: 'QUENTE', nota: 100, situacao: 'QUALIFICADA' },
+      }),
+    );
+    expect(texto('.cartao__ia')).toContain('Quente');
+    expect(texto('.cartao__ia')).toContain('Lead quente, nota 100 de 100');
+    expect(raiz.querySelector('.cartao__ia app-selo')?.classList).toContain('selo--coral');
+    montar(
+      negocioDeTeste('r', PROPOSTA, {
+        sdr: { temperatura: 'FRIO', nota: null, situacao: 'ATIVA' },
+      }),
+    );
+    expect(texto('.cartao__ia')).toContain('Frio');
+    montar(negocioDeTeste('s', PROPOSTA));
+    expect(raiz.querySelector('.cartao__ia')).toBeNull();
+  });
 });

@@ -556,9 +556,9 @@ export class Auditoria {
       case 'webhook_entrada':
         return this.sessao.ehAdmin()
           ? {
-              rotulo: 'Abrir o webhook',
-              comandos: ['/integracoes/entrada'],
-              query: { webhook: id },
+              rotulo: 'Abrir a integração',
+              comandos: ['/integracoes/aplicativos'],
+              query: { integracao: id },
             }
           : null;
       case 'webhook_saida':

@@ -271,14 +271,31 @@ Lista reordenável (CDK) com nome, tipo, prazo-alvo e probabilidade; adicionar e
 
 ## 7. Integrações (`/integracoes`, Admin)
 
-- **Webhooks de entrada**: lista (nome, funil/etapa, último recebimento, status). Criação
-  em passos: 1) nome e destino (funil, etapa, distribuição); 2) mapeamento — modelo pronto
-  (Genérico, Disparos BRL) ou personalizado, com prévia aplicada a um JSON de exemplo; 3)
-  segurança (segredo HMAC opcional). Ao concluir, mostra a URL **uma única vez**, com
-  botão copiar e um exemplo `curl` pronto. Aba **Recebimentos** com status, corpo,
-  resultado e "Reprocessar".
-- **Webhooks de saída**: lista (nome, URL, eventos, saúde: últimas entregas). Criação: nome,
-  URL, eventos (checkboxes com descrição de cada um), cabeçalhos extras; o segredo aparece
+- **Aplicativos** (`/integracoes/aplicativos`, Onda H): o catálogo (busca e cartões com o
+  logotipo sobre um bloco claro, em ordem alfabética; os que a API marca `disponivel:false`
+  aparecem como "Em breve") e **Suas integrações**, agrupadas por aplicativo (nome, funil e
+  etapa, ação, último recebimento, situação ativa/inativa/precisa de atenção; editar,
+  ativar/desativar, ver histórico, novo endereço, segredo e excluir). Escolher um aplicativo
+  abre o **assistente** (`app-modal` `xl`, tela cheia no celular): Começar (o que faz e o
+  passo a passo na ferramenta, vindos da API) → Ação e nome (alvo × modo e a credencial, com
+  "Testar") → Endereço (copiar; no Typeform, escolher o formulário) → Mapeamento (à esquerda
+  os campos recebidos, buscados ou adicionados; à direita o campo do CRM, inclusive etapa,
+  dono, status, motivo da perda e campos personalizados) → Configurações adicionais (funil e
+  etapa, status inicial e motivo de perda padrão, etiquetas, distribuição) → Salvar. A
+  integração é criada **inativa** ao sair de "Ação e nome" (o endereço só existe depois) e
+  ativada no "Salvar". Editar reabre os mesmos passos. Integração antiga sem endereço
+  recuperável explica e oferece "Gerar novo endereço" (com confirmação). `?funil=<id>` abre o
+  catálogo com o funil escolhido; `?integracao=<id>` abre a edição (link das notificações).
+- **Histórico** (`/integracoes/historico`): todos os recebimentos (90 dias), com filtros de
+  data, status, aplicativo e integração; cada recebimento abre no lugar (avisos, resultado de
+  cada lead, contato e negócio, cabeçalhos, corpo com "Copiar", "Reprocessar", "Simular" e
+  "Editar integração").
+- **Funil e usuário**: "Configurar etapas" do funil lista as integrações dele (só o Admin) com
+  "Nova integração"; o formulário do usuário tem "Identificador nas integrações" (o nome do
+  usuário no campo "dono" das ferramentas).
+- **Webhooks de saída**: lista (nome, URL, eventos ou gatilhos, saúde: últimas entregas). Criação: nome,
+  URL, **formato** (envelope do CRM, com eventos em checkboxes, ou **Clint**, com método POST/GET,
+  gatilhos com filtro de funil e campos com identificador editável), cabeçalhos extras; o segredo aparece
   uma vez. "Enviar teste". Aba **Entregas** com tentativas, status HTTP, duração, trecho da
   resposta e "Reenviar". Destino desativado automaticamente aparece em destaque com o
   motivo.

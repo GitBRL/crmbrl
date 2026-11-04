@@ -24,6 +24,7 @@ const RESUMO_DA_SECAO: Readonly<Record<string, string>> = {
   atendimento: 'as filas e os horários do atendimento',
   disparos: 'os limites dos disparos',
   assistente: 'o assistente de ajuda',
+  sdr: 'o SDR com IA',
   perfil: 'o seu perfil',
 };
 

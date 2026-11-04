@@ -247,7 +247,7 @@ export function horarioParaJanela(api: unknown): JanelaEnvio | null {
 export type FiltrosGatilho = Readonly<Record<string, string | number | null>>;
 
 /** Filtros que aceitam uma lista de valores (guardada na tela como "A, B"). */
-const FILTROS_EM_LISTA = new Set(['direcao', 'resultado']);
+const FILTROS_EM_LISTA = new Set(['direcao', 'resultado', 'temperatura']);
 
 const FILTROS_NUMERICOS = new Set([
   'diasAlemDoPrazo',

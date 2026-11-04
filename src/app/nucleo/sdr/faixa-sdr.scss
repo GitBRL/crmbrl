@@ -1,0 +1,66 @@
+// Faixa do SDR com IA na conversa. Só tokens.
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.faixa-sdr {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0 var(--esp-4) var(--esp-2) var(--esp-5);
+  padding: var(--esp-2) var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-vidro);
+}
+
+.faixa-sdr__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.faixa-sdr__texto {
+  flex: 1 1 14rem;
+  min-width: 0;
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  overflow-wrap: anywhere;
+}
+
+.faixa-sdr__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin-inline-start: auto;
+}
+
+.faixa-sdr__resumo {
+  font: var(--fonte-legenda-lg);
+
+  summary {
+    cursor: pointer;
+    font: var(--fonte-rotulo);
+
+    &:focus-visible {
+      outline: 2px solid var(--cor-foco);
+      outline-offset: 2px;
+      border-radius: var(--raio-sm);
+    }
+  }
+
+  p {
+    margin: var(--esp-1) 0 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+}
+
+@container conversa (max-width: 600px) {
+  .faixa-sdr {
+    margin-inline: var(--esp-3);
+  }
+}

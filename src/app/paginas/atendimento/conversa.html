@@ -74,6 +74,9 @@
                 <span class="cabeca__sem-responsavel">Sem responsável</span>
               }
             </p>
+            @if (seloSdr(); as selo) {
+              <app-selo-ia class="cabeca__ia" [sdr]="selo" />
+            }
           </div>
 
           <div class="cabeca__acoes">
@@ -201,6 +204,12 @@
       </header>
 
       @if (conversa) {
+        <app-faixa-sdr
+          [estado]="sdr()"
+          [ocupado]="acaoSdr()"
+          (assumir)="assumirDaIa()"
+          (devolver)="devolverParaIa()"
+        />
         @let j = janela();
         @if (
           conversa.assunto ||
@@ -363,6 +372,14 @@
                   </button>
                 }
               </div>
+            }
+            @if (sugestao(); as sugerida) {
+              <app-painel-sugestao
+                [sugestao]="sugerida"
+                [ocupado]="acaoSdr()"
+                (enviar)="enviarSugestao($event)"
+                (descartar)="descartarSugestao()"
+              />
             }
             <app-compositor
               permitirNota

@@ -56,6 +56,11 @@
   width: min(720px, calc(100vw - 32px));
 }
 
+.modal__dialogo--xl {
+  width: min(1120px, calc(100vw - 48px));
+  height: min(860px, calc(100dvh - 48px));
+}
+
 @include m.abaixo(m.$sm) {
   .modal__dialogo,
   .modal__dialogo--sm,
@@ -64,12 +69,25 @@
     max-height: calc(100dvh - 24px);
     border-radius: var(--raio-lg);
   }
+
+  // Grande: tela cheia no celular.
+  .modal__dialogo--xl {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
 }
 
 .modal__caixa {
   display: flex;
   flex-direction: column;
   max-height: inherit;
+}
+
+.modal__dialogo--xl .modal__caixa {
+  height: 100%;
 }
 
 .modal__cabecalho {

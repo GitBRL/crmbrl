@@ -1,5 +1,6 @@
 import type { TemplateDoCanal } from '../configuracoes/canais/canais.modelos';
 import type { Area } from '../../nucleo/sessao/perfil';
+import type { SdrDaConversa } from '../../nucleo/sdr/sdr.tipos';
 import type { StatusMensagem } from '../../nucleo/tempo-real/eventos';
 import type { DirecaoMensagem, TipoMensagem } from '../../ui/mensagens/mensagens';
 
@@ -95,6 +96,8 @@ export interface ConversaResumo {
   readonly negocioId: string | null;
   readonly criadoEm: string;
   readonly resolvidaEm: string | null;
+  /** SDR com IA (Onda G): nulo ou ausente = a IA nunca atendeu esta conversa. */
+  readonly sdr?: SdrDaConversa | null;
 }
 
 export interface Satisfacao {
@@ -163,6 +166,9 @@ export interface FiltrosConversas {
   readonly etiqueta?: readonly string[];
   readonly naoLidas?: boolean;
   readonly slaEstourado?: boolean;
+  /** Filtros do SDR com IA (Onda G): a API filtra, inclusive nas páginas ainda não carregadas. */
+  readonly atendidasPelaIa?: boolean;
+  readonly sdrSituacao?: string;
   readonly contatoId?: string;
   readonly busca?: string;
   readonly pagina?: number;

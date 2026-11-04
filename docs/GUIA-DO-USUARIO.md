@@ -86,6 +86,14 @@ suas e as sem responsável da área). Marketing não acessa.
   transcrição (clique num trecho para ouvir aquele ponto) e ver o resumo e as atividades sugeridas. As ligações
   também aparecem na **linha do tempo** do contato e da empresa, com resultado, duração e resumo, e as últimas
   cinco no painel do contato. Artigo: `atendimento-historico-de-ligacoes.md`.
+- **Conversas atendidas pela IA (SDR).** Nos canais em que o Admin ligou o SDR com IA, o lead novo é atendido pela
+  assistente virtual: a conversa ganha o selo **IA atendendo** (**IA sugerindo** no modo sugestão), uma faixa que
+  explica a situação e linhas discretas com o que a IA decidiu (critério descoberto, qualificado e passado para o
+  Comercial, passou para a equipe e por quê, com o resumo). **Assumir** faz a IA parar e a conversa ficar com você;
+  **Devolver para a IA** a põe para atender de novo (os dois pedem uma confirmação curta). No modo sugestão, o
+  painel **Resposta sugerida pela IA** fica acima do campo de mensagem: **Enviar**, **Editar e enviar** ou
+  **Descartar**. O filtro **Atendidas pela IA** (em **Filtros**) mostra só as conversas em que a IA está atendendo agora, entre todas as que você pode ver. Artigo:
+  `atendimento-sdr-ia.md`.
 - **Atalhos de teclado.** Funcionam pela posição da tecla (em qualquer layout): **Alt** no Windows e no Linux,
   **Control+Shift** no Mac. A dica de atalhos do Atendimento mostra os certos.
 - **Painel do contato.** Ao lado da conversa estão os dados do contato, os negócios e o histórico.
@@ -103,6 +111,9 @@ Detalhes: artigos `atendimento-*.md`.
 - **Criar contato ou empresa:** botão de novo cadastro. O CRM avisa de possíveis duplicados (telefone e e-mail).
 - **Importar de planilha** (Admin, C-level e líderes): assistente em quatro passos (Arquivo, Colunas, Opções,
   Importação) com relatório em Excel.
+- **Qualificação (SDR com IA):** o detalhe do contato tem o cartão **Qualificação**, com a nota de 0 a 100, a
+  temperatura (**Quente**, **Morno** ou **Frio**, sempre em texto), cada critério que a IA descobriu (valor, quem
+  descobriu e confiança) e o resumo. Se a IA nunca conversou com o contato, o cartão diz isso.
 - **Privacidade (LGPD):** marque **opt-out** ou **Não contatar por WhatsApp** quando o cliente pedir. Só o Admin
   exporta os dados pessoais de um contato (botão **Exportar dados pessoais**, baixa um arquivo `.json` para
   enviar à própria pessoa) ou o anonimiza, e a anonimização não volta atrás.
@@ -117,6 +128,9 @@ Há um funil por área: **Marketing**, **Comercial** e **Customer Success** (men
   próxima atividade. "Parado" em coral indica prazo da etapa vencido. Filtros: Meus, Da equipe, Todos.
 - **Mover um negócio:** arraste o cartão (mouse, dedo ou teclado) ou use "⋯" > **Mover para…**. Na etapa de
   perda o CRM pede o motivo; na de ganho, o negócio segue para o Customer Success.
+- **Temperatura do lead:** quando o negócio veio de uma conversa atendida pela IA, o cartão mostra **Quente**,
+  **Morno** ou **Frio** (ícone, cor e texto) e a nota, por exemplo "Quente 100/100". No detalhe do negócio, o cartão
+  **Qualificação** traz os critérios e o resumo. Artigo: `atendimento-sdr-ia.md`.
 - **Assumir** um negócio sem responsável: botão **Assumir** no cartão.
 - **Novo negócio** e **detalhe do negócio:** editar, registrar atividades, marcar como perdido e reabrir
   (reabrir é do líder da área, C-level e Admin).
@@ -159,17 +173,21 @@ Detalhes: `disparos-*.md`, `configuracoes-disparos.md`, `chatbot-*.md`.
 
 ## 8. BI e relatórios
 
-Cada papel vê as abas do seu painel (Marketing, Comercial, Sucesso do cliente, Atendimento e Financeiro para
-Admin e C-level). Use os filtros de período e clique nos números para ver o detalhe; **Exportar** gera XLSX
+Cada papel vê as abas do seu painel (Marketing, Comercial, Sucesso do cliente, Atendimento, SDR com IA e Financeiro
+para Admin e C-level). Use os filtros de período e clique nos números para ver o detalhe; **Exportar** gera XLSX
 ou CSV. O Admin tem ainda **Analisar com IA**, que lê só números agregados, sem dados pessoais. A aba
 **Atendimento** mostra também as **ligações**: recebidas, feitas, atendidas, perdidas, taxa de atendimento, espera
-e duração média, e os gráficos por hora do dia e por atendente.
+e duração média, e os gráficos por hora do dia e por atendente. A aba **SDR com IA** (Admin, C-level, líder e
+membro de Comercial e CS) mostra o que a assistente virtual atendeu, qualificou, desqualificou e passou para a
+equipe, o tempo de primeira resposta, a conversão para o Comercial e os motivos das passagens; o gasto em tokens
+só aparece para Admin e C-level. Artigo: `bi-usar-paineis.md`.
 
 ## 9. Automações
 
 Admin e C-level (todas) e líderes (da área) criam regras do tipo "quando acontecer X, faça Y". Sempre **teste**
 antes de ligar. Os membros não acessam. Há gatilhos de **ligação perdida** (ligação recebida que ninguém
-atendeu) e de **ligação encerrada** (com filtros de canal, direção e resultado).
+atendeu) e de **ligação encerrada** (com filtros de canal, direção e resultado). O gatilho **Lead qualificado pela IA** roda para o negócio que o SDR
+abriu no Comercial, com filtros de temperatura (quente, morno, frio), tipo de canal e canal.
 
 ## 10. Financeiro
 
@@ -214,6 +232,16 @@ O CRM não emite boleto, Pix nem nota fiscal e não se conecta a bancos: a baixa
 - **Assistente de ajuda (Admin):** quantas perguntas cada pessoa pode fazer por dia (0 desliga o assistente), o
   orçamento mensal da IA e para onde vão os chamados (TicketHub, webhook ou nenhum). Segredos nunca aparecem na
   tela depois de salvos.
+- **SDR com IA (Admin):** uma assistente virtual que responde o lead novo, descobre os critérios de qualificação e
+  passa o lead qualificado para o Comercial. Seis partes: **Canais** (por canal: desligado, automático ou sugestão;
+  avisa quando uma automação, como "Boas-vindas ao lead", manda mensagem a todo lead novo antes da IA),
+  **Persona** (nome, tom, apresentação como assistente virtual e mensagem de passagem), **Base de conhecimento**
+  (artigos em texto, versões e publicar; a IA só afirma o que estiver neles), **Critérios** (o que descobrir, tipo,
+  onde gravar, peso e obrigatório; arrastar para ordenar; restaurar o modelo de captação de alunos),
+  **Temperatura e limites** (notas de quente, morno e qualificado, quando passar para uma pessoa, orçamento mensal
+  com o consumo, mensagens por conversa, espera de agrupamento e modelo) e **Simulador** (conversa de teste que
+  mostra a cada resposta os critérios descobertos, a nota, a temperatura e a ação, sem enviar nada nem gravar no
+  contato). Artigo: `configuracoes-sdr-ia.md`.
 
 ## 12. Administração e Saúde do sistema (Admin)
 
@@ -221,20 +249,24 @@ O CRM não emite boleto, Pix nem nota fiscal e não se conecta a bancos: a baixa
 (histórico de perguntas ao assistente, temas sem resposta e chamados) são só do Admin, assim como os webhooks de
 entrada (captar leads) e de saída (avisar outros sistemas) em Integrações.
 
+### Integrações (Admin)
+
+Menu **Sistema > Integrações** reúne **Aplicativos**, **Histórico** e **Webhooks de saída**. No catálogo (com busca) estão ActiveCampaign, Eduzz, Elementor, Facebook Lead Ads, Great Pages, Hotmart, Kiwify, Lead Lovers, ManyChat, RD Station, Typeform e o **Webhook** genérico. Cada um abre um assistente em passos: **Começar** (o passo a passo dentro da ferramenta), **Ação e nome** (o que receber, Negócio ou Contato, e o modo **Criar**, **Atualizar** ou **Criar ou atualizar**; credencial quando o aplicativo pede), **Endereço**, **Mapeamento** (campos recebidos à esquerda, campos do CRM à direita, incluindo etapa, dono e status), **Configurações** (funil, etapa, status inicial, etiquetas e distribuição) e **Salvar e ativar**. O **Facebook Lead Ads** troca o endereço por conectar a página e escolher o formulário (exige app da Meta com `leads_retrieval` e o CRM liberado em Leads Access na Central de Leads); **Hotmart, Kiwify e Eduzz** têm uma tabela de eventos que define o que cada evento faz (ganho com valor, negócio aberto, perdido com motivo, só etiquetar) e filtro por produto. O **Histórico** guarda 90 dias de recebimentos, com avisos, o corpo recebido e **Reprocessar**. Em **Configurações > Usuários** o Admin define o **Identificador nas integrações** de cada pessoa, usado para indicar o dono do negócio. Artigos: `administracao-integracoes-webhooks.md` (visão geral) e um por aplicativo, `integracoes-<aplicativo>.md` (`integracoes-webhook.md`, `integracoes-elementor.md`, `integracoes-facebook-lead-ads.md`, `integracoes-great-pages.md`, `integracoes-lead-lovers.md`, `integracoes-manychat.md`, `integracoes-rd-station.md`, `integracoes-typeform.md`, `integracoes-activecampaign.md`, `integracoes-hotmart.md`, `integracoes-kiwify.md` e `integracoes-eduzz.md`).
+
 ### Saúde do sistema
 
 Administração > **Saúde do sistema** reúne, numa tela só, o que o Admin precisa conferir:
 
 ![Saúde do sistema](guia/saude.png)
 
-| Cartão                       | O que mostra                                                        | Quando agir                                              |
-| ---------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
-| **O que precisa de atenção** | Alertas, cada um com **O que fazer**                                | Sempre que houver um alerta crítico                      |
-| **WhatsApp**                 | Gateway no ar ou fora, e a situação de cada número                  | Número desconectado ou banido; gateway fora              |
-| **Backup e disco**           | Último backup, tamanho do arquivo, espaço livre e tamanho do banco  | Backup com falha ou atrasado; espaço livre abaixo de 15% |
-| **Filas de trabalho**        | Trabalhos esperando, em andamento, com falha e o mais antigo parado | Fila marcada como "travada"                              |
-| **Canais**                   | Último erro de e-mail, Instagram, Messenger, WhatsApp oficial e chat do site         | Erro recente de login ou de conexão                      |
-| **Erros recentes**           | Os últimos erros dos logs técnicos                                  | Muitos erros em pouco tempo                              |
+| Cartão                       | O que mostra                                                                 | Quando agir                                              |
+| ---------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **O que precisa de atenção** | Alertas, cada um com **O que fazer**                                         | Sempre que houver um alerta crítico                      |
+| **WhatsApp**                 | Gateway no ar ou fora, e a situação de cada número                           | Número desconectado ou banido; gateway fora              |
+| **Backup e disco**           | Último backup, tamanho do arquivo, espaço livre e tamanho do banco           | Backup com falha ou atrasado; espaço livre abaixo de 15% |
+| **Filas de trabalho**        | Trabalhos esperando, em andamento, com falha e o mais antigo parado          | Fila marcada como "travada"                              |
+| **Canais**                   | Último erro de e-mail, Instagram, Messenger, WhatsApp oficial e chat do site | Erro recente de login ou de conexão                      |
+| **Erros recentes**           | Os últimos erros dos logs técnicos                                           | Muitos erros em pouco tempo                              |
 
 A tela se atualiza sozinha a cada 30 segundos (com a aba escondida ela não consulta);
 **Atualizar agora** força a consulta.
@@ -284,7 +316,7 @@ CRM: para não perder ligações, mantenha o CRM aberto ou atenda pelo computado
   ligação nem ligação por telefone comum.
 - Disparos são graduais, não envio instantâneo em massa; quem pediu opt-out não recebe.
 - Não move negócio direto de um funil a outro (só pelas passagens) e não exclui os três funis.
-- Sem bancos, boleto, Pix ou nota fiscal; sem agenda externa (Google, Outlook); integrações só por webhooks.
+- Sem bancos, boleto, Pix ou nota fiscal; sem agenda externa (Google, Outlook); integrações pelos aplicativos do catálogo e por webhooks (os de saída incluem os eventos **Lead qualificado pela IA** e **Lead desqualificado pela IA**).
 - A interface é só em português, e o app é o próprio navegador (não há loja de aplicativos).
 
 Lista completa: `limites-o-que-o-crm-nao-faz.md`.

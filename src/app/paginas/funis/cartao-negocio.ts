@@ -10,6 +10,7 @@ import { RouterLink } from '@angular/router';
 import { LucideCalendarCheck, LucideGripVertical, LucideTriangleAlert } from '@lucide/angular';
 
 import { formatarMoeda, formatarTempoRelativo } from '../../nucleo/formatos';
+import { SeloTemperatura } from '../../nucleo/sdr/selo-temperatura';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
 import { type ItemMenuAcoes, MenuAcoes } from '../../ui/menu-acoes/menu-acoes';
@@ -43,6 +44,7 @@ export type AcaoCartao =
     MenuAcoes,
     RouterLink,
     Selo,
+    SeloTemperatura,
   ],
   template: `
     <article class="cartao" [class.cartao--pego]="pego()" [class.cartao--parado]="negocio().parado">
@@ -96,6 +98,15 @@ export type AcaoCartao =
             {{ valor() }}
             @if (recorrente(); as mensal) {
               <span class="cartao__recorrente">+ {{ mensal }}/mês</span>
+            }
+          </p>
+        }
+
+        @if (negocio().sdr; as sdr) {
+          <p class="cartao__ia">
+            <app-selo-temperatura tamanho="sm" [temperatura]="sdr.temperatura" [nota]="sdr.nota" />
+            @if (sdr.nota !== null) {
+              <span class="cartao__nota numeros" aria-hidden="true">{{ sdr.nota }}/100</span>
             }
           </p>
         }

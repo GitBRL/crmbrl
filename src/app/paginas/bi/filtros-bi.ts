@@ -222,7 +222,7 @@ export class FiltrosBiComponente {
   protected readonly maisAberto = signal(false);
 
   protected readonly mostrarArea = computed(
-    () => this.diretoria() && ['marketing', 'atendimento'].includes(this.painel()),
+    () => this.diretoria() && ['marketing', 'atendimento', 'sdr'].includes(this.painel()),
   );
   protected readonly opcoesEquipe = computed<readonly OpcaoSeletor<string>[]>(() =>
     this.diretoria() ? this.opcoes().lideres.map((l) => ({ valor: l.id, rotulo: l.nome })) : [],
@@ -241,12 +241,12 @@ export class FiltrosBiComponente {
     return funis.length > 1 ? funis.map((f) => ({ valor: f.id, rotulo: f.nome })) : [];
   });
   protected readonly opcoesCanal = computed<readonly OpcaoSeletor<string>[]>(() =>
-    ['marketing', 'atendimento'].includes(this.painel())
+    ['marketing', 'atendimento', 'sdr'].includes(this.painel())
       ? this.opcoes().canais.map((c) => ({ valor: c.id, rotulo: c.nome }))
       : [],
   );
   protected readonly opcoesFila = computed<readonly OpcaoSeletor<string>[]>(() =>
-    this.painel() === 'atendimento'
+    ['atendimento', 'sdr'].includes(this.painel())
       ? this.opcoes().filas.map((f) => ({ valor: f.id, rotulo: f.nome }))
       : [],
   );

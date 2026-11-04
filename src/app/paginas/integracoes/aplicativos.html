@@ -1,0 +1,266 @@
+<app-cartao
+  class="catalogo"
+  titulo="Escolha um aplicativo"
+  dica="Cada aplicativo tem um passo a passo próprio. Depois de escolher, o assistente mostra o que fazer na ferramenta, gera o endereço que ela vai chamar e deixa você mapear os campos."
+>
+  <div cartao-acoes class="catalogo__busca">
+    <app-campo-busca
+      rotulo="Buscar aplicativo"
+      placeholder="Buscar aplicativo…"
+      [(valor)]="buscaCatalogo"
+    />
+  </div>
+
+  @if (erroCatalogo(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos carregar os aplicativos"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao type="button" variante="invertido" (click)="carregarCatalogo()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (carregandoCatalogo() && !catalogo()) {
+    <div class="catalogo__grade" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando os aplicativos…</p>
+      @for (item of [1, 2, 3, 4, 5, 6, 7, 8]; track item) {
+        <app-esqueleto forma="bloco" altura="9.5rem" />
+      }
+    </div>
+  } @else if (!cartoes().length) {
+    <app-estado-vazio
+      compacto
+      variante="busca"
+      titulo="Nenhum aplicativo com esse nome"
+      texto="Confira a grafia ou limpe a busca. Para uma ferramenta que não está na lista, use o aplicativo Webhook."
+    >
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        tamanho="sm"
+        (click)="buscaCatalogo.set('')"
+      >
+        Limpar a busca
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <ul class="catalogo__grade" aria-label="Aplicativos disponíveis">
+      @for (app of cartoes(); track app.aplicativo) {
+        <li>
+          <button
+            type="button"
+            class="app"
+            [class.app--breve]="!app.disponivel"
+            [disabled]="!app.disponivel"
+            [attr.data-app]="app.aplicativo"
+            [attr.aria-describedby]="'app-descricao-' + app.aplicativo"
+            (click)="escolher(app)"
+          >
+            <app-logotipo-aplicativo [aplicativo]="app.aplicativo" tamanho="lg" />
+            <span class="app__titulo">
+              <span class="app__nome">{{ app.nome }}</span>
+              @if (!app.disponivel) {
+                <app-selo tamanho="sm" variante="lima">Em breve</app-selo>
+              }
+            </span>
+            <span class="app__descricao" [id]="'app-descricao-' + app.aplicativo">
+              @if (app.disponivel) {
+                {{ app.descricao }}
+              } @else {
+                Em breve. Esta integração está sendo preparada.
+              }
+            </span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</app-cartao>
+
+<app-cartao
+  class="suas"
+  titulo="Suas integrações"
+  [complemento]="integracoes() ? '· ' + total() : null"
+  dica="Cada linha é um endereço que recebe dados de uma ferramenta. A situação mostra se ele está ativo, desligado ou se precisa de atenção (por exemplo, uma chave recusada pela ferramenta)."
+>
+  <div class="suas__filtros">
+    <app-filtros-pilula
+      rotulo="Mostrar integrações"
+      [opcoes]="filtros"
+      [selecionado]="filtro()"
+      (selecionadoChange)="escolherFiltro($event)"
+    />
+  </div>
+
+  @if (funilDaUrl(); as funilEscolhido) {
+    <p class="suas__funil" role="status">
+      <span
+        >Mostrando só as integrações do funil <strong>{{ funilEscolhido.nome }}</strong
+        >. Ao escolher um aplicativo acima, a nova integração já entra nele.</span
+      >
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        tamanho="sm"
+        [icone]="iconeLimpar"
+        (click)="limparFunil()"
+      >
+        Ver todos os funis
+      </button>
+    </p>
+  }
+
+  @if (precisamAtencao() && (filtro() ?? 'todas') === 'todas') {
+    <p class="suas__alerta" role="status">
+      {{
+        precisamAtencao() === 1
+          ? '1 integração precisa'
+          : precisamAtencao() + ' integrações precisam'
+      }}
+      de atenção: a ferramenta recusou a credencial.
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        tamanho="sm"
+        (click)="escolherFiltro('PRECISA_ATENCAO')"
+      >
+        Ver quais
+      </button>
+    </p>
+  }
+
+  @if (integracoes()?.length) {
+    <app-campo-busca
+      class="suas__busca"
+      rotulo="Buscar nas suas integrações"
+      placeholder="Buscar pelo nome…"
+      [(valor)]="buscaLista"
+    />
+  }
+
+  @if (erroLista(); as falha) {
+    <app-estado-vazio
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos carregar as integrações"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao type="button" variante="invertido" (click)="carregarLista()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (carregandoLista() && !integracoes()) {
+    <div aria-busy="true" class="suas__carregando">
+      <p class="visualmente-oculto" role="status">Carregando as integrações…</p>
+      <app-esqueleto forma="bloco" altura="4rem" />
+      <app-esqueleto forma="bloco" altura="4rem" />
+      <app-esqueleto forma="bloco" altura="4rem" />
+    </div>
+  } @else if (!grupos().length) {
+    @if (comFiltro()) {
+      <app-estado-vazio
+        compacto
+        variante="busca"
+        titulo="Nenhuma integração encontrada"
+        texto="Troque o filtro ou a busca para ver as outras."
+      >
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          tamanho="sm"
+          (click)="escolherFiltro('todas'); buscaLista.set('')"
+        >
+          Limpar filtros
+        </button>
+      </app-estado-vazio>
+    } @else {
+      <app-estado-vazio
+        compacto
+        titulo="Nenhuma integração ainda"
+        texto="Escolha um aplicativo no catálogo acima para receber o primeiro lead."
+      />
+    }
+  } @else {
+    @for (grupo of grupos(); track grupo.aplicativo) {
+      <section class="grupo" [attr.aria-labelledby]="'grupo-' + grupo.aplicativo">
+        <h3 class="grupo__titulo" [id]="'grupo-' + grupo.aplicativo">
+          <app-logotipo-aplicativo [aplicativo]="grupo.aplicativo" />
+          <span>{{ grupo.nome }}</span>
+          <span class="grupo__total">· {{ grupo.integracoes.length }}</span>
+        </h3>
+        <ul class="grupo__lista">
+          @for (item of grupo.integracoes; track item.id) {
+            <li class="linha" [attr.data-integracao]="item.nome">
+              <div class="linha__principal">
+                <button type="button" class="linha__nome" (click)="editar(item)">
+                  {{ item.nome }}
+                </button>
+                <span class="linha__fraco"> {{ item.funil.nome }} · {{ item.etapa.nome }} </span>
+              </div>
+              <div class="linha__dado">
+                <span class="linha__rotulo">Ação</span>
+                <span>{{ acao(item) }}</span>
+              </div>
+              <div class="linha__dado">
+                <span class="linha__rotulo">Último recebimento</span>
+                <span [title]="ultimoCompleto(item)">{{ ultimo(item) }}</span>
+                @if (item.recebimentos24h.erros) {
+                  <app-selo variante="coral" tamanho="sm"
+                    >{{ item.recebimentos24h.erros }} com erro (24 h)</app-selo
+                  >
+                }
+              </div>
+              <div class="linha__dado linha__situacao">
+                <span class="linha__rotulo">Situação</span>
+                <app-selo [variante]="seloSituacao[item.situacao]" tamanho="sm" ponto>{{
+                  rotuloSituacao[item.situacao]
+                }}</app-selo>
+                @if (!item.enderecoDisponivel) {
+                  <app-selo
+                    variante="contorno"
+                    tamanho="sm"
+                    title="Endereço criado antes do assistente: para ver o endereço de novo, gere um novo"
+                    >Endereço antigo</app-selo
+                  >
+                }
+              </div>
+              <app-menu-acoes
+                class="linha__menu"
+                [rotulo]="'Ações de ' + item.nome"
+                [itens]="acoesDe(item)"
+                (escolher)="agir($event.id, item)"
+              />
+              @if (item.situacao === 'PRECISA_ATENCAO' && item.atencaoMotivo) {
+                <p class="linha__atencao" role="status">{{ item.atencaoMotivo }}</p>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</app-cartao>
+
+<app-assistente-aplicativo
+  [(aberto)]="assistenteAberto"
+  [aplicativo]="aplicativoEscolhido()"
+  [destinos]="destinos()"
+  [integracao]="emEdicao()"
+  [funilInicial]="funil()"
+  [retornoFacebook]="retornoFacebook()"
+  [contextoDoLogin]="contextoDoLogin()"
+  (criado)="aoCriar($event)"
+  (salvo)="aoSalvar($event)"
+/>
+
+<app-modal-segredo-entrada [(webhook)]="alvoDoSegredo" (definido)="aoDefinirSegredo($event)" />
+
+<app-resultado-unico [(dados)]="resultadoUnico" />

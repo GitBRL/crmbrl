@@ -6,8 +6,9 @@ import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
 import { AcaoDaSecao } from './comum/acao-da-secao';
 
 /**
- * Integrações (`/integracoes`, Admin) — TELAS-FASE1 §7: o título, a frase de propósito, as
- * seções (webhooks de entrada e de saída) como links e a seção aberta no `<router-outlet>`.
+ * Integrações (`/integracoes`, Admin) — TELAS-FASE1 §7 e Onda H: o título, a frase de propósito,
+ * as seções (aplicativos, histórico e webhooks de saída) como links e a seção aberta no
+ * `<router-outlet>`.
  * A ação principal da seção ("Novo webhook…") fica à direita do título; no celular, vira o
  * botão flutuante circular.
  */
@@ -18,9 +19,10 @@ import { AcaoDaSecao } from './comum/acao-da-secao';
   template: `
     <header class="moldura__cabecalho">
       <div class="moldura__titulos">
-        <h1 class="texto-display">Integrações</h1>
+        <h1 class="texto-display">Integrações — Webhooks e aplicativos</h1>
         <p class="moldura__frase">
-          Receba leads de sites e sistemas e avise outros sistemas quando algo acontece no CRM.
+          Receba leads das suas ferramentas, acompanhe o que chegou e avise outros sistemas quando
+          algo acontece no CRM.
         </p>
       </div>
       @if (acao.atual(); as principal) {
@@ -66,7 +68,8 @@ export class Integracoes {
   protected readonly acao = inject(AcaoDaSecao);
 
   protected readonly secoes = [
-    { caminho: 'entrada', rotulo: 'Webhooks de entrada' },
+    { caminho: 'aplicativos', rotulo: 'Aplicativos' },
+    { caminho: 'historico', rotulo: 'Histórico' },
     { caminho: 'saida', rotulo: 'Webhooks de saída' },
   ] as const;
 }
