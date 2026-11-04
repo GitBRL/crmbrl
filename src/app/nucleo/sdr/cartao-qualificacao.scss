@@ -1,0 +1,147 @@
+// Cartão "Qualificação" do contato e do negócio. Só tokens.
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.qual__carregando {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.qual__aviso {
+  display: grid;
+  justify-items: start;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  p {
+    margin: 0;
+  }
+}
+
+.qual__resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.qual__nota {
+  flex-basis: 100%;
+  margin: 0;
+  font: var(--fonte-corpo-sm);
+}
+
+.qual__minima {
+  color: var(--cor-texto-suave);
+}
+
+.qual__subtitulo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  margin: var(--esp-4) 0 var(--esp-2);
+  font: var(--fonte-rotulo);
+}
+
+.qual__contagem {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.qual__criterios {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.criterio {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-bottom: var(--esp-3);
+  border-bottom: 1px solid var(--cor-borda);
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+}
+
+.criterio__rotulo {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.criterio__obrigatorio {
+  margin-inline-start: var(--esp-1);
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.criterio__valor {
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.criterio__valor--vazio {
+  color: var(--cor-texto-fraco);
+  font-weight: 400;
+}
+
+.criterio__meta {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}
+
+.qual__texto {
+  margin: var(--esp-3) 0 0;
+  font: var(--fonte-corpo-sm);
+  overflow-wrap: anywhere;
+}
+
+.qual__detalhe {
+  margin-top: var(--esp-3);
+  font: var(--fonte-corpo-sm);
+
+  summary {
+    cursor: pointer;
+    font: var(--fonte-rotulo);
+
+    &:focus-visible {
+      outline: 2px solid var(--cor-foco);
+      outline-offset: 2px;
+      border-radius: var(--raio-sm);
+    }
+  }
+}
+
+.qual__vazio {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.qual__rodape {
+  margin: var(--esp-4) 0 0;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.qual__link {
+  color: var(--cor-texto);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}

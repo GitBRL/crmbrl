@@ -37,6 +37,7 @@ import { gerarId, partirTitulo } from '../tipos';
       class="modal__dialogo"
       [class.modal__dialogo--sm]="largura() === 'sm'"
       [class.modal__dialogo--lg]="largura() === 'lg'"
+      [class.modal__dialogo--xl]="largura() === 'xl'"
       [attr.aria-labelledby]="idTitulo"
       (close)="aoFechar()"
       (pointerdown)="aoPressionar($event)"
@@ -74,8 +75,8 @@ export class Modal {
   readonly titulo = input.required<string>();
   /** Segundo tom do título ("· beta"). */
   readonly complemento = input<string | null>(null);
-  /** Largura máxima: sm 420px · md 560px · lg 720px. */
-  readonly largura = input<'sm' | 'md' | 'lg'>('md');
+  /** Largura máxima: sm 420px · md 560px · lg 720px · xl 1120px (tela cheia no celular). */
+  readonly largura = input<'sm' | 'md' | 'lg' | 'xl'>('md');
   /** Emitido sempre que o modal fecha (botão, Esc, véu ou `aberto = false`). */
   readonly fechado = output<void>();
 

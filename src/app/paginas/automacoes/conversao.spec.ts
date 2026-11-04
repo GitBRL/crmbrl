@@ -129,6 +129,17 @@ describe('conversão do gatilho', () => {
     });
   });
 
+  it('gatilho do SDR: temperatura aceita valor único ou lista', () => {
+    expect(filtrosParaConfig({ temperatura: 'QUENTE' })).toEqual({ temperatura: 'QUENTE' });
+    expect(filtrosParaConfig({ temperatura: 'QUENTE, MORNO', canalTipo: 'WHATSAPP' })).toEqual({
+      temperatura: ['QUENTE', 'MORNO'],
+      canalTipo: 'WHATSAPP',
+    });
+    expect(configParaFiltros({ temperatura: ['QUENTE', 'MORNO'] })).toEqual({
+      temperatura: 'QUENTE, MORNO',
+    });
+  });
+
   it('recorrência semanal e mensal', () => {
     const semanal = {
       ...agendaPadrao('recorrente'),

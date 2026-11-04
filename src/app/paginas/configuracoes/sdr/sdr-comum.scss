@@ -1,0 +1,139 @@
+@use 'mixins' as m;
+
+// Estilos comuns das partes de Configurações → SDR com IA.
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.parte,
+.bloco,
+.esqueleto {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.parte {
+  gap: var(--esp-entre-cartoes);
+  max-width: 56rem;
+}
+
+.titulo {
+  font: var(--fonte-h3);
+}
+
+.texto {
+  color: var(--cor-texto-suave);
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--esp-4);
+}
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-3);
+}
+
+.erro {
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+}
+
+.aviso {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-4);
+  border: 1px solid var(--cor-aviso);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+  font: var(--fonte-corpo);
+
+  p {
+    margin: 0;
+  }
+
+  ul {
+    margin: 0;
+    padding-inline-start: var(--esp-5);
+  }
+
+  a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+}
+
+.lista {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3) var(--esp-4);
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie);
+}
+
+.item__textos {
+  display: grid;
+  flex: 1 1 14rem;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    overflow-wrap: anywhere;
+  }
+}
+
+.item__meta {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.item__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.cabecalho-lista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.medidor {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-superficie-3);
+
+  > span {
+    display: block;
+    height: 100%;
+    background: var(--cor-inverso);
+  }
+}
+
+.formulario {
+  display: grid;
+  gap: var(--esp-4);
+}

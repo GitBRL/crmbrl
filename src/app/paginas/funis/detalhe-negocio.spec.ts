@@ -103,6 +103,10 @@ describe('DetalheNegocio', () => {
           : { risco: null },
       );
     }
+    // Cartão de qualificação do SDR com IA: a IA nunca atendeu.
+    for (const pedido of http.match((req) => req.url.startsWith('/api/v1/sdr/'))) {
+      pedido.flush({ qualificacao: null });
+    }
     await microtarefas();
     fixture.detectChanges();
     await fixture.whenStable();

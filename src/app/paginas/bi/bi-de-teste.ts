@@ -190,6 +190,67 @@ export const PAINEIS_DE_TESTE: Readonly<Record<IdPainel, RespostaPainel>> = {
       ]),
     ],
   ),
+  sdr: resposta(
+    'sdr',
+    [
+      cartao('atendidas', 'Atendidas pela IA', 40, { anterior: 30, variacao: 33.3 }),
+      cartao('qualificadas', 'Qualificadas', 12, { anterior: 9, variacao: 33.3 }),
+      cartao('emAtendimento', 'Em atendimento agora', 4, { melhorQuando: null }),
+    ],
+    [
+      tabela(
+        'porCanal',
+        'Por canal',
+        [
+          ['id', 'id'],
+          ['nome', 'texto'],
+          ['atendidas', 'numero'],
+          ['qualificadas', 'numero'],
+        ],
+        [{ id: 'c1', nome: 'WhatsApp Vendas', atendidas: 30, qualificadas: 9 }],
+      ),
+      tabela(
+        'porDia',
+        'Por dia',
+        [
+          ['dia', 'data'],
+          ['atendidas', 'numero'],
+          ['qualificadas', 'numero'],
+          ['desqualificadas', 'numero'],
+          ['passadas', 'numero'],
+          ['tokens', 'numero'],
+        ],
+        [
+          {
+            dia: '2026-10-05',
+            atendidas: 5,
+            qualificadas: 2,
+            desqualificadas: 1,
+            passadas: 1,
+            tokens: 9000,
+          },
+        ],
+      ),
+      tabela(
+        'passagensPorMotivo',
+        'Motivos das passagens',
+        [
+          ['categoria', 'texto'],
+          ['motivo', 'texto'],
+          ['total', 'numero'],
+          ['percentual', 'percentual'],
+        ],
+        [
+          {
+            categoria: 'pedido_humano',
+            motivo: 'Pediu para falar com uma pessoa',
+            total: 3,
+            percentual: 100,
+          },
+        ],
+      ),
+    ],
+  ),
   financeiro: resposta(
     'financeiro',
     [

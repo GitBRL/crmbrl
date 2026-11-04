@@ -1,28 +1,9 @@
-<div class="historico__barra">
-  <app-filtros-pilula
-    class="historico__filtros"
-    rotulo="Mostrar recebimentos"
-    [opcoes]="filtros"
-    [selecionado]="filtro()"
-    (selecionadoChange)="escolherFiltro($event)"
-  />
-  <button
-    appBotaoIcone
-    type="button"
-    variante="contorno"
-    tamanho="sm"
-    rotulo="Atualizar recebimentos"
-    [icone]="icones.atualizar"
-    (click)="carregar()"
-  ></button>
-</div>
-
 @if (erro(); as falha) {
   <app-estado-vazio
     variante="erro"
     [falha]="falha"
     compacto
-    titulo="Não conseguimos carregar os recebimentos"
+    titulo="Não conseguimos carregar o histórico"
     [texto]="falha.resumo"
     [codigo]="falha.requisicaoId"
   >
@@ -42,24 +23,14 @@
     <app-estado-vazio
       variante="busca"
       compacto
-      [titulo]="tituloVazio()"
-      texto="Troque o filtro para ver os outros recebimentos."
-    >
-      <button
-        appBotao
-        type="button"
-        variante="contorno"
-        tamanho="sm"
-        (click)="escolherFiltro('todos')"
-      >
-        Ver todos
-      </button>
-    </app-estado-vazio>
+      titulo="Nenhum recebimento com esses filtros"
+      texto="Troque ou limpe os filtros para ver os outros recebimentos."
+    />
   } @else {
     <app-estado-vazio
       compacto
       titulo="Nenhum recebimento ainda"
-      texto="Quando o sistema de origem mandar o primeiro lead para o endereço deste webhook, ele aparece aqui em segundos."
+      texto="Quando uma ferramenta mandar o primeiro envio para o endereço de uma integração, ele aparece aqui em segundos. O histórico guarda 90 dias."
     />
   }
 } @else {
@@ -78,7 +49,18 @@
             {{ rotuloStatus[recebimento.status] }}
           </app-selo>
           <span class="historico__texto">
-            {{ recebimento.mensagem ?? 'Aguardando a fila processar este envio.' }}
+            @if (mostrarOrigem() && recebimento.integracao) {
+              <span class="historico__origem"
+                >{{ recebimento.integracao.nome }}
+                <span class="historico__app">· {{ recebimento.aplicativoNome }}</span></span
+              >
+            }
+            @if (evento(recebimento); as evento_) {
+              <span class="historico__evento" [title]="evento_.codigo ?? ''" data-teste="evento">{{
+                evento_.nome
+              }}</span>
+            }
+            {{ acao(recebimento) ?? 'Aguardando a fila processar este envio.' }}
           </span>
           <time
             class="historico__meta"
@@ -96,6 +78,23 @@
                 <dt>Recebido em</dt>
                 <dd>{{ dataHora(recebimento.recebidoEm) }}</dd>
               </div>
+              @if (evento(recebimento); as evento_) {
+                <div>
+                  <dt>Evento</dt>
+                  <dd data-teste="evento-detalhe">
+                    {{ evento_.nome }}
+                    @if (evento_.codigo) {
+                      <code class="historico__codigo">{{ evento_.codigo }}</code>
+                    }
+                  </dd>
+                </div>
+                @if (acao(recebimento); as aplicada) {
+                  <div>
+                    <dt>Ação aplicada</dt>
+                    <dd data-teste="acao-aplicada">{{ aplicada }}</dd>
+                  </div>
+                }
+              }
               <div>
                 <dt>Processado em</dt>
                 <dd>{{ dataHora(recebimento.processadoEm) }}</dd>
@@ -126,13 +125,42 @@
                 <div>
                   <dt>Negócio</dt>
                   <dd>
-                    <a class="historico__link" [routerLink]="['/funis', slugArea(), negocio.id]">{{
-                      negocio.titulo
-                    }}</a>
+                    @if (funilDe(recebimento); as funilId) {
+                      <a
+                        class="historico__link"
+                        [routerLink]="['/funis', funilId]"
+                        [queryParams]="{ negocio: negocio.id }"
+                        >{{ negocio.titulo }}</a
+                      >
+                    } @else {
+                      {{ negocio.titulo }}
+                    }
                   </dd>
                 </div>
               }
             </dl>
+
+            @if (recebimento.avisos?.length) {
+              <ul class="historico__avisos" aria-label="Avisos do processamento">
+                @for (aviso of recebimento.avisos; track $index) {
+                  <li>{{ aviso }}</li>
+                }
+              </ul>
+            }
+            @if (recebimento.itens && recebimento.itens.length > 1) {
+              <ul class="historico__itens" aria-label="Resultado de cada lead do envio">
+                @for (item of recebimento.itens; track item.indice) {
+                  <li>
+                    <app-selo tamanho="sm" [variante]="seloStatus[item.status]">{{
+                      rotuloStatus[item.status]
+                    }}</app-selo>
+                    <span
+                      >{{ item.rotulo ?? 'lead ' + (item.indice + 1) }}: {{ item.mensagem }}</span
+                    >
+                  </li>
+                }
+              </ul>
+            }
 
             @if (carregandoDetalhe() === recebimento.id) {
               <div aria-busy="true">
@@ -142,8 +170,8 @@
             } @else if (detalhes().get(recebimento.id); as detalhe) {
               @if (detalhe.corpo !== null) {
                 <app-bloco-codigo
-                  rotulo="Corpo recebido"
-                  oQue="Corpo"
+                  rotulo="Corpo recebido (JSON)"
+                  oQue="JSON"
                   [codigo]="json(detalhe.corpo)"
                 />
               } @else {
@@ -208,6 +236,16 @@
                   Simular com a configuração atual
                 </button>
               }
+              <button
+                appBotao
+                type="button"
+                variante="contorno"
+                tamanho="sm"
+                [icone]="icones.editar"
+                (click)="editarIntegracao.emit(recebimento.webhookId)"
+              >
+                Editar integração
+              </button>
               @if (motivo_) {
                 <span class="historico__motivo" [id]="'motivo-' + recebimento.id">{{
                   motivo_

@@ -1,6 +1,13 @@
 /** Contrato de `GET /bi/:painel` (crmbrl-api, src/bi). */
 
-export const PAINEIS = ['marketing', 'comercial', 'cs', 'atendimento', 'financeiro'] as const;
+export const PAINEIS = [
+  'marketing',
+  'comercial',
+  'cs',
+  'atendimento',
+  'sdr',
+  'financeiro',
+] as const;
 export type IdPainel = (typeof PAINEIS)[number];
 
 export const ROTULO_PAINEL: Readonly<Record<IdPainel, string>> = {
@@ -8,6 +15,7 @@ export const ROTULO_PAINEL: Readonly<Record<IdPainel, string>> = {
   comercial: 'Comercial',
   cs: 'Sucesso do cliente',
   atendimento: 'Atendimento',
+  sdr: 'SDR com IA',
   financeiro: 'Financeiro',
 };
 

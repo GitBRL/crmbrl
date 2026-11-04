@@ -1,0 +1,37 @@
+@use 'mixins' as m;
+
+:host {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+  min-width: 0;
+}
+
+.filtros__status {
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: var(--esp-4);
+}
+
+.filtros {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--esp-3) var(--esp-4);
+  align-items: end;
+  margin-bottom: var(--esp-5);
+
+  @include m.abaixo(m.$md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  // Celular: os dois seletores em linhas inteiras e as duas datas lado a lado.
+  @include m.abaixo(m.$sm) {
+    app-seletor {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.filtros__limpar {
+  grid-column: 1 / -1;
+  justify-self: start;
+}

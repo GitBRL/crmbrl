@@ -93,6 +93,16 @@
       formControlName="telefone"
     />
 
+    <app-campo-texto
+      rotulo="Identificador nas integrações"
+      autocomplete="off"
+      opcional
+      [maximoCaracteres]="100"
+      [mensagens]="mensagensIdentificador"
+      dica="Como esta pessoa aparece no campo “dono” das ferramentas integradas (por exemplo, o nome dela no ActiveCampaign). Letras, números e . _ - @ + : — único no CRM."
+      formControlName="identificador"
+    />
+
     @if (!editando()) {
       <app-grupo-opcoes
         rotulo="Como a pessoa entra"

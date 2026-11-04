@@ -1,0 +1,58 @@
+// Painel da resposta sugerida pela IA, acima do compositor. Só tokens.
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.sug {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+}
+
+.sug__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.sug__icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--dado-2);
+  color: var(--pb-preto);
+}
+
+.sug__titulo {
+  margin: 0;
+  font: var(--fonte-rotulo);
+}
+
+.sug__texto {
+  max-height: 9rem;
+  margin: 0;
+  overflow-y: auto;
+  font: var(--fonte-corpo);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.sug__nota {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.sug__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}

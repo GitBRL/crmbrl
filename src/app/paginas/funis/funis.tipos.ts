@@ -1,5 +1,6 @@
 import type { Area } from '../../nucleo/sessao/perfil';
 import type { Papel } from '../../nucleo/papeis';
+import type { SdrDoCartao } from '../../nucleo/sdr/sdr.tipos';
 
 /**
  * Tipos da API de funis e negócios (crmbrl-api, `src/funis/dto/*`; OpenAPI em
@@ -117,6 +118,8 @@ export interface Negocio {
   readonly criadoPorId?: string | null;
   readonly criadoEm: string;
   readonly atualizadoEm: string;
+  /** SDR com IA (Onda G): temperatura e nota do lead; nulo = a IA nunca qualificou o contato. */
+  readonly sdr?: SdrDoCartao | null;
 }
 
 /** Um negócio do outro lado da jornada (passagem entre funis, R5.7). */

@@ -17,7 +17,11 @@ let novos = 0;
 })
 class SecaoFalsa {
   constructor() {
-    registrarAcaoPrincipal({ rotulo: 'Novo webhook', icone: LucidePlus, executar: () => novos++ });
+    registrarAcaoPrincipal({
+      rotulo: 'Novo webhook de saída',
+      icone: LucidePlus,
+      executar: () => novos++,
+    });
   }
 }
 
@@ -76,8 +80,9 @@ describe('Integracoes (moldura)', () => {
             path: 'integracoes',
             component: Integracoes,
             children: [
-              { path: 'entrada', component: SecaoFalsa },
-              { path: 'saida', component: SecaoSemAcao },
+              { path: 'saida', component: SecaoFalsa },
+              { path: 'aplicativos', component: SecaoSemAcao },
+              { path: 'historico', component: SecaoSemAcao },
             ],
           },
         ]),
@@ -95,22 +100,26 @@ describe('Integracoes (moldura)', () => {
   }
 
   it('mostra o título, as seções e a ação principal da seção aberta', async () => {
-    const raiz = await abrir('/integracoes/entrada');
-    expect(raiz.querySelector('h1')?.textContent).toBe('Integrações');
+    const raiz = await abrir('/integracoes/saida');
+    expect(raiz.querySelector('h1')?.textContent).toBe('Integrações — Webhooks e aplicativos');
+    const secoes = Array.from(raiz.querySelectorAll('.moldura__secao')).map((a) =>
+      a.textContent?.trim(),
+    );
+    expect(secoes).toEqual(['Aplicativos', 'Histórico', 'Webhooks de saída']);
     const ativa = raiz.querySelector('[aria-current="page"]');
-    expect(ativa?.textContent?.trim()).toBe('Webhooks de entrada');
+    expect(ativa?.textContent?.trim()).toBe('Webhooks de saída');
     const acao = raiz.querySelector<HTMLButtonElement>('.moldura__acao')!;
-    expect(acao.textContent?.trim()).toBe('Novo webhook');
+    expect(acao.textContent?.trim()).toBe('Novo webhook de saída');
     acao.click();
     expect(novos).toBe(1);
     // No celular, a mesma ação vira o botão flutuante (com nome para o leitor de tela).
     expect(raiz.querySelector('.moldura__flutuante')?.getAttribute('aria-label')).toBe(
-      'Novo webhook',
+      'Novo webhook de saída',
     );
   });
 
   it('a ação some quando a seção não tem uma', async () => {
-    const raiz = await abrir('/integracoes/saida');
+    const raiz = await abrir('/integracoes/aplicativos');
     expect(raiz.querySelector('.moldura__acao')).toBeNull();
   });
 });

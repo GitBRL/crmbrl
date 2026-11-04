@@ -28,30 +28,38 @@
           rotulo="URL do destino"
           tipo="url"
           placeholder="https://sistema.exemplo.com.br/webhooks/brl-crm"
-          dica="O CRM faz um POST com JSON para este endereço. Em produção precisa ser HTTPS; endereços da rede interna só se a TI liberou."
+          [dica]="
+            ehClint()
+              ? 'O CRM chama este endereço com os campos escolhidos (POST com JSON ou GET com parâmetros). Em produção precisa ser HTTPS; endereços da rede interna só se a TI liberou.'
+              : 'O CRM faz um POST com JSON para este endereço. Em produção precisa ser HTTPS; endereços da rede interna só se a TI liberou.'
+          "
           [mensagens]="mensagensUrl"
           formControlName="url"
         />
 
-        <fieldset class="formulario__grupo formulario__eventos">
-          <legend class="formulario__legenda">
-            Eventos
-            <app-dica
-              rotulo="Sobre os eventos"
-              texto="O CRM avisa o destino a cada evento marcado, com o envelope { id, evento, ocorridoEm, dados }. O evento de teste vai sempre que você usar “Enviar teste”."
-            />
-          </legend>
-          @if (carregandoEventos()) {
+        @if (!editando()) {
+          <app-grupo-opcoes
+            rotulo="Formato do envio"
+            [opcoes]="opcoesFormato"
+            [valor]="formato()"
+            (valorChange)="escolherFormato($event)"
+          />
+        } @else if (ehClint()) {
+          <p class="formulario__nota">Formato Clint (o formato não muda depois de criado).</p>
+        }
+
+        @if (ehClint()) {
+          @if (carregandoClint()) {
             <div aria-busy="true" class="formulario__carregando">
-              <p class="visualmente-oculto" role="status">Carregando os eventos…</p>
+              <p class="visualmente-oculto" role="status">Carregando os gatilhos e campos…</p>
               <app-esqueleto [linhas]="4" />
             </div>
-          } @else if (erroEventos(); as falha) {
+          } @else if (erroClint(); as falha) {
             <app-estado-vazio
               compacto
               variante="erro"
               [falha]="falha"
-              titulo="Não conseguimos carregar os eventos"
+              titulo="Não conseguimos carregar os gatilhos e campos"
               [texto]="falha.resumo"
               [codigo]="falha.requisicaoId"
             >
@@ -60,34 +68,190 @@
                 type="button"
                 tamanho="sm"
                 variante="contorno"
-                (click)="recarregarEventos()"
+                (click)="recarregarClint()"
               >
                 Tentar de novo
               </button>
             </app-estado-vazio>
           } @else {
-            <app-caixa-selecao
-              class="formulario__todos"
-              rotulo="Todos os eventos"
-              [valor]="todosMarcados()"
-              [indeterminado]="algunsMarcados()"
-              (valorChange)="marcarTodos($event)"
+            <app-grupo-opcoes
+              rotulo="Método"
+              disposicao="pilulas"
+              [opcoes]="opcoesMetodo"
+              [valor]="metodo()"
+              (valorChange)="metodo.set($event ?? 'POST')"
             />
-            <div class="formulario__lista-eventos">
-              @for (opcao of opcoesEvento(); track opcao.evento) {
-                <app-caixa-selecao
-                  [rotulo]="opcao.rotulo"
-                  [dica]="opcao.descricao"
-                  [valor]="marcados().has(opcao.evento)"
-                  (valorChange)="marcar(opcao.evento, $event)"
+
+            <fieldset class="formulario__grupo" data-teste="gatilhos">
+              <legend class="formulario__legenda">
+                Quando enviar
+                <app-dica
+                  rotulo="Sobre os gatilhos"
+                  texto="O CRM envia uma chamada sempre que um destes acontece. Com o filtro de funil, só os negócios daquele funil contam."
                 />
+              </legend>
+              @for (g of gatilhos(); track g.id; let i = $index) {
+                <div class="gatilho">
+                  <app-seletor
+                    [rotulo]="'Gatilho ' + (i + 1)"
+                    [opcoes]="opcoesTipoGatilho()"
+                    [valor]="g.tipo"
+                    (valorChange)="
+                      editarGatilho(g.id, {
+                        tipo: $event ?? 'NEGOCIO_CRIADO',
+                        etapaId: null,
+                        status: null,
+                      })
+                    "
+                  />
+                  <app-seletor
+                    [rotulo]="'Funil do gatilho ' + (i + 1)"
+                    placeholder="Todos os funis"
+                    permitirVazio
+                    [opcoes]="opcoesFunil()"
+                    [valor]="g.funilId"
+                    (valorChange)="editarGatilho(g.id, { funilId: $event, etapaId: null })"
+                  />
+                  @if (exigeEtapa(g.tipo)) {
+                    <app-seletor
+                      [rotulo]="'Etapa do gatilho ' + (i + 1)"
+                      placeholder="Escolha a etapa"
+                      [opcoes]="opcoesEtapa(g.funilId)"
+                      [valor]="g.etapaId"
+                      (valorChange)="editarGatilho(g.id, { etapaId: $event })"
+                    />
+                  }
+                  @if (g.tipo === 'MUDA_DE_STATUS') {
+                    <app-seletor
+                      [rotulo]="'Status do gatilho ' + (i + 1)"
+                      placeholder="Qualquer status"
+                      permitirVazio
+                      [opcoes]="opcoesStatusGatilho"
+                      [valor]="g.status"
+                      (valorChange)="editarGatilho(g.id, { status: $event })"
+                    />
+                  }
+                  <button
+                    appBotaoIcone
+                    type="button"
+                    variante="contorno"
+                    class="gatilho__remover"
+                    [icone]="icones.remover"
+                    [rotulo]="'Remover o gatilho ' + (i + 1)"
+                    (click)="removerGatilho(g.id)"
+                  ></button>
+                </div>
               }
-            </div>
-            @if (erroDosEventos(); as mensagem) {
-              <p class="formulario__erro" role="alert">{{ mensagem }}</p>
-            }
+              @if (erroDosGatilhos(); as mensagem) {
+                <p class="formulario__erro" role="alert">{{ mensagem }}</p>
+              }
+              <div>
+                <button
+                  appBotao
+                  type="button"
+                  variante="contorno"
+                  tamanho="sm"
+                  [icone]="icones.adicionar"
+                  (click)="adicionarGatilho()"
+                >
+                  Adicionar gatilho
+                </button>
+              </div>
+            </fieldset>
+
+            <fieldset class="formulario__grupo" data-teste="campos-clint">
+              <legend class="formulario__legenda">
+                Campos enviados
+                <app-dica
+                  rotulo="Sobre os campos"
+                  texto="Marque o que o destino precisa receber e dê a cada campo o nome (identificador) que ele espera. Em POST, o corpo é { identificador: valor }; em GET, viram parâmetros da URL."
+                />
+              </legend>
+              @for (grupo of gruposDeCampos(); track grupo.nome) {
+                <div class="campos-grupo" role="group" [attr.aria-label]="grupo.nome">
+                  <p class="campos-grupo__nome">{{ grupo.nome }}</p>
+                  @for (campo of grupo.itens; track campo.origem) {
+                    <div class="campo-clint">
+                      <app-caixa-selecao
+                        [rotulo]="campo.rotulo"
+                        [valor]="campo.marcado"
+                        (valorChange)="marcarCampo(campo.origem, $event)"
+                      />
+                      @if (campo.marcado) {
+                        <app-campo-texto
+                          rotuloOculto
+                          [rotulo]="'Identificador de ' + campo.rotulo"
+                          [maximoCaracteres]="100"
+                          [valor]="campo.identificador"
+                          (valorChange)="editarIdentificador(campo.origem, '' + $event)"
+                        />
+                      }
+                    </div>
+                  }
+                </div>
+              }
+              @if (erroDosCampos(); as mensagem) {
+                <p class="formulario__erro" role="alert">{{ mensagem }}</p>
+              }
+            </fieldset>
           }
-        </fieldset>
+        } @else {
+          <fieldset class="formulario__grupo formulario__eventos">
+            <legend class="formulario__legenda">
+              Eventos
+              <app-dica
+                rotulo="Sobre os eventos"
+                texto="O CRM avisa o destino a cada evento marcado, com o envelope { id, evento, ocorridoEm, dados }. O evento de teste vai sempre que você usar “Enviar teste”."
+              />
+            </legend>
+            @if (carregandoEventos()) {
+              <div aria-busy="true" class="formulario__carregando">
+                <p class="visualmente-oculto" role="status">Carregando os eventos…</p>
+                <app-esqueleto [linhas]="4" />
+              </div>
+            } @else if (erroEventos(); as falha) {
+              <app-estado-vazio
+                compacto
+                variante="erro"
+                [falha]="falha"
+                titulo="Não conseguimos carregar os eventos"
+                [texto]="falha.resumo"
+                [codigo]="falha.requisicaoId"
+              >
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  variante="contorno"
+                  (click)="recarregarEventos()"
+                >
+                  Tentar de novo
+                </button>
+              </app-estado-vazio>
+            } @else {
+              <app-caixa-selecao
+                class="formulario__todos"
+                rotulo="Todos os eventos"
+                [valor]="todosMarcados()"
+                [indeterminado]="algunsMarcados()"
+                (valorChange)="marcarTodos($event)"
+              />
+              <div class="formulario__lista-eventos">
+                @for (opcao of opcoesEvento(); track opcao.evento) {
+                  <app-caixa-selecao
+                    [rotulo]="opcao.rotulo"
+                    [dica]="opcao.descricao"
+                    [valor]="marcados().has(opcao.evento)"
+                    (valorChange)="marcar(opcao.evento, $event)"
+                  />
+                }
+              </div>
+              @if (erroDosEventos(); as mensagem) {
+                <p class="formulario__erro" role="alert">{{ mensagem }}</p>
+              }
+            }
+          </fieldset>
+        }
 
         <fieldset class="formulario__grupo" formArrayName="cabecalhos">
           <legend class="formulario__legenda">

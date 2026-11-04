@@ -13,6 +13,8 @@ import {
 import { RouterLink } from '@angular/router';
 import { LucideClock, LucideDynamicIcon, LucideSlidersHorizontal, LucideX } from '@lucide/angular';
 
+import { descricaoDoSeloIa, iaAtendendo } from '../../nucleo/sdr/sdr.apresentacao';
+import { SeloIa } from '../../nucleo/sdr/selo-ia';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
@@ -83,6 +85,7 @@ const OPCOES_SITUACAO: readonly OpcaoFiltro[] = [
     LucideDynamicIcon,
     RouterLink,
     Selo,
+    SeloIa,
     Seletor,
   ],
   templateUrl: './lista-conversas.html',
@@ -164,6 +167,7 @@ export class ListaConversas {
   protected readonly opcoesSomente = computed<readonly OpcaoFiltro[]>(() => [
     { id: 'naoLidas', rotulo: 'Não lidas' },
     { id: 'slaEstourado', rotulo: 'Prazo estourado' },
+    { id: 'atendidasPelaIa', rotulo: 'Atendidas pela IA' },
   ]);
 
   protected readonly somente = computed(() => {
@@ -171,6 +175,7 @@ export class ListaConversas {
     return [
       ...(filtros.naoLidas ? ['naoLidas'] : []),
       ...(filtros.slaEstourado ? ['slaEstourado'] : []),
+      ...(filtros.atendidasPelaIa ? ['atendidasPelaIa'] : []),
     ];
   });
 
@@ -178,7 +183,11 @@ export class ListaConversas {
     const agora = this.estado.agora();
     const usuario = this.sessao.usuario();
     const escopo = this.filtros().escopo;
-    return this.estado.conversas().map((conversa) => {
+    const soIa = this.filtros().atendidasPelaIa;
+    const conversas = soIa
+      ? this.estado.conversas().filter((conversa) => iaAtendendo(conversa.sdr))
+      : this.estado.conversas();
+    return conversas.map((conversa) => {
       const nome = nomeDoContato(conversa.contato);
       const canal = CANAL[conversa.canal.tipo];
       const espera = esperaDaConversa(conversa, agora);
@@ -204,6 +213,7 @@ export class ListaConversas {
           : null,
         espera?.frase ?? null,
         conversa.status !== 'ABERTA' ? ROTULO_STATUS_CONVERSA[conversa.status] : null,
+        iaAtendendo(conversa.sdr) && conversa.sdr ? descricaoDoSeloIa(conversa.sdr) : null,
         prioridade ? `prioridade ${prioridade.toLowerCase()}` : null,
         conversa.responsavel
           ? `com ${conversa.responsavel.id === usuario?.id ? 'você' : conversa.responsavel.nome}`
@@ -302,6 +312,7 @@ export class ListaConversas {
     this.estado.mudarFiltros({
       naoLidas: ids.includes('naoLidas'),
       slaEstourado: ids.includes('slaEstourado'),
+      atendidasPelaIa: ids.includes('atendidasPelaIa'),
     });
   }
 

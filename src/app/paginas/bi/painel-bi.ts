@@ -119,6 +119,9 @@ export class PainelBi {
         if (!tabela) {
           return null;
         }
+        if (bloco.soComColuna && !tabela.colunas.some((c) => c.chave === bloco.soComColuna)) {
+          return null;
+        }
         const visiveis = tabela.colunas.filter((coluna) => coluna.visivel);
         const colunas: ColunaTabela[] = visiveis.map((coluna, indice) => ({
           id: coluna.chave,

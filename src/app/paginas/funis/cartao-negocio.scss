@@ -283,3 +283,16 @@
     border-color: Highlight;
   }
 }
+
+// Temperatura do lead (SDR com IA): selo com ícone e texto, mais a nota.
+.cartao__ia {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0;
+}
+
+.cartao__nota {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda);
+}

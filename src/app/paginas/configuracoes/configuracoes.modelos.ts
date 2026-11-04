@@ -29,6 +29,8 @@ export interface Usuario extends UsuarioResumo {
   /** Falso para quem foi convidado e ainda não definiu a senha (R2.8). */
   readonly senhaDefinida: boolean;
   readonly telefone: string | null;
+  /** Nome com que o usuário aparece nas integrações (campo "dono" do recebimento); opcional e único. */
+  readonly identificadorIntegracao?: string | null;
   readonly avatarUrl: string | null;
   readonly ultimoAcessoEm: string | null;
   readonly criadoEm: string;
@@ -54,6 +56,7 @@ export interface DadosNovoUsuario {
   readonly papel: Papel;
   readonly liderId?: string | null;
   readonly telefone?: string | null;
+  readonly identificadorIntegracao?: string | null;
   readonly senhaTemporaria?: string;
 }
 
@@ -64,6 +67,7 @@ export interface DadosEdicaoUsuario {
   readonly papel?: Papel;
   readonly liderId?: string | null;
   readonly telefone?: string | null;
+  readonly identificadorIntegracao?: string | null;
 }
 
 /** `UsuarioCriadoDto`. */

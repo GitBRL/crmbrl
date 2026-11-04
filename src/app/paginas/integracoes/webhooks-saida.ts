@@ -43,18 +43,13 @@ import { resultadoDaEntrega } from './entregas';
 import { FormularioSaida } from './formulario-saida';
 import { IntegracoesApi } from './integracoes.api';
 import { ResultadoUnico, type ResultadoUnicoDados } from './resultado-unico';
-import {
-  rotuloDoEvento,
-  TOTAL_EVENTOS_ASSINAVEIS,
-  type WebhookSaida,
-  type WebhookSaidaComSegredo,
-} from './tipos';
+import { resumoDoEnvio, type WebhookSaida, type WebhookSaidaComSegredo } from './tipos';
 
 const POR_PAGINA = 20;
 
 const COLUNAS: readonly ColunaTabela[] = [
   { id: 'nome', rotulo: 'Nome', noCartao: 'titulo' },
-  { id: 'eventos', rotulo: 'Eventos' },
+  { id: 'eventos', rotulo: 'Quando envia' },
   { id: 'saude', rotulo: 'Saúde' },
   { id: 'status', rotulo: 'Status' },
   { id: 'acoes', rotulo: 'Ações', rotuloOculto: true, alinhar: 'fim', largura: '4rem', fixa: true },
@@ -177,13 +172,7 @@ export class WebhooksSaida {
   }
 
   protected eventos(w: WebhookSaida): string {
-    if (w.eventos.length >= TOTAL_EVENTOS_ASSINAVEIS) {
-      return 'Todos os eventos';
-    }
-    const rotulos = w.eventos.map((evento) => rotuloDoEvento(evento));
-    return rotulos.length <= 2
-      ? rotulos.join(' e ')
-      : `${rotulos.slice(0, 2).join(', ')} e mais ${rotulos.length - 2}`;
+    return resumoDoEnvio(w);
   }
 
   protected saude(w: WebhookSaida) {
