@@ -33,7 +33,12 @@ export class ConexoesAplicativoApi {
     );
   }
 
-  excluir(id: string): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(urlApi('conexoes-aplicativo', id)));
+  /** `descartarPendencias`: exclui mesmo com webhooks que o CRM não conseguiu apagar no serviço. */
+  excluir(id: string, descartarPendencias = false): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(urlApi('conexoes-aplicativo', id), {
+        params: parametros({ descartarPendencias: descartarPendencias ? 'true' : undefined }),
+      }),
+    );
   }
 }

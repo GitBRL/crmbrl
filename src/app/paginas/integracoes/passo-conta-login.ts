@@ -14,6 +14,8 @@ import { RouterLink } from '@angular/router';
 import { LucideTriangleAlert } from '@lucide/angular';
 
 import { ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
+import { AvisosService } from '../../nucleo/avisos.service';
+import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { formatarData } from '../../nucleo/formatos';
 import { Botao } from '../../ui/botao/botao';
 import { CampoTexto, type ValorCampoTexto } from '../../ui/campo-texto/campo-texto';
@@ -31,6 +33,8 @@ import {
   type ConexaoAplicativo,
   motivoDoLogin,
   NOME_DO_SERVICO,
+  type PendenciaDeRemocao,
+  pendenciasDoErro,
   type RetornoDoLogin,
   SERVICO_DO_APLICATIVO,
 } from './login/login.tipos';
@@ -114,6 +118,8 @@ export class PassoContaLogin {
   private readonly api = inject(ConexoesAplicativoApi);
   private readonly apps = inject(AppsDeLoginApi);
   private readonly login = inject(LoginJanela);
+  private readonly confirmacao = inject(ConfirmacaoService);
+  private readonly avisos = inject(AvisosService);
 
   readonly aplicativo = input.required<AplicativoDeConexao>();
   /** Conexão já usada pela integração (ou a que acabou de voltar do login). */
@@ -132,6 +138,8 @@ export class PassoContaLogin {
   protected readonly erro = signal<ErroApi | null>(null);
   protected readonly marcada = signal<string | null>(null);
   protected readonly ocupada = signal<string | null>(null);
+  /** Por que a última remoção não aconteceu (conexão em uso, falha da API). */
+  protected readonly erroDaRemocao = signal<string | null>(null);
   protected readonly novaAberta = signal(false);
   protected readonly nomeDaConexao = signal('');
   protected readonly enviando = signal(false);
@@ -240,6 +248,64 @@ export class PassoContaLogin {
     }
     this.marcada.set(conexao.id);
     this.escolhida.emit(conexao);
+  }
+
+  /** "Remover": confirma, exclui e recarrega a lista; a escolha some se era esta conexão. */
+  protected async remover(conexao: ConexaoAplicativo): Promise<void> {
+    this.erroDaRemocao.set(null);
+    const servico = this.servico();
+    const ok = await this.confirmacao.confirmar({
+      titulo: `Remover a conexão “${conexao.nome}”?`,
+      mensagem: `O CRM apaga os tokens guardados desta conexão com o ${servico}. Isso não pode ser desfeito; para voltar a usá-la, é preciso entrar de novo.`,
+      confirmar: 'Remover conexão',
+      perigo: true,
+    });
+    if (ok) {
+      await this.excluir(conexao, false);
+    }
+  }
+
+  private async excluir(conexao: ConexaoAplicativo, descartar: boolean): Promise<void> {
+    this.ocupada.set(conexao.id);
+    try {
+      await this.api.excluir(conexao.id, descartar);
+      this.avisos.sucesso(`Conexão “${conexao.nome}” removida.`);
+      if (this.marcada() === conexao.id) {
+        this.marcada.set(null);
+        this.escolhida.emit(null);
+      }
+      await this.carregar();
+    } catch (falha) {
+      const erro = erroDaApi(falha);
+      const pendencias = descartar ? [] : pendenciasDoErro(erro.detalhes);
+      if (erro.status === 409 && pendencias.length > 0) {
+        this.ocupada.set(null);
+        await this.confirmarSemRemoverWebhooks(conexao, pendencias);
+        return;
+      }
+      // 409 "em uso": a mensagem da API diz quantas integrações usam a conexão.
+      this.erroDaRemocao.set(erro.resumo);
+    } finally {
+      this.ocupada.set(null);
+    }
+  }
+
+  /** O CRM não apagou no serviço os webhooks de integrações já excluídas: segundo passo. */
+  private async confirmarSemRemoverWebhooks(
+    conexao: ConexaoAplicativo,
+    pendencias: readonly PendenciaDeRemocao[],
+  ): Promise<void> {
+    const servico = this.servico();
+    const ok = await this.confirmacao.confirmar({
+      titulo: 'Há webhooks que o CRM não conseguiu apagar',
+      mensagem: `O CRM não conseguiu remover estes webhooks no ${servico}. Se remover a conexão mesmo assim, eles continuam lá e precisam ser apagados à mão no ${servico}.`,
+      detalhes: pendencias.map((p) => (p.webhookId ? `${p.nome} (id ${p.webhookId})` : p.nome)),
+      confirmar: 'Remover mesmo assim',
+      perigo: true,
+    });
+    if (ok) {
+      await this.excluir(conexao, true);
+    }
   }
 
   protected mudarModo(modo: ModoDeConta | null): void {

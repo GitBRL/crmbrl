@@ -29,6 +29,13 @@ export const CANAL_DO_LOGIN = 'crmbrl-login';
 /** Reserva do canal: a página de retorno grava aqui e o evento `storage` chega às outras abas. */
 export const CHAVE_DO_RETORNO = 'crmbrl.login.retorno';
 
+/** Erros do `state` do login: a página de retorno não sabe de qual conexão eram. */
+const MOTIVOS_SEM_CONEXAO: ReadonlySet<string> = new Set([
+  'state_invalido',
+  'state_vencido',
+  'state_usado',
+]);
+
 const NOME_DA_JANELA = 'crmbrl-login';
 const RECURSOS_DA_JANELA = 'popup,width=600,height=720';
 /** A consulta da situação, enquanto a janela está aberta. */
@@ -76,7 +83,7 @@ function enderecoValido(endereco: string): boolean {
  *   depois da resposta do `…/oauth/iniciar` ela navega ao diálogo. Se o início falha, a janela fecha.
  *   Se o navegador bloqueia o pop-up, o login segue na mesma aba (o assistente reabre no passo).
  * - A janela termina na página `/retorno-login`, que avisa por `BroadcastChannel` (reserva:
- *   `localStorage` + evento `storage`). Só vale a mensagem da conexão que este login iniciou.
+ *   `localStorage` + evento `storage`). Só vale a mensagem da conexão que este login iniciou (ou um erro de `state`, sem conexão).
  * - Reserva: consulta a situação da conexão a cada 3 s (no máximo 10 min) e ao recuperar o foco.
  * - Não usa `window.opener` nem trata `popup.closed` como cancelamento: o Facebook usa
  *   Cross-Origin-Opener-Policy, que corta o `opener` e faz `closed` ficar verdadeiro antes da hora.
@@ -161,8 +168,18 @@ export class LoginJanela {
           return;
         }
         const retorno = lerRetornoDoLogin(dado as Record<string, unknown>);
-        // Só vale o retorno do serviço e da conexão que este login iniciou.
-        if (retorno && retorno.app === pedido.app && retorno.conexaoId === conexaoId) {
+        if (!retorno || retorno.app !== pedido.app) {
+          return;
+        }
+        // Vale o retorno da conexão que este login iniciou. Um erro de `state` não traz conexão
+        // (o `state` nem foi reconhecido), mas o canal e o `localStorage` são desta origem: só
+        // pode ter vindo deste navegador, então encerra a espera com a mensagem de erro.
+        if (
+          retorno.conexaoId === conexaoId ||
+          (retorno.conexaoId === null &&
+            retorno.resultado === 'erro' &&
+            MOTIVOS_SEM_CONEXAO.has(retorno.motivo ?? ''))
+        ) {
           encerrar({ tipo: 'concluido', retorno });
         }
       };

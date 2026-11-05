@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
+import { ConfirmacaoService, type PedidoConfirmacao } from '../../nucleo/confirmacao.service';
 import { CONEXAO_COM_ATENCAO, CONEXAO_FACEBOOK, microtarefas } from './dados-de-teste';
 import {
   consumirContextoDoLogin,
@@ -404,5 +405,73 @@ describe('PassoConexaoFacebook', () => {
   it('sem conexão marcada não mostra o webhook de páginas', async () => {
     await abrir([CONEXAO_FACEBOOK]);
     expect(elemento().querySelector('[data-teste="webhook-paginas"]')).toBeNull();
+  });
+
+  describe('remover conexão', () => {
+    let pedidos: PedidoConfirmacao[];
+    let resposta: boolean;
+
+    beforeEach(() => {
+      pedidos = [];
+      resposta = true;
+      vi.spyOn(TestBed.inject(ConfirmacaoService), 'confirmar').mockImplementation(
+        async (pedido) => {
+          pedidos.push(pedido);
+          return resposta;
+        },
+      );
+    });
+
+    it('confirma, chama o DELETE, recarrega a lista e limpa a escolha da conexão removida', async () => {
+      fixture = TestBed.createComponent(PassoConexaoFacebook);
+      const escolhidas: (ConexaoFacebook | null)[] = [];
+      fixture.componentInstance.escolhida.subscribe((c) => escolhidas.push(c));
+      fixture.componentRef.setInput('selecionadaId', 'cx1');
+      fixture.detectChanges();
+      responderCarga([CONEXAO_FACEBOOK]);
+      await aguardar();
+      botao('Remover').click();
+      await aguardar();
+      expect(pedidos[0].perigo).toBe(true);
+      http.expectOne({ method: 'DELETE', url: `${BASE}/conexoes/cx1` }).flush(null, {
+        status: 204,
+        statusText: 'No Content',
+      });
+      await aguardar();
+      responderCarga([]);
+      await aguardar();
+      expect(escolhidas.at(-1)).toBeNull();
+      expect(elemento().querySelector('.conexao--marcada')).toBeNull();
+      expect(elemento().textContent).toContain('Nenhuma conexão ainda');
+    });
+
+    it('cancelar a confirmação não chama a API', async () => {
+      resposta = false;
+      await abrir([CONEXAO_FACEBOOK]);
+      botao('Remover').click();
+      await aguardar();
+      http.expectNone({ method: 'DELETE', url: `${BASE}/conexoes/cx1` });
+      expect(pedidos).toHaveLength(1);
+    });
+
+    it('409 em uso: mostra a mensagem da API e mantém a conexão na lista', async () => {
+      await abrir([CONEXAO_FACEBOOK]);
+      botao('Remover').click();
+      await aguardar();
+      http.expectOne({ method: 'DELETE', url: `${BASE}/conexoes/cx1` }).flush(
+        {
+          statusCode: 409,
+          erro: 'conflito',
+          mensagem: 'Esta conexão é usada por 2 integração(ões): exclua-as antes.',
+          detalhes: { regra: 'R32.14', integracoes: 2 },
+        },
+        { status: 409, statusText: 'Conflict' },
+      );
+      await aguardar();
+      expect(elemento().querySelector('[data-teste="erro-remocao"]')?.textContent).toContain(
+        'usada por 2 integração',
+      );
+      expect(elemento().querySelectorAll('li.conexao')).toHaveLength(1);
+    });
   });
 });

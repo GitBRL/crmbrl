@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
+import { ConfirmacaoService, type PedidoConfirmacao } from '../../nucleo/confirmacao.service';
 import { microtarefas } from './dados-de-teste';
 import { consumirContextoDoLogin } from './facebook.tipos';
 import { ABRIR_JANELA, CHAVE_DO_RETORNO, IR_PARA_ENDERECO } from './login/login-janela';
@@ -296,5 +297,121 @@ describe('PassoContaLogin (Typeform e RD Station)', () => {
     responder('TYPEFORM', [conexao()]);
     await aguardar();
     expect(elemento().textContent).toContain('H4 Typeform');
+  });
+
+  describe('remover conexão', () => {
+    let pedidos: PedidoConfirmacao[];
+    let respostas: boolean[];
+
+    beforeEach(() => {
+      pedidos = [];
+      respostas = [true];
+      vi.spyOn(TestBed.inject(ConfirmacaoService), 'confirmar').mockImplementation(
+        async (pedido) => {
+          pedidos.push(pedido);
+          return respostas.shift() ?? false;
+        },
+      );
+    });
+
+    const conflito = (detalhes: Record<string, unknown>, mensagem: string) => ({
+      corpo: { statusCode: 409, erro: 'conflito', mensagem, detalhes },
+      opcoes: { status: 409, statusText: 'Conflict' },
+    });
+
+    it('confirma, chama o DELETE, recarrega e limpa a escolha da conexão removida', async () => {
+      fixture = TestBed.createComponent(PassoContaLogin);
+      const escolhidas: (ConexaoAplicativo | null)[] = [];
+      fixture.componentInstance.escolhida.subscribe((c) => escolhidas.push(c));
+      fixture.componentRef.setInput('aplicativo', 'TYPEFORM');
+      fixture.componentRef.setInput('selecionadaId', CX);
+      fixture.detectChanges();
+      responder('TYPEFORM', [conexao()]);
+      await aguardar();
+      botao('Remover').click();
+      await aguardar();
+      http.expectOne({ method: 'DELETE', url: `/api/v1/conexoes-aplicativo/${CX}` }).flush(null, {
+        status: 204,
+        statusText: 'No Content',
+      });
+      await aguardar();
+      responder('TYPEFORM', []);
+      await aguardar();
+      expect(escolhidas.at(-1)).toBeNull();
+      expect(elemento().textContent).toContain('Nenhuma conexão ainda');
+    });
+
+    it('409 em uso: mostra a mensagem da API', async () => {
+      await abrir('TYPEFORM', [conexao()]);
+      botao('Remover').click();
+      await aguardar();
+      const { corpo, opcoes } = conflito(
+        { regra: 'R32.25', integracoes: 1 },
+        'Esta conexão é usada por 1 integração(ões): exclua-as antes.',
+      );
+      http
+        .expectOne({ method: 'DELETE', url: `/api/v1/conexoes-aplicativo/${CX}` })
+        .flush(corpo, opcoes);
+      await aguardar();
+      expect(elemento().querySelector('[data-teste="erro-remocao"]')?.textContent).toContain(
+        'usada por 1 integração',
+      );
+    });
+
+    it('409 com pendências: lista os webhooks e, no segundo passo, remove com descartarPendencias=true', async () => {
+      respostas = [true, true];
+      await abrir('TYPEFORM', [conexao()]);
+      botao('Remover').click();
+      await aguardar();
+      const { corpo, opcoes } = conflito(
+        {
+          regra: 'R32.26',
+          pendencias: [
+            {
+              integracaoId: 'i1',
+              nome: 'Formulário de matrícula',
+              aplicativo: 'TYPEFORM',
+              webhookId: 'crm-i1',
+            },
+          ],
+        },
+        'O CRM ainda não conseguiu remover 1 webhook(s).',
+      );
+      http
+        .expectOne({ method: 'DELETE', url: `/api/v1/conexoes-aplicativo/${CX}` })
+        .flush(corpo, opcoes);
+      await aguardar();
+      expect(pedidos).toHaveLength(2);
+      expect(pedidos[1].confirmar).toBe('Remover mesmo assim');
+      expect(pedidos[1].detalhes).toEqual(['Formulário de matrícula (id crm-i1)']);
+      expect(pedidos[1].mensagem).toContain('à mão');
+      http
+        .expectOne({
+          method: 'DELETE',
+          url: `/api/v1/conexoes-aplicativo/${CX}?descartarPendencias=true`,
+        })
+        .flush(null, { status: 204, statusText: 'No Content' });
+      await aguardar();
+      responder('TYPEFORM', []);
+      await aguardar();
+      expect(elemento().textContent).toContain('Nenhuma conexão ainda');
+    });
+
+    it('409 com pendências e o usuário desiste no segundo passo: nada mais é chamado', async () => {
+      respostas = [true, false];
+      await abrir('TYPEFORM', [conexao()]);
+      botao('Remover').click();
+      await aguardar();
+      const { corpo, opcoes } = conflito(
+        { regra: 'R32.26', pendencias: [{ integracaoId: 'i1', nome: 'Form', webhookId: null }] },
+        'Pendências.',
+      );
+      http
+        .expectOne({ method: 'DELETE', url: `/api/v1/conexoes-aplicativo/${CX}` })
+        .flush(corpo, opcoes);
+      await aguardar();
+      expect(pedidos).toHaveLength(2);
+      expect(elemento().querySelectorAll('li.conexao')).toHaveLength(1);
+    });
   });
 });

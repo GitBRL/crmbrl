@@ -153,11 +153,28 @@
                     Atualizar páginas
                   </button>
                 }
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  variante="neutro"
+                  data-teste="remover-conexao"
+                  [attr.aria-label]="'Remover ' + c.nome"
+                  [disabled]="aguardando() || ocupada() === c.id"
+                  (click)="remover(c)"
+                >
+                  Remover
+                </button>
               </div>
             </li>
           }
         </ul>
       </fieldset>
+      @if (erroDaRemocao(); as mensagem) {
+        <p class="conexao__retorno conexao__retorno--erro" role="alert" data-teste="erro-remocao">
+          {{ mensagem }}
+        </p>
+      }
       @if (comAppProprio() && conexaoMarcada(); as marcadaAgora) {
         <section
           class="conexao__webhook"

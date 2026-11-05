@@ -201,6 +201,28 @@ describe('LoginJanela', () => {
     });
   });
 
+  it('erro de state sem conexão, do mesmo app, encerra a espera; sem conexão de outro tipo ou app, não', async () => {
+    const resultado = servico().entrar(pedido());
+    await new Promise((r) => setTimeout(r, 10));
+    retornoNoStorage({ app: 'typeform', resultado: 'cancelado' });
+    retornoNoStorage({ app: 'typeform', resultado: 'erro', motivo: 'servico_recusou' });
+    retornoNoStorage({ app: 'facebook', resultado: 'erro', motivo: 'state_vencido' });
+    retornoNoStorage({ app: 'typeform', resultado: 'erro', conexao: OUTRA, motivo: 'state_usado' });
+    expect(servico().espera()).not.toBeNull();
+    retornoNoStorage({ app: 'typeform', resultado: 'erro', motivo: 'state_vencido' });
+    await expect(resultado).resolves.toEqual({
+      tipo: 'concluido',
+      retorno: {
+        app: 'typeform',
+        resultado: 'erro',
+        conexaoId: null,
+        motivo: 'state_vencido',
+        mensagem: null,
+      },
+    });
+    expect(servico().espera()).toBeNull();
+  });
+
   it('consulta a situação a cada 3 s e conclui quando a conexão fica conectada', async () => {
     vi.useFakeTimers();
     const resultado = servico().entrar(pedido());

@@ -14,6 +14,7 @@ import { LucideTriangleAlert } from '@lucide/angular';
 
 import { ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
+import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { formatarData } from '../../nucleo/formatos';
 import { Botao } from '../../ui/botao/botao';
 import { CampoSenha } from '../../ui/campo-senha/campo-senha';
@@ -84,6 +85,7 @@ export class PassoConexaoFacebook {
   private readonly api = inject(FacebookApi);
   private readonly avisos = inject(AvisosService);
   private readonly login = inject(LoginJanela);
+  private readonly confirmacao = inject(ConfirmacaoService);
 
   /** Conexão já usada pela integração (ou a que acabou de voltar do login). */
   readonly selecionadaId = input<string | null>(null);
@@ -102,6 +104,8 @@ export class PassoConexaoFacebook {
   protected readonly configuracao = signal<ConfiguracaoFacebook | null>(null);
   protected readonly marcada = signal<string | null>(null);
   protected readonly ocupada = signal<string | null>(null);
+  /** Por que a última remoção não aconteceu (conexão em uso, falha da API). */
+  protected readonly erroDaRemocao = signal<string | null>(null);
 
   // Conexão nova
   protected readonly novaAberta = signal(false);
@@ -329,6 +333,36 @@ export class PassoConexaoFacebook {
     } catch (falha) {
       this.avisos.erro(falha);
       void this.carregar();
+    } finally {
+      this.ocupada.set(null);
+    }
+  }
+
+  /** "Remover": confirma, exclui e recarrega a lista; a escolha some se era esta conexão. */
+  protected async remover(conexao: ConexaoFacebook): Promise<void> {
+    this.erroDaRemocao.set(null);
+    const ok = await this.confirmacao.confirmar({
+      titulo: `Remover a conexão “${conexao.nome}”?`,
+      mensagem:
+        'O CRM apaga os tokens guardados desta conexão. Isso não pode ser desfeito; para voltar a usá-la, é preciso entrar com o Facebook de novo.',
+      confirmar: 'Remover conexão',
+      perigo: true,
+    });
+    if (!ok) {
+      return;
+    }
+    this.ocupada.set(conexao.id);
+    try {
+      await this.api.excluirConexao(conexao.id);
+      this.avisos.sucesso(`Conexão “${conexao.nome}” removida.`);
+      if (this.marcada() === conexao.id) {
+        this.marcada.set(null);
+        this.escolhida.emit(null);
+      }
+      await this.carregar();
+    } catch (falha) {
+      // 409: a conexão ainda é usada por integrações (a mensagem da API diz quantas).
+      this.erroDaRemocao.set(erroDaApi(falha).resumo);
     } finally {
       this.ocupada.set(null);
     }

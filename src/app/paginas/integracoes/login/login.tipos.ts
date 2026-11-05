@@ -124,3 +124,33 @@ export interface SituacaoDaConexao {
   readonly precisaAtencao: boolean;
   readonly conectadaEm: string | null;
 }
+
+/** Webhook que o CRM criou no serviço e não conseguiu apagar (`detalhes.pendencias` do 409 R32.26). */
+export interface PendenciaDeRemocao {
+  readonly integracaoId: string;
+  readonly nome: string;
+  readonly webhookId: string | null;
+}
+
+/** As pendências que a API devolve no 409 ao excluir uma conexão de aplicativo (lista vazia se não houver). */
+export function pendenciasDoErro(
+  detalhes: Readonly<Record<string, unknown>> | null,
+): readonly PendenciaDeRemocao[] {
+  const bruto = detalhes?.['pendencias'];
+  if (!Array.isArray(bruto)) {
+    return [];
+  }
+  return bruto.flatMap((item: unknown) => {
+    const o = item as Record<string, unknown> | null;
+    if (!o || typeof o['nome'] !== 'string') {
+      return [];
+    }
+    return [
+      {
+        integracaoId: typeof o['integracaoId'] === 'string' ? o['integracaoId'] : '',
+        nome: o['nome'],
+        webhookId: typeof o['webhookId'] === 'string' ? o['webhookId'] : null,
+      },
+    ];
+  });
+}
