@@ -219,26 +219,23 @@ code {
   color: var(--cor-aviso);
 }
 
-.conexao__retorno-oauth {
-  display: grid;
-  gap: var(--esp-3);
-  padding-top: var(--esp-4);
-  border-top: 1px solid var(--cor-borda);
-
-  > summary {
-    font: var(--fonte-rotulo);
-    cursor: pointer;
-  }
-
-  &[open] > summary {
-    margin-bottom: var(--esp-3);
-  }
-}
-
 .conexao__webhook {
   display: grid;
   gap: var(--esp-3);
   padding: var(--esp-4);
   border: 1px solid var(--cor-borda);
   border-radius: var(--raio-lg);
+}
+
+.conexao__link {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 3px;
+    border-radius: var(--raio-sm);
+  }
 }

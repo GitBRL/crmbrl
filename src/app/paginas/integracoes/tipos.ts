@@ -82,6 +82,9 @@ export interface CredencialDoAplicativo {
   readonly exemplo?: string;
 }
 
+/** Quando o RD Station avisa o CRM: uma conversão ou uma oportunidade marcada. */
+export type GatilhoDoRd = 'CONVERSAO' | 'OPORTUNIDADE';
+
 export interface AplicativoDoCatalogo {
   readonly aplicativo: AplicativoIntegracao;
   readonly nome: string;
@@ -99,6 +102,8 @@ export interface AplicativoDoCatalogo {
   readonly credencial: readonly CredencialDoAplicativo[] | null;
   readonly buscaCampos: boolean;
   readonly escolheFormulario: boolean;
+  /** Serviço que oferece "Entrar com…" (R32.23): o assistente mostra o passo da conta. */
+  readonly login?: 'META' | 'TYPEFORM' | 'RD_STATION' | null;
   readonly passoAPasso: { readonly titulo: string; readonly passos: readonly string[] };
   readonly modelo: {
     readonly nome: string;
@@ -186,13 +191,20 @@ export interface WebhookEntrada {
   readonly configuracao: {
     readonly formularioId?: string;
     readonly cabecalhoDeAutenticacao?: string;
+    /** Typeform: `formularioId`, `tag`, `ativo`. RD Station: `uuid`, `gatilho`, `conversoes`. */
     readonly webhookRegistrado?: {
-      readonly formularioId: string;
-      readonly tag: string;
-      readonly ativo: boolean;
+      readonly formularioId?: string;
+      readonly tag?: string;
+      readonly ativo?: boolean;
+      readonly uuid?: string;
+      readonly gatilho?: GatilhoDoRd;
+      readonly conversoes?: readonly string[];
       readonly em: string;
     };
     readonly webhookErro?: string;
+    // Typeform e RD Station por login (R32.25 e R32.26)
+    readonly gatilho?: GatilhoDoRd;
+    readonly conversoes?: readonly string[];
     // Facebook Lead Ads
     readonly conexaoId?: string;
     readonly paginaId?: string;
@@ -231,7 +243,10 @@ export interface DadosWebhookEntrada {
   readonly configuracao?: {
     readonly formularioId?: string | null;
     readonly cabecalhoDeAutenticacao?: string | null;
-    readonly conexaoId?: string;
+    /** `null` volta ao token pessoal (Typeform), com a `credencial` no mesmo pedido. */
+    readonly conexaoId?: string | null;
+    readonly gatilho?: GatilhoDoRd;
+    readonly conversoes?: readonly string[];
     readonly paginaId?: string;
     readonly eventos?: Readonly<Record<string, RegraDoEvento>> | null;
     readonly produtos?: readonly string[] | null;

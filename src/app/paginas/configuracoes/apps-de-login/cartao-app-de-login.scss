@@ -1,0 +1,141 @@
+@use 'mixins' as m;
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.app,
+.app__form,
+.app__bloco {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.app {
+  gap: var(--esp-6);
+}
+
+.app__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3) var(--esp-4);
+}
+
+.app__titulo {
+  display: grid;
+  flex: 1 1 12rem;
+  gap: 2px;
+  min-width: 0;
+}
+
+.app__nome {
+  font: var(--fonte-h3);
+}
+
+.app__uso,
+.app__nota,
+.app__quando {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+  overflow-wrap: anywhere;
+}
+
+.app__subtitulo {
+  font: var(--fonte-rotulo);
+}
+
+.app__dupla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-4);
+
+  @include m.acima(m.$sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.app__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.app__erro {
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-erro);
+  border-radius: var(--raio-md);
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.app__permissoes {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--esp-1) var(--esp-3);
+  }
+}
+
+code {
+  font-family: var(--familia-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+}
+
+.app__aviso {
+  display: flex;
+  gap: var(--esp-3);
+  padding: var(--esp-4) var(--esp-5);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+  box-shadow: inset 0 0 0 1px var(--cor-aviso);
+  font: var(--fonte-corpo-sm);
+
+  svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--cor-aviso);
+  }
+
+  p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.app__como {
+  font: var(--fonte-corpo-sm);
+
+  summary {
+    min-height: var(--altura-sm, 2rem);
+    font: var(--fonte-rotulo);
+    cursor: pointer;
+  }
+
+  summary:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+    border-radius: var(--raio-sm);
+  }
+}
+
+.app__passos {
+  display: grid;
+  gap: var(--esp-2);
+  margin: var(--esp-3) 0;
+  padding-left: var(--esp-6);
+  overflow-wrap: anywhere;
+}

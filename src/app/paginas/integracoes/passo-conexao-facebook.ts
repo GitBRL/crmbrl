@@ -4,15 +4,15 @@ import {
   computed,
   effect,
   inject,
-  InjectionToken,
   input,
   output,
   signal,
   untracked,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { LucideTriangleAlert } from '@lucide/angular';
 
-import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
+import { ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarData } from '../../nucleo/formatos';
 import { Botao } from '../../ui/botao/botao';
@@ -21,37 +21,31 @@ import { CampoTexto, type ValorCampoTexto } from '../../ui/campo-texto/campo-tex
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { GrupoOpcoes, type OpcaoGrupo } from '../../ui/grupo-opcoes/grupo-opcoes';
-import { type OpcaoSeletor, Seletor } from '../../ui/seletor/seletor';
 import { Selo, type VarianteSelo } from '../../ui/selo/selo';
 import { ValorUnico } from './comum/valor-unico';
 import { FacebookApi } from './facebook.api';
 import {
-  type CanalDoFacebook,
   type ConexaoFacebook,
   type ConfiguracaoFacebook,
   type ContextoDoLogin,
-  guardarContextoDoLogin,
   motivoDoRetorno,
-  type PedidoDeLogin,
   type PedidoDeTokenDePagina,
   type RetornoDoFacebook,
   ROTULO_TIPO_DE_CONEXAO,
 } from './facebook.tipos';
+import { EsperaDoLogin } from './login/espera-do-login';
+import { IR_PARA_ENDERECO, type ResultadoDaJanela, LoginJanela } from './login/login-janela';
+import { type RetornoDoLogin } from './login/login.tipos';
 
-/** Leva o navegador a outra página. Um token para os testes trocarem por um espião. */
-export const IR_PARA_ENDERECO = new InjectionToken<(endereco: string) => void>('IR_PARA_ENDERECO', {
-  providedIn: 'root',
-  factory: () => (endereco) => globalThis.location.assign(endereco),
-});
+export { IR_PARA_ENDERECO };
 
 type FormaDeEntrar = 'LOGIN' | 'TOKEN';
-type OrigemDoApp = 'DIGITAR' | 'CANAL';
 
 const OPCOES_FORMA: readonly OpcaoGrupo<FormaDeEntrar>[] = [
   {
     valor: 'LOGIN',
     rotulo: 'Entrar com o Facebook',
-    dica: 'Abre o Facebook para você autorizar. Dá acesso às páginas que você administra.',
+    dica: 'Abre o Facebook em outra janela para você autorizar e volta para cá. Dá acesso às páginas que você administra.',
   },
   {
     valor: 'TOKEN',
@@ -63,8 +57,9 @@ const OPCOES_FORMA: readonly OpcaoGrupo<FormaDeEntrar>[] = [
 /**
  * Passo "Conexão" do assistente do Facebook Lead Ads: a lista das conexões (com situação e
  * "Conectar de novo"), o aviso das permissões da Meta e o jeito de criar uma conexão nova,
- * entrando com o Facebook (o navegador vai ao diálogo e volta a `/integracoes`) ou colando
- * um token de página. A escolha sobe em `escolhida`.
+ * entrando com o Facebook (numa outra janela, que volta sozinha; R32.23) ou colando um token de
+ * página. O app é o cadastrado em Configurações > Apps de login (R32.24): ninguém digita ID nem
+ * segredo aqui. A escolha sobe em `escolhida`.
  */
 @Component({
   selector: 'app-passo-conexao-facebook',
@@ -72,10 +67,11 @@ const OPCOES_FORMA: readonly OpcaoGrupo<FormaDeEntrar>[] = [
     Botao,
     CampoSenha,
     CampoTexto,
+    EsperaDoLogin,
     EstadoVazio,
     Esqueleto,
     GrupoOpcoes,
-    Seletor,
+    RouterLink,
     Selo,
     ValorUnico,
     LucideTriangleAlert,
@@ -87,13 +83,13 @@ const OPCOES_FORMA: readonly OpcaoGrupo<FormaDeEntrar>[] = [
 export class PassoConexaoFacebook {
   private readonly api = inject(FacebookApi);
   private readonly avisos = inject(AvisosService);
-  private readonly irPara = inject(IR_PARA_ENDERECO);
+  private readonly login = inject(LoginJanela);
 
   /** Conexão já usada pela integração (ou a que acabou de voltar do login). */
   readonly selecionadaId = input<string | null>(null);
   /** O que o assistente estava fazendo, para voltar depois do login. */
   readonly contexto = input<ContextoDoLogin>({ integracaoId: null, nome: '' });
-  /** O resultado do login, quando a página voltou do Facebook. */
+  /** O resultado do login, quando a página voltou do Facebook (pop-up bloqueado: mesma aba). */
   readonly retorno = input<RetornoDoFacebook | null>(null);
   readonly escolhida = output<ConexaoFacebook | null>();
 
@@ -104,51 +100,43 @@ export class PassoConexaoFacebook {
   protected readonly carregando = signal(true);
   protected readonly erro = signal<ErroApi | null>(null);
   protected readonly configuracao = signal<ConfiguracaoFacebook | null>(null);
-  protected readonly canais = signal<readonly CanalDoFacebook[]>([]);
   protected readonly marcada = signal<string | null>(null);
   protected readonly ocupada = signal<string | null>(null);
 
   // Conexão nova
   protected readonly novaAberta = signal(false);
   protected readonly forma = signal<FormaDeEntrar>('LOGIN');
-  protected readonly origemDoApp = signal<OrigemDoApp>('DIGITAR');
-  protected readonly canalId = signal<string | null>(null);
-  protected readonly appId = signal('');
-  protected readonly appSecret = signal('');
   protected readonly nomeDaConexao = signal('');
   protected readonly tokenDaPagina = signal('');
   protected readonly paginaId = signal('');
   protected readonly enviando = signal(false);
   protected readonly erroDoForm = signal<string | null>(null);
   protected readonly tocou = signal(false);
+  /** O resultado do login numa outra janela (o da mesma aba vem em `retorno`). */
+  private readonly retornoDaJanela = signal<RetornoDoLogin | null>(null);
+  /** A API disse que o app da Meta ainda não foi cadastrado. */
+  private readonly semApp = signal(false);
 
   protected readonly conexaoMarcada = computed(
     () => (this.conexoes() ?? []).find(({ id }) => id === this.marcada()) ?? null,
   );
-  protected readonly usaCanal = computed(() => this.origemDoApp() === 'CANAL');
-  protected readonly opcoesOrigem = computed<readonly OpcaoGrupo<OrigemDoApp>[]>(() => [
-    { valor: 'DIGITAR', rotulo: 'Digitar o id e o segredo do app' },
-    ...(this.canais().length
-      ? [
-          {
-            valor: 'CANAL' as const,
-            rotulo: 'Usar o app de um canal Messenger ou Instagram',
-            dica: 'O segredo já está guardado no CRM e não aparece de novo.',
-          },
-        ]
-      : []),
-  ]);
-  protected readonly opcoesCanal = computed<readonly OpcaoSeletor<string>[]>(() =>
-    this.canais().map((canal) => ({
-      valor: canal.id,
-      rotulo: `${canal.nome} (${canal.tipo === 'INSTAGRAM' ? 'Instagram' : 'Messenger'})`,
-    })),
+  protected readonly appNaoCadastrado = computed(
+    () => this.configuracao()?.appCadastrado === false || this.semApp(),
+  );
+  /** Há um login em andamento numa outra janela? */
+  protected readonly aguardando = computed(() => this.login.espera()?.app === 'facebook');
+  /** Conexão com app próprio (antiga): o quadro do webhook de páginas ainda vale aqui. */
+  protected readonly comAppProprio = computed(
+    () => this.conexaoMarcada()?.appDasConfiguracoes === false,
   );
   protected readonly mostraNova = computed(
     () => this.novaAberta() || (this.conexoes() ?? []).length === 0,
   );
+  protected readonly retornoAtual = computed<RetornoDoFacebook | null>(
+    () => this.retornoDaJanela() ?? this.retorno(),
+  );
   protected readonly erroDoRetorno = computed(() => {
-    const retorno = this.retorno();
+    const retorno = this.retornoAtual();
     return retorno?.resultado === 'erro' ? motivoDoRetorno(retorno.motivo) : null;
   });
 
@@ -168,14 +156,12 @@ export class PassoConexaoFacebook {
     this.carregando.set(true);
     this.erro.set(null);
     try {
-      const [conexoes, configuracao, canais] = await Promise.all([
+      const [conexoes, configuracao] = await Promise.all([
         this.api.conexoes(),
         this.api.configuracao().catch(() => null),
-        this.api.canais().catch(() => [] as readonly CanalDoFacebook[]),
       ]);
       this.conexoes.set(conexoes);
       this.configuracao.set(configuracao);
-      this.canais.set(canais);
       const id = this.marcada() ?? this.selecionadaId();
       if (id) {
         this.marcar(id);
@@ -231,59 +217,99 @@ export class PassoConexaoFacebook {
 
   // --- Login e token ---------------------------------------------------------------------------
 
-  protected async reconectar(conexao: ConexaoFacebook): Promise<void> {
+  /** "Conectar de novo": o mesmo login, na conexão que já existe. */
+  protected reconectar(conexao: ConexaoFacebook): void {
     this.ocupada.set(conexao.id);
+    void this.fazerLogin(
+      { conexaoId: conexao.id },
+      { conectadaEm: conexao.conectadaEm, precisaAtencao: conexao.precisaAtencao },
+    );
+  }
+
+  /** Chamado direto do clique: a janela do login abre antes de qualquer espera (R32.23). */
+  protected entrarComOFacebook(): void {
+    const nome = this.nomeDaConexao().trim();
+    this.enviando.set(true);
+    void this.fazerLogin(nome ? { nome } : {}, null);
+  }
+
+  private async fazerLogin(
+    base: { readonly nome?: string; readonly conexaoId?: string },
+    antes: { conectadaEm: string | null; precisaAtencao: boolean } | null,
+  ): Promise<void> {
     this.erroDoForm.set(null);
+    this.retornoDaJanela.set(null);
     try {
-      await this.abrirOLogin({ conexaoId: conexao.id });
+      const resultado = await this.login.entrar({
+        app: 'facebook',
+        iniciar: (modo) => this.api.iniciarLogin({ ...base, modo }),
+        situacao: async (id) => {
+          const { conectada, precisaAtencao, conectadaEm } = await this.api.conexao(id);
+          return { conectada, precisaAtencao, conectadaEm };
+        },
+        antes,
+        contexto: this.contexto(),
+      });
+      await this.aoTerminarOLogin(resultado);
     } catch (falha) {
+      const erro = erroDaApi(falha);
+      if (erro.detalhes?.['appNaoCadastrado']) {
+        this.semApp.set(true);
+      } else {
+        // Falha do próprio front (ex.: endereço de login inválido) traz a mensagem pronta.
+        this.erroDoForm.set(
+          falha instanceof Error && !(falha instanceof ErroApi) ? falha.message : erro.resumo,
+        );
+      }
+    } finally {
+      this.enviando.set(false);
       this.ocupada.set(null);
-      this.avisos.erro(falha);
     }
   }
 
-  protected async entrarComOFacebook(): Promise<void> {
-    this.tocou.set(true);
-    const pedido = this.pedidoDoApp();
-    if (!pedido) {
-      return;
-    }
-    this.enviando.set(true);
-    this.erroDoForm.set(null);
-    try {
-      await this.abrirOLogin(pedido);
-    } catch (falha) {
-      this.enviando.set(false);
-      this.erroDoForm.set(erroDaApi(falha).resumo);
+  private async aoTerminarOLogin(resultado: ResultadoDaJanela): Promise<void> {
+    if (resultado.tipo === 'expirou') {
+      this.erroDoForm.set('O login demorou mais de 10 minutos e venceu. Comece de novo.');
+    } else if (resultado.tipo === 'concluido') {
+      this.retornoDaJanela.set(resultado.retorno);
+      if (resultado.retorno.resultado === 'conectado') {
+        this.novaAberta.set(false);
+        this.nomeDaConexao.set('');
+        await this.carregar();
+        if (resultado.retorno.conexaoId) {
+          this.marcar(resultado.retorno.conexaoId);
+        }
+      }
     }
   }
 
   protected async colarToken(): Promise<void> {
     this.tocou.set(true);
-    const app = this.pedidoDoApp();
-    if (!app || !this.tokenDaPagina().trim()) {
+    if (!this.tokenDaPagina().trim()) {
       return;
     }
     const pedido: PedidoDeTokenDePagina = {
       tokenPagina: this.tokenDaPagina().trim(),
       ...(this.paginaId().trim() ? { paginaId: this.paginaId().trim() } : {}),
       ...(this.nomeDaConexao().trim() ? { nome: this.nomeDaConexao().trim() } : {}),
-      ...('canalId' in app ? { canalId: app.canalId } : {}),
-      ...('appId' in app ? { appId: app.appId, appSecret: app.appSecret } : {}),
-    } as PedidoDeTokenDePagina;
+    };
     this.enviando.set(true);
     this.erroDoForm.set(null);
     try {
       const conexao = await this.api.conectarComTokenDePagina(pedido);
       this.tokenDaPagina.set('');
-      this.appSecret.set('');
       this.tocou.set(false);
       this.novaAberta.set(false);
       this.avisos.sucesso(`Conexão “${conexao.nome}” criada.`);
       this.marcada.set(conexao.id);
       await this.carregar();
     } catch (falha) {
-      this.erroDoForm.set(erroDaApi(falha).resumo);
+      const erro = erroDaApi(falha);
+      if (erro.detalhes?.['appNaoCadastrado']) {
+        this.semApp.set(true);
+      } else {
+        this.erroDoForm.set(erro.resumo);
+      }
     } finally {
       this.enviando.set(false);
     }
@@ -308,18 +334,9 @@ export class PassoConexaoFacebook {
     }
   }
 
-  protected definirTexto(
-    destino: 'appId' | 'appSecret' | 'nome' | 'token' | 'pagina',
-    valor: ValorCampoTexto,
-  ): void {
+  protected definirTexto(destino: 'nome' | 'token' | 'pagina', valor: ValorCampoTexto): void {
     const texto = String(valor ?? '');
     switch (destino) {
-      case 'appId':
-        this.appId.set(texto);
-        break;
-      case 'appSecret':
-        this.appSecret.set(texto);
-        break;
       case 'nome':
         this.nomeDaConexao.set(texto);
         break;
@@ -334,34 +351,5 @@ export class PassoConexaoFacebook {
 
   protected erroDoCampo(valor: string, aviso: string): string | null {
     return this.tocou() && !valor.trim() ? aviso : null;
-  }
-
-  protected erroDoCanal(): string | null {
-    return this.tocou() && !this.canalId() ? 'Escolha o canal.' : null;
-  }
-
-  /** O app da conexão nova: id e segredo digitados, ou o canal escolhido; `null` se faltar algo. */
-  private pedidoDoApp():
-    | { appId: string; appSecret: string; nome?: string }
-    | { canalId: string; nome?: string }
-    | null {
-    const nome = this.nomeDaConexao().trim();
-    const comNome = nome ? { nome } : {};
-    if (this.usaCanal()) {
-      const canalId = this.canalId();
-      return canalId ? { canalId, ...comNome } : null;
-    }
-    const appId = this.appId().trim();
-    const appSecret = this.appSecret().trim();
-    return appId && appSecret ? { appId, appSecret, ...comNome } : null;
-  }
-
-  private async abrirOLogin(pedido: PedidoDeLogin): Promise<void> {
-    const login = await this.api.iniciarLogin(pedido);
-    if (!/^https?:\/\//i.test(login.urlDialogo)) {
-      throw new Error('O endereço do login do Facebook não é válido.');
-    }
-    guardarContextoDoLogin(this.contexto());
-    this.irPara(login.urlDialogo);
   }
 }

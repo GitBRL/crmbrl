@@ -1,0 +1,204 @@
+<h3 class="conexao__titulo" tabindex="-1">{{ textos().titulo }}</h3>
+<p class="conexao__frase">{{ textos().frase }}</p>
+
+<app-grupo-opcoes
+  rotulo="Como entrar"
+  disposicao="pilulas"
+  [opcoes]="textos().opcoes"
+  [valor]="modo()"
+  (valorChange)="mudarModo($event)"
+/>
+
+@if (modo() === 'MANUAL') {
+  <p class="conexao__nota" data-teste="conta-manual">
+    @if (aplicativo() === 'TYPEFORM') {
+      Você vai colar o token pessoal do Typeform no próximo passo. O CRM não renova esse token: se
+      ele vencer, cole outro.
+    } @else {
+      O CRM mostra o endereço da integração no passo “Endereço” e você o cola na automação do RD
+      Station. Para o CRM criar o webhook e buscar os campos sozinho, escolha “Entrar com o RD
+      Station”.
+    }
+  </p>
+} @else {
+  @if (appNaoCadastrado()) {
+    <div class="conexao__aviso" role="alert" data-teste="app-nao-cadastrado">
+      <svg lucideTriangleAlert [size]="18" aria-hidden="true" />
+      <div>
+        <p>
+          <strong>O app do {{ servico() }} ainda não foi cadastrado.</strong> Cadastre o ID e o
+          segredo do app uma vez, e depois é só entrar com o {{ servico() }}.
+        </p>
+        <p>
+          <a class="conexao__link" routerLink="/configuracoes/apps-de-login"
+            >Ir para Configurações &gt; Apps de login</a
+          >
+        </p>
+      </div>
+    </div>
+  }
+
+  @if (retornoAtual(); as r) {
+    @switch (r.resultado) {
+      @case ('conectado') {
+        <p class="conexao__retorno conexao__retorno--ok" role="status">
+          Conexão feita com o {{ servico() }}. Ela já está marcada abaixo.
+        </p>
+      }
+      @case ('cancelado') {
+        <p class="conexao__retorno" role="status">
+          Você cancelou o login no {{ servico() }}. Nada foi conectado; tente de novo quando quiser.
+        </p>
+      }
+      @default {
+        <p class="conexao__retorno conexao__retorno--erro" role="alert">
+          {{ erroDoRetorno() }}
+          @if (r.mensagem) {
+            <span class="conexao__mensagem">Mensagem do {{ servico() }}: {{ r.mensagem }}</span>
+          }
+        </p>
+      }
+    }
+  }
+
+  <app-espera-do-login [app]="nomeDoApp()" />
+
+  @if (!mostraNova() && erroDoForm(); as mensagem) {
+    <p class="conexao__retorno conexao__retorno--erro" role="alert">{{ mensagem }}</p>
+  }
+
+  @if (carregando()) {
+    <div aria-busy="true" class="conexao__carregando">
+      <p class="visualmente-oculto" role="status">Carregando as conexões…</p>
+      <app-esqueleto forma="pilula" />
+      <app-esqueleto forma="pilula" />
+    </div>
+  } @else if (erro(); as falha) {
+    <app-estado-vazio
+      compacto
+      variante="erro"
+      [falha]="falha"
+      titulo="Não conseguimos carregar as conexões"
+      [texto]="falha.resumo"
+      [codigo]="falha.requisicaoId"
+    >
+      <button appBotao type="button" variante="contorno" tamanho="sm" (click)="carregar()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    @if (conexoes(); as lista) {
+      @if (lista.length) {
+        <fieldset class="conexao__grupo">
+          <legend class="conexao__legenda">Conta que o CRM usa</legend>
+          <ul class="conexao__lista">
+            @for (c of lista; track c.id) {
+              <li class="conexao" [class.conexao--marcada]="marcada() === c.id">
+                <label class="conexao__escolha">
+                  <input
+                    type="radio"
+                    name="conexao-aplicativo"
+                    [value]="c.id"
+                    [checked]="marcada() === c.id"
+                    [disabled]="!usavel(c)"
+                    (change)="marcar(c.id)"
+                  />
+                  <span class="conexao__texto">
+                    <span class="conexao__nome">
+                      {{ c.nome }}
+                      <app-selo tamanho="sm" [variante]="situacao(c).variante" ponto>{{
+                        situacao(c).rotulo
+                      }}</app-selo>
+                    </span>
+                    <span class="conexao__detalhes">{{ detalhes(c) }}</span>
+                    @if (c.precisaAtencao && c.atencaoMotivo) {
+                      <span class="conexao__atencao">{{ c.atencaoMotivo }}</span>
+                    }
+                    @if (!c.conectada && !c.precisaAtencao) {
+                      <span class="conexao__atencao"
+                        >O login nunca terminou. Conecte de novo para poder usá-la.</span
+                      >
+                    }
+                  </span>
+                </label>
+                <div class="conexao__acoes">
+                  <button
+                    appBotao
+                    type="button"
+                    tamanho="sm"
+                    [variante]="c.precisaAtencao || !c.conectada ? 'invertido' : 'contorno'"
+                    [carregando]="ocupada() === c.id"
+                    [disabled]="aguardando() || appNaoCadastrado()"
+                    [attr.aria-label]="'Conectar de novo ' + c.nome"
+                    (click)="reconectar(c)"
+                  >
+                    Conectar de novo
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+        </fieldset>
+        @if (!novaAberta()) {
+          <div>
+            <button
+              appBotao
+              type="button"
+              variante="contorno"
+              tamanho="sm"
+              (click)="novaAberta.set(true)"
+            >
+              Entrar com outra conta
+            </button>
+          </div>
+        }
+      } @else {
+        <p class="conexao__vazio" role="status">
+          Nenhuma conexão ainda. Entre com o {{ servico() }} logo abaixo.
+        </p>
+      }
+    }
+
+    @if (mostraNova()) {
+      <section class="conexao__nova" aria-labelledby="titulo-nova-conta">
+        <h4 class="conexao__subtitulo" id="titulo-nova-conta">Nova conexão</h4>
+        <app-campo-texto
+          rotulo="Nome da conexão"
+          opcional
+          autocomplete="off"
+          [maximoCaracteres]="100"
+          [placeholder]="'Conta do ' + servico()"
+          dica="Só para você reconhecer na lista. Em branco, usamos o nome da conta."
+          [valor]="nomeDaConexao()"
+          (valorChange)="definirNome($event)"
+        />
+
+        @if (erroDoForm(); as mensagem) {
+          <p class="conexao__retorno conexao__retorno--erro" role="alert">{{ mensagem }}</p>
+        }
+
+        <div class="conexao__linha-acoes">
+          <button
+            appBotao
+            type="button"
+            variante="invertido"
+            data-teste="entrar-com-servico"
+            [carregando]="enviando() && !aguardando()"
+            [disabled]="aguardando() || appNaoCadastrado()"
+            (click)="entrar()"
+          >
+            {{ textos().entrar }}
+          </button>
+          <span class="conexao__nota">
+            O {{ servico() }} abre em outra janela. Quando você terminar, esta tela segue sozinha.
+          </span>
+          @if ((conexoes() ?? []).length) {
+            <button appBotao type="button" variante="neutro" (click)="novaAberta.set(false)">
+              Fechar
+            </button>
+          }
+        </div>
+      </section>
+    }
+  }
+}

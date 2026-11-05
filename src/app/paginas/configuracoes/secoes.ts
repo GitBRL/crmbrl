@@ -35,6 +35,11 @@ export const SECOES_CONFIGURACOES: readonly SecaoConfiguracoes[] = [
   { caminho: 'canais', rotulo: 'Canais', permite: podeGerenciarCanais },
   { caminho: 'atendimento', rotulo: 'Atendimento', permite: podeConfigurarAtendimento },
   {
+    caminho: 'apps-de-login',
+    rotulo: 'Apps de login',
+    permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN',
+  },
+  {
     caminho: 'disparos',
     rotulo: 'Disparos',
     permite: (_p, perfil) => perfil.usuario.papel === 'ADMIN' || perfil.usuario.papel === 'C_LEVEL',

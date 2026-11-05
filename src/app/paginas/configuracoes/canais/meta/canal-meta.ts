@@ -38,6 +38,8 @@ import { GrupoOpcoes, type OpcaoGrupo } from '../../../../ui/grupo-opcoes/grupo-
 import { type ItemMenuAcoes, MenuAcoes } from '../../../../ui/menu-acoes/menu-acoes';
 import { Seletor } from '../../../../ui/seletor/seletor';
 import { BotaoCopiar } from '../../../integracoes/comum/botao-copiar';
+import { AppsDeLoginApi } from '../../apps-de-login/apps-de-login.api';
+import type { AppDeLogin } from '../../apps-de-login/apps-de-login.tipos';
 import { Carregamento } from '../../carregamento';
 import { linkDoCanal, situacaoDoCanal, TIPO_DE_CANAL } from '../apresentacao';
 import { CanaisApi } from '../canais.api';
@@ -110,6 +112,7 @@ export class CanalMeta {
   private readonly avisos = inject(AvisosService);
   private readonly confirmacao = inject(ConfirmacaoService);
   private readonly router = inject(Router);
+  private readonly apps = inject(AppsDeLoginApi);
 
   protected readonly icones = {
     tentar: LucideRefreshCw,
@@ -137,6 +140,10 @@ export class CanalMeta {
   protected readonly testando = signal(false);
   protected readonly erroGeral = signal<string | null>(null);
   protected readonly resultado = signal<TesteDoCanalMeta | null>(null);
+  /** O app da Meta cadastrado em Configurações > Apps de login (R32.22); `null` até carregar. */
+  protected readonly appMeta = signal<AppDeLogin | null>(null);
+  /** "Usar outro app": mostra o ID e a chave secreta, em vez do app das Configurações. */
+  protected readonly usarOutroApp = signal(false);
 
   private readonly campoNome = viewChild<CampoTexto>('campoNome');
 
@@ -177,6 +184,18 @@ export class CanalMeta {
     const canal = this.canal.dados();
     return canal ? situacaoDoCanal(canal) : null;
   });
+  protected readonly appCadastrado = computed(() => this.appMeta()?.configurado === true);
+  /** O canal usa o app das Configurações (padrão com o app cadastrado) e não pede ID nem segredo. */
+  protected readonly usaAppDasConfiguracoes = computed(() => {
+    if (this.usarOutroApp()) {
+      return false;
+    }
+    const canal = this.canal.dados();
+    return canal ? canal.appDasConfiguracoes === true : this.appCadastrado();
+  });
+  protected readonly idDoApp = computed(
+    () => this.canal.dados()?.appId ?? this.appMeta()?.clientId ?? '',
+  );
   protected readonly fraseNovo = computed(() => TIPO_DE_CANAL[this.tipo()].descricao);
 
   constructor() {
@@ -188,6 +207,22 @@ export class CanalMeta {
           this.tipoEscolhido.set(tipo);
         }
         this.abrir();
+      });
+    });
+    // Com o app das Configurações, o ID e a chave secreta do app saem do formulário.
+    effect(() => {
+      const usa = this.usaAppDasConfiguracoes();
+      untracked(() => {
+        for (const controle of [
+          this.formulario.controls.appId,
+          this.formulario.controls.appSecret,
+        ]) {
+          if (usa) {
+            controle.disable({ emitEvent: false });
+          } else {
+            controle.enable({ emitEvent: false });
+          }
+        }
       });
     });
     // O id do Instagram é obrigatório só no Instagram.
@@ -215,8 +250,41 @@ export class CanalMeta {
     }
   }
 
+  /** "Usar outro app" (ID e chave secreta do canal) e a volta ao app das Configurações. */
+  protected alternarApp(outro: boolean): void {
+    this.usarOutroApp.set(outro);
+    const { appId, appSecret } = this.formulario.controls;
+    if (outro) {
+      appId.reset('');
+      appSecret.reset('');
+      // Trocar de app num canal que já existe exige o segredo do app novo.
+      if (this.canal.dados()) {
+        appSecret.addValidators(Validators.required);
+        appSecret.updateValueAndValidity({ emitEvent: false });
+      }
+    } else {
+      const canal = this.canal.dados();
+      if (canal) {
+        // No canal que já existe, manter o app que ele tem não pede o segredo de novo.
+        appSecret.removeValidators(Validators.required);
+      }
+      appId.reset(canal?.appId ?? '');
+    }
+  }
+
+  private async carregarApp(): Promise<void> {
+    try {
+      const lista = await this.apps.listar();
+      this.appMeta.set(lista.find((app) => app.aplicativo === 'META') ?? null);
+    } catch {
+      // Sem o app das Configurações o formulário pede o ID e a chave, como sempre.
+    }
+  }
+
   protected abrir(): void {
     void this.filas.carregar();
+    void this.carregarApp();
+    this.usarOutroApp.set(false);
     this.resultado.set(null);
     const id = this.id();
     const segredos = [this.formulario.controls.appSecret, this.formulario.controls.tokenPagina];
@@ -272,12 +340,14 @@ export class CanalMeta {
     const v = this.formulario.getRawValue();
     const atual = this.canal.dados();
     const instagram = this.tipo() === 'INSTAGRAM';
+    const comAppProprio = !this.usaAppDasConfiguracoes();
     const dados: DadosCanalMeta = {
       ...(atual ? {} : { tipo: this.tipo() }),
       nome: v.nome.trim(),
-      appId: v.appId.trim(),
+      // O app das Configurações não manda ID nem segredo: a API usa o cadastrado lá (R32.24).
+      ...(comAppProprio ? { appId: v.appId.trim() } : {}),
       pageId: v.pageId.trim(),
-      ...(v.appSecret ? { appSecret: v.appSecret } : {}),
+      ...(comAppProprio && v.appSecret ? { appSecret: v.appSecret } : {}),
       ...(v.tokenPagina ? { tokenPagina: v.tokenPagina.trim() } : {}),
       instagramId: instagram ? v.instagramId.trim() || null : null,
       filaPadraoId: v.filaPadraoId,

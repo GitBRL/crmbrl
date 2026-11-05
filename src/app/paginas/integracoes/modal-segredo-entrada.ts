@@ -65,7 +65,7 @@ const OPCOES: readonly OpcaoGrupo<Origem>[] = [
           @if (form.controls.origem.value === 'INFORMAR') {
             <app-campo-senha
               rotulo="Segredo combinado"
-              autocomplete="off"
+              segredo
               dica="De 16 a 200 caracteres."
               formControlName="segredo"
             />
