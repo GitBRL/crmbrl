@@ -439,3 +439,18 @@
     grid-column: 1 / -1;
   }
 }
+
+.modelo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2) var(--esp-4);
+}
+
+.modelo__dica {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+  min-width: 0;
+}

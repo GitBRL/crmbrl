@@ -115,6 +115,13 @@ export const routes: Routes = [
         title: 'Definir senha',
         loadComponent: () => import('./paginas/acesso/definir-senha').then((m) => m.DefinirSenha),
       },
+      // Fim do login em outra janela (Facebook, Typeform, RD Station): sem sessão e sem API.
+      {
+        path: 'retorno-login',
+        title: 'Retorno do login',
+        loadComponent: () =>
+          import('./paginas/retorno-login/retorno-login').then((m) => m.RetornoLogin),
+      },
       {
         path: 'trocar-senha',
         title: 'Trocar senha',

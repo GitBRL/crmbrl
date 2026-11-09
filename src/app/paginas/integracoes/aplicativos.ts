@@ -41,6 +41,12 @@ import {
   lerRetornoDoFacebook,
   type RetornoDoFacebook,
 } from './facebook.tipos';
+import {
+  lerRetornoDoLogin,
+  NOME_DO_SERVICO,
+  type RetornoDoLogin,
+  type ServicoDeLogin,
+} from './login/login.tipos';
 import { IntegracoesApi } from './integracoes.api';
 import { ModalSegredoEntrada } from './modal-segredo-entrada';
 import { ResultadoUnico, type ResultadoUnicoDados } from './resultado-unico';
@@ -117,6 +123,9 @@ export class Aplicativos {
   readonly integracao = input<string | null>(null);
   /** Retorno do login do Facebook (a API redireciona a `/integracoes?facebook=…&conexao=…`). */
   readonly facebook = input<string | null>(null);
+  /** O mesmo para o Typeform e o RD Station (`?typeform=conectado`, `?rd-station=erro`). */
+  readonly typeform = input<string | null>(null);
+  readonly rdStation = input<string | null>(null, { alias: 'rd-station' });
   readonly conexao = input<string | null>(null);
   readonly motivo = input<string | null>(null);
   readonly mensagem = input<string | null>(null);
@@ -149,8 +158,10 @@ export class Aplicativos {
   protected readonly alvoDoSegredo = signal<WebhookEntrada | null>(null);
   protected readonly resultadoUnico = signal<ResultadoUnicoDados | null>(null);
   protected readonly retornoFacebook = signal<RetornoDoFacebook | null>(null);
+  protected readonly retornoConta = signal<RetornoDoLogin | null>(null);
   protected readonly contextoDoLogin = signal<ContextoDoLogin | null>(null);
   private retornoTratado = false;
+  private retornoDaContaTratado = false;
 
   /** Catálogo em ordem alfabética, filtrado pela busca. */
   protected readonly cartoes = computed(() => {
@@ -231,10 +242,39 @@ export class Aplicativos {
       }
     });
 
+    // Volta do login do Typeform ou do RD Station (pop-up bloqueado): reabre no passo da conta.
+    effect(() => {
+      const servico: ServicoDeLogin | null = this.typeform()
+        ? 'typeform'
+        : this.rdStation()
+          ? 'rd-station'
+          : null;
+      const retorno = servico
+        ? lerRetornoDoLogin({
+            app: servico,
+            resultado: servico === 'typeform' ? this.typeform() : this.rdStation(),
+            conexao: this.conexao(),
+            motivo: this.motivo(),
+            mensagem: this.mensagem(),
+          })
+        : null;
+      const itens = this.integracoes();
+      const catalogo = this.catalogo();
+      if (!retorno) {
+        this.retornoDaContaTratado = false;
+      } else if (itens && catalogo && !this.retornoDaContaTratado) {
+        this.retornoDaContaTratado = true;
+        untracked(() => this.abrirRetornoDaConta(retorno, itens, catalogo));
+      }
+    });
+
     // O retorno só vale para a abertura que ele provocou.
     effect(() => {
       if (!this.assistenteAberto()) {
-        untracked(() => this.retornoFacebook.set(null));
+        untracked(() => {
+          this.retornoFacebook.set(null);
+          this.retornoConta.set(null);
+        });
       }
     });
   }
@@ -291,6 +331,7 @@ export class Aplicativos {
     }
     this.emEdicao.set(null);
     this.retornoFacebook.set(null);
+    this.retornoConta.set(null);
     this.contextoDoLogin.set(null);
     this.aplicativoEscolhido.set(app);
     this.assistenteAberto.set(true);
@@ -423,6 +464,41 @@ export class Aplicativos {
       ? (itens.find((i) => i.id === contexto.integracaoId) ?? null)
       : null;
     this.retornoFacebook.set(retorno);
+    this.contextoDoLogin.set(contexto);
+    this.emEdicao.set(emEdicao);
+    this.aplicativoEscolhido.set(app);
+    this.assistenteAberto.set(true);
+  }
+
+  private abrirRetornoDaConta(
+    retorno: RetornoDoLogin,
+    itens: readonly WebhookEntrada[],
+    catalogo: readonly AplicativoDoCatalogo[],
+  ): void {
+    const contexto = consumirContextoDoLogin();
+    void this.router.navigate([], {
+      queryParams: {
+        typeform: null,
+        'rd-station': null,
+        conexao: null,
+        motivo: null,
+        mensagem: null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    const aplicativo = retorno.app === 'typeform' ? 'TYPEFORM' : 'RD_STATION';
+    const app = catalogo.find((a) => a.aplicativo === aplicativo);
+    if (!app?.disponivel) {
+      this.avisos.erro(
+        `A integração com o ${NOME_DO_SERVICO[retorno.app]} não está disponível agora.`,
+      );
+      return;
+    }
+    const emEdicao = contexto?.integracaoId
+      ? (itens.find((i) => i.id === contexto.integracaoId) ?? null)
+      : null;
+    this.retornoConta.set(retorno);
     this.contextoDoLogin.set(contexto);
     this.emEdicao.set(emEdicao);
     this.aplicativoEscolhido.set(app);

@@ -50,6 +50,7 @@ describe('Configuracoes (moldura e seções por papel)', () => {
       'Passagens entre funis',
       'Canais',
       'Atendimento',
+      'Apps de login',
       'Disparos',
       'Assistente de ajuda',
       'SDR com IA',
@@ -64,7 +65,7 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     expect(
       (admin.nativeElement as HTMLElement).querySelector('.configuracoes__frase')?.textContent,
     ).toBe(
-      'Quem usa o CRM, a distribuição dos leads, as passagens entre funis, os canais de atendimento, as filas e os horários do atendimento, os limites dos disparos, o assistente de ajuda, o SDR com IA e o seu perfil.',
+      'Quem usa o CRM, a distribuição dos leads, as passagens entre funis, os canais de atendimento, as filas e os horários do atendimento, os apps de login, os limites dos disparos, o assistente de ajuda, o SDR com IA e o seu perfil.',
     );
     entrarComo('MARKETING');
     const membro = TestBed.createComponent(Configuracoes);

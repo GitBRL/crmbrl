@@ -53,6 +53,8 @@ export type ValorCampoTexto = string | number | null;
           [attr.name]="nome()"
           [attr.placeholder]="placeholder()"
           [attr.autocomplete]="autocomplete()"
+          [attr.data-1p-ignore]="autocomplete() === 'off' ? '' : null"
+          [attr.data-lpignore]="autocomplete() === 'off' ? 'true' : null"
           [attr.inputmode]="modoTeclado()"
           [attr.maxlength]="maximoCaracteres()"
           [attr.min]="minimo()"

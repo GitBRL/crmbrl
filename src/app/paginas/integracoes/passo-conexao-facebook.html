@@ -20,7 +20,24 @@
   </div>
 </div>
 
-@if (retorno(); as r) {
+@if (appNaoCadastrado()) {
+  <div class="conexao__aviso" role="alert" data-teste="app-nao-cadastrado">
+    <svg lucideTriangleAlert [size]="18" aria-hidden="true" />
+    <div>
+      <p>
+        <strong>O app da Meta ainda não foi cadastrado.</strong> Cadastre o ID e o segredo do app
+        uma vez, e depois é só entrar com o Facebook, sem digitar nada aqui.
+      </p>
+      <p>
+        <a class="conexao__link" routerLink="/configuracoes/apps-de-login"
+          >Ir para Configurações &gt; Apps de login</a
+        >
+      </p>
+    </div>
+  </div>
+}
+
+@if (retornoAtual(); as r) {
   @switch (r.resultado) {
     @case ('conectado') {
       <p class="conexao__retorno conexao__retorno--ok" role="status">
@@ -41,6 +58,12 @@
       </p>
     }
   }
+}
+
+<app-espera-do-login app="facebook" />
+
+@if (!mostraNova() && erroDoForm(); as mensagem) {
+  <p class="conexao__retorno conexao__retorno--erro" role="alert">{{ mensagem }}</p>
 }
 
 @if (carregando()) {
@@ -110,6 +133,7 @@
                     tamanho="sm"
                     [variante]="c.precisaAtencao || !c.conectada ? 'invertido' : 'contorno'"
                     [carregando]="ocupada() === c.id"
+                    [disabled]="aguardando() || appNaoCadastrado()"
                     [attr.aria-label]="'Conectar de novo ' + c.nome"
                     (click)="reconectar(c)"
                   >
@@ -129,12 +153,29 @@
                     Atualizar páginas
                   </button>
                 }
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  variante="neutro"
+                  data-teste="remover-conexao"
+                  [attr.aria-label]="'Remover ' + c.nome"
+                  [disabled]="aguardando() || ocupada() === c.id"
+                  (click)="remover(c)"
+                >
+                  Remover
+                </button>
               </div>
             </li>
           }
         </ul>
       </fieldset>
-      @if (conexaoMarcada(); as marcadaAgora) {
+      @if (erroDaRemocao(); as mensagem) {
+        <p class="conexao__retorno conexao__retorno--erro" role="alert" data-teste="erro-remocao">
+          {{ mensagem }}
+        </p>
+      }
+      @if (comAppProprio() && conexaoMarcada(); as marcadaAgora) {
         <section
           class="conexao__webhook"
           aria-labelledby="titulo-webhook-paginas"
@@ -144,11 +185,12 @@
             Webhook de páginas no app da Meta
           </h4>
           <p class="conexao__nota">
-            No app da Meta, vá em <strong>Webhooks</strong> → <strong>Page</strong>, cole o endereço
-            e o token de verificação abaixo e assine o campo <code>leadgen</code>. Sem isso a Meta
-            não avisa o CRM e os leads só chegam pela conferência de 15 em 15 minutos. O token vale
-            para a conexão <strong>{{ marcadaAgora.nome }}</strong
-            >.
+            Esta conexão é antiga e usa um app próprio. No app da Meta, vá em
+            <strong>Webhooks</strong> → <strong>Page</strong>, cole o endereço e o token de
+            verificação abaixo e assine o campo <code>leadgen</code>. Sem isso a Meta não avisa o
+            CRM e os leads só chegam pela conferência de 15 em 15 minutos. O token vale para a
+            conexão <strong>{{ marcadaAgora.nome }}</strong
+            >. Conexões novas usam o app de Configurações &gt; Apps de login, onde o webhook fica.
           </p>
           <app-valor-unico
             rotulo="Endereço do webhook"
@@ -195,53 +237,12 @@
         (valorChange)="forma.set($event ?? 'LOGIN'); erroDoForm.set(null)"
       />
 
-      @if (opcoesOrigem().length > 1) {
-        <app-grupo-opcoes
-          rotulo="App da Meta"
-          [opcoes]="opcoesOrigem()"
-          [valor]="origemDoApp()"
-          (valorChange)="origemDoApp.set($event ?? 'DIGITAR')"
-        />
-      }
-      @if (usaCanal()) {
-        <app-seletor
-          rotulo="Canal"
-          placeholder="Escolha o canal"
-          [opcoes]="opcoesCanal()"
-          [valor]="canalId()"
-          [erro]="erroDoCanal()"
-          (valorChange)="canalId.set($event)"
-        />
-      } @else {
-        <div class="conexao__dupla">
-          <app-campo-texto
-            rotulo="Id do app"
-            obrigatorio
-            autocomplete="off"
-            teclado="numeric"
-            dica="Está em Configurações do app > Básico, no painel de desenvolvedores da Meta."
-            [valor]="appId()"
-            [erro]="erroDoCampo(appId(), 'Informe o id do app.')"
-            (valorChange)="definirTexto('appId', $event)"
-          />
-          <app-campo-senha
-            rotulo="Segredo do app"
-            obrigatorio
-            autocomplete="off"
-            dica="Fica cifrado no CRM e nunca é mostrado de novo."
-            [valor]="appSecret()"
-            [erro]="erroDoCampo(appSecret(), 'Informe o segredo do app.')"
-            (valorChange)="definirTexto('appSecret', $event)"
-          />
-        </div>
-      }
-
       @if (forma() === 'TOKEN') {
         <div class="conexao__dupla">
           <app-campo-senha
             rotulo="Token da página"
             obrigatorio
-            autocomplete="off"
+            segredo
             dica="O token de acesso da página, com a permissão leads_retrieval."
             [valor]="tokenDaPagina()"
             [erro]="erroDoCampo(tokenDaPagina(), 'Cole o token da página.')"
@@ -262,6 +263,7 @@
       <app-campo-texto
         rotulo="Nome da conexão"
         opcional
+        autocomplete="off"
         [maximoCaracteres]="100"
         placeholder="Facebook da escola"
         dica="Só para você reconhecer na lista. Em branco, usamos o nome da conta."
@@ -279,13 +281,15 @@
             appBotao
             type="button"
             variante="invertido"
-            [carregando]="enviando()"
+            data-teste="entrar-com-facebook"
+            [carregando]="enviando() && !aguardando()"
+            [disabled]="aguardando() || appNaoCadastrado()"
             (click)="entrarComOFacebook()"
           >
             Entrar com o Facebook
           </button>
           <span class="conexao__nota">
-            Você vai ao Facebook e volta para cá. O assistente reabre neste passo.
+            O Facebook abre em outra janela. Quando você terminar, esta tela segue sozinha.
           </span>
         } @else {
           <button
@@ -293,6 +297,7 @@
             type="button"
             variante="invertido"
             [carregando]="enviando()"
+            [disabled]="appNaoCadastrado()"
             (click)="colarToken()"
           >
             Conectar com o token
@@ -305,26 +310,5 @@
         }
       </div>
     </section>
-  }
-
-  @if (configuracao(); as c) {
-    <details class="conexao__retorno-oauth">
-      <summary>Endereço de retorno do login (para o app da Meta)</summary>
-      <p class="conexao__nota">
-        Cadastre este endereço em <strong>URIs de redirecionamento OAuth válidos</strong>, nas
-        configurações do Login do Facebook do app. Sem isso o login volta com erro.
-      </p>
-      <app-valor-unico
-        rotulo="Endereço de retorno"
-        oQue="Endereço de retorno"
-        [valor]="c.enderecoDeRetorno"
-        [aviso]="null"
-      />
-      @if (!c.enderecoPublicoHttps) {
-        <p class="conexao__nota conexao__nota--aviso">
-          Este endereço não é um HTTPS público. A Meta só aceita HTTPS fora do modo de testes.
-        </p>
-      }
-    </details>
   }
 }

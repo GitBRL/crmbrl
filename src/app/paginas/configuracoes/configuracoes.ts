@@ -22,6 +22,7 @@ const RESUMO_DA_SECAO: Readonly<Record<string, string>> = {
   passagens: 'as passagens entre funis',
   canais: 'os canais de atendimento',
   atendimento: 'as filas e os horários do atendimento',
+  'apps-de-login': 'os apps de login',
   disparos: 'os limites dos disparos',
   assistente: 'o assistente de ajuda',
   sdr: 'o SDR com IA',
