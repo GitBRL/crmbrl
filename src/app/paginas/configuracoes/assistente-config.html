@@ -104,6 +104,7 @@
                 />
                 <app-campo-texto
                   rotulo="E-mail da conta de serviço"
+                  autocomplete="off"
                   tipo="email"
                   [dica]="origem(c.ticketHub.origem.email)"
                   [erro]="erroDoCampo('ticketHub.email')"
@@ -111,7 +112,7 @@
                 />
                 <app-campo-senha
                   rotulo="Senha da conta de serviço"
-                  autocomplete="new-password"
+                  segredo
                   [placeholder]="
                     c.ticketHub.senhaDefinida ? 'Definida (digite para trocar)' : 'Não definida'
                   "
@@ -176,7 +177,7 @@
               />
               <app-campo-senha
                 rotulo="Segredo da assinatura"
-                autocomplete="new-password"
+                segredo
                 [placeholder]="
                   c.webhook.segredoDefinido
                     ? 'Definido ' + (c.webhook.segredoMascarado ?? '')
@@ -215,7 +216,7 @@
                     />
                     <app-campo-senha
                       [rotulo]="'Valor do cabeçalho ' + (i + 1)"
-                      autocomplete="off"
+                      segredo
                       [valor]="n.valor"
                       (valorChange)="mudarCabecalho(n.id, 'valor', $event)"
                     />

@@ -326,6 +326,11 @@ export interface WebhookDoCanalMeta {
 
 export interface CanalMeta extends CanalBase {
   readonly appId: string;
+  /**
+   * `true`: usa o app cadastrado em Configurações > Apps de login (R32.22). `false` ou ausente:
+   * canal com app próprio (ID e chave secreta digitados no canal).
+   */
+  readonly appDasConfiguracoes?: boolean;
   readonly pageId: string;
   readonly instagramId: string | null;
   /** Mascarado. */

@@ -53,6 +53,7 @@ const ROTAS_DE_ACESSO = [
   '/esqueci-senha',
   '/redefinir-senha',
   '/definir-senha',
+  '/retorno-login',
 ];
 
 /**

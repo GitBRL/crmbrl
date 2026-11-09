@@ -109,6 +109,15 @@ export class ImportarApi {
     );
   }
 
+  planilhaModelo(tipo: TipoImportacao): Promise<Blob> {
+    return firstValueFrom(
+      this.http.get(urlApi('importacoes', 'planilha-modelo'), {
+        params: parametros({ tipo }),
+        responseType: 'blob',
+      }),
+    );
+  }
+
   campos(tipo: TipoImportacao): Promise<readonly CampoImportavel[]> {
     return firstValueFrom(
       this.http.get<CampoImportavel[]>(urlApi('importacoes', 'campos'), {

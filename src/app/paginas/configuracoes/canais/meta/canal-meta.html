@@ -97,11 +97,18 @@
               } @else {
                 <li>No painel do app, adicione o produto <strong>Messenger</strong>.</li>
               }
-              <li>
-                Em <strong>Configurações do app → Básico</strong>, copie o
-                <strong>ID do app</strong> e a <strong>Chave secreta do app</strong> para os campos
-                abaixo.
-              </li>
+              @if (usaAppDasConfiguracoes()) {
+                <li>
+                  O <strong>ID</strong> e a <strong>chave secreta</strong> do app já estão em
+                  Configurações → Apps de login: não precisa copiá-los de novo.
+                </li>
+              } @else {
+                <li>
+                  Em <strong>Configurações do app → Básico</strong>, copie o
+                  <strong>ID do app</strong> e a <strong>Chave secreta do app</strong> para os
+                  campos abaixo.
+                </li>
+              }
               <li>
                 Em <strong>Messenger → Configurações da API</strong>, conecte a página e gere o
                 <strong>token de acesso da página</strong>. Copie o token e o
@@ -160,28 +167,71 @@
                 [maximoCaracteres]="120"
                 formControlName="nome"
               />
-              <div class="formulario__par">
-                <app-campo-texto
-                  rotulo="ID do app"
-                  teclado="numeric"
-                  autocomplete="off"
-                  placeholder="1234567890123456"
-                  [mensagens]="{ pattern: 'Use só os números do ID (de 5 a 30 dígitos).' }"
-                  formControlName="appId"
-                />
-                <app-campo-senha
-                  rotulo="Chave secreta do app"
-                  autocomplete="off"
-                  [opcional]="!!canal.dados()"
-                  [placeholder]="
-                    canal.dados()?.appSecret
-                      ? 'Mantém a gravada (' + canal.dados()!.appSecret + ')'
-                      : null
-                  "
-                  dica="Confere a assinatura das mensagens que a Meta manda."
-                  formControlName="appSecret"
-                />
-              </div>
+              @if (usaAppDasConfiguracoes()) {
+                <div class="meta__app" data-teste="app-das-configuracoes">
+                  <p class="meta__app-texto">
+                    <strong>App da Meta</strong> (ID {{ idDoApp() }}): o canal usa o app cadastrado
+                    em
+                    <a routerLink="/configuracoes/apps-de-login">Configurações → Apps de login</a>.
+                    Você não precisa digitar o ID nem a chave secreta.
+                  </p>
+                  <button
+                    appBotao
+                    type="button"
+                    variante="contorno"
+                    tamanho="sm"
+                    (click)="alternarApp(true)"
+                  >
+                    Usar outro app
+                  </button>
+                </div>
+              } @else {
+                @if (usarOutroApp()) {
+                  <div class="meta__app" data-teste="outro-app">
+                    <p class="meta__app-texto">
+                      Este canal usa um app próprio, com ID e chave secreta digitados aqui.
+                    </p>
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      (click)="alternarApp(false)"
+                    >
+                      Usar o app das Configurações
+                    </button>
+                  </div>
+                }
+                <div class="formulario__par">
+                  <app-campo-texto
+                    rotulo="ID do app"
+                    teclado="numeric"
+                    autocomplete="off"
+                    placeholder="1234567890123456"
+                    [mensagens]="{ pattern: 'Use só os números do ID (de 5 a 30 dígitos).' }"
+                    formControlName="appId"
+                  />
+                  <app-campo-senha
+                    rotulo="Chave secreta do app"
+                    segredo
+                    [opcional]="!!canal.dados()"
+                    [placeholder]="
+                      canal.dados()?.appSecret
+                        ? 'Mantém a gravada (' + canal.dados()!.appSecret + ')'
+                        : null
+                    "
+                    dica="Confere a assinatura das mensagens que a Meta manda."
+                    formControlName="appSecret"
+                  />
+                </div>
+                @if (!appCadastrado() && !canal.dados()) {
+                  <p class="formulario__nota" data-teste="dica-apps-de-login">
+                    Cadastre o app da Meta uma vez em
+                    <a routerLink="/configuracoes/apps-de-login">Configurações → Apps de login</a>
+                    e este formulário deixa de pedir o ID e a chave secreta.
+                  </p>
+                }
+              }
               <div class="formulario__par">
                 <app-campo-texto
                   rotulo="ID da página"
@@ -204,7 +254,7 @@
               </div>
               <app-campo-senha
                 rotulo="Token da página"
-                autocomplete="off"
+                segredo
                 [opcional]="!!canal.dados()"
                 [placeholder]="
                   canal.dados()?.tokenPagina

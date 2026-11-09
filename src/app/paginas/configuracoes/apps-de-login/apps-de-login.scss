@@ -1,0 +1,18 @@
+@use '../secao' as s;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+
+.secao__lista {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+  max-width: 56rem;
+}

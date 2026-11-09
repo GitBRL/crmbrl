@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, input, model, signal } from '@angular/core';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  model,
+  signal,
+} from '@angular/core';
 import { LucideEye, LucideEyeOff } from '@lucide/angular';
 
 import { CampoBase } from '../campo/campo-base';
@@ -8,6 +16,10 @@ import { MolduraCampo } from '../campo/moldura-campo';
  * Campo de senha (DESIGN-SYSTEM.md §4.2): o campo de texto com um botão de mostrar/ocultar
  * (`aria-pressed`, o nome diz a ação) e um aviso de Caps Lock ligado enquanto o campo está
  * focado. `autocomplete` padrão `current-password`; na troca de senha use `new-password`.
+ *
+ * Segredo de integração, de canal ou de app (token, chave, segredo do app) **não** é a senha do
+ * usuário: use `segredo`. O navegador e os gerenciadores de senha deixam de oferecer a senha do
+ * CRM nele (`autocomplete="new-password"`, `data-1p-ignore`, `data-lpignore="true"`).
  *
  * `<app-campo-senha rotulo="Senha" formControlName="senha" />`
  */
@@ -40,7 +52,9 @@ import { MolduraCampo } from '../campo/moldura-campo';
           [type]="visivel() ? 'text' : 'password'"
           [attr.name]="nome()"
           [attr.placeholder]="placeholder()"
-          [attr.autocomplete]="autocomplete()"
+          [attr.autocomplete]="autocompleteEfetivo()"
+          [attr.data-1p-ignore]="segredo() ? '' : null"
+          [attr.data-lpignore]="segredo() ? 'true' : null"
           [attr.aria-required]="requerido() || null"
           [disabled]="estaDesabilitado()"
           [attr.aria-invalid]="mensagemErro() ? true : null"
@@ -83,6 +97,11 @@ export class CampoSenha extends CampoBase<string> {
   readonly placeholder = input<string | null>(null);
   /** `current-password` (entrar) ou `new-password` (criar/trocar). */
   readonly autocomplete = input<'current-password' | 'new-password' | 'off'>('current-password');
+  /** Campo de segredo de integração, canal ou app: nunca recebe a senha do CRM do navegador. */
+  readonly segredo = input(false, { transform: booleanAttribute });
+  protected readonly autocompleteEfetivo = computed(() =>
+    this.segredo() ? 'new-password' : this.autocomplete(),
+  );
 
   /** A senha está à mostra (o botão alterna). */
   readonly visivel = signal(false);

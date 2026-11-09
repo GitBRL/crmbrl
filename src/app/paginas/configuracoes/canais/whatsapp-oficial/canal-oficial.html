@@ -154,7 +154,7 @@
                 />
                 <app-campo-senha
                   rotulo="Token de acesso"
-                  autocomplete="off"
+                  segredo
                   [opcional]="!!canal.dados()"
                   [placeholder]="
                     canal.dados()?.token ? 'Mantém o gravado (' + canal.dados()!.token + ')' : null
@@ -164,7 +164,7 @@
                 />
                 <app-campo-senha
                   rotulo="Chave secreta do app"
-                  autocomplete="off"
+                  segredo
                   [opcional]="!!canal.dados()"
                   [placeholder]="
                     canal.dados()?.appSecret
