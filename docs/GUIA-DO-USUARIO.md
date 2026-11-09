@@ -110,7 +110,8 @@ Detalhes: artigos `atendimento-*.md`.
   acessa), atividades e a linha do tempo.
 - **Criar contato ou empresa:** botão de novo cadastro. O CRM avisa de possíveis duplicados (telefone e e-mail).
 - **Importar de planilha** (Admin, C-level e líderes): assistente em quatro passos (Arquivo, Colunas, Opções,
-  Importação) com relatório em Excel.
+  Importação) com relatório em Excel; o primeiro passo oferece **Baixar planilha modelo** (contatos, empresas ou
+  parcelas), com as colunas já reconhecidas sozinhas e uma aba "Como preencher".
 - **Qualificação (SDR com IA):** o detalhe do contato tem o cartão **Qualificação**, com a nota de 0 a 100, a
   temperatura (**Quente**, **Morno** ou **Frio**, sempre em texto), cada critério que a IA descobriu (valor, quem
   descobriu e confiança) e o resumo. Se a IA nunca conversou com o contato, o cartão diz isso.

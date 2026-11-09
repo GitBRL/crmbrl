@@ -20,6 +20,7 @@ import {
 
 import { type Pagina, totalDePaginas } from '../../../nucleo/api/api';
 import { type ErroApi, erroDaApi } from '../../../nucleo/api/erro-api';
+import { baixarArquivo } from '../../../nucleo/baixar-arquivo';
 import { AvisosService } from '../../../nucleo/avisos.service';
 import { ConfirmacaoService } from '../../../nucleo/confirmacao.service';
 import { formatarDataHora, formatarNumero } from '../../../nucleo/formatos';
@@ -153,6 +154,12 @@ interface LinhaDeColuna {
   readonly opcoes: readonly OpcaoSeletor<string>[];
 }
 
+const NOME_DO_MODELO: Record<TipoImportacao, string> = {
+  CONTATOS: 'contatos',
+  EMPRESAS: 'empresas',
+  PARCELAS: 'parcelas',
+};
+
 /**
  * Assistente de importação (`/contatos/importar`, R16): arquivo → colunas (com modelos salvos)
  * → opções → importação com progresso ao vivo e relatório. O estado vive na API (rascunho de
@@ -271,6 +278,7 @@ export class Importar implements OnInit {
   protected readonly filtroLinhas = signal<string | null>('TODOS');
   protected readonly paginaLinhas = signal(1);
   protected readonly baixando = signal(false);
+  protected readonly baixandoModelo = signal(false);
   protected readonly agindo = signal(false);
 
   protected readonly tituloTipo = computed(
@@ -805,6 +813,23 @@ export class Importar implements OnInit {
     void this.carregarLinhas();
   }
 
+  /** Planilha modelo do tipo escolhido (ou parcelas, na tela do Financeiro). */
+  protected async baixarModelo(): Promise<void> {
+    if (this.baixandoModelo()) {
+      return;
+    }
+    this.baixandoModelo.set(true);
+    try {
+      const tipo = this.tipoFixo ?? this.tipo();
+      const arquivo = await this.api.planilhaModelo(tipo);
+      baixarArquivo(arquivo, `modelo-${NOME_DO_MODELO[tipo]}.xlsx`);
+    } catch (falha) {
+      this.avisos.erro(falha);
+    } finally {
+      this.baixandoModelo.set(false);
+    }
+  }
+
   protected async baixarRelatorio(): Promise<void> {
     const imp = this.importacao();
     if (!imp || this.baixando()) {
@@ -813,14 +838,7 @@ export class Importar implements OnInit {
     this.baixando.set(true);
     try {
       const arquivo = await this.api.relatorio(imp.id);
-      const url = URL.createObjectURL(arquivo);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `relatorio-${imp.nome.replace(/\.[^.]+$/, '')}.xlsx`;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      baixarArquivo(arquivo, `relatorio-${imp.nome.replace(/\.[^.]+$/, '')}.xlsx`);
     } catch (falha) {
       this.avisos.erro(falha);
     } finally {

@@ -121,6 +121,20 @@
             }
           </div>
 
+          <div class="modelo">
+            <p class="modelo__dica">Use a planilha modelo: as colunas são reconhecidas sozinhas.</p>
+            <button
+              appBotao
+              variante="neutro"
+              tamanho="sm"
+              type="button"
+              [carregando]="baixandoModelo()"
+              (click)="baixarModelo()"
+            >
+              <svg lucideDownload [size]="16" aria-hidden="true" /> Baixar planilha modelo
+            </button>
+          </div>
+
           @if (erroArquivo(); as mensagem) {
             <p class="erro-inline" role="alert">
               <svg lucideCircleAlert [size]="16" aria-hidden="true" />
