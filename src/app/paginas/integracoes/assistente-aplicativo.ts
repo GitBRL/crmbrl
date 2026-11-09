@@ -55,7 +55,10 @@ import {
   type RetornoDoFacebook,
 } from './facebook.tipos';
 import { IntegracoesApi } from './integracoes.api';
+import { ConexoesAplicativoApi } from './login/conexoes-aplicativo.api';
+import { type ConexaoAplicativo, type RetornoDoLogin } from './login/login.tipos';
 import { PassoConexaoFacebook } from './passo-conexao-facebook';
+import { type ModoDeConta, PassoContaLogin } from './passo-conta-login';
 import { PassoFormularioFacebook } from './passo-formulario-facebook';
 import { TabelaDeEventosPasso } from './tabela-de-eventos';
 import { PreviaMapeamento } from './previa-mapeamento';
@@ -70,6 +73,7 @@ import {
   type DestinoDeMapeamento,
   type EstrategiaDistribuicao,
   type FormularioDoTypeform,
+  type GatilhoDoRd,
   type FunilDoDestino,
   type Mapeamento,
   type ModeloMapeamento,
@@ -111,6 +115,19 @@ interface CondicaoEditavel {
 }
 
 type Seguranca = 'NENHUMA' | 'GERAR' | 'INFORMAR';
+
+const OPCOES_GATILHO: readonly OpcaoGrupo<GatilhoDoRd>[] = [
+  {
+    valor: 'CONVERSAO',
+    rotulo: 'Conversão',
+    dica: 'Cada vez que um contato converte (formulário, landing page…). É o mais usado.',
+  },
+  {
+    valor: 'OPORTUNIDADE',
+    rotulo: 'Oportunidade',
+    dica: 'Só quando o contato é marcado como oportunidade no RD Station.',
+  },
+];
 
 const OPCOES_SEGURANCA: readonly OpcaoGrupo<Seguranca>[] = [
   {
@@ -235,6 +252,7 @@ export function juntarDestino(linha: Pick<LinhaDoMapa, 'destino' | 'chave'>): st
     LucideCheck,
     LinhaDoMapaCampo,
     PassoConexaoFacebook,
+    PassoContaLogin,
     PassoFormularioFacebook,
     TabelaDeEventosPasso,
   ],
@@ -245,6 +263,7 @@ export function juntarDestino(linha: Pick<LinhaDoMapa, 'destino' | 'chave'>): st
 export class AssistenteAplicativo {
   private readonly api = inject(IntegracoesApi);
   private readonly apiFacebook = inject(FacebookApi);
+  private readonly apiConexoes = inject(ConexoesAplicativoApi);
   private readonly avisos = inject(AvisosService);
   private readonly confirmacao = inject(ConfirmacaoService);
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -260,6 +279,8 @@ export class AssistenteAplicativo {
   readonly funilInicial = input<string | null>(null);
   /** O que o login do Facebook devolveu a `/integracoes`: o assistente reabre no passo da conexão. */
   readonly retornoFacebook = input<RetornoDoFacebook | null>(null);
+  /** O que o login do Typeform ou do RD Station devolveu a `/integracoes` (pop-up bloqueado). */
+  readonly retornoConta = input<RetornoDoLogin | null>(null);
   /** O que o assistente guardou antes de sair para o Facebook (o nome já digitado). */
   readonly contextoDoLogin = input<ContextoDoLogin | null>(null);
   readonly criado = output<WebhookEntradaCriado>();
@@ -272,6 +293,7 @@ export class AssistenteAplicativo {
     atualizar: LucideRefreshCw,
   };
   protected readonly opcoesSeguranca = OPCOES_SEGURANCA;
+  protected readonly opcoesGatilho = OPCOES_GATILHO;
   protected readonly destinoContato = DESTINO_DO_CONTATO;
   protected readonly destinoNegocio = DESTINO_DO_NEGOCIO;
   protected readonly rotuloStatus = ROTULO_STATUS_INICIAL;
@@ -322,6 +344,13 @@ export class AssistenteAplicativo {
   protected readonly formularioFacebookEscolhido = signal<FormularioFacebook | null>(null);
   private chaveDasPerguntas = '';
 
+  // Typeform e RD Station por login (R32.25 e R32.26)
+  protected readonly modoDeConta = signal<ModoDeConta>('LOGIN');
+  protected readonly conexaoAplicativo = signal<ConexaoAplicativo | null>(null);
+  protected readonly gatilho = signal<GatilhoDoRd>('CONVERSAO');
+  protected readonly conversoes = signal('');
+  protected readonly sincronizando = signal(false);
+
   // Plataformas de curso
   protected readonly tabelaDeEventos = signal<TabelaDeEventos>({});
   protected readonly produtos = signal('');
@@ -358,8 +387,31 @@ export class AssistenteAplicativo {
   protected readonly editando = computed(() => this.integracao() !== null);
   protected readonly ehWebhook = computed(() => this.app()?.aplicativo === 'WEBHOOK');
   protected readonly escolheFormulario = computed(() => !!this.app()?.escolheFormulario);
-  protected readonly buscaCampos = computed(() => !!this.app()?.buscaCampos);
-  protected readonly credenciais = computed(() => this.app()?.credencial ?? []);
+  /**
+   * Typeform e RD Station oferecem "Entrar com…": o passo "Conta" escolhe entre o login e o jeito
+   * antigo. Sem o `login` no catálogo, o assistente segue como antes (token ou endereço).
+   */
+  protected readonly ehTypeform = computed(() => this.app()?.aplicativo === 'TYPEFORM');
+  protected readonly temConta = computed(
+    () => (this.ehTypeform() || this.ehRd()) && !!this.app()?.login,
+  );
+  protected readonly comLogin = computed(() => this.temConta() && this.modoDeConta() === 'LOGIN');
+  protected readonly ehRdComLogin = computed(() => this.ehRd() && this.comLogin());
+  /** Editar um RD que recebia pelo endereço colado e passar para o login: o webhook manual no RD precisa sair. */
+  protected readonly avisoDoWebhookManual = computed(
+    () => this.ehRdComLogin() && !!this.integracao() && !this.integracao()?.configuracao.conexaoId,
+  );
+  /** O RD só busca campos pela API com a conexão por login. */
+  protected readonly buscaCampos = computed(
+    () => !!this.app()?.buscaCampos && (!this.ehRd() || this.comLogin()),
+  );
+  protected readonly credenciais = computed(() =>
+    this.comLogin() ? [] : (this.app()?.credencial ?? []),
+  );
+  protected readonly segurancaVisivel = computed(
+    () => this.segredoOpcional() && !this.ehCurso() && !this.comLogin(),
+  );
+  protected readonly webhookErro = computed(() => this.atual()?.configuracao.webhookErro ?? null);
   protected readonly segredoOpcional = computed(
     () => this.app()?.autenticidade.segredo === 'OPCIONAL',
   );
@@ -375,7 +427,11 @@ export class AssistenteAplicativo {
     () => this.app()?.autenticidade.rotuloDoSegredo ?? 'Segredo',
   );
   protected readonly nomeDaBusca = computed(() =>
-    this.ehFacebook() ? 'perguntas do formulário' : 'campos da integração',
+    this.ehFacebook()
+      ? 'perguntas do formulário'
+      : this.ehRd()
+        ? 'campos do RD Station'
+        : 'campos da integração',
   );
   protected readonly motivoPadraoObrigatorio = computed(() => {
     const tabela = this.tabelaDeEventos();
@@ -385,6 +441,7 @@ export class AssistenteAplicativo {
   protected readonly passos = computed<readonly { id: IdDoPasso; nome: string }[]>(() => [
     { id: 'comecar', nome: 'Começar' },
     ...(this.ehFacebook() ? [{ id: 'conexao' as const, nome: 'Conexão' }] : []),
+    ...(this.temConta() ? [{ id: 'conexao' as const, nome: 'Conta' }] : []),
     { id: 'acao', nome: 'Ação e nome' },
     {
       id: 'endereco',
@@ -392,7 +449,9 @@ export class AssistenteAplicativo {
         ? 'Página e formulário'
         : this.escolheFormulario()
           ? 'Formulário'
-          : 'Endereço',
+          : this.ehRdComLogin()
+            ? 'Gatilho'
+            : 'Endereço',
     },
     ...(this.ehCurso() ? [{ id: 'eventos' as const, nome: 'Eventos' }] : []),
     { id: 'mapeamento', nome: 'Mapeamento' },
@@ -418,6 +477,19 @@ export class AssistenteAplicativo {
       null
     );
   });
+  /** O mesmo para o Typeform e o RD Station (a conexão por login que o passo "Conta" marca). */
+  protected readonly contaInicial = computed(() => {
+    const retorno = this.retornoConta();
+    return (
+      this.conexaoAplicativo()?.id ??
+      (retorno?.resultado === 'conectado' ? retorno.conexaoId : null) ??
+      this.integracao()?.configuracao.conexaoId ??
+      null
+    );
+  });
+  protected readonly aplicativoDaConta = computed(() =>
+    this.ehRd() ? ('RD_STATION' as const) : ('TYPEFORM' as const),
+  );
   protected readonly nomeDoFunil = computed(() => this.funilEscolhido()?.nome ?? null);
   protected readonly indice = computed(() =>
     this.passos().findIndex((p) => p.id === this.passoAtual()),
@@ -546,6 +618,13 @@ export class AssistenteAplicativo {
       mapeamento: this.modificado() ? 'Personalizado' : `${mapeados.length} campos do modelo`,
       etiquetas: separarEtiquetas(this.etiquetas()).join(', ') || 'nenhuma',
       conexao: this.conexaoFacebook()?.nome ?? '—',
+      conta: this.comLogin()
+        ? (this.conexaoAplicativo()?.nome ?? '—')
+        : this.ehTypeform()
+          ? 'Token pessoal'
+          : 'Endereço colado no RD Station',
+      gatilho: this.gatilho() === 'OPORTUNIDADE' ? 'Oportunidade' : 'Conversão',
+      conversoesDoRd: separarEtiquetas(this.conversoes()).join(', ') || 'todas as conversões',
       pagina:
         this.conexaoFacebook()?.paginas.find((p) => p.id === this.paginaFacebook())?.nome ?? '—',
       formulario:
@@ -624,8 +703,14 @@ export class AssistenteAplicativo {
       return;
     }
     if (passo === 'conexao') {
-      if (!this.conexaoFacebook()) {
+      if (this.ehFacebook() && !this.conexaoFacebook()) {
         this.erroGeral.set('Escolha uma conexão com o Facebook, ou crie uma nova.');
+        return;
+      }
+      if (this.comLogin() && !this.conexaoAplicativo()) {
+        this.erroGeral.set(
+          `Escolha uma conta conectada, ou entre com o ${this.ehRd() ? 'RD Station' : 'Typeform'}.`,
+        );
         return;
       }
       this.irPara('acao');
@@ -648,6 +733,10 @@ export class AssistenteAplicativo {
     if (passo === 'endereco') {
       if (this.ehFacebook()) {
         if (!(await this.gravarFacebook())) {
+          return;
+        }
+      } else if (this.ehRdComLogin()) {
+        if (!(await this.gravarGatilho())) {
           return;
         }
       } else if (this.escolheFormulario() && !(await this.gravarFormulario())) {
@@ -678,6 +767,10 @@ export class AssistenteAplicativo {
       this.irPara('salvar');
       return;
     }
+    if (this.webhookErro() && this.finalizada) {
+      await this.tentarWebhookDeNovo();
+      return;
+    }
     await this.salvar();
   }
 
@@ -698,6 +791,9 @@ export class AssistenteAplicativo {
       case 'endereco':
         return this.ehFacebook() && !this.atual() ? 'Criar e continuar' : 'Continuar';
       case 'salvar':
+        if (this.finalizada && this.webhookErro()) {
+          return 'Tentar de novo';
+        }
         return this.editando() ? 'Salvar alterações' : 'Salvar e ativar';
       default:
         return 'Continuar';
@@ -823,11 +919,15 @@ export class AssistenteAplicativo {
     try {
       const atual = this.atual();
       if (!atual) {
+        const configuracaoNova = {
+          ...(this.ehRd() && !this.comLogin() && this.cabecalhoDeAutenticacao().trim()
+            ? { cabecalhoDeAutenticacao: this.cabecalhoDeAutenticacao().trim() }
+            : {}),
+          ...this.configuracaoDaConta(),
+        };
         await this.criarInativa({
           ...(Object.keys(digitada).length ? { credencial: digitada } : {}),
-          ...(this.ehRd() && this.cabecalhoDeAutenticacao().trim()
-            ? { configuracao: { cabecalhoDeAutenticacao: this.cabecalhoDeAutenticacao().trim() } }
-            : {}),
+          ...(Object.keys(configuracaoNova).length ? { configuracao: configuracaoNova } : {}),
           ...(this.seguranca() === 'GERAR' ? { gerarSegredo: true } : {}),
           ...(this.seguranca() === 'INFORMAR' ? { segredo: this.segredoInformado().trim() } : {}),
         });
@@ -837,6 +937,7 @@ export class AssistenteAplicativo {
           alvo: this.alvo(),
           modo: this.modo(),
           ...(Object.keys(digitada).length ? { credencial: digitada } : {}),
+          ...this.mudancaDeConta(atual),
         });
         this.atual.set(atualizado);
         this.houveMudanca = true;
@@ -870,6 +971,115 @@ export class AssistenteAplicativo {
     this.houveMudanca = true;
     this.criado.emit(criado);
     this.carregarCamposDoModelo();
+  }
+
+  // --- Typeform e RD Station por login ---------------------------------------------------------
+
+  protected escolherConta(conexao: ConexaoAplicativo | null): void {
+    this.conexaoAplicativo.set(conexao);
+    this.erroGeral.set(null);
+  }
+
+  /** O que a integração nova guarda da conta: a conexão por login e, no RD, o gatilho e as conversões. */
+  private configuracaoDaConta(): NonNullable<DadosWebhookEntrada['configuracao']> {
+    const conexao = this.conexaoAplicativo();
+    if (!this.comLogin() || !conexao) {
+      return {};
+    }
+    return {
+      conexaoId: conexao.id,
+      ...(this.ehRd() ? { gatilho: this.gatilho(), conversoes: this.conversoesDoRd() } : {}),
+    };
+  }
+
+  /** Voltou ao passo "Conta" e trocou a conta (ou o jeito de entrar): o que muda na integração. */
+  private mudancaDeConta(
+    atual: WebhookEntrada,
+  ): Pick<Partial<DadosWebhookEntrada>, 'configuracao'> {
+    if (!this.temConta()) {
+      return {};
+    }
+    const conexao = this.conexaoAplicativo();
+    if (this.comLogin()) {
+      return conexao && conexao.id !== atual.configuracao.conexaoId
+        ? { configuracao: { conexaoId: conexao.id } }
+        : {};
+    }
+    return atual.configuracao.conexaoId ? { configuracao: { conexaoId: null } } : {};
+  }
+
+  private conversoesDoRd(): string[] {
+    return this.gatilho() === 'CONVERSAO' ? separarEtiquetas(this.conversoes()) : [];
+  }
+
+  /** Grava o gatilho e as conversões do RD (o webhook só é criado lá quando a integração ativa). */
+  private async gravarGatilho(): Promise<boolean> {
+    const atual = this.atual();
+    if (!atual) {
+      return false;
+    }
+    const conversoes = this.conversoesDoRd();
+    const antigas = atual.configuracao.conversoes ?? [];
+    const igual =
+      (atual.configuracao.gatilho ?? 'CONVERSAO') === this.gatilho() &&
+      antigas.length === conversoes.length &&
+      antigas.every((c, i) => c === conversoes[i]);
+    if (igual) {
+      return true;
+    }
+    this.enviando.set(true);
+    try {
+      const atualizado = await this.api.atualizarEntrada(atual.id, {
+        configuracao: { gatilho: this.gatilho(), conversoes },
+      });
+      this.atual.set(atualizado);
+      this.houveMudanca = true;
+      if (atualizado.configuracao.webhookErro) {
+        this.erroGeral.set(
+          `O CRM não conseguiu criar o webhook no RD Station: ${atualizado.configuracao.webhookErro}`,
+        );
+        return false;
+      }
+      return true;
+    } catch (falha) {
+      this.tratarErro(erroDaApi(falha), 'endereco');
+      return false;
+    } finally {
+      this.enviando.set(false);
+    }
+  }
+
+  /** "Tentar de novo" quando o RD recusou criar o webhook: `POST …/sincronizar`. */
+  protected async tentarWebhookDeNovo(): Promise<void> {
+    const atual = this.atual();
+    if (!atual) {
+      return;
+    }
+    this.sincronizando.set(true);
+    this.erroGeral.set(null);
+    try {
+      const resultado = await this.api.sincronizar(atual.id);
+      const atualizado = await this.api.obterEntrada(atual.id);
+      this.atual.set(atualizado);
+      this.houveMudanca = true;
+      if (this.finalizada) {
+        this.salvo.emit(atualizado);
+      }
+      if (resultado.registrado) {
+        this.avisos.sucesso('Webhook criado no RD Station. A integração já recebe as conversões.');
+        if (this.finalizada) {
+          this.aberto.set(false);
+        }
+      } else {
+        this.erroGeral.set(
+          `O RD Station ainda recusa o webhook${resultado.erro ? `: ${resultado.erro}` : '.'}`,
+        );
+      }
+    } catch (falha) {
+      this.avisos.erro(falha);
+    } finally {
+      this.sincronizando.set(false);
+    }
   }
 
   // --- Facebook Lead Ads -----------------------------------------------------------------------
@@ -1491,6 +1701,14 @@ export class AssistenteAplicativo {
       this.atual.set(salvo);
       this.finalizada = true;
       this.salvo.emit(salvo);
+      if (this.ehRdComLogin() && salvo.configuracao.webhookErro) {
+        // O RD recusou criar o webhook: a integração foi salva, e o assistente fica aberto com
+        // o erro e o "Tentar de novo".
+        this.avisos.atencao(
+          `A integração foi salva, mas o RD Station recusou o webhook: ${salvo.configuracao.webhookErro}`,
+        );
+        return;
+      }
       if (salvo.configuracao.assinaturaErro) {
         this.avisos.atencao(
           `A integração foi salva, mas a Meta recusou a assinatura da página: ${salvo.configuracao.assinaturaErro}`,
@@ -1539,7 +1757,7 @@ export class AssistenteAplicativo {
     if (id === 'endereco' && !this.ehFacebook()) {
       if (this.escolheFormulario()) {
         void this.carregarFormularios();
-      } else {
+      } else if (!this.ehRdComLogin()) {
         void this.carregarEndereco();
       }
     }
@@ -1568,7 +1786,11 @@ export class AssistenteAplicativo {
     const app = this.app();
     const integracao = this.integracao();
     const retorno = this.retornoFacebook();
-    this.passoAtual.set(app?.aplicativo === 'FACEBOOK_LEAD_ADS' && retorno ? 'conexao' : 'comecar');
+    const voltouDoLogin =
+      (app?.aplicativo === 'FACEBOOK_LEAD_ADS' && !!retorno) ||
+      ((app?.aplicativo === 'TYPEFORM' || app?.aplicativo === 'RD_STATION') &&
+        !!this.retornoConta());
+    this.passoAtual.set(voltouDoLogin ? 'conexao' : 'comecar');
     this.erroGeral.set(null);
     this.erroNome.set(null);
     this.erroEndereco.set(null);
@@ -1604,6 +1826,10 @@ export class AssistenteAplicativo {
     this.etapaId.set(integracao?.etapa.id ?? null);
     this.formularioId.set(integracao?.configuracao.formularioId ?? null);
     this.conexaoFacebook.set(null);
+    this.conexaoAplicativo.set(null);
+    this.modoDeConta.set(this.modoInicialDaConta(integracao));
+    this.gatilho.set(integracao?.configuracao.gatilho ?? 'CONVERSAO');
+    this.conversoes.set(integracao?.configuracao.conversoes?.join(', ') ?? '');
     this.paginaFacebook.set(integracao?.configuracao.paginaId ?? null);
     this.formularioFacebook.set(integracao?.configuracao.formularioId ?? null);
     this.formularioFacebookEscolhido.set(null);
@@ -1627,9 +1853,31 @@ export class AssistenteAplicativo {
       this.carregarDaIntegracao(integracao);
       if (integracao.aplicativo === 'FACEBOOK_LEAD_ADS') {
         void this.carregarConexaoDaIntegracao(integracao.configuracao.conexaoId);
+      } else if (integracao.configuracao.conexaoId) {
+        void this.carregarContaDaIntegracao(integracao.configuracao.conexaoId);
       }
     }
     void this.carregarApoio();
+  }
+
+  /** Editar: com conexão, volta no login; sem ela, o Typeform tinha token e o RD, o endereço colado. */
+  private modoInicialDaConta(integracao: WebhookEntrada | null): ModoDeConta {
+    if (!integracao) {
+      return 'LOGIN';
+    }
+    return integracao.configuracao.conexaoId ? 'LOGIN' : 'MANUAL';
+  }
+
+  /** Editar: a conta da integração, para o passo "Conta" e o resumo. */
+  private async carregarContaDaIntegracao(id: string): Promise<void> {
+    try {
+      const conexao = await this.apiConexoes.obter(id);
+      if (!this.conexaoAplicativo()) {
+        this.conexaoAplicativo.set(conexao);
+      }
+    } catch {
+      // O passo "Conta" mostra o erro, com "Tentar de novo".
+    }
   }
 
   private carregarDaIntegracao(integracao: WebhookEntrada): void {

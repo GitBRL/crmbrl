@@ -87,7 +87,7 @@
               <app-campo-senha
                 #campoSenha
                 rotulo="Senha da caixa"
-                autocomplete="new-password"
+                segredo
                 [opcional]="!!canal.dados()"
                 [placeholder]="
                   canal.dados()?.senha ? 'Mantém a gravada (' + canal.dados()!.senha + ')' : null
@@ -242,7 +242,7 @@
               <app-campo-senha
                 class="formulario__recuo"
                 rotulo="Senha do envio"
-                autocomplete="new-password"
+                segredo
                 [opcional]="!!canal.dados()?.senhaSmtp"
                 [placeholder]="
                   canal.dados()?.senhaSmtp

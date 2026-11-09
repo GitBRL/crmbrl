@@ -468,12 +468,12 @@ describe('AssistenteAplicativo (um aplicativo, em passos)', () => {
     expect(passoAtual()).toContain('Conexão');
     http.expectOne('/api/v1/webhooks/facebook/conexoes').flush([CONEXAO_FACEBOOK]);
     http.expectOne('/api/v1/webhooks/facebook/configuracao').flush({
+      appCadastrado: true,
       enderecoDeRetorno: 'https://crm.exemplo.com.br/api/v1/publico/facebook/oauth/retorno',
       escopos: [],
       versaoDaGraph: 'v24.0',
       enderecoPublicoHttps: true,
     });
-    http.expectOne('/api/v1/webhooks/facebook/canais').flush([]);
     await aguardar();
 
     // Sem escolher a conexão, não avança.

@@ -113,12 +113,31 @@
 
             <!-- Conexão (Facebook Lead Ads) -->
             @case ('conexao') {
-              <app-passo-conexao-facebook
-                [selecionadaId]="conexaoInicial()"
-                [contexto]="contextoParaOLogin()"
-                [retorno]="retornoFacebook()"
-                (escolhida)="escolherConexao($event)"
-              />
+              @if (ehFacebook()) {
+                <app-passo-conexao-facebook
+                  [selecionadaId]="conexaoInicial()"
+                  [contexto]="contextoParaOLogin()"
+                  [retorno]="retornoFacebook()"
+                  (escolhida)="escolherConexao($event)"
+                />
+              } @else {
+                <app-passo-conta-login
+                  [aplicativo]="aplicativoDaConta()"
+                  [selecionadaId]="contaInicial()"
+                  [contexto]="contextoParaOLogin()"
+                  [retorno]="retornoConta()"
+                  [(modo)]="modoDeConta"
+                  (escolhida)="escolherConta($event)"
+                />
+                @if (avisoDoWebhookManual()) {
+                  <p class="assistente__nota" data-teste="aviso-webhook-manual">
+                    Esta integração recebia pelo endereço que você colou no RD Station. Ao entrar
+                    com o RD, o CRM cria um webhook novo para o mesmo endereço: apague o webhook
+                    antigo no RD (Configurações > Integrações > Webhooks) para não receber cada
+                    conversão em dobro.
+                  </p>
+                }
+              }
             }
 
             <!-- 2. Ação e nome -->
@@ -130,6 +149,7 @@
               </p>
               <app-campo-texto
                 rotulo="Nome da integração"
+                autocomplete="off"
                 obrigatorio
                 [maximoCaracteres]="100"
                 [valor]="nome()"
@@ -137,6 +157,15 @@
                 [erro]="erroDoNome()"
                 dica="Vira a origem dos contatos que chegarem por aqui."
               />
+              @if (comLogin()) {
+                <p class="assistente__nota" data-teste="conta-escolhida">
+                  Conta: <strong>{{ conexaoAplicativo()?.nome ?? '—' }}</strong>
+                  @if (conexaoAplicativo()?.conta; as conta) {
+                    ({{ conta }})
+                  }
+                  . Para trocar, volte ao passo “Conta”.
+                </p>
+              }
               @if (ehCurso()) {
                 <p class="assistente__nota" data-teste="acao-por-evento">
                   O que o CRM faz depende do evento que a plataforma avisar (compra aprovada,
@@ -177,7 +206,7 @@
                     @if (c.secreto) {
                       <app-campo-senha
                         [rotulo]="c.rotulo"
-                        autocomplete="off"
+                        segredo
                         [obrigatorio]="c.obrigatorio && !credencialSalva(c.chave)"
                         [valor]="valorDaCredencial(c.chave)"
                         (valorChange)="definirCredencial(c.chave, $event)"
@@ -186,6 +215,7 @@
                     } @else {
                       <app-campo-texto
                         [rotulo]="c.rotulo"
+                        autocomplete="off"
                         [placeholder]="c.exemplo ?? null"
                         [obrigatorio]="c.obrigatorio && !credencialSalva(c.chave)"
                         [valor]="valorDaCredencial(c.chave) || valorSalvo(c.chave)"
@@ -218,7 +248,7 @@
                 </fieldset>
               }
 
-              @if (!editando() && segredoOpcional() && !ehCurso()) {
+              @if (!editando() && segurancaVisivel()) {
                 <fieldset class="assistente__grupo">
                   <legend class="assistente__legenda">Segurança</legend>
                   <app-grupo-opcoes
@@ -231,7 +261,7 @@
                   @if (seguranca() === 'INFORMAR') {
                     <app-campo-senha
                       [rotulo]="a.autenticidade.rotuloDoSegredo ?? 'Segredo'"
-                      autocomplete="off"
+                      segredo
                       dica="De 16 a 200 caracteres. Depois ele só aparece mascarado."
                       [valor]="segredoInformado()"
                       (valorChange)="segredoInformado.set('' + $event)"
@@ -240,6 +270,7 @@
                   @if (ehRd()) {
                     <app-campo-texto
                       rotulo="Nome do cabeçalho da chave"
+                      autocomplete="off"
                       opcional
                       placeholder="X-RD-Chave"
                       dica="O cabeçalho em que o RD Station envia a chave. Em branco, usamos X-RD-Chave."
@@ -248,7 +279,7 @@
                     />
                   }
                 </fieldset>
-              } @else if (editando() && segredoOpcional() && !ehCurso()) {
+              } @else if (editando() && segurancaVisivel()) {
                 <p class="assistente__nota">
                   Assinatura:
                   <strong>{{
@@ -306,6 +337,53 @@
                     </button>
                   </app-estado-vazio>
                 }
+              } @else if (ehRdComLogin()) {
+                <h3 class="assistente__titulo-passo" tabindex="-1">Gatilho no RD Station</h3>
+                <p class="assistente__frase">
+                  O CRM cria o webhook no RD Station quando você salva e ativa a integração, e o
+                  remove se você desativar ou excluir. Você não precisa copiar nenhum endereço.
+                </p>
+                <p class="assistente__nota">
+                  Conta: <strong>{{ conexaoAplicativo()?.nome ?? '—' }}</strong
+                  >.
+                </p>
+                <app-grupo-opcoes
+                  rotulo="Quando o RD Station avisa o CRM"
+                  [opcoes]="opcoesGatilho"
+                  [valor]="gatilho()"
+                  (valorChange)="gatilho.set($event ?? 'CONVERSAO')"
+                />
+                @if (gatilho() === 'CONVERSAO') {
+                  <app-campo-texto
+                    rotulo="Conversões específicas"
+                    opcional
+                    autocomplete="off"
+                    placeholder="matricula, newsletter"
+                    dica="Os identificadores das conversões no RD Station, separados por vírgula. Em branco, qualquer conversão chama o CRM."
+                    [valor]="conversoes()"
+                    (valorChange)="conversoes.set('' + $event)"
+                  />
+                }
+                @if (atual()?.configuracao?.webhookRegistrado?.uuid) {
+                  <p class="assistente__nota" data-teste="webhook-no-rd">
+                    Webhook criado no RD Station e ativo.
+                  </p>
+                }
+                @if (webhookErro(); as erroDoRd) {
+                  <div class="assistente__alerta" role="alert" data-teste="erro-do-webhook">
+                    <p>O RD Station recusou criar o webhook: {{ erroDoRd }}</p>
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      [carregando]="sincronizando()"
+                      (click)="tentarWebhookDeNovo()"
+                    >
+                      Tentar de novo
+                    </button>
+                  </div>
+                }
               } @else if (escolheFormulario()) {
                 <h3 class="assistente__titulo-passo" tabindex="-1">Escolha o formulário</h3>
                 <p class="assistente__frase">
@@ -325,7 +403,9 @@
                     titulo="Não conseguimos listar os formulários"
                     [texto]="
                       falha.resumo +
-                      ' Confira se o token ainda vale (passo anterior, botão Testar).'
+                      (comLogin()
+                        ? ' Confira a conta do Typeform no passo “Conta”.'
+                        : ' Confira se o token ainda vale (passo anterior, botão Testar).')
                     "
                     [codigo]="falha.requisicaoId"
                   >
@@ -458,7 +538,7 @@
                     </p>
                     <app-campo-senha
                       [rotulo]="'Nova chave (' + rotuloDoSegredo() + ')'"
-                      autocomplete="off"
+                      segredo
                       dica="De 16 a 200 caracteres. Copie da plataforma; depois ela só aparece mascarada."
                       [erro]="erroDoSegredo()"
                       [valor]="segredoNovo()"
@@ -818,6 +898,24 @@
                   <dt>Nome</dt>
                   <dd>{{ resumo().nome }}</dd>
                 </div>
+                @if (temConta()) {
+                  <div>
+                    <dt>Conta</dt>
+                    <dd>{{ resumo().conta }}</dd>
+                  </div>
+                }
+                @if (ehRdComLogin()) {
+                  <div>
+                    <dt>Gatilho</dt>
+                    <dd>{{ resumo().gatilho }}</dd>
+                  </div>
+                  @if (gatilho() === 'CONVERSAO') {
+                    <div>
+                      <dt>Conversões</dt>
+                      <dd>{{ resumo().conversoesDoRd }}</dd>
+                    </div>
+                  }
+                }
                 @if (ehFacebook()) {
                   <div>
                     <dt>Conexão</dt>
@@ -875,6 +973,38 @@
                   <dd>{{ resumo().etiquetas }}</dd>
                 </div>
               </dl>
+              @if (ehRdComLogin() && webhookErro(); as erroDoRd) {
+                <div class="assistente__alerta" role="alert" data-teste="erro-do-webhook">
+                  <p>
+                    A integração foi salva, mas o RD Station recusou criar o webhook: {{ erroDoRd }}
+                  </p>
+                  <p class="assistente__nota">
+                    Isso costuma acontecer quando o endereço do CRM não é público com HTTPS, porque
+                    o RD testa o endereço antes de criar o webhook.
+                  </p>
+                  <div class="assistente__linha-acoes">
+                    <button
+                      appBotao
+                      type="button"
+                      variante="contorno"
+                      tamanho="sm"
+                      [carregando]="sincronizando()"
+                      (click)="tentarWebhookDeNovo()"
+                    >
+                      Tentar de novo
+                    </button>
+                    <button
+                      appBotao
+                      type="button"
+                      variante="neutro"
+                      tamanho="sm"
+                      (click)="fechar()"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+              }
             }
           }
         </div>
@@ -894,7 +1024,7 @@
       appBotao
       type="button"
       variante="invertido"
-      [carregando]="enviando()"
+      [carregando]="enviando() || sincronizando()"
       [disabled]="carregandoApoio() || !!erroApoio()"
       (click)="avancar()"
     >

@@ -11,7 +11,7 @@ export interface PaginaFacebook {
   readonly categoria: string | null;
 }
 
-/** Webhook de páginas no app da Meta: o endereço e o token de verificação desta conexão (R32.14). */
+/** Webhook de páginas no app da Meta: o endereço e o token de verificação desta conexão (R32.14, só conexões com app próprio). */
 export interface WebhookDaConexaoFacebook {
   readonly url: string;
   readonly tokenVerificacao: string;
@@ -31,6 +31,11 @@ export interface ConexaoFacebook {
   readonly expiraEm: string | null;
   readonly conectadaEm: string | null;
   readonly canalOrigemId: string | null;
+  /**
+   * `true`: usa o app cadastrado em Configurações > Apps de login (o webhook de páginas fica lá).
+   * `false`: conexão antiga, com app próprio (o quadro do webhook ainda aparece no assistente).
+   */
+  readonly appDasConfiguracoes: boolean;
   readonly paginas: readonly PaginaFacebook[];
   /** Quantas integrações usam esta conexão. */
   readonly integracoes: number;
@@ -50,17 +55,12 @@ export interface FormularioFacebook {
 }
 
 export interface ConfiguracaoFacebook {
+  /** O app da Meta já foi cadastrado em Configurações > Apps de login (R32.22)? */
+  readonly appCadastrado: boolean;
   readonly enderecoDeRetorno: string;
   readonly escopos: readonly string[];
   readonly versaoDaGraph: string;
   readonly enderecoPublicoHttps: boolean;
-}
-
-export interface CanalDoFacebook {
-  readonly id: string;
-  readonly nome: string;
-  readonly tipo: 'MESSENGER' | 'INSTAGRAM';
-  readonly appId: string;
 }
 
 export interface LoginIniciado {
@@ -70,17 +70,22 @@ export interface LoginIniciado {
   readonly enderecoDeRetorno: string;
 }
 
-/** Corpo de `POST /webhooks/facebook/oauth/iniciar`: um dos três jeitos de dizer qual app usar. */
-export type PedidoDeLogin =
-  | { readonly appId: string; readonly appSecret: string; readonly nome?: string }
-  | { readonly canalId: string; readonly nome?: string }
-  | { readonly conexaoId: string };
+/**
+ * Corpo de `POST /webhooks/facebook/oauth/iniciar`. O app é sempre o das Configurações > Apps de
+ * login (R32.24): ninguém digita ID nem segredo. `conexaoId` reconecta uma conexão existente.
+ */
+export interface PedidoDeLogin {
+  readonly nome?: string;
+  readonly conexaoId?: string;
+  readonly modo?: 'janela' | 'pagina';
+}
 
-export type PedidoDeTokenDePagina = {
+/** Corpo de `POST /webhooks/facebook/conexoes/token-de-pagina` (também com o app das Configurações). */
+export interface PedidoDeTokenDePagina {
   readonly tokenPagina: string;
   readonly paginaId?: string;
   readonly nome?: string;
-} & ({ readonly appId: string; readonly appSecret: string } | { readonly canalId: string });
+}
 
 export type ResultadoDoRetorno = 'conectado' | 'cancelado' | 'erro';
 

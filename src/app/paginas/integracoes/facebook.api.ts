@@ -5,7 +5,6 @@ import { firstValueFrom } from 'rxjs';
 import { parametros, urlApi } from '../../nucleo/api/api';
 import type { CampoDeIntegracao } from './tipos';
 import type {
-  CanalDoFacebook,
   ConexaoFacebook,
   ConfiguracaoFacebook,
   FormularioFacebook,
@@ -26,16 +25,15 @@ export class FacebookApi {
     );
   }
 
-  /** Canais Messenger/Instagram cujo app pode ser reaproveitado (o segredo nunca sai). */
-  canais(): Promise<readonly CanalDoFacebook[]> {
-    return firstValueFrom(
-      this.http.get<readonly CanalDoFacebook[]>(urlApi('webhooks', 'facebook', 'canais')),
-    );
-  }
-
   conexoes(): Promise<readonly ConexaoFacebook[]> {
     return firstValueFrom(
       this.http.get<readonly ConexaoFacebook[]>(urlApi('webhooks', 'facebook', 'conexoes')),
+    );
+  }
+
+  conexao(id: string): Promise<ConexaoFacebook> {
+    return firstValueFrom(
+      this.http.get<ConexaoFacebook>(urlApi('webhooks', 'facebook', 'conexoes', id)),
     );
   }
 

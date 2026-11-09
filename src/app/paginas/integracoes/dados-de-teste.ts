@@ -579,6 +579,7 @@ export const CONEXAO_FACEBOOK: ConexaoFacebook = {
   expiraEm: '2027-01-03T12:00:00Z',
   conectadaEm: '2026-11-04T12:00:00Z',
   canalOrigemId: null,
+  appDasConfiguracoes: false,
   paginas: [
     { id: 'p1', nome: 'Escola Demo BRL', categoria: 'Educação' },
     { id: 'p2', nome: 'Clínica Demo BRL', categoria: 'Saúde' },
