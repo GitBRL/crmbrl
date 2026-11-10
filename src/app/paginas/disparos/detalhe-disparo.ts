@@ -93,7 +93,7 @@ const ABAS: readonly ItemAba[] = [
           [titulo]="
             falha.status === 404 ? 'Campanha não encontrada' : 'Você não tem acesso a esta campanha'
           "
-          texto="Ela pode ter sido excluída, ou ser de outra área."
+          texto="Ela pode ter sido excluída, ou ser de outro setor."
         >
           <a appBotao variante="invertido" routerLink="/disparos">Ver campanhas</a>
         </app-estado-vazio>
@@ -644,7 +644,7 @@ export class DetalheDisparo {
     }
     if (c.status === 'AGUARDANDO_APROVACAO') {
       return {
-        texto: 'Esta campanha espera a aprovação do líder da área antes de começar.',
+        texto: 'Esta campanha espera a aprovação do líder do setor antes de começar.',
         atencao: true,
       };
     }

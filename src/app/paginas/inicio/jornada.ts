@@ -30,10 +30,10 @@ export type EstadoJornada = 'carregando' | 'pronto' | 'erro';
 /**
  * Aba "Jornada do cliente" do palco, com as métricas reais da API (R5.10): conversão, ciclo
  * e receita ganha (ou negócios parados, para quem não vê o Comercial) e, abaixo, o funil de
- * cada área visível — dos negócios criados no período, quantos chegaram a cada etapa, quantos
+ * cada setor visível — dos negócios criados no período, quantos chegaram a cada etapa, quantos
  * seguiram e quantos pararam, a queda e o tempo médio na etapa. Com as três áreas, cada uma
  * mostra só a entrada e o ganho, e "Ver todas as etapas" abre o resto; com uma área só, todas
- * as etapas já aparecem. Entre as áreas, "passagem automática" com a dica da regra (R5.7).
+ * as etapas já aparecem. Entre os setores, "passagem automática" com a dica da regra (R5.7).
  */
 @Component({
   selector: 'app-inicio-jornada',

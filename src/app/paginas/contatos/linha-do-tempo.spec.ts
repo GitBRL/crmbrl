@@ -53,7 +53,7 @@ function atividade(id: string, ocorridoEm: string, atrasada: boolean): RegistroD
       fimEm: null,
       concluidaEm: null,
       canceladaEm: null,
-      responsavel: { id: 'u1', nome: 'Lucas Pereira', papel: 'COMERCIAL', ativo: true },
+      responsavel: { id: 'u1', nome: 'Lucas Pereira', papel: 'MEMBRO', ativo: true },
       criadoPor: null,
       contatoId: 'c1',
       empresaId: null,

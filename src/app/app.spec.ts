@@ -15,9 +15,8 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { App } from './app';
 import { routes } from './app.routes';
 import { MODULOS } from './nucleo/navegacao';
-import type { Papel } from './nucleo/papeis';
 import { SessaoService } from './nucleo/sessao/sessao.service';
-import { entrarComo } from './nucleo/sessao/sessao-de-teste';
+import { entrarComo, type PapelDeTeste } from './nucleo/sessao/sessao-de-teste';
 import { TituloPagina } from './nucleo/titulo-pagina';
 
 @Component({ template: '<p>página</p>' })
@@ -74,7 +73,7 @@ describe('app.routes', () => {
     harness = null;
   });
 
-  async function abrir(url: string, papel: Papel | null = 'ADMIN') {
+  async function abrir(url: string, papel: PapelDeTeste | null = 'ADMIN') {
     if (papel) {
       entrarComo(papel);
     } else {
@@ -175,7 +174,7 @@ describe('app.routes', () => {
   });
 
   it('redirecionamentos: seção padrão, links das notificações e a lista de empresas', async () => {
-    const casos: readonly [de: string, para: string, papel?: Papel][] = [
+    const casos: readonly [de: string, para: string, papel?: PapelDeTeste][] = [
       ['/configuracoes', '/configuracoes/usuarios'],
       ['/configuracoes', '/configuracoes/perfil', 'COMERCIAL'],
       ['/administracao', '/administracao/auditoria', 'C_LEVEL'],

@@ -35,25 +35,16 @@ import {
   rotuloDaArea,
 } from './apresentacao';
 import { AtendimentoConfigApi } from './atendimento.api';
-import {
-  AREAS_DO_ATENDIMENTO,
-  type AreaDoAtendimento,
-  type Fila,
-  type PessoaNaFila,
-} from './atendimento.modelos';
+import { type AreaDoAtendimento, type Fila, type PessoaNaFila } from './atendimento.modelos';
 import { FormularioFila, type PedidoFormularioFila } from './formulario-fila';
-
-/** Área do papel de líder que atende (Comercial ou CS). */
-const AREA_DO_LIDER: Readonly<Record<string, AreaDoAtendimento>> = {
-  LIDER_COMERCIAL: 'COMERCIAL',
-  LIDER_CS: 'CS',
-};
+import { SETOR_MARKETING } from '../../../nucleo/setores/setores';
+import { SetoresService } from '../../../nucleo/setores/setores.service';
 
 /**
  * Filas e SLA (`/configuracoes/atendimento/filas`) — R12: um cartão por fila com a estratégia,
  * os prazos de primeira resposta e de resolução, as conversas em aberto, os canais que mandam
  * para ela, o próximo da vez e quem recebe (cada pessoa liga e desliga na hora, com "Desfazer").
- * Criar, editar, desativar e excluir: Admin, C-level e o líder da área; os outros só leem.
+ * Criar, editar, desativar e excluir: Admin, C-level e o líder do setor; os outros só leem.
  */
 @Component({
   selector: 'app-config-filas',
@@ -77,6 +68,7 @@ const AREA_DO_LIDER: Readonly<Record<string, AreaDoAtendimento>> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Filas {
+  protected readonly setores = inject(SetoresService);
   private readonly api = inject(AtendimentoConfigApi);
   private readonly avisos = inject(AvisosService);
   private readonly confirmacao = inject(ConfirmacaoService);
@@ -102,17 +94,20 @@ export class Filas {
   /** Áreas em que a pessoa pode criar filas. */
   protected readonly areasPermitidas = computed<readonly AreaDoAtendimento[]>(() => {
     if (this.sessao.ehDiretoria()) {
-      return AREAS_DO_ATENDIMENTO;
+      return this.setores.atendem().map((setor) => setor.chave);
     }
-    const area = AREA_DO_LIDER[this.sessao.papel() ?? ''];
-    return area ? [area] : [];
+    const area = this.sessao.area();
+    return this.sessao.ehLider() && area && area !== SETOR_MARKETING ? [area] : [];
   });
   protected readonly podeCriar = computed(() => this.areasPermitidas().length > 0);
 
   protected readonly filas = computed(() => this.dados.dados() ?? []);
   protected readonly opcoesArea = computed<readonly OpcaoFiltro[]>(() => {
     const filas = this.filas();
-    const areas = AREAS_DO_ATENDIMENTO.filter((area) => filas.some((fila) => fila.area === area));
+    const areas = this.setores
+      .todos()
+      .map((setor) => setor.chave)
+      .filter((area) => filas.some((fila) => fila.area === area));
     if (areas.length < 2) {
       return [];
     }
@@ -152,6 +147,7 @@ export class Filas {
   });
 
   constructor() {
+    void this.setores.carregar();
     this.carregar();
   }
 

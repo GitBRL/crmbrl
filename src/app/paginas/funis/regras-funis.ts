@@ -1,6 +1,6 @@
 import type { OpcaoFiltro } from '../../ui/filtros-pilula/filtros-pilula';
 import type { Area, Perfil } from '../../nucleo/sessao/perfil';
-import { ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import type {
   ColunaQuadro,
   Etapa,
@@ -242,17 +242,17 @@ function alcanca(escopo: string | undefined, perfil: Perfil, area: Area): boolea
   return escopo === 'TODOS' || (escopo === 'AREA' && perfil.usuario.area === area);
 }
 
-/** Criar, renomear, reordenar e remover etapas: Admin, C-level e o líder da área (R5.1). */
+/** Criar, renomear, reordenar e remover etapas: Admin, C-level e o líder do setor (R5.1). */
 export function podeConfigurarFunil(perfil: Perfil | null, area: Area): boolean {
   return !!perfil && alcanca(perfil.permissoes.configurarFunis, perfil, area);
 }
 
-/** Reabrir ganho/perdido (e tirar de etapa fechada): líder da área, C-level e Admin (R5.5). */
+/** Reabrir ganho/perdido (e tirar de etapa fechada): líder do setor, C-level e Admin (R5.5). */
 export function podeReabrir(perfil: Perfil | null, area: Area): boolean {
   return !!perfil && alcanca(perfil.permissoes.reabrirNegocios, perfil, area);
 }
 
-/** Responsável de negócio do funil: alguém da área, C-level ou Admin (R5.9). */
+/** Responsável de negócio do funil: alguém do setor, C-level ou Admin (R5.9). */
 export function podeSerResponsavel(
   usuario: Pick<Usuario, 'area' | 'nivel'> | null | undefined,
   area: Area,
@@ -296,11 +296,16 @@ export function mostraValores(area: Area): boolean {
   return area !== 'MARKETING';
 }
 
-export const FRASE_DO_FUNIL: Readonly<Record<Area, string>> = {
+const FRASE_BASE: Readonly<Record<string, string>> = {
   MARKETING: 'Acompanhe cada lead até virar uma oportunidade qualificada.',
   COMERCIAL: 'Acompanhe cada oportunidade até o fechamento.',
   CS: 'Acompanhe cada cliente da chegada à renovação.',
 };
+
+/** Frase do cabeçalho do funil; setores novos usam a frase genérica. */
+export function fraseDoFunil(area: Area): string {
+  return FRASE_BASE[area] ?? 'Acompanhe cada negócio do setor até o fechamento.';
+}
 
 /** Nome do item no funil ("lead" no Marketing, "negócio" nos outros), para os textos. */
 export function nomeDoItem(area: Area, plural = false): string {
@@ -315,30 +320,42 @@ export function nomeDoItem(area: Area, plural = false): string {
  * passagens): a configuração **padrão**, em frases condicionais, dizendo onde conferir. Quem
  * lê a configuração vê as dicas montadas dos dados (`dicaDasPassagens`, `dicaDoRodizio`).
  */
-export const DICAS_DO_FUNIL: Readonly<Record<Area, { passagens: string; rodizio: string }>> = {
+const DICAS_BASE: Readonly<Record<string, { passagens: string; rodizio: string }>> = {
   MARKETING: {
     passagens:
       'Na configuração padrão, quando um lead entra em “Qualificado (MQL)”, o CRM cria sozinho um negócio no funil Comercial, com o mesmo contato e a mesma origem: uma única vez por lead e só enquanto a passagem estiver ligada. Admin e C-level ligam, desligam e escolhem quem recebe em Configurações › Passagens.',
     rodizio:
-      'Os leads dos webhooks configurados com rodízio vão para a próxima pessoa da fila de Marketing, na ordem (cada webhook escolhe quem fica com o lead: rodízio, responsável fixo ou líder da área). Se a liderança entra na fila depende da configuração da área. Sem ninguém na fila, o lead vai para o líder da área. A liderança confere em Configurações › Distribuição.',
+      'Os leads dos webhooks configurados com rodízio vão para a próxima pessoa da fila de Marketing, na ordem (cada webhook escolhe quem fica com o lead: rodízio, responsável fixo ou líder do setor). Se a liderança entra na fila depende da configuração do setor. Sem ninguém na fila, o lead vai para o líder do setor. A liderança confere em Configurações › Distribuição.',
   },
   COMERCIAL: {
     passagens:
       'Na configuração padrão, chegam aqui, na etapa Novo, os leads qualificados (MQL) no Marketing; e, quando um negócio é ganho, o CRM cria sozinho um negócio no Customer Success, com o valor e o valor recorrente. Cada passagem roda uma única vez por negócio e só enquanto estiver ligada. Admin e C-level conferem em Configurações › Passagens.',
     rodizio:
-      'Os negócios que chegam por uma passagem ou por um webhook configurados com rodízio vão para a próxima pessoa da fila Comercial, na ordem (cada um escolhe quem recebe: rodízio, responsável fixo ou líder da área). Se a liderança entra na fila depende da configuração da área. Sem ninguém na fila, vão para o líder da área. A liderança confere em Configurações › Distribuição.',
+      'Os negócios que chegam por uma passagem ou por um webhook configurados com rodízio vão para a próxima pessoa da fila Comercial, na ordem (cada um escolhe quem recebe: rodízio, responsável fixo ou líder do setor). Se a liderança entra na fila depende da configuração do setor. Sem ninguém na fila, vão para o líder do setor. A liderança confere em Configurações › Distribuição.',
   },
   CS: {
     passagens:
       'Na configuração padrão, cada negócio ganho no Comercial chega aqui na etapa Boas-vindas, com o mesmo contato, a empresa, o valor e o valor recorrente: uma única vez por negócio e só enquanto a passagem estiver ligada. Admin e C-level conferem em Configurações › Passagens.',
     rodizio:
-      'Os clientes que chegam por uma passagem ou por um webhook configurados com rodízio vão para a próxima pessoa da fila de Customer Success, na ordem (cada um escolhe quem recebe: rodízio, responsável fixo ou líder da área). Se a liderança entra na fila depende da configuração da área. Sem ninguém na fila, vão para o líder da área. A liderança confere em Configurações › Distribuição.',
+      'Os clientes que chegam por uma passagem ou por um webhook configurados com rodízio vão para a próxima pessoa da fila de Customer Success, na ordem (cada um escolhe quem recebe: rodízio, responsável fixo ou líder do setor). Se a liderança entra na fila depende da configuração do setor. Sem ninguém na fila, vão para o líder do setor. A liderança confere em Configurações › Distribuição.',
   },
 };
 
+/** Dicas do cabeçalho; setores novos usam as dicas genéricas (passagens e rodízio por setor). */
+export function dicasDoFunil(area: Area): { passagens: string; rodizio: string } {
+  return (
+    DICAS_BASE[area] ?? {
+      passagens:
+        'Passagens levam o negócio de um funil para outro quando ele chega a uma etapa. Admin e C-level conferem em Configurações › Passagens.',
+      rodizio:
+        'Os negócios que chegam por uma passagem ou por um webhook configurados com rodízio vão para a próxima pessoa da fila do setor, na ordem. Sem ninguém na fila, vão para o líder do setor. A liderança confere em Configurações › Distribuição.',
+    }
+  );
+}
+
 /** "pelo rodízio de Comercial", "aos cuidados de Rafael Mendes", "aos cuidados do líder de CS". */
 function quemRecebeNaPassagem(passagem: PassagemDoFunil): string {
-  const area = ROTULO_AREA[passagem.funilDestino.area];
+  const area = nomeDoSetor(passagem.funilDestino.area);
   switch (passagem.estrategia) {
     case 'RODIZIO':
       return `pelo rodízio de ${area}`;
@@ -384,7 +401,7 @@ export function dicaDasPassagens(
 }
 
 /**
- * Dica "Rodízio" montada da regra da área (`GET /regras-distribuicao`): quantas pessoas estão
+ * Dica "Rodízio" montada da regra do setor (`GET /regras-distribuicao`): quantas pessoas estão
  * na fila agora e se a liderança entra (R5.8).
  */
 export function dicaDoRodizio(area: Area, regra: RegraDoRodizio): string {
@@ -392,9 +409,9 @@ export function dicaDoRodizio(area: Area, regra: RegraDoRodizio): string {
   const quantos = regra.participantes.length;
   const fila =
     quantos === 0
-      ? `Hoje a fila de ${ROTULO_AREA[area]} está vazia: o que chegar por rodízio vai para o líder da área (sem líder, para um C-level).`
-      : `Hoje ${quantos === 1 ? 'há 1 pessoa' : `há ${quantos} pessoas`} na fila de ${ROTULO_AREA[area]}, ${regra.incluirLideres ? 'contando a liderança' : 'sem a liderança'}.`;
-  return `Os ${itens} que chegam por rodízio vão para a próxima pessoa da fila, na ordem. ${fila} Só entram pelo rodízio os webhooks e as passagens configurados assim: cada um escolhe quem recebe (rodízio, responsável fixo ou líder da área). Quem participa fica em Configurações › Distribuição.`;
+      ? `Hoje a fila de ${nomeDoSetor(area)} está vazia: o que chegar por rodízio vai para o líder do setor (sem líder, para um C-level).`
+      : `Hoje ${quantos === 1 ? 'há 1 pessoa' : `há ${quantos} pessoas`} na fila de ${nomeDoSetor(area)}, ${regra.incluirLideres ? 'contando a liderança' : 'sem a liderança'}.`;
+  return `Os ${itens} que chegam por rodízio vão para a próxima pessoa da fila, na ordem. ${fila} Só entram pelo rodízio os webhooks e as passagens configurados assim: cada um escolhe quem recebe (rodízio, responsável fixo ou líder do setor). Quem participa fica em Configurações › Distribuição.`;
 }
 
 // O tempo na etapa ("12 d", "ontem", "hoje") é do núcleo: o detalhe do contato usa o mesmo.
@@ -494,5 +511,3 @@ export function mensagemDaMovimentacao(
   }
   return { tipo: 'sucesso', mensagem: `“${negocio.titulo}” movido para ${negocio.etapa.nome}.` };
 }
-
-export { ROTULO_AREA };

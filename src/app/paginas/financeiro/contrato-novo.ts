@@ -31,6 +31,8 @@ import {
   ROTULO_PERIODICIDADE,
 } from './financeiro.tipos';
 import { numeroDoCampo, textoDoErro } from './modais-parcela';
+import { ehCarteiraDeCs } from './acesso-financeiro';
+import { ehMembroDe } from '../../nucleo/papeis';
 
 const OPCOES_PERIODICIDADE: readonly OpcaoSeletor<Periodicidade>[] = PERIODICIDADES.map(
   (valor) => ({ valor, rotulo: ROTULO_PERIODICIDADE[valor] }),
@@ -214,11 +216,9 @@ export class ContratoNovo {
   protected readonly negocioId = signal<string | null>(
     this.rota.snapshot.queryParamMap.get('negocio'),
   );
-  protected readonly podeCriar = computed(() =>
-    this.sessao.temPapel('ADMIN', 'C_LEVEL', 'LIDER_CS', 'CS'),
-  );
+  protected readonly podeCriar = computed(() => ehCarteiraDeCs(this.sessao.usuario()));
   /** CS (membro) sempre fica como responsável: o campo nem aparece. */
-  protected readonly escolheResponsavel = computed(() => !this.sessao.temPapel('CS'));
+  protected readonly escolheResponsavel = computed(() => !ehMembroDe(this.sessao.usuario(), 'CS'));
 
   protected readonly vinculo = signal<Vinculo | null>(null);
   protected readonly produto = signal('');

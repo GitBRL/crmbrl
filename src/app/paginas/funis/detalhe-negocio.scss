@@ -203,6 +203,20 @@
   gap: var(--esp-5);
 }
 
+.dados__campos {
+  display: grid;
+  gap: var(--esp-5);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.dados__somente-leitura {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda-lg);
+}
+
 .dados__linha {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));

@@ -84,7 +84,6 @@ import {
   regraCompleta,
   type RegraEmEdicao,
   resumoDoRodape,
-  ROTULO_AREA_RODIZIO,
   ROTULO_OPERADOR,
   ROTULO_RESULTADO,
   ROTULO_STATUS,
@@ -94,6 +93,8 @@ import {
   VARIANTE_RESULTADO,
   VARIANTE_STATUS,
 } from './importar.tipos';
+import { ehGestorDaCarteira } from '../../financeiro/acesso-financeiro';
+import { SetoresService } from '../../../nucleo/setores/setores.service';
 
 type AbaDaTela = 'nova' | 'execucoes';
 
@@ -136,7 +137,7 @@ const OPCOES_RESPONSAVEL: readonly OpcaoGrupo<EstrategiaResponsavel | 'NENHUM'>[
   {
     valor: 'RODIZIO',
     rotulo: 'Dividir em rodízio',
-    dica: 'Cada registro vai para uma pessoa da área, na vez de cada uma.',
+    dica: 'Cada registro vai para uma pessoa do setor, na vez de cada uma.',
   },
   {
     valor: 'RESPONSAVEL_FIXO',
@@ -144,10 +145,6 @@ const OPCOES_RESPONSAVEL: readonly OpcaoGrupo<EstrategiaResponsavel | 'NENHUM'>[
     dica: 'Todos os registros importados ficam com a pessoa escolhida.',
   },
 ];
-
-const OPCOES_AREA: readonly OpcaoSeletor<AreaRodizio>[] = (
-  Object.keys(ROTULO_AREA_RODIZIO) as AreaRodizio[]
-).map((valor) => ({ valor, rotulo: ROTULO_AREA_RODIZIO[valor] }));
 
 const OPCOES_SEPARADOR: readonly OpcaoSeletor<string>[] = [
   { valor: ',', rotulo: 'Vírgula ( , )' },
@@ -257,7 +254,8 @@ export class Importar implements OnInit {
   protected readonly tipoFixo =
     (this.rota.snapshot.data['tipo'] as TipoImportacao | undefined) ?? null;
   protected readonly opcoesResponsavel = OPCOES_RESPONSAVEL;
-  protected readonly opcoesArea = OPCOES_AREA;
+  protected readonly setores = inject(SetoresService);
+  protected readonly opcoesArea = computed(() => this.setores.opcoes());
   protected readonly opcoesSeparador = OPCOES_SEPARADOR;
   protected readonly opcoesCodificacao = OPCOES_CODIFICACAO;
   protected readonly opcoesOperador = OPCOES_OPERADOR;
@@ -276,7 +274,7 @@ export class Importar implements OnInit {
   /** A permissão nova (`/auth/eu` → `permissoes.importarContatos`); a API continua decidindo. */
   protected readonly podeImportar = computed(() =>
     this.tipoFixo === 'PARCELAS'
-      ? this.sessao.temPapel('ADMIN', 'C_LEVEL', 'LIDER_CS')
+      ? ehGestorDaCarteira(this.sessao.usuario())
       : this.sessao.permite(podeImportarContatos),
   );
 
@@ -577,6 +575,7 @@ export class Importar implements OnInit {
   private pedidoConferencia = 0;
 
   constructor() {
+    void this.setores.carregar();
     const destruir = inject(DestroyRef);
     const parar = this.tempoReal.ouvir('importacao.progresso', (dados) => this.aoProgresso(dados));
     destruir.onDestroy(() => {

@@ -43,6 +43,7 @@ import {
 } from './financeiro.tipos';
 import { ModalParcela } from './modais-parcela';
 import { PainelParcela } from './painel-parcela';
+import { ehCarteiraDeCs, ehGestorDaCarteira } from './acesso-financeiro';
 
 const CONSULTA_INICIAL: ConsultaParcelas = {
   pagina: 1,
@@ -203,7 +204,7 @@ const COLUNAS: readonly ColunaTabela[] = [
             : 'Não conseguimos carregar as parcelas'
         "
         [texto]="
-          falha.ehSemPermissao ? 'Peça ao líder da sua área para liberar o acesso.' : falha.resumo
+          falha.ehSemPermissao ? 'Peça ao líder do seu setor para liberar o acesso.' : falha.resumo
         "
         [codigo]="falha.requisicaoId"
       >
@@ -341,12 +342,8 @@ export class Parcelas {
   );
   protected readonly novaAberta = signal(false);
 
-  protected readonly podeCriar = computed(() =>
-    this.sessao.temPapel('ADMIN', 'C_LEVEL', 'LIDER_CS', 'CS'),
-  );
-  protected readonly podeGerenciar = computed(() =>
-    this.sessao.temPapel('ADMIN', 'C_LEVEL', 'LIDER_CS'),
-  );
+  protected readonly podeCriar = computed(() => ehCarteiraDeCs(this.sessao.usuario()));
+  protected readonly podeGerenciar = computed(() => ehGestorDaCarteira(this.sessao.usuario()));
 
   protected readonly dados = resource({
     params: () => this.consulta(),

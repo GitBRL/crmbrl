@@ -3,6 +3,7 @@ import { LucideLayoutDashboard } from '@lucide/angular';
 import { MODULOS_BASE, moduloBasePorRota } from './modulos';
 import { agruparModulos, GRUPOS, MODULOS, moduloPorId, moduloPorRota } from './navegacao';
 import { listarPapeis } from './papeis';
+import { perfilDeTeste } from './sessao/sessao-de-teste';
 
 describe('navegacao', () => {
   it('ids e rotas são únicos; módulos "em breve" têm fase e funcionalidades', () => {
@@ -42,15 +43,21 @@ describe('navegacao', () => {
     ]);
   });
 
-  it('R12: Marketing e o líder de Marketing não veem o Atendimento (a API recusa os dois)', () => {
-    const papeis = moduloPorId('atendimento')?.papeis ?? [];
-    expect(papeis).not.toContain('MARKETING');
-    expect(papeis).not.toContain('LIDER_MARKETING');
-    expect(papeis).toContain('LIDER_CS');
+  it('R12: o setor de Marketing (líder e membro) não vê o Atendimento (a API recusa)', () => {
+    const modulo = moduloPorId('atendimento');
+    const acesso = (papel: Parameters<typeof perfilDeTeste>[0]) => {
+      const perfil = perfilDeTeste(papel);
+      return modulo?.acesso?.(perfil.permissoes, perfil.usuario) ?? true;
+    };
+    expect(acesso('LIDER_MARKETING')).toBe(false);
+    expect(acesso('MARKETING')).toBe(false);
+    expect(acesso('LIDER_CS')).toBe(true);
+    expect(acesso('COMERCIAL')).toBe(true);
+    expect(acesso('C_LEVEL')).toBe(true);
   });
 
   it('lista papéis em português', () => {
-    expect(listarPapeis(['ADMIN', 'C_LEVEL', 'LIDER_CS'])).toBe('Admin, C-level e Líder CS');
+    expect(listarPapeis(['ADMIN', 'C_LEVEL', 'LIDER'])).toBe('Admin, C-level e Líder');
     expect(listarPapeis(['ADMIN'])).toBe('Admin');
   });
 });

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
+import { ehConsultaComercial } from './acesso-financeiro';
 
 interface Secao {
   readonly caminho: string;
@@ -102,9 +103,7 @@ interface Secao {
 export class Financeiro {
   private readonly sessao = inject(SessaoService);
 
-  protected readonly somenteLeitura = computed(() =>
-    this.sessao.temPapel('COMERCIAL', 'LIDER_COMERCIAL'),
-  );
+  protected readonly somenteLeitura = computed(() => ehConsultaComercial(this.sessao.usuario()));
 
   protected readonly secoes = computed<readonly Secao[]>(() => {
     const lista: Secao[] = [

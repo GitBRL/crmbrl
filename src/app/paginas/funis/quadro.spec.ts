@@ -5,7 +5,7 @@ import { provideRouter } from '@angular/router';
 
 import { AvisosService } from '../../nucleo/avisos.service';
 import type { Papel } from '../../nucleo/papeis';
-import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
+import { entrarComo, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
 import {
   colunasDeTeste,
   ETAPAS,
@@ -14,7 +14,7 @@ import {
   negocioDeTeste,
   quadroDeTeste,
 } from './funis-de-teste';
-import type { Negocio } from './funis.tipos';
+import type { Funil, Negocio, NivelNoFunil } from './funis.tipos';
 import { QuadroFunil } from './quadro';
 
 const [NOVO, PROPOSTA] = ETAPAS;
@@ -43,9 +43,10 @@ describe('QuadroFunil', () => {
   });
 
   async function abrir(
-    papel: Papel = 'LIDER_COMERCIAL',
+    papel: PapelDeTeste = 'LIDER_COMERCIAL',
     negocios?: Record<string, Negocio[]>,
     etapaId?: string,
+    extra: { funil?: Funil; todos?: readonly Funil[] } = {},
   ) {
     entrarComo(papel);
     fixture = TestBed.createComponent(QuadroFunil);
@@ -55,7 +56,12 @@ describe('QuadroFunil', () => {
     }
     raiz = fixture.nativeElement as HTMLElement;
     fixture.detectChanges();
-    http.expectOne('/api/v1/funis?area=COMERCIAL').flush([funilDeTeste()]);
+    const funil = extra.funil ?? funilDeTeste();
+    http.expectOne('/api/v1/funis?area=COMERCIAL').flush([funil]);
+    await microtarefas();
+    http
+      .expectOne((req) => req.url === '/api/v1/funis' && !req.params.has('area'))
+      .flush(extra.todos ?? [funil]);
     await microtarefas();
     http
       .expectOne((req) => req.url === `/api/v1/funis/${FUNIL_ID}/quadro`)
@@ -167,6 +173,81 @@ describe('QuadroFunil', () => {
       (botao) => botao.textContent?.includes('Da equipe'),
     );
     expect(equipe?.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  describe('botões por nível no funil (R5.12)', () => {
+    const comNivel = (nivel: NivelNoFunil) => ({ funil: funilDeTeste({ nivel }) });
+    const botaoNovo = () =>
+      [...raiz.querySelectorAll('button')].some((b) => b.textContent?.includes('Novo negócio'));
+
+    it('VER: só olha, sem novo negócio, sem alça de mover, sem assumir e sem configurar', async () => {
+      await abrir('ADMIN', undefined, undefined, comNivel('VER'));
+      expect(botaoNovo()).toBe(false);
+      expect(raiz.querySelector('[data-mover]')).toBeNull();
+      expect(raiz.querySelector('.cartao__assumir')).toBeNull();
+      expect(raiz.textContent).not.toContain('Configurar etapas');
+      expect(raiz.textContent).not.toContain('Configurar funil');
+      expect(raiz.querySelector('.quadro__aviso')?.textContent).toContain('Você só pode ver');
+      expect(raiz.querySelectorAll('.cartao').length).toBe(3);
+    });
+
+    it.each<NivelNoFunil>(['MEMBRO', 'GESTOR'])(
+      '%s: cria e move, mas não configura nem reabre',
+      async (nivel) => {
+        await abrir('LIDER_COMERCIAL', undefined, undefined, comNivel(nivel));
+        expect(botaoNovo()).toBe(true);
+        expect(raiz.querySelector('[data-mover]')).not.toBeNull();
+        expect(raiz.textContent).not.toContain('Configurar etapas');
+        expect(raiz.textContent).not.toContain('Configurar funil');
+      },
+    );
+
+    it('CONFIGURAR: também configura o funil (link para a tela) e as etapas', async () => {
+      await abrir('COMERCIAL', undefined, undefined, comNivel('CONFIGURAR'));
+      expect(botaoNovo()).toBe(true);
+      expect(raiz.textContent).toContain('Configurar etapas');
+      const link = [...raiz.querySelectorAll('a')].find((a) =>
+        a.textContent?.includes('Configurar funil'),
+      );
+      expect(link?.getAttribute('href')).toBe(`/configuracoes/funis/${FUNIL_ID}`);
+    });
+
+    it('o nível manda mais que o papel: líder do setor que só vê não configura', async () => {
+      await abrir('LIDER_COMERCIAL', undefined, undefined, comNivel('VER'));
+      expect(raiz.textContent).not.toContain('Configurar etapas');
+      expect(botaoNovo()).toBe(false);
+    });
+  });
+
+  describe('seletor de funis agrupado por setor', () => {
+    const funilDoCs = funilDeTeste({
+      id: 'funil-cs',
+      nome: 'Pós-venda',
+      area: 'CS',
+      nomeSetor: 'Customer Success',
+      base: false,
+      nivel: 'VER',
+    });
+    const funilExtra = funilDeTeste({ id: 'funil-extra', nome: 'Parcerias', base: false });
+
+    it('agrupa por setor e inclui os funis de outros setores que a pessoa vê por acesso', async () => {
+      await abrir('LIDER_COMERCIAL', undefined, undefined, {
+        todos: [funilDoCs, funilExtra, funilDeTeste()],
+      });
+      const grupos = [...raiz.querySelectorAll('.filtros__funil optgroup')].map((g) => ({
+        setor: g.getAttribute('label'),
+        funis: [...g.querySelectorAll('option')].map((o) => o.textContent?.trim()),
+      }));
+      expect(grupos).toEqual([
+        { setor: 'Comercial', funis: ['Comercial', 'Parcerias'] },
+        { setor: 'Customer Success', funis: ['Pós-venda'] },
+      ]);
+    });
+
+    it('sem outros funis, o seletor nem aparece', async () => {
+      await abrir('LIDER_COMERCIAL');
+      expect(raiz.querySelector('.filtros__funil')).toBeNull();
+    });
   });
 
   it('o líder vê "Configurar etapas"', async () => {

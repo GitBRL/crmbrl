@@ -161,7 +161,7 @@ export class EditorFluxo {
     if (!f) {
       return [];
     }
-    const semEdicao = f.podeEditar ? undefined : 'Só quem cuida da área edita este fluxo.';
+    const semEdicao = f.podeEditar ? undefined : 'Só quem cuida do setor edita este fluxo.';
     return [
       f.ativo
         ? {

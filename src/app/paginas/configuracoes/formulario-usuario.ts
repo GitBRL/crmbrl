@@ -17,8 +17,9 @@ import { LucideKeyRound, LucideSend } from '@lucide/angular';
 import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarDataHora } from '../../nucleo/formatos';
-import { PAPEIS, ROTULO_PAPEL, type Papel } from '../../nucleo/papeis';
+import { PAPEIS, papelExigeSetor, ROTULO_PAPEL, type Papel } from '../../nucleo/papeis';
 import { SENHA_MAXIMO, SENHA_MINIMO } from '../../nucleo/sessao/perfil';
+import { SetoresService } from '../../nucleo/setores/setores.service';
 import { Botao } from '../../ui/botao/botao';
 import { CampoSenha } from '../../ui/campo-senha/campo-senha';
 import { CampoTexto } from '../../ui/campo-texto/campo-texto';
@@ -33,7 +34,6 @@ import {
   AJUDA_LIDER,
   explicacaoDoLider,
   liderEsperado,
-  rotuloDaAreaDoPapel,
   semLiderDisponivel,
 } from './hierarquia';
 import { CandidatosALider } from './lideres';
@@ -60,16 +60,16 @@ const OPCOES_ACESSO: readonly OpcaoGrupo<Acesso>[] = [
   },
 ];
 
-/** Os papéis no seletor, com a área: "Líder Comercial · Comercial". */
+/** Os papéis no seletor: Admin, C-level, Líder e Membro (o setor vai em outro campo). */
 export const OPCOES_PAPEL: readonly OpcaoSeletor<Papel>[] = PAPEIS.map((papel) => ({
   valor: papel,
-  rotulo: `${ROTULO_PAPEL[papel]} · ${rotuloDaAreaDoPapel(papel)}`,
+  rotulo: ROTULO_PAPEL[papel],
 }));
 
 /**
- * Convidar e editar usuário (TELAS-FASE1 §6, Admin): nome, e-mail, papel e líder. O seletor de
- * líder só oferece quem a regra R1.2 permite para o papel escolhido — os ativos com o papel de
- * líder esperado — e diz por quê. Os erros da API (e-mail repetido, hierarquia, liderados que
+ * Convidar e editar usuário (TELAS-FASE1 §6, Admin): nome, e-mail, papel, setor (obrigatório para
+ * Líder e Membro) e líder. O seletor de líder só oferece quem a regra R1.2 permite — líderes
+ * ativos do mesmo setor para o membro, C-levels para o líder — e diz por quê. Os erros da API (e-mail repetido, hierarquia, liderados que
  * ficariam sem líder) voltam para o campo certo.
  */
 @Component({
@@ -88,6 +88,7 @@ export class FormularioUsuario {
 
   private readonly api = inject(ConfiguracoesApi);
   private readonly avisos = inject(AvisosService);
+  protected readonly setores = inject(SetoresService);
 
   protected readonly idFormulario = gerarId('formulario-usuario');
   protected readonly opcoesAcesso = OPCOES_ACESSO;
@@ -108,6 +109,7 @@ export class FormularioUsuario {
       validators: [Validators.required, Validators.email],
     }),
     papel: new FormControl<Papel | null>(null, { validators: [Validators.required] }),
+    area: new FormControl<string | null>(null),
     liderId: new FormControl<string | null>(null),
     telefone: new FormControl('', { nonNullable: true }),
     identificador: new FormControl('', {
@@ -120,6 +122,11 @@ export class FormularioUsuario {
 
   /** O papel escolhido, como signal (define as opções de líder). */
   protected readonly papel = signal<Papel | null>(null);
+  /** O setor escolhido, como signal (define quem pode ser líder de um membro). */
+  protected readonly area = signal<string | null>(null);
+  protected readonly exigeSetor = computed(() => papelExigeSetor(this.papel()));
+  /** Setores ativos; o setor atual de quem está sendo editado entra mesmo se estiver inativo. */
+  protected readonly opcoesSetor = computed(() => this.setores.opcoesCom(this.editando()?.area));
   protected readonly acesso = signal<Acesso>('convite');
   private readonly liderIdAtual = signal<string | null>(null);
 
@@ -136,7 +143,7 @@ export class FormularioUsuario {
     const papel = this.papel();
     return papel !== null && liderEsperado(papel) !== null;
   });
-  protected readonly explicacaoLider = computed(() => explicacaoDoLider(this.papel()));
+  protected readonly explicacaoLider = computed(() => explicacaoDoLider(this.papel(), this.area()));
 
   /** Quem pode liderar o papel escolhido (R1.2), já sem a própria pessoa. */
   protected readonly opcoesLider = computed<readonly OpcaoSeletor<string>[]>(() => {
@@ -146,7 +153,12 @@ export class FormularioUsuario {
       .map((candidato) => ({ valor: candidato.id, rotulo: candidato.nome }));
     // O líder atual fora da regra (provisório depois de um desligamento, R7.3) continua visível.
     const atual = usuario?.lider;
-    if (atual && usuario.papel === this.papel() && !opcoes.some((o) => o.valor === atual.id)) {
+    if (
+      atual &&
+      usuario.papel === this.papel() &&
+      usuario.area === this.area() &&
+      !opcoes.some((o) => o.valor === atual.id)
+    ) {
       opcoes.push({ valor: atual.id, rotulo: `${atual.nome} (provisório)` });
     }
     return opcoes;
@@ -154,13 +166,14 @@ export class FormularioUsuario {
   protected readonly semCandidatos = computed(
     () =>
       this.liderNecessario() &&
+      (this.papel() !== 'MEMBRO' || !!this.area()) &&
       this.lideres.candidatos() !== null &&
       !this.lideres.carregando() &&
       this.opcoesLider().length === 0,
   );
   protected readonly mensagemSemCandidatos = computed(() => {
     const papel = this.papel();
-    return papel ? semLiderDisponivel(papel) : '';
+    return papel ? semLiderDisponivel(papel, this.area()) : '';
   });
   /** Editando alguém que responde provisoriamente a quem recebeu a equipe (R7.3). */
   protected readonly liderProvisorio = computed(() => {
@@ -169,6 +182,7 @@ export class FormularioUsuario {
       usuario !== null &&
       usuario.lider !== null &&
       usuario.papel === this.papel() &&
+      usuario.area === this.area() &&
       this.liderIdAtual() === usuario.lider.id &&
       aguardaNovoLider(usuario)
     );
@@ -181,14 +195,21 @@ export class FormularioUsuario {
   private readonly campoNome = viewChild<CampoTexto>('campoNome');
   private readonly campoEmail = viewChild<CampoTexto>('campoEmail');
   private readonly campoPapel = viewChild<Seletor<Papel>>('campoPapel');
+  private readonly campoSetor = viewChild<Seletor<string>>('campoSetor');
   private readonly campoLider = viewChild<Seletor<string>>('campoLider');
   private readonly campoSenha = viewChild<CampoSenha>('campoSenha');
 
   constructor() {
     const controles = this.formulario.controls;
+    void this.setores.carregar();
     controles.papel.valueChanges.pipe(takeUntilDestroyed()).subscribe((papel) => {
       this.papel.set(papel);
+      this.ajustarSetor(papel);
       void this.aoMudarPapel(papel);
+    });
+    controles.area.valueChanges.pipe(takeUntilDestroyed()).subscribe((area) => {
+      this.area.set(area);
+      void this.aoMudarPapel(this.papel());
     });
     controles.acesso.valueChanges.pipe(takeUntilDestroyed()).subscribe((acesso) => {
       this.acesso.set(acesso);
@@ -227,6 +248,10 @@ export class FormularioUsuario {
       return;
     }
     this.erroGeral.set(null);
+    // Esquece o erro da tentativa anterior (o `setErrors` da API fica até revalidar).
+    Object.values(this.formulario.controls).forEach((controle) =>
+      controle.updateValueAndValidity({ emitEvent: false }),
+    );
     this.formulario.markAllAsTouched();
     if (this.formulario.invalid || this.semCandidatos()) {
       this.focarPrimeiroInvalido();
@@ -258,6 +283,7 @@ export class FormularioUsuario {
       nome: valor.nome.trim(),
       email: valor.email.trim(),
       papel,
+      ...(papelExigeSetor(papel) ? { area: valor.area } : {}),
       ...(liderEsperado(papel) ? { liderId: valor.liderId } : {}),
       ...(telefone ? { telefone } : {}),
       ...(valor.identificador.trim()
@@ -310,6 +336,9 @@ export class FormularioUsuario {
       ...(valor.nome.trim() !== usuario.nome ? { nome: valor.nome.trim() } : {}),
       ...(valor.email.trim().toLowerCase() !== usuario.email ? { email: valor.email.trim() } : {}),
       ...(papel !== usuario.papel ? { papel } : {}),
+      ...(papelExigeSetor(papel) && (papel !== usuario.papel || valor.area !== usuario.area)
+        ? { area: valor.area }
+        : {}),
       ...(liderId !== (usuario.lider?.id ?? null) ? { liderId } : {}),
       ...(telefone !== formatarTelefone(usuario.telefone) ? { telefone: telefone || null } : {}),
       ...(identificador !== (usuario.identificadorIntegracao ?? '')
@@ -329,6 +358,7 @@ export class FormularioUsuario {
       nome: c.nome as FormControl<unknown>,
       email: c.email as FormControl<unknown>,
       papel: c.papel as FormControl<unknown>,
+      area: c.area as FormControl<unknown>,
       liderId: c.liderId as FormControl<unknown>,
       telefone: c.telefone as FormControl<unknown>,
       identificadorIntegracao: c.identificador as FormControl<unknown>,
@@ -351,15 +381,22 @@ export class FormularioUsuario {
           ? porCampo['email']
           : erro.ehConflito && /identificador/i.test(erro.resumo)
             ? porCampo['identificadorIntegracao']
-            : regra === 'R1.2'
-              ? this.liderNecessario()
-                ? porCampo['liderId']
-                : porCampo['papel']
-              : regra === 'R1.3' || regra === 'R1.4'
-                ? porCampo['papel']
-                : regra === 'R2.8'
-                  ? (c.acesso as FormControl<unknown>)
-                  : null;
+            : regra === 'R1.9'
+              ? porCampo['area']
+              : regra === 'R1.2'
+                ? this.liderNecessario()
+                  ? porCampo['liderId']
+                  : porCampo['papel']
+                : regra === 'R1.3'
+                  ? // Líder com liderados não muda de setor nem deixa de ser líder.
+                    this.exigeSetor() && this.area() !== this.editando()?.area
+                    ? porCampo['area']
+                    : porCampo['papel']
+                  : regra === 'R1.4'
+                    ? porCampo['papel']
+                    : regra === 'R2.8'
+                      ? (c.acesso as FormControl<unknown>)
+                      : null;
       if (alvo) {
         noCampo(alvo, erro.resumo);
         noLugar = true;
@@ -381,6 +418,7 @@ export class FormularioUsuario {
         nome: usuario?.nome ?? '',
         email: usuario?.email ?? '',
         papel: usuario?.papel ?? null,
+        area: usuario?.area ?? null,
         liderId: usuario?.lider?.id ?? null,
         telefone: formatarTelefone(usuario?.telefone ?? null),
         identificador: usuario?.identificadorIntegracao ?? '',
@@ -391,6 +429,8 @@ export class FormularioUsuario {
     );
     // Sem eventos no reset: os signals e as opções de líder são sincronizados aqui.
     this.papel.set(usuario?.papel ?? null);
+    this.area.set(usuario?.area ?? null);
+    this.ajustarSetor(usuario?.papel ?? null);
     this.liderIdAtual.set(usuario?.lider?.id ?? null);
     this.acesso.set('convite');
     this.ajustarSenha('convite');
@@ -409,12 +449,12 @@ export class FormularioUsuario {
       liderId.setValidators([]);
       liderId.setValue(null);
       liderId.disable();
-      await this.lideres.carregar(papel);
+      await this.lideres.carregar(papel, this.area());
       return;
     }
     liderId.setValidators([Validators.required]);
     liderId.enable();
-    const candidatos = await this.lideres.carregar(papel, opcoes.recarregar);
+    const candidatos = await this.lideres.carregar(papel, this.area(), opcoes.recarregar);
     if (candidatos === null) {
       return;
     }
@@ -423,6 +463,21 @@ export class FormularioUsuario {
       // Com uma opção só, ela já vem escolhida.
       liderId.setValue(disponiveis.length === 1 ? disponiveis[0].valor : null);
     }
+  }
+
+  /** Setor é obrigatório para Líder e Membro; Admin e C-level não têm setor. */
+  private ajustarSetor(papel: Papel | null): void {
+    const area = this.formulario.controls.area;
+    if (papelExigeSetor(papel)) {
+      area.setValidators([Validators.required]);
+      area.enable({ emitEvent: false });
+    } else {
+      area.setValidators([]);
+      area.setValue(null, { emitEvent: false });
+      this.area.set(null);
+      area.disable({ emitEvent: false });
+    }
+    area.updateValueAndValidity({ emitEvent: false });
   }
 
   private ajustarSenha(acesso: Acesso): void {
@@ -447,6 +502,7 @@ export class FormularioUsuario {
       [c.nome.invalid, this.campoNome()],
       [c.email.invalid, this.campoEmail()],
       [c.papel.invalid, this.campoPapel()],
+      [c.area.invalid, this.campoSetor()],
       [c.liderId.invalid || this.semCandidatos(), this.campoLider()],
       [c.senha.invalid, this.campoSenha()],
     ];

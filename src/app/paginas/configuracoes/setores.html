@@ -1,0 +1,230 @@
+<section class="secao" aria-labelledby="setores-titulo">
+  <header class="secao__cabecalho">
+    <div class="secao__textos">
+      <h2 class="secao__titulo" id="setores-titulo">Setores</h2>
+      <p class="secao__frase">
+        @if (gere()) {
+          Os setores da empresa, com os líderes de cada um e quem mais pode ver os funis deles.
+        } @else {
+          O seu setor e quem mais pode ver os funis dele.
+        }
+      </p>
+    </div>
+    @if (gere()) {
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        class="secao__acao"
+        [icone]="iconeNovo"
+        (click)="novo()"
+      >
+        <span class="secao__acao-texto">Novo setor</span>
+      </button>
+    }
+  </header>
+
+  @if (gere() && temDesativados()) {
+    <app-caixa-selecao
+      rotulo="Mostrar desativados"
+      [valor]="mostrarDesativados()"
+      (valorChange)="mostrarDesativados.set($event)"
+    />
+  }
+
+  @if (setores.erro() && !setores.carregado()) {
+    <app-estado-vazio
+      variante="erro"
+      titulo="Não conseguimos carregar os setores"
+      texto="Confira a conexão e tente de novo."
+    >
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        [icone]="iconeTentar"
+        (click)="carregar()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else if (!setores.carregado()) {
+    <div class="setores__lista" aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando os setores…</p>
+      @for (item of [1, 2, 3]; track item) {
+        <app-cartao>
+          <div class="setores__esqueleto">
+            <app-esqueleto largura="35%" />
+            <app-esqueleto largura="70%" />
+            <app-esqueleto largura="50%" />
+          </div>
+        </app-cartao>
+      }
+    </div>
+  } @else if (itens().length === 0) {
+    <app-estado-vazio
+      titulo="Nenhum setor para mostrar"
+      [texto]="
+        gere()
+          ? 'Crie o primeiro setor em “Novo setor”.'
+          : 'Só o líder do setor gerencia quem mais o vê.'
+      "
+    />
+  } @else {
+    <ul class="setores__lista" aria-label="Setores">
+      @for (item of itens(); track item.setor.chave) {
+        <li>
+          <app-cartao class="setor" [class.setor--inativo]="!item.setor.ativo" [nivel]="3">
+            <div class="setor__topo">
+              <h3 class="setor__nome">
+                <app-selo [variante]="item.variante">{{ item.setor.nome }}</app-selo>
+              </h3>
+              @if (item.setor.base) {
+                <app-selo variante="contorno">Base</app-selo>
+              }
+              @if (!item.setor.ativo) {
+                <app-selo variante="contorno">Desativado</app-selo>
+              }
+            </div>
+
+            <div class="setor__corpo">
+              @if (item.setor.descricao) {
+                <p class="setor__descricao">{{ item.setor.descricao }}</p>
+              }
+              <dl class="setor__detalhes">
+                @if (gere()) {
+                  <div>
+                    <dt>Líderes</dt>
+                    <dd>{{ item.lideres }}</dd>
+                  </div>
+                  <div>
+                    <dt>Ativos agora</dt>
+                    <dd>{{ item.contagens }}</dd>
+                  </div>
+                }
+              </dl>
+
+              <div class="setor__acoes">
+                @if (item.setor.ativo) {
+                  <button
+                    appBotao
+                    type="button"
+                    tamanho="sm"
+                    variante="contorno"
+                    (click)="verAcessos(item.setor)"
+                  >
+                    Quem mais vê
+                  </button>
+                }
+                @if (gere()) {
+                  <button
+                    appBotao
+                    type="button"
+                    tamanho="sm"
+                    variante="contorno"
+                    (click)="editar(item.setor)"
+                  >
+                    Editar
+                  </button>
+                  @if (!item.setor.ativo) {
+                    <button
+                      appBotao
+                      type="button"
+                      tamanho="sm"
+                      variante="contorno"
+                      [carregando]="emAndamento() === item.setor.chave"
+                      (click)="reativar(item.setor)"
+                    >
+                      Reativar
+                    </button>
+                  } @else if (!item.setor.base) {
+                    <button
+                      appBotao
+                      type="button"
+                      tamanho="sm"
+                      variante="contorno"
+                      [carregando]="emAndamento() === item.setor.chave"
+                      (click)="desativar(item.setor)"
+                    >
+                      Desativar
+                    </button>
+                  }
+                }
+              </div>
+            </div>
+          </app-cartao>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (gere()) {
+    <app-setores-formulario [pedido]="formulario()" (fechado)="formulario.set(null)" />
+  }
+  <app-setores-acessos [setor]="acessos()" (fechado)="acessos.set(null)" />
+
+  <app-modal
+    [titulo]="'Não dá para desativar ' + (bloqueio()?.setor?.nome ?? '')"
+    [aberto]="bloqueio() !== null"
+    (fechado)="fecharBloqueio()"
+  >
+    @if (bloqueio(); as b) {
+      <div class="bloqueio">
+        <p>
+          Um setor só pode ser desativado vazio. Tire do setor o que está abaixo e tente de novo.
+        </p>
+        @if (b.pendencias.usuarios.length > 0) {
+          <section aria-labelledby="bloqueio-usuarios">
+            <h3 id="bloqueio-usuarios">Pessoas ativas</h3>
+            <ul>
+              @for (pessoa of b.pendencias.usuarios; track pessoa.id) {
+                <li>
+                  {{ pessoa.nome }} <span class="bloqueio__detalhe">{{ pessoa.rotulo }}</span>
+                </li>
+              }
+            </ul>
+            <a routerLink="/configuracoes/usuarios" (click)="fecharBloqueio()"
+              >Mudar o setor das pessoas em Usuários</a
+            >
+          </section>
+        }
+        @if (b.pendencias.funis.length > 0) {
+          <section aria-labelledby="bloqueio-funis">
+            <h3 id="bloqueio-funis">Funis ativos</h3>
+            <ul>
+              @for (funil of b.pendencias.funis; track funil.id) {
+                <li>
+                  <a [routerLink]="['/configuracoes/funis', funil.id]" (click)="fecharBloqueio()">{{
+                    funil.nome
+                  }}</a>
+                  @if (funil.base) {
+                    <span class="bloqueio__detalhe">funil próprio do setor</span>
+                  }
+                </li>
+              }
+            </ul>
+            <p class="bloqueio__detalhe">Arquive cada funil na tela dele.</p>
+          </section>
+        }
+        @if (b.pendencias.filas.length > 0) {
+          <section aria-labelledby="bloqueio-filas">
+            <h3 id="bloqueio-filas">Filas de atendimento ativas</h3>
+            <ul>
+              @for (fila of b.pendencias.filas; track fila.id) {
+                <li>{{ fila.nome }}</li>
+              }
+            </ul>
+            <a routerLink="/configuracoes/atendimento" (click)="fecharBloqueio()"
+              >Desativar as filas em Atendimento</a
+            >
+          </section>
+        }
+      </div>
+    }
+    <div modal-rodape class="bloqueio__acoes">
+      <button appBotao type="button" variante="invertido" (click)="fecharBloqueio()">
+        Entendi
+      </button>
+    </div>
+  </app-modal>
+</section>

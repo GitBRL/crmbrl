@@ -50,6 +50,7 @@ import { provideIcones } from './icones';
 import { MenuLateral } from './menu-lateral';
 import { NavegacaoInferior } from './navegacao-inferior';
 import { ancestralRolavel, RolagemEsmaecida, trazerParaVista } from './rolagem';
+import { SetoresService } from '../nucleo/setores/setores.service';
 
 /** Para onde o foco vai quando a gaveta fecha. */
 type FocoAposGaveta = 'anterior' | 'conteudo';
@@ -136,6 +137,9 @@ export class Casca {
   private esperaProgresso: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
+    // Setores (nomes e cores) para todas as telas: uma vez por sessão.
+    void inject(SetoresService).carregar();
+
     // O <dialog> da gaveta acompanha o estado (aberta pelo botão da barra superior).
     effect(() => {
       const aberta = this.estado.gavetaAberta();

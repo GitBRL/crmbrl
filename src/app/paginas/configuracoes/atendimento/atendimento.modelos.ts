@@ -5,14 +5,14 @@ import type { HorarioDeAtendimento, TipoCanal } from '../canais/canais.modelos';
 /**
  * Contratos da configuração do Atendimento (R12): crmbrl-api, `src/atendimento/dto/fila.dto.ts`,
  * `resposta-rapida.dto.ts` e `canal-atendimento.dto.ts`. Filas e respostas rápidas: Admin, C-level
- * e o líder da área; horário e satisfação dos canais: Admin e C-level (o líder vê).
+ * e o líder do setor; horário e satisfação dos canais: Admin e C-level (o líder vê).
  */
 
 export type { HorarioDeAtendimento };
 
 /** Áreas que atendem (o Marketing não usa o Atendimento). */
-export type AreaDoAtendimento = 'COMERCIAL' | 'CS';
-export const AREAS_DO_ATENDIMENTO: readonly AreaDoAtendimento[] = ['COMERCIAL', 'CS'];
+/** Setor que atende (chave): todos os ativos, menos o Marketing (R12). */
+export type AreaDoAtendimento = string;
 
 export type EstrategiaFila = 'RODIZIO' | 'MENOR_CARGA' | 'MANUAL';
 
@@ -61,9 +61,9 @@ export interface Fila {
   readonly slaResolucaoMinutos: number | null;
   readonly estrategia: EstrategiaFila;
   readonly ativa: boolean;
-  /** `AREA`: todos os membros ativos da área (menos os retirados); `LISTA`: só a lista. */
+  /** `AREA`: todos os membros ativos do setor (menos os retirados); `LISTA`: só a lista. */
   readonly modoParticipantes: 'AREA' | 'LISTA';
-  /** Pessoas ativas da área, na ordem do rodízio. */
+  /** Pessoas ativas do setor, na ordem do rodízio. */
   readonly pessoas: readonly PessoaNaFila[];
   /** Quem recebe a próxima conversa (`null`: ninguém; fica na fila). */
   readonly proximo: Pessoa | null;
@@ -83,7 +83,7 @@ export interface DadosFila {
   readonly slaResolucaoMinutos?: number | null;
   readonly estrategia?: EstrategiaFila;
   readonly ativa?: boolean;
-  /** Substitui a lista (vazia = a área inteira). */
+  /** Substitui a lista (vazia = o setor inteiro). */
   readonly participantes?: readonly string[];
 }
 
@@ -149,7 +149,7 @@ export interface RespostaRapida {
   readonly atalho: string;
   readonly titulo: string;
   readonly texto: string;
-  /** `null` = vale para todas as áreas. */
+  /** `null` = vale para todos os setores. */
   readonly area: Area | null;
   readonly arquivo: ArquivoDaResposta | null;
   readonly ativa: boolean;

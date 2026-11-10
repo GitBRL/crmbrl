@@ -9,7 +9,7 @@ import {
 } from '@lucide/angular';
 
 import { formatarData, formatarHora, paraData } from '../../nucleo/formatos';
-import { SLUG_AREA } from '../../nucleo/sessao/perfil';
+import { slugDaArea } from '../../nucleo/setores/setores';
 import {
   type MensagemConversa,
   ROTULO_TIPO,
@@ -279,9 +279,9 @@ export function nomeDoContato(contato: ConversaResumo['contato']): string {
 /** Rota do negócio no quadro (`/funis/<área>/<id>`). */
 export function rotaDoNegocio(negocio: {
   readonly id: string;
-  readonly funil: { readonly area: keyof typeof SLUG_AREA };
+  readonly funil: { readonly area: string };
 }): readonly string[] {
-  return ['/funis', SLUG_AREA[negocio.funil.area], negocio.id];
+  return ['/funis', slugDaArea(negocio.funil.area), negocio.id];
 }
 
 // Mensagens ------------------------------------------------------------------------------------

@@ -9,12 +9,13 @@ import {
 } from '@angular/core';
 import { LucideRefreshCw, LucideWorkflow } from '@lucide/angular';
 
-import { type Area, ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { type Area } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Dica } from '../../ui/dica/dica';
 import { FunisApi } from './funis.api';
 import type { PassagemDoFunil, RegraDoRodizio } from './funis.tipos';
-import { DICAS_DO_FUNIL, dicaDasPassagens, dicaDoRodizio } from './regras-funis';
+import { dicasDoFunil, dicaDasPassagens, dicaDoRodizio } from './regras-funis';
 
 /**
  * Dicas do cabeçalho do quadro (TELAS-FASE1 §3.1): como funcionam as passagens e o rodízio
@@ -106,10 +107,10 @@ export class RegrasFunil {
   /** A dica estava aberta quando o clique começou (o clique fora a fecha antes do "click"). */
   private estavaAberta = false;
 
-  protected readonly nomeDaArea = computed(() => ROTULO_AREA[this.area()]);
+  protected readonly nomeDaArea = computed(() => nomeDoSetor(this.area()));
   protected readonly dicas = computed(() => {
     const area = this.area();
-    const padrao = DICAS_DO_FUNIL[area];
+    const padrao = dicasDoFunil(area);
     const passagens = this.passagens();
     const regra = this.regras()?.find((item) => item.area === area);
     return {

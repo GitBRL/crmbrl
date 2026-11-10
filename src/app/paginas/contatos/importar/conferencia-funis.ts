@@ -20,7 +20,8 @@ import {
 
 import { erroDaApi } from '../../../nucleo/api/erro-api';
 import { AvisosService } from '../../../nucleo/avisos.service';
-import { type Area, AREAS, ROTULO_AREA } from '../../../nucleo/sessao/perfil';
+import { type Area } from '../../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../../nucleo/setores/setores';
 import { SessaoService } from '../../../nucleo/sessao/sessao.service';
 import { Botao } from '../../../ui/botao/botao';
 import { CampoTexto } from '../../../ui/campo-texto/campo-texto';
@@ -38,6 +39,7 @@ import {
   linhasSemDestino,
   resumoPorStatus,
 } from './importar.tipos';
+import { SetoresService } from '../../../nucleo/setores/setores.service';
 
 interface EtapaNova {
   readonly chave: number;
@@ -79,6 +81,11 @@ const PROBLEMA_FUNIL: Readonly<Record<NonNullable<FunilDaPlanilha['problema']>, 
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConferenciaFunis {
+  protected readonly setores = inject(SetoresService);
+
+  constructor() {
+    void this.setores.carregar();
+  }
   private readonly api = inject(ImportarApi);
   private readonly avisos = inject(AvisosService);
   private readonly sessao = inject(SessaoService);
@@ -94,7 +101,7 @@ export class ConferenciaFunis {
   readonly funilCriado = output<{ valor: string | null; funil: Funil }>();
   readonly tentarDeNovo = output<void>();
 
-  protected readonly rotuloArea = ROTULO_AREA;
+  protected readonly rotuloArea = nomeDoSetor;
   protected readonly semDestino = computed(() => linhasSemDestino(this.dados()));
   protected readonly resumo = resumoPorStatus;
   protected readonly problemaDoFunil = PROBLEMA_FUNIL;
@@ -108,11 +115,14 @@ export class ConferenciaFunis {
 
   private readonly areasQuePodeConfigurar = computed<readonly Area[]>(() => {
     const perfil = this.sessao.perfil();
-    return AREAS.filter((a) => podeConfigurarFunil(perfil, a));
+    return this.setores
+      .ativos()
+      .map((s) => s.chave)
+      .filter((a) => podeConfigurarFunil(perfil, a));
   });
   protected readonly podeCriarFunil = computed(() => this.areasQuePodeConfigurar().length > 0);
   protected readonly opcoesArea = computed<readonly OpcaoSeletor<Area>[]>(() =>
-    this.areasQuePodeConfigurar().map((valor) => ({ valor, rotulo: ROTULO_AREA[valor] })),
+    this.areasQuePodeConfigurar().map((valor) => ({ valor, rotulo: nomeDoSetor(valor) })),
   );
 
   // Modal "Criar funil"

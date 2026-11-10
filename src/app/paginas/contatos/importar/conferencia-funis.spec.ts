@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 
-import { entrarComo } from '../../../nucleo/sessao/sessao-de-teste';
+import { entrarComo, setoresDeTeste } from '../../../nucleo/sessao/sessao-de-teste';
 import type { Funil } from '../../funis/funis.tipos';
 import { ConferenciaFunis } from './conferencia-funis';
 import type { FunisDaPlanilha } from './importar.tipos';
@@ -40,19 +40,24 @@ const DADOS: FunisDaPlanilha = {
   ],
 };
 
-function montar(papel: 'LIDER_COMERCIAL' | 'COMERCIAL') {
+async function montar(papel: 'LIDER_COMERCIAL' | 'COMERCIAL') {
   TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
   entrarComo(papel);
   const fixture = TestBed.createComponent(ConferenciaFunis);
   fixture.componentRef.setInput('dados', DADOS);
   fixture.componentRef.setInput('funis', [FUNIL]);
   fixture.detectChanges();
+  TestBed.inject(HttpTestingController)
+    .expectOne((r) => r.url === '/api/v1/setores')
+    .flush(setoresDeTeste());
+  await fixture.whenStable();
+  fixture.detectChanges();
   return fixture;
 }
 
 describe('ConferenciaFunis', () => {
-  it('mostra o funil não encontrado com o resumo por status e a ação de criar', () => {
-    const el = montar('LIDER_COMERCIAL').nativeElement as HTMLElement;
+  it('mostra o funil não encontrado com o resumo por status e a ação de criar', async () => {
+    const el = (await montar('LIDER_COMERCIAL')).nativeElement as HTMLElement;
     const texto = el.textContent ?? '';
     expect(texto).toContain('SDR');
     expect(texto).toContain('10 linhas');
@@ -62,13 +67,13 @@ describe('ConferenciaFunis', () => {
     expect(texto).toContain('10 linhas ficarão sem negócio');
   });
 
-  it('esconde a criação de funil de quem não configura funis', () => {
-    const el = montar('COMERCIAL').nativeElement as HTMLElement;
+  it('esconde a criação de funil de quem não configura funis', async () => {
+    const el = (await montar('COMERCIAL')).nativeElement as HTMLElement;
     expect(el.textContent).not.toContain('Criar funil “SDR”');
   });
 
   it('cria o funil com as etapas abertas, Ganho e Perdido, e avisa a tela', async () => {
-    const fixture = montar('LIDER_COMERCIAL');
+    const fixture = await montar('LIDER_COMERCIAL');
     const http = TestBed.inject(HttpTestingController);
     const emitidos: unknown[] = [];
     fixture.componentInstance.funilCriado.subscribe((e) => emitidos.push(e));

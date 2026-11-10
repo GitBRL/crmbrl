@@ -1,4 +1,4 @@
-import { LIDERES } from '../../nucleo/papeis';
+import { ehDiretoria, ehLider } from '../../nucleo/papeis';
 import {
   podeConfigurarAtendimento,
   podeGerenciarCanais,
@@ -22,13 +22,18 @@ export const SECOES_CONFIGURACOES: readonly SecaoConfiguracoes[] = [
   {
     caminho: 'equipe',
     rotulo: 'Minha equipe',
-    permite: (_p, perfil) =>
-      perfil.usuario.papel === 'C_LEVEL' || LIDERES.includes(perfil.usuario.papel),
+    permite: (_p, perfil) => perfil.usuario.papel === 'C_LEVEL' || ehLider(perfil.usuario),
   },
   {
     caminho: 'distribuicao',
     rotulo: 'Distribuição de leads',
     permite: (p) => p.configurarRodizio !== 'NENHUM',
+  },
+  { caminho: 'funis', rotulo: 'Funis', permite: (p) => p.verNegocios !== 'NENHUM' },
+  {
+    caminho: 'setores',
+    rotulo: 'Setores',
+    permite: (_p, perfil) => ehDiretoria(perfil.usuario) || ehLider(perfil.usuario),
   },
   { caminho: 'passagens', rotulo: 'Passagens entre funis', permite: (p) => p.configurarPassagens },
   // Canais, Atendimento e SDR com IA moram em subpastas (rotas em app.routes.ts) e a mesma regra libera a rota.

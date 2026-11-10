@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { parametros, urlApi, type Pagina } from '../../nucleo/api/api';
-import { LIDERES, type Papel } from '../../nucleo/papeis';
+import { ehLider, type Papel } from '../../nucleo/papeis';
 import type { Area } from '../../nucleo/sessao/perfil';
 import {
   ehPainel,
@@ -142,7 +142,7 @@ export class BiApi {
     ).catch(() => []);
     return equipes
       .map((equipe) => equipe.lider.usuario)
-      .filter((lider) => LIDERES.includes(lider.papel))
+      .filter((lider) => ehLider(lider))
       .map(({ id, nome, area }) => ({ id, nome, area }));
   }
 

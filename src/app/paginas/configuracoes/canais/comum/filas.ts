@@ -1,7 +1,7 @@
 import { computed, signal } from '@angular/core';
 
 import { type ErroApi, erroDaApi } from '../../../../nucleo/api/erro-api';
-import { ROTULO_AREA } from '../../../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../../../nucleo/setores/setores';
 import type { OpcaoSeletor } from '../../../../ui/seletor/seletor';
 import type { CanaisApi } from '../canais.api';
 import type { FilaDoCanal } from '../canais.modelos';
@@ -33,7 +33,7 @@ export class FilasDisponiveis {
     }
     return filas.map((fila) => ({
       valor: fila.id,
-      rotulo: fila.area ? `${fila.nome} · ${ROTULO_AREA[fila.area]}` : fila.nome,
+      rotulo: fila.area ? `${fila.nome} · ${nomeDoSetor(fila.area)}` : fila.nome,
     }));
   });
 

@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
-import { AREAS, ROTULO_AREA, type Area } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Botao } from '../../ui/botao/botao';
 import { Cartao } from '../../ui/cartao/cartao';
@@ -15,6 +15,7 @@ import { Selo } from '../../ui/selo/selo';
 import { Seletor, type OpcaoSeletor } from '../../ui/seletor/seletor';
 import { AutomacoesApi } from './automacoes.api';
 import type { ModeloPronto } from './automacoes.tipos';
+import { SetoresService } from '../../nucleo/setores/setores.service';
 
 /**
  * Modelos prontos: automações já montadas (boas-vindas ao lead, follow-up de proposta, lembrete
@@ -40,7 +41,7 @@ import type { ModeloPronto } from './automacoes.tipos';
       />
     } @else if (modelos().length === 0) {
       <app-estado-vazio
-        titulo="Nenhum modelo para a sua área"
+        titulo="Nenhum modelo para o seu setor"
         texto="Crie uma automação do zero."
       />
     } @else {
@@ -82,10 +83,10 @@ import type { ModeloPronto } from './automacoes.tipos';
           <app-campo-texto rotulo="Nome da automação" [(valor)]="nome" />
           @if (sessao.ehDiretoria()) {
             <app-seletor
-              rotulo="Área"
+              rotulo="Setor"
               permitirVazio
-              placeholder="Todas as áreas"
-              [opcoes]="opcoesArea"
+              placeholder="Todos os setores"
+              [opcoes]="opcoesArea()"
               [(valor)]="area"
             />
           }
@@ -177,6 +178,7 @@ import type { ModeloPronto } from './automacoes.tipos';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModelosProntos {
+  protected readonly setores = inject(SetoresService);
   private readonly api = inject(AutomacoesApi);
   private readonly router = inject(Router);
   private readonly avisos = inject(AvisosService);
@@ -197,17 +199,15 @@ export class ModelosProntos {
   protected readonly criando = signal(false);
   protected readonly erroCriar = signal<string | null>(null);
 
-  protected readonly opcoesArea: readonly OpcaoSeletor<string>[] = AREAS.map((a) => ({
-    valor: a,
-    rotulo: ROTULO_AREA[a],
-  }));
+  protected readonly opcoesArea = computed(() => this.setores.opcoes());
 
   constructor() {
+    void this.setores.carregar();
     void this.carregar();
   }
 
   protected rotuloArea(a: string): string {
-    return ROTULO_AREA[a as Area] ?? a;
+    return nomeDoSetor(a);
   }
 
   private async carregar(): Promise<void> {

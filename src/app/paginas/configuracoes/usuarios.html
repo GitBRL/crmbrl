@@ -71,6 +71,16 @@
       [(valor)]="papel"
       (valorChange)="aoMudarFiltro()"
     />
+    <app-seletor
+      class="usuarios__papel"
+      rotulo="Setor"
+      rotuloOculto
+      permitirVazio
+      placeholder="Todos os setores"
+      [opcoes]="setores.opcoes()"
+      [(valor)]="setor"
+      (valorChange)="aoMudarFiltro()"
+    />
   </div>
 
   @if (lista.erro(); as erro) {
@@ -120,6 +130,13 @@
       </ng-template>
       <ng-template appCelula="papel" [appCelulaDe]="linhas()" let-linha>
         <app-selo>{{ linha.usuario.rotuloPapel }}</app-selo>
+      </ng-template>
+      <ng-template appCelula="setor" [appCelulaDe]="linhas()" let-linha>
+        @if (linha.usuario.area; as area) {
+          <span>{{ linha.usuario.nomeSetor || nomeDoSetor(area) }}</span>
+        } @else {
+          <span class="usuarios__vazio" aria-label="Sem setor">—</span>
+        }
       </ng-template>
       <ng-template appCelula="lider" [appCelulaDe]="linhas()" let-linha>
         @if (linha.usuario.lider; as lider) {

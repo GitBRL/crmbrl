@@ -286,9 +286,9 @@
                 />
                 @if (estrategia() === 'RODIZIO') {
                   <app-seletor
-                    rotulo="Área do rodízio"
-                    placeholder="Escolha a área"
-                    [opcoes]="opcoesArea"
+                    rotulo="Setor do rodízio"
+                    placeholder="Escolha o setor"
+                    [opcoes]="opcoesArea()"
                     [(valor)]="areaRodizio"
                   />
                 } @else if (estrategia() === 'RESPONSAVEL_FIXO') {

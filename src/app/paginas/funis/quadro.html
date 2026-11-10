@@ -35,28 +35,42 @@
         (click)="configurarAberto.set(true)"
       ></button>
     }
-    <button
-      appBotao
-      type="button"
-      variante="invertido"
-      class="cabecalho__novo"
-      [icone]="icones.mais"
-      [disabled]="!estado.funil()"
-      (click)="novoAberto.set(true)"
-    >
-      Novo negócio
-    </button>
+    @if (podeConfigurar()) {
+      <a
+        appBotao
+        variante="contorno"
+        class="cabecalho__configurar"
+        [icone]="icones.configurar"
+        [routerLink]="linkConfigurarFunil()"
+        >Configurar funil</a
+      >
+    }
+    @if (!somenteLeitura()) {
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        class="cabecalho__novo"
+        [icone]="icones.mais"
+        [disabled]="!estado.funil()"
+        (click)="novoAberto.set(true)"
+      >
+        Novo negócio
+      </button>
+    }
   </div>
 </header>
 
 <div class="filtros">
-  @if (opcoesFunil().length > 1) {
-    <app-filtros-pilula
+  @if (opcoesFunil().length > 1 || (opcoesFunil().length === 1 && !estado.funil())) {
+    <app-seletor
       class="filtros__funil"
       rotulo="Funil"
+      rotuloOculto
+      placeholder="Escolha um funil"
       [opcoes]="opcoesFunil()"
-      [selecionado]="estado.funilId()"
-      (selecionadoChange)="escolherFunil($event)"
+      [valor]="estado.funilId()"
+      (valorChange)="escolherFunil($event)"
     />
   }
   <app-filtros-pilula
@@ -161,11 +175,18 @@
   @case ('sem-funil') {
     <app-estado-vazio
       class="quadro__estado"
-      titulo="Nenhum funil ativo nesta área"
-      texto="Os funis desta área estão arquivados. A liderança da área, o C-level ou o Admin podem reativá-los."
+      titulo="Nenhum funil disponível neste setor"
+      texto="Os funis deste setor estão arquivados ou são restritos a líderes e convidados. Peça acesso a quem lidera o setor, ou escolha outro funil acima, se houver."
     />
   }
   @default {
+    @if (somenteLeitura()) {
+      <p class="quadro__aviso">
+        <app-selo variante="contorno">{{ rotuloNivel() }}</app-selo>
+        Você só pode ver este funil: criar, editar e mover negócios exige o acesso “Como membro” ou
+        mais.
+      </p>
+    }
     @if (!estado.funilAtivo()) {
       <p class="quadro__aviso">
         <app-selo variante="contorno">Arquivado</app-selo>
@@ -290,6 +311,7 @@
                   <app-cartao-negocio
                     role="listitem"
                     cdkDrag
+                    [cdkDragDisabled]="!podeAgir()"
                     [cdkDragData]="negocio"
                     [cdkDragStartDelay]="atrasoArraste"
                     [negocio]="negocio"
@@ -298,6 +320,7 @@
                     [queryParams]="queryParams()"
                     [etapas]="estado.etapas()"
                     [podeSair]="podeSair(negocio)"
+                    [podeMover]="podeAgir()"
                     [podeAssumir]="podeAssumir()"
                     [assumindo]="assumindo().has(negocio.id)"
                     [mostrarValor]="mostrarValores()"

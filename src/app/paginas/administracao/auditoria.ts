@@ -23,7 +23,8 @@ import {
 
 import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { formatarDataHora, formatarTempoRelativo } from '../../nucleo/formatos';
-import { type Area, SLUG_AREA } from '../../nucleo/sessao/perfil';
+import { type Area } from '../../nucleo/sessao/perfil';
+import { slugDaArea } from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
@@ -536,7 +537,7 @@ export class Auditoria {
         return funilId && area
           ? {
               rotulo: 'Abrir o negócio',
-              comandos: ['/funis', SLUG_AREA[area], id],
+              comandos: ['/funis', slugDaArea(area), id],
               query: { funil: funilId },
             }
           : null;
@@ -544,7 +545,11 @@ export class Auditoria {
       case 'funil': {
         const area = this.areaDoFunil().get(id.toLowerCase());
         return area
-          ? { rotulo: 'Abrir o funil', comandos: ['/funis', SLUG_AREA[area]], query: { funil: id } }
+          ? {
+              rotulo: 'Abrir o funil',
+              comandos: ['/funis', slugDaArea(area)],
+              query: { funil: id },
+            }
           : null;
       }
       case 'contato':

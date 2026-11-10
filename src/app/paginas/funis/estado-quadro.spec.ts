@@ -15,6 +15,8 @@ import {
 } from './funis-de-teste';
 
 const [NOVO, PROPOSTA, , PERDIDO] = ETAPAS;
+const FUNIL_DO_CS = funilDeTeste({ id: 'funil-cs', nome: 'Pós-venda', area: 'CS', nivel: 'VER' });
+const TODOS_OS_FUNIS = [funilDeTeste(), FUNIL_DO_CS];
 
 async function microtarefas(): Promise<void> {
   for (let i = 0; i < 8; i++) {
@@ -41,6 +43,11 @@ describe('EstadoQuadro', () => {
   async function abrir() {
     const iniciando = estado.iniciar('COMERCIAL', null);
     http.expectOne('/api/v1/funis?area=COMERCIAL').flush([funilDeTeste()]);
+    // A lista geral (com os funis de outros setores) alimenta o seletor do quadro.
+    await microtarefas();
+    http
+      .expectOne((req) => req.url === '/api/v1/funis' && !req.params.has('area'))
+      .flush(TODOS_OS_FUNIS);
     await microtarefas();
     http
       .expectOne((req) => req.url === `/api/v1/funis/${FUNIL_ID}/quadro`)
@@ -75,6 +82,15 @@ describe('EstadoQuadro', () => {
     expect(estado.colunas().map((coluna) => coluna.negocios.length)).toEqual([2, 1, 0, 0]);
     expect(estado.totalAbertos()).toBe(3);
     expect(estado.etiquetas()).toEqual(['Agro', 'VIP']);
+  });
+
+  it('guarda os funis de todos os setores que a pessoa vê, e o nível dela no funil aberto', async () => {
+    await abrir();
+    expect(estado.todosOsFunis().map((funil) => funil.id)).toEqual([FUNIL_ID, 'funil-cs']);
+    // Sem `nivel` na resposta, a líder do Comercial configura o funil do setor dela.
+    expect(estado.nivel()).toBe('CONFIGURAR');
+    expect(estado.podeAgir()).toBe(true);
+    expect(estado.podeConfigurar()).toBe(true);
   });
 
   it('filtros recarregam o quadro com visão, busca e etiqueta', async () => {

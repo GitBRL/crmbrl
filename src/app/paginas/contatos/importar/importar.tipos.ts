@@ -5,7 +5,8 @@ export type StatusImportacao =
   'RASCUNHO' | 'NA_FILA' | 'PROCESSANDO' | 'CONCLUIDA' | 'FALHOU' | 'CANCELADA';
 export type PoliticaDuplicados = 'ATUALIZAR_VAZIOS' | 'IGNORAR' | 'SOBRESCREVER';
 export type EstrategiaResponsavel = 'RODIZIO' | 'RESPONSAVEL_FIXO';
-export type AreaRodizio = 'MARKETING' | 'COMERCIAL' | 'CS';
+/** Setor do rodízio (chave do setor ativo). */
+export type AreaRodizio = string;
 export type ResultadoLinha = 'CRIADO' | 'ATUALIZADO' | 'IGNORADO' | 'ERRO';
 
 export interface LeituraArquivo {
@@ -231,12 +232,6 @@ export const VARIANTE_RESULTADO: Readonly<
   ATUALIZADO: 'ciano',
   IGNORADO: 'neutro',
   ERRO: 'coral',
-};
-
-export const ROTULO_AREA_RODIZIO: Readonly<Record<AreaRodizio, string>> = {
-  MARKETING: 'Marketing',
-  COMERCIAL: 'Comercial',
-  CS: 'Sucesso do Cliente',
 };
 
 export const OPCOES_DUPLICADOS: readonly {

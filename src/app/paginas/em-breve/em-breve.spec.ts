@@ -35,28 +35,11 @@ describe('glossário', () => {
 
 describe('quem acessa', () => {
   it('diz "todos, menos…" quando faltam um ou dois papéis; senão, a lista', () => {
-    expect(
-      descreverQuemAcessa([
-        'ADMIN',
-        'C_LEVEL',
-        'LIDER_COMERCIAL',
-        'COMERCIAL',
-        'LIDER_MARKETING',
-        'LIDER_CS',
-        'CS',
-      ]),
-    ).toBe('todos os papéis, menos Marketing');
-    expect(
-      descreverQuemAcessa([
-        'ADMIN',
-        'C_LEVEL',
-        'LIDER_COMERCIAL',
-        'LIDER_MARKETING',
-        'LIDER_CS',
-        'CS',
-      ]),
-    ).toBe('todos os papéis, menos Comercial e Marketing');
-    expect(descreverQuemAcessa(['ADMIN', 'C_LEVEL'])).toBe('Admin e C-level');
+    expect(descreverQuemAcessa(['ADMIN', 'C_LEVEL', 'LIDER'])).toBe(
+      'todos os papéis, menos Membro',
+    );
+    expect(descreverQuemAcessa(['ADMIN', 'LIDER'])).toBe('todos os papéis, menos C-level e Membro');
+    expect(descreverQuemAcessa(['ADMIN'])).toBe('Admin');
   });
 });
 
@@ -189,7 +172,7 @@ describe('EmBreve', () => {
     expect(titulo.textContent?.replace(/\s+/g, ' ').trim()).toBe('Atendimento · sem acesso');
     expect(raiz.textContent).toContain('O papel Marketing não acessa este módulo.');
     expect(raiz.textContent?.replace(/\s+/g, ' ')).toContain(
-      'Quem acessa: todos os papéis, menos Líder Marketing e Marketing.',
+      'Quem acessa: todos, menos o setor de Marketing.',
     );
     expect(raiz.textContent).not.toContain('Ver como');
     expect(raiz.querySelectorAll('app-chip').length).toBe(0);

@@ -4,8 +4,9 @@ import { LucideRefreshCw } from '@lucide/angular';
 import { erroDaApi } from '../../nucleo/api/erro-api';
 import { POR_PAGINA_MAXIMO } from '../../nucleo/api/api';
 import { AvisosService } from '../../nucleo/avisos.service';
-import { ROTULO_PAPEL } from '../../nucleo/papeis';
-import { ROTULO_AREA, type Area } from '../../nucleo/sessao/perfil';
+import { rotuloDoPapel } from '../../nucleo/papeis';
+import { type Area } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Alternador } from '../../ui/alternador/alternador';
 import { Avatar } from '../../ui/avatar/avatar';
@@ -16,7 +17,7 @@ import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { Carregamento } from './carregamento';
 import { ConfiguracoesApi } from './configuracoes.api';
 import type { RegraDistribuicao } from './configuracoes.modelos';
-import { juntarNomes, LIDER_DA_AREA } from './hierarquia';
+import { juntarNomes } from './hierarquia';
 import {
   ACESSO_PENDENTE,
   destinoSemFila,
@@ -28,13 +29,13 @@ import {
   QUANDO_ENTRA,
 } from './rodizio';
 
-/** O que a tela carrega: as regras que o usuário configura e as pessoas ativas de cada área. */
+/** O que a tela carrega: as regras que o usuário configura e as pessoas ativas de cada setor. */
 interface DadosDistribuicao {
   readonly regras: readonly RegraDistribuicao[];
   readonly pessoas: Readonly<Partial<Record<Area, readonly PessoaDaArea[]>>>;
 }
 
-/** Um cartão por área, pronto para desenhar. */
+/** Um cartão por setor, pronto para desenhar. */
 interface AreaVisual {
   readonly regra: RegraDistribuicao;
   readonly rotulo: string;
@@ -47,8 +48,8 @@ interface AreaVisual {
 }
 
 /**
- * Distribuição de leads (`/configuracoes/distribuicao`, Admin, C-level e líder da área) —
- * TELAS-FASE1 §6 e R5.8: por área, quem participa do rodízio, em que ordem, quem é o próximo
+ * Distribuição de leads (`/configuracoes/distribuicao`, Admin, C-level e líder do setor) —
+ * TELAS-FASE1 §6 e R5.8: por setor, quem participa do rodízio, em que ordem, quem é o próximo
  * da vez e se o líder entra. Cada alternador vale na hora (sem botão Salvar) e o aviso traz
  * "Desfazer".
  */
@@ -77,8 +78,8 @@ export class Distribuicao {
 
   protected readonly frase = computed(() =>
     this.sessao.ehDiretoria()
-      ? 'Quem recebe os leads novos de cada área, em que ordem, e se o líder entra na fila.'
-      : 'Quem da sua área recebe os leads novos, em que ordem, e se você entra na fila.',
+      ? 'Quem recebe os leads novos de cada setor, em que ordem, e se o líder entra na fila.'
+      : 'Quem do seu setor recebe os leads novos, em que ordem, e se você entra na fila.',
   );
   protected readonly areas = computed<readonly AreaVisual[]>(() => {
     const dados = this.dados.dados();
@@ -88,7 +89,7 @@ export class Distribuicao {
     return dados.regras.map((regra) => {
       const pessoas = pessoasDoRodizio(regra, dados.pessoas[regra.area] ?? []);
       const lideres = pessoas.filter((pessoa) => pessoa.ehLider);
-      const rotulo = ROTULO_AREA[regra.area];
+      const rotulo = nomeDoSetor(regra.area);
       return {
         regra,
         rotulo,
@@ -114,7 +115,7 @@ export class Distribuicao {
     let quem: string;
     let verbo = 'recebe';
     if (lideres.length === 0) {
-      quem = `quem for ${ROTULO_PAPEL[LIDER_DA_AREA[area]]}`;
+      quem = `quem for ${rotuloDoPapel('LIDER', nomeDoSetor(area))}`;
     } else {
       const eu = this.sessao.usuario()?.id;
       // "você" primeiro: "você e Lia Teste-Config".
@@ -193,7 +194,7 @@ export class Distribuicao {
     });
   }
 
-  /** O líder da área entra (ou não) no rodízio. */
+  /** O líder do setor entra (ou não) no rodízio. */
   protected async definirLideres(
     area: AreaVisual,
     incluir: boolean,

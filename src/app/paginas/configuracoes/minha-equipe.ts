@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { LucideRefreshCw } from '@lucide/angular';
 
 import { abreviarNumero, formatarMoedaAbreviada, formatarNumero } from '../../nucleo/formatos';
-import { ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
@@ -82,7 +82,7 @@ export class MinhaEquipe {
   private visual(no: NoEquipe): NoVisual {
     const i = no.indicadores;
     const valor = Number(i.valorEmAberto) || 0;
-    const area = no.area ? ROTULO_AREA[no.area] : null;
+    const area = no.area ? nomeDoSetor(no.area) : null;
     const papel =
       area && !no.pessoa.rotuloPapel.includes(area)
         ? `${no.pessoa.rotuloPapel}${SEPARADOR} ${area}`

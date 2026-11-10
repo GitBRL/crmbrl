@@ -37,12 +37,30 @@
       <app-seletor
         #campoPapel
         rotulo="Papel"
-        ajuda="O papel define a área (Comercial, Marketing ou Customer Success) e o que a pessoa vê e pode fazer. Líderes veem a própria equipe; C-level vê tudo; o Admin gerencia usuários e integrações."
+        ajuda="O papel define o que a pessoa vê e pode fazer. Líder e Membro pertencem a um setor: o líder vê a própria equipe e o membro, o que é dele. C-level vê tudo; o Admin gerencia usuários e integrações."
         placeholder="Escolha o papel"
         [opcoes]="opcoesPapel"
         formControlName="papel"
       />
 
+      @if (exigeSetor()) {
+        <app-seletor
+          #campoSetor
+          rotulo="Setor"
+          ajuda="O setor da pessoa (Comercial, Marketing, Customer Success ou outro criado em Setores). Define quem pode ser o líder dela."
+          placeholder="Escolha o setor"
+          [opcoes]="opcoesSetor()"
+          formControlName="area"
+        />
+      } @else if (papel() !== null) {
+        <div class="formulario__sem-lider" role="note">
+          <span class="formulario__rotulo-nota">Setor</span>
+          <p>Quem é {{ papel() === 'ADMIN' ? 'Admin' : 'C-level' }} não pertence a um setor.</p>
+        </div>
+      }
+    </div>
+
+    <div class="formulario__par">
       @if (papel() !== null && !liderNecessario()) {
         <div class="formulario__sem-lider" role="note">
           <span class="formulario__rotulo-nota">Líder</span>
@@ -65,7 +83,7 @@
     @if (liderProvisorio()) {
       <p class="formulario__aviso" role="note">
         Este líder é provisório: depois de um desligamento, a pessoa passou a responder a quem
-        recebeu a equipe. Escolha um líder da área.
+        recebeu a equipe. Escolha um líder do mesmo setor.
       </p>
     }
     @if (lideres.erro(); as erro) {

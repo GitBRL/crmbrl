@@ -173,8 +173,8 @@
   <form class="novo-funil" novalidate (submit)="$event.preventDefault(); confirmarCriarFunil()">
     <app-campo-texto rotulo="Nome do funil" [maximoCaracteres]="100" [(valor)]="nomeNovo" />
     <app-seletor
-      rotulo="Área do funil"
-      placeholder="Escolha a área"
+      rotulo="Setor do funil"
+      placeholder="Escolha o setor"
       [opcoes]="opcoesArea()"
       [(valor)]="areaNova"
     />

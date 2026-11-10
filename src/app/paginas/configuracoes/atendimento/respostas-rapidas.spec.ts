@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 
 import { ConfirmacaoService } from '../../../nucleo/confirmacao.service';
 import { entrarComo } from '../../../nucleo/sessao/sessao-de-teste';
+import { responderSetores } from '../../../nucleo/setores/setores-de-teste';
 import { falhaDaApi, microtarefas } from '../canais/dados-de-teste';
 import { resposta, VARIAVEIS } from './dados-de-teste';
 import { RespostasRapidas } from './respostas-rapidas';
@@ -52,6 +53,7 @@ describe('Respostas rápidas (R12)', () => {
     entrarComo(papel);
     fixture = TestBed.createComponent(RespostasRapidas);
     fixture.detectChanges();
+    responderSetores(http);
     const gerencia = papel === 'ADMIN' || papel === 'C_LEVEL' || papel.startsWith('LIDER');
     http
       .expectOne(
@@ -169,7 +171,7 @@ describe('Respostas rápidas (R12)', () => {
     };
     const editar = tela.acoesDa(resposta({ podeEditar: false }))[0];
     expect(editar.desabilitado).toBe(true);
-    expect(editar.motivo).toBe('Só Admin e C-level alteram as respostas de todas as áreas.');
+    expect(editar.motivo).toBe('Só Admin e C-level alteram as respostas de todos os setores.');
     tela.abrirFormulario(null);
     fixture.detectChanges();
     expect(modal().textContent).toContain('Vale para Customer Success.');

@@ -91,5 +91,7 @@ export class EmBreve {
     return modulo ? this.perfil.pode(modulo) : false;
   });
   protected readonly fase = computed(() => numeroDaFase(this.info()?.fase));
-  protected readonly quemAcessa = computed(() => descreverQuemAcessa(this.info()?.papeis ?? []));
+  protected readonly quemAcessa = computed(
+    () => this.info()?.quemAcessa ?? descreverQuemAcessa(this.info()?.papeis ?? []),
+  );
 }

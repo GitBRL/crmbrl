@@ -32,8 +32,8 @@
       (buscar)="buscar($event)"
     />
     <app-filtros-pilula
-      rotulo="Área"
-      [opcoes]="opcoesArea"
+      rotulo="Setor"
+      [opcoes]="opcoesArea()"
       [selecionado]="area()"
       (selecionadoChange)="mudarArea($event)"
     />
@@ -106,7 +106,7 @@
             compacto
             variante="busca"
             titulo="Nenhuma resposta encontrada"
-            texto="Tente outro termo ou mostre todas as áreas."
+            texto="Tente outro termo ou mostre todos os setores."
           >
             <button
               appBotao
