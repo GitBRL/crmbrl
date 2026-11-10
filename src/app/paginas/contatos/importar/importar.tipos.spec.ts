@@ -7,7 +7,12 @@ import {
   etapasParaImportacao,
   filtroDasRegras,
   exigenciasDoMapeamento,
+  type FunisDaPlanilha,
   type Importacao,
+  linhasSemDestino,
+  normalizarValor,
+  resumoPorStatus,
+  valoresIguais,
   mapearColuna,
   operadorSemValor,
   regraCompleta,
@@ -132,5 +137,78 @@ describe('importação: filtro, negócio e rodapé', () => {
     expect(resumoDoRodape({ totalLinhas: 50, linhasNoFiltro: null, negocio: null })).toBe(
       '50 linhas',
     );
+  });
+});
+
+describe('conferência de funis e etapas', () => {
+  it('normaliza o valor como a API: sem acento, minúsculas, aparado', () => {
+    expect(normalizarValor('  1º CONTATO - Negociação ')).toBe('1º contato - negociacao');
+  });
+
+  it('resume por status só com o que não é zero', () => {
+    expect(resumoPorStatus({ ABERTO: 7, GANHO: 1, PERDIDO: 2 })).toBe(
+      '7 abertas, 1 ganha, 2 perdidas',
+    );
+    expect(resumoPorStatus({ ABERTO: 1, GANHO: 0, PERDIDO: 0 })).toBe('1 aberta');
+  });
+
+  it('conta as linhas sem destino por funil ou por etapa', () => {
+    const dados: FunisDaPlanilha = {
+      semFunil: 0,
+      funis: [
+        {
+          valor: 'A',
+          linhas: 4,
+          porStatus: { ABERTO: 4, GANHO: 0, PERDIDO: 0 },
+          funil: null,
+          como: null,
+          problema: 'NAO_ENCONTRADO',
+          etapas: [],
+        },
+        {
+          valor: 'B',
+          linhas: 5,
+          porStatus: { ABERTO: 5, GANHO: 0, PERDIDO: 0 },
+          funil: { id: 'f', nome: 'B', area: 'COMERCIAL' },
+          como: 'NOME',
+          problema: null,
+          etapas: [
+            { valor: 'x', linhas: 2, etapa: null, como: null, problema: 'NAO_ENCONTRADA' },
+            {
+              valor: 'y',
+              linhas: 3,
+              etapa: { id: 'e', nome: 'y', tipo: 'ABERTA' },
+              como: 'NOME',
+              problema: null,
+            },
+          ],
+        },
+      ],
+    };
+    expect(linhasSemDestino(dados)).toBe(6);
+    expect(linhasSemDestino(null)).toBe(0);
+  });
+
+  it('compara objetos sem depender da ordem das chaves', () => {
+    expect(
+      valoresIguais({ a: { x: '1', y: '2' }, b: '3' }, { b: '3', a: { y: '2', x: '1' } }),
+    ).toBe(true);
+    expect(valoresIguais({ a: '1' }, { a: '2' })).toBe(false);
+  });
+
+  it('junta o contador de negócios atualizados do evento', () => {
+    const atual = { ...BASE, negociosAtualizados: 0 } as unknown as Importacao;
+    const novo = aplicarProgresso(atual, {
+      importacaoId: 'i1',
+      status: 'PROCESSANDO',
+      totalLinhas: 200,
+      processadas: 120,
+      criados: 100,
+      atualizados: 5,
+      ignorados: 3,
+      erros: 2,
+      negociosAtualizados: 4,
+    });
+    expect(novo.negociosAtualizados).toBe(4);
   });
 });

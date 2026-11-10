@@ -607,3 +607,26 @@
     color: var(--cor-texto-suave);
   }
 }
+
+.aviso-origem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+  font: var(--fonte-corpo-sm);
+
+  svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--cor-marca);
+  }
+
+  p {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}

@@ -463,6 +463,17 @@
             @if (!rascunho()) {
               <div class="mapa-vazio">Selecione uma planilha para ver a amostra.</div>
             } @else {
+              @if (formatoOrigem() === 'CLINT') {
+                <div class="aviso-origem" role="status">
+                  <svg lucideInfo [size]="18" aria-hidden="true" />
+                  <p>
+                    <strong>Esta planilha parece uma exportação do Clint.</strong> Já ligamos as
+                    colunas: origin → Funil, stage → Etapa, status → Status do negócio, lost_status
+                    → Motivo da perda, user_email → Responsável. Cada linha vira um negócio com o
+                    contato dele. Confira abaixo os funis e etapas.
+                  </p>
+                </div>
+              }
               @if (modelos().length > 0) {
                 <div class="modelos">
                   <app-seletor
@@ -632,6 +643,28 @@
           </div>
         </app-cartao>
 
+        <!-- Conferência de funis e etapas -->
+        @if (mostraConferencia()) {
+          <app-cartao
+            titulo="Funis e etapas da planilha"
+            [nivel]="3"
+            dica="Mostra onde cada funil e etapa da planilha vão cair no CRM. O que não for encontrado pode ser ligado a um existente ou criado aqui. Só as linhas abertas usam a etapa da coluna; ganhos e perdas vão direto para a etapa de ganho ou de perda."
+          >
+            <div class="cartao-corpo">
+              <app-conferencia-funis
+                [dados]="funisPlanilha()"
+                [carregando]="carregandoConferencia()"
+                [erro]="erroConferencia()"
+                [funis]="funis()"
+                (usarFunil)="aoUsarFunil($event)"
+                (usarEtapa)="aoUsarEtapa($event)"
+                (funilCriado)="aoFunilCriado($event)"
+                (tentarDeNovo)="reconferir()"
+              />
+            </div>
+          </app-cartao>
+        }
+
         <!-- Rodapé -->
         <div class="rodape">
           <div class="rodape__texto">
@@ -724,7 +757,8 @@
               @if (
                 imp.negocio ||
                 (imp.negociosCriados ?? 0) > 0 ||
-                (imp.negociosReconvertidos ?? 0) > 0
+                (imp.negociosReconvertidos ?? 0) > 0 ||
+                (imp.negociosAtualizados ?? 0) > 0
               ) {
                 <div class="total">
                   <dt>Negócios criados</dt>
@@ -733,6 +767,10 @@
                 <div class="total">
                   <dt>Reconversões</dt>
                   <dd>{{ numero(imp.negociosReconvertidos ?? 0) }}</dd>
+                </div>
+                <div class="total">
+                  <dt>Negócios atualizados</dt>
+                  <dd>{{ numero(imp.negociosAtualizados ?? 0) }}</dd>
                 </div>
               }
             </dl>

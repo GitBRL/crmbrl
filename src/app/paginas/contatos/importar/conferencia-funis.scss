@@ -1,0 +1,173 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.conf {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.conf__funis,
+.etapas-planilha,
+.novas-etapas {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.funil {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+  padding: var(--esp-4);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+}
+
+.funil--problema {
+  border-color: var(--cor-borda-forte);
+}
+
+.funil__topo,
+.etapa-planilha__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.funil__titulo {
+  margin: 0;
+  font: var(--fonte-rotulo);
+  overflow-wrap: anywhere;
+}
+
+.funil__linhas {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+}
+
+.funil__subtitulo {
+  margin: 0;
+  font: var(--fonte-rotulo);
+  color: var(--cor-texto-suave);
+}
+
+.funil__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-3);
+}
+
+.funil__seletor {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.etapa-planilha {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-3);
+}
+
+.etapa-planilha__nome {
+  overflow-wrap: anywhere;
+  font: var(--fonte-corpo-sm);
+}
+
+.conf__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo-sm);
+
+  svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--cor-sucesso);
+  }
+}
+
+.conf__nota--erro {
+  color: var(--cor-erro);
+}
+
+.conf__erro,
+.conf__resumo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  margin: 0;
+  color: var(--cor-erro);
+  font: var(--fonte-corpo-sm);
+
+  svg {
+    flex: none;
+    margin-top: 2px;
+  }
+}
+
+.conf__resumo {
+  padding: var(--esp-3);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-md);
+  color: var(--cor-texto);
+}
+
+.novo-funil {
+  display: grid;
+  gap: var(--esp-4);
+}
+
+.nova-etapa {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-md);
+  background: var(--cor-superficie-2);
+}
+
+.nova-etapa__nome {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font: var(--fonte-corpo-sm);
+}
+
+.nova-etapa__alca {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--cor-texto-suave);
+  cursor: grab;
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.4;
+}
+
+[modal-rodape] {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--esp-3);
+}

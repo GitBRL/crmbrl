@@ -1,0 +1,265 @@
+<div class="conf">
+  @if (carregando() && !dados()) {
+    <app-esqueleto altura="64px" />
+  } @else if (erro(); as mensagem) {
+    <p class="conf__erro" role="alert">
+      <svg lucideCircleAlert [size]="16" aria-hidden="true" />
+      {{ mensagem }}
+    </p>
+    <button appBotao variante="contorno" tamanho="sm" type="button" (click)="tentarDeNovo.emit()">
+      Tentar de novo
+    </button>
+  } @else if (dados(); as d) {
+    @if (d.funis.length === 0) {
+      <p class="conf__nota">
+        A coluna de funil está vazia em todas as linhas: valem o funil e a etapa do cartão “Negócio
+        para todos”, se houver.
+      </p>
+    }
+
+    <ul class="conf__funis" aria-label="Funis citados na planilha" [attr.aria-busy]="carregando()">
+      @for (f of d.funis; track f.valor) {
+        <li class="funil" [class.funil--problema]="f.problema !== null">
+          <div class="funil__topo">
+            <h4 class="funil__titulo">
+              {{ f.valor }}
+              <span class="funil__linhas"
+                >· {{ f.linhas }} {{ f.linhas === 1 ? 'linha' : 'linhas' }} ({{
+                  resumo(f.porStatus)
+                }})</span
+              >
+            </h4>
+            @if (f.problema === null && f.funil) {
+              <app-selo variante="menta" tamanho="sm">Encontrado</app-selo>
+            } @else {
+              <app-selo variante="coral" tamanho="sm">Sem destino</app-selo>
+            }
+          </div>
+
+          @if (f.problema === null && f.funil) {
+            <p class="conf__nota">
+              <svg lucideCircleCheck [size]="16" aria-hidden="true" />
+              Vai para o funil “{{ f.funil.nome }}”{{
+                f.como === 'TRADUCAO' ? ' (escolhido por você)' : ''
+              }}.
+            </p>
+          } @else if (f.problema) {
+            <p class="conf__erro">
+              <svg lucideCircleAlert [size]="16" aria-hidden="true" />
+              {{ problemaDoFunil[f.problema] }}
+            </p>
+          }
+
+          <div class="funil__acoes">
+            <app-seletor
+              class="funil__seletor"
+              rotulo="Usar o funil"
+              placeholder="Escolher um funil do CRM"
+              permitirVazio
+              [opcoes]="opcoesFunil()"
+              [valor]="f.como === 'TRADUCAO' ? (f.funil?.id ?? null) : null"
+              (valorChange)="usarFunil.emit({ valor: f.valor, funilId: $event })"
+            />
+            @if (f.problema === 'NAO_ENCONTRADO' && podeCriarFunil()) {
+              <button
+                appBotao
+                variante="contorno"
+                tamanho="sm"
+                type="button"
+                (click)="abrirCriarFunil(f)"
+              >
+                <svg lucidePlus [size]="16" aria-hidden="true" /> Criar funil “{{ f.valor }}”
+              </button>
+            }
+          </div>
+
+          @if (f.etapas.length > 0) {
+            <h5 class="funil__subtitulo">Etapas das linhas abertas</h5>
+            <ul class="etapas-planilha">
+              @for (e of f.etapas; track e.valor) {
+                <li class="etapa-planilha">
+                  <div class="etapa-planilha__topo">
+                    <span class="etapa-planilha__nome"
+                      >{{ e.valor }} <span class="funil__linhas">· {{ e.linhas }}</span></span
+                    >
+                    @if (e.problema === null && e.etapa) {
+                      <app-selo variante="menta" tamanho="sm">Encontrada</app-selo>
+                    } @else {
+                      <app-selo variante="coral" tamanho="sm">Sem destino</app-selo>
+                    }
+                  </div>
+                  @if (!f.funil) {
+                    <p class="conf__nota">Defina o funil acima para ligar esta etapa.</p>
+                  } @else {
+                    <p class="conf__nota" [class.conf__nota--erro]="e.problema !== null">
+                      {{ textoEtapa(e) }}
+                    </p>
+                    @if (e.problema !== null) {
+                      <div class="funil__acoes">
+                        <app-seletor
+                          class="funil__seletor"
+                          rotulo="Usar a etapa"
+                          placeholder="Escolher uma etapa aberta"
+                          permitirVazio
+                          [opcoes]="opcoesEtapa(f)"
+                          [valor]="null"
+                          (valorChange)="
+                            usarEtapa.emit({ funilId: f.funil.id, valor: e.valor, etapaId: $event })
+                          "
+                        />
+                        @if (e.problema === 'NAO_ENCONTRADA' && podeConfigurar(f.funil.area)) {
+                          <button
+                            appBotao
+                            variante="contorno"
+                            tamanho="sm"
+                            type="button"
+                            [carregando]="criandoEtapa() === e.valor"
+                            (click)="criarEtapa(f, e)"
+                          >
+                            <svg lucidePlus [size]="16" aria-hidden="true" /> Criar etapa “{{
+                              e.valor
+                            }}”
+                          </button>
+                        }
+                      </div>
+                    } @else if (e.como === 'TRADUCAO') {
+                      <div class="funil__acoes">
+                        <button
+                          appBotao
+                          variante="contorno"
+                          tamanho="sm"
+                          type="button"
+                          (click)="
+                            usarEtapa.emit({ funilId: f.funil.id, valor: e.valor, etapaId: null })
+                          "
+                        >
+                          Desfazer a escolha
+                        </button>
+                      </div>
+                    }
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (d.semFunil > 0) {
+      <p class="conf__nota">
+        {{ d.semFunil }} {{ d.semFunil === 1 ? 'linha não traz' : 'linhas não trazem' }} funil: usam
+        o cartão “Negócio para todos”, se houver.
+      </p>
+    }
+
+    @if (semDestino() > 0) {
+      <p class="conf__resumo" role="status">
+        <svg lucideCircleAlert [size]="16" aria-hidden="true" />
+        {{ semDestino() }} {{ semDestino() === 1 ? 'linha ficará' : 'linhas ficarão' }} sem negócio
+        por falta de funil ou etapa. Os contatos entram mesmo assim, e a linha leva um aviso no
+        relatório. Você pode importar assim.
+      </p>
+    }
+  }
+</div>
+
+<app-modal
+  [(aberto)]="modalAberto"
+  titulo="Criar funil"
+  [complemento]="'· ' + (funilEmCriacao()?.valor ?? '')"
+  largura="md"
+>
+  <form class="novo-funil" novalidate (submit)="$event.preventDefault(); confirmarCriarFunil()">
+    <app-campo-texto rotulo="Nome do funil" [maximoCaracteres]="100" [(valor)]="nomeNovo" />
+    <app-seletor
+      rotulo="Área do funil"
+      placeholder="Escolha a área"
+      [opcoes]="opcoesArea()"
+      [(valor)]="areaNova"
+    />
+
+    <div>
+      <p class="funil__subtitulo" id="novas-etapas">Etapas, na ordem em que aparecem na planilha</p>
+      <p class="conf__nota">
+        Arraste pela alça, ou use as setas, para mudar a ordem. O funil ganha também as etapas
+        “Ganho” e “Perdido”, que todo funil precisa ter.
+      </p>
+      <ol
+        class="novas-etapas"
+        cdkDropList
+        cdkDropListLockAxis="y"
+        aria-labelledby="novas-etapas"
+        [cdkDropListData]="etapasNovas()"
+        (cdkDropListDropped)="soltar($event)"
+      >
+        @for (etapa of etapasNovas(); track etapa.chave; let i = $index) {
+          <li class="nova-etapa" cdkDrag cdkDragPreviewContainer="parent">
+            <span class="nova-etapa__alca" cdkDragHandle aria-hidden="true">
+              <svg lucideGripVertical [size]="18" />
+            </span>
+            <span class="nova-etapa__nome">{{ i + 1 }}. {{ etapa.nome }}</span>
+            <button
+              appBotao
+              variante="contorno"
+              tamanho="sm"
+              type="button"
+              [disabled]="i === 0"
+              [attr.aria-label]="'Subir a etapa ' + etapa.nome"
+              (click)="mover(i, i - 1)"
+            >
+              <svg lucideArrowUp [size]="16" aria-hidden="true" />
+            </button>
+            <button
+              appBotao
+              variante="contorno"
+              tamanho="sm"
+              type="button"
+              [disabled]="i === etapasNovas().length - 1"
+              [attr.aria-label]="'Descer a etapa ' + etapa.nome"
+              (click)="mover(i, i + 1)"
+            >
+              <svg lucideArrowDown [size]="16" aria-hidden="true" />
+            </button>
+            <button
+              appBotao
+              variante="contorno"
+              tamanho="sm"
+              type="button"
+              [attr.aria-label]="'Remover a etapa ' + etapa.nome"
+              (click)="remover(etapa.chave)"
+            >
+              <svg lucideTrash2 [size]="16" aria-hidden="true" />
+            </button>
+          </li>
+        }
+      </ol>
+      @if (etapasNovas().length === 0) {
+        <p class="conf__erro" role="alert">O funil precisa de ao menos uma etapa aberta.</p>
+      }
+    </div>
+
+    @if (erroModal(); as mensagem) {
+      <p class="conf__erro" role="alert">
+        <svg lucideCircleAlert [size]="16" aria-hidden="true" />
+        {{ mensagem }}
+      </p>
+    }
+  </form>
+
+  <div modal-rodape>
+    <button appBotao variante="contorno" type="button" (click)="modalAberto.set(false)">
+      Cancelar
+    </button>
+    <button
+      appBotao
+      variante="marca"
+      type="button"
+      [disabled]="!modalOk()"
+      [carregando]="criando()"
+      (click)="confirmarCriarFunil()"
+    >
+      Criar funil
+    </button>
+  </div>
+</app-modal>

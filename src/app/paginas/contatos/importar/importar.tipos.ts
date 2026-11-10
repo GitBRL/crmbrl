@@ -93,7 +93,19 @@ export interface Importacao {
   readonly filtradas?: number;
   readonly negociosCriados?: number;
   readonly negociosReconvertidos?: number;
+  /** Negócios que já existiam (mesmo ID na origem) e foram atualizados em vez de criados. */
+  readonly negociosAtualizados?: number;
+  readonly formatoOrigem?: FormatoOrigem | null;
+  /** `{ valor do funil na planilha (normalizado): id do funil }`. */
+  readonly traducaoFunis?: TraducaoFunis;
+  /** `{ id do funil: { valor da etapa (normalizado): id da etapa } }`. */
+  readonly traducaoEtapas?: TraducaoEtapas;
 }
+
+/** Planilha de outro sistema reconhecida pelo cabeçalho. */
+export type FormatoOrigem = 'CLINT';
+export type TraducaoFunis = Readonly<Record<string, string>>;
+export type TraducaoEtapas = Readonly<Record<string, Readonly<Record<string, string>>>>;
 
 export interface LinhaDaPrevia {
   readonly numero: number;
@@ -108,6 +120,7 @@ export interface Previa {
   readonly abas?: readonly string[];
   /** Linhas que passam no filtro (igual a `totalLinhas` sem filtro). */
   readonly linhasNoFiltro?: number;
+  readonly formatoOrigem?: FormatoOrigem | null;
 }
 
 export interface ImportacaoCriada extends Importacao {
@@ -133,6 +146,8 @@ export interface ModeloMapeamento {
     readonly filtro?: FiltroDaPlanilha | null;
     readonly negocio?: NegocioParaTodos | null;
     readonly ddiPadrao?: string;
+    readonly traducaoFunis?: TraducaoFunis;
+    readonly traducaoEtapas?: TraducaoEtapas;
   };
   readonly criadoEm: string;
 }
@@ -158,6 +173,8 @@ export interface AlteracaoImportacao {
   readonly filtro?: FiltroDaPlanilha | null;
   readonly negocio?: NegocioParaTodos | null;
   readonly ddiPadrao?: string;
+  readonly traducaoFunis?: TraducaoFunis;
+  readonly traducaoEtapas?: TraducaoEtapas;
 }
 
 /** Evento de tempo real `importacao.progresso`. */
@@ -170,6 +187,7 @@ export interface ProgressoImportacao {
   readonly atualizados: number;
   readonly ignorados: number;
   readonly erros: number;
+  readonly negociosAtualizados?: number;
   readonly relatorioId?: string | null;
 }
 
@@ -328,6 +346,7 @@ export function aplicarProgresso(atual: Importacao, evento: ProgressoImportacao)
     atualizados: evento.atualizados,
     ignorados: evento.ignorados,
     erros: evento.erros,
+    negociosAtualizados: evento.negociosAtualizados ?? atual.negociosAtualizados,
     relatorioId: evento.relatorioId ?? atual.relatorioId,
     progresso: concluida
       ? 100
@@ -421,4 +440,84 @@ export function resumoDoRodape(dados: {
     partes.push(`negócio em ${dados.negocio.funil} › ${dados.negocio.etapa}`);
   }
   return partes.join(' · ');
+}
+
+// ----- Conferência de funis e etapas (planilha de outro sistema, ex.: Clint) -------------------
+
+export type ComoAchou = 'NOME' | 'TRADUCAO';
+export type ProblemaDoFunil = 'NAO_ENCONTRADO' | 'ARQUIVADO' | 'SEM_PERMISSAO';
+export type ProblemaDaEtapa = 'NAO_ENCONTRADA' | 'ETAPA_DE_PERDA';
+
+export interface EtapaDaPlanilha {
+  readonly valor: string;
+  readonly linhas: number;
+  readonly etapa: { readonly id: string; readonly nome: string; readonly tipo: string } | null;
+  readonly como: ComoAchou | null;
+  readonly problema: ProblemaDaEtapa | null;
+}
+
+export interface FunilDaPlanilha {
+  readonly valor: string;
+  readonly linhas: number;
+  readonly porStatus: { readonly ABERTO: number; readonly GANHO: number; readonly PERDIDO: number };
+  readonly funil: { readonly id: string; readonly nome: string; readonly area: string } | null;
+  readonly como: ComoAchou | null;
+  readonly problema: ProblemaDoFunil | null;
+  readonly etapas: readonly EtapaDaPlanilha[];
+}
+
+export interface FunisDaPlanilha {
+  readonly funis: readonly FunilDaPlanilha[];
+  readonly semFunil: number;
+}
+
+/** Como a API guarda o valor da planilha nas traduções: sem acento, minúsculas, aparado. */
+export function normalizarValor(valor: string): string {
+  return valor.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+/** "7 abertas, 1 ganha, 2 perdidas" (só o que não é zero). */
+export function resumoPorStatus(p: FunilDaPlanilha['porStatus']): string {
+  const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+  const partes: string[] = [];
+  if (p.ABERTO > 0) {
+    partes.push(plural(p.ABERTO, 'aberta', 'abertas'));
+  }
+  if (p.GANHO > 0) {
+    partes.push(plural(p.GANHO, 'ganha', 'ganhas'));
+  }
+  if (p.PERDIDO > 0) {
+    partes.push(plural(p.PERDIDO, 'perdida', 'perdidas'));
+  }
+  return partes.join(', ');
+}
+
+/** Quantas linhas ficarão sem negócio por funil ou etapa sem destino (o contato entra mesmo assim). */
+export function linhasSemDestino(dados: FunisDaPlanilha | null): number {
+  let total = 0;
+  for (const f of dados?.funis ?? []) {
+    if (f.problema !== null) {
+      total += f.linhas;
+      continue;
+    }
+    for (const e of f.etapas) {
+      if (e.problema !== null) {
+        total += e.linhas;
+      }
+    }
+  }
+  return total;
+}
+
+/** Compara dois objetos de dados (mapeamento, traduções) sem depender da ordem das chaves. */
+export function valoresIguais(a: unknown, b: unknown): boolean {
+  const canonico = (v: unknown): unknown =>
+    v !== null && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(
+          Object.entries(v as Record<string, unknown>)
+            .sort(([x], [y]) => (x < y ? -1 : 1))
+            .map(([k, val]) => [k, canonico(val)]),
+        )
+      : v;
+  return JSON.stringify(canonico(a)) === JSON.stringify(canonico(b));
 }

@@ -5,7 +5,9 @@ import {
   DestroyRef,
   inject,
   type OnInit,
+  effect,
   signal,
+  untracked,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
@@ -31,6 +33,7 @@ import { formatarDataHora, formatarNumero } from '../../../nucleo/formatos';
 import { podeImportarContatos } from '../../../nucleo/sessao/perfil';
 import { SessaoService } from '../../../nucleo/sessao/sessao.service';
 import { TempoRealService } from '../../../nucleo/tempo-real/tempo-real.service';
+import { ConferenciaFunis } from './conferencia-funis';
 import { Abas, type ItemAba } from '../../../ui/abas/abas';
 import { Alternador } from '../../../ui/alternador/alternador';
 import { Botao } from '../../../ui/botao/botao';
@@ -59,6 +62,11 @@ import {
   exigenciasDoMapeamento,
   type FiltroDaPlanilha,
   filtroDasRegras,
+  type FunisDaPlanilha,
+  normalizarValor,
+  type TraducaoEtapas,
+  type TraducaoFunis,
+  valoresIguais,
   type Importacao,
   type LeituraArquivo,
   type LinhaImportada,
@@ -173,6 +181,7 @@ const FILTROS_RESULTADO: readonly OpcaoFiltro[] = [
 const POR_PAGINA_LINHAS = 20;
 const INTERVALO_CONSULTA_MS = 4000;
 const ATRASO_FILTRO_MS = 600;
+const ATRASO_CONFERENCIA_MS = 400;
 
 interface LinhaDeColuna {
   readonly coluna: string;
@@ -201,6 +210,7 @@ const NOME_DO_MODELO: Record<TipoImportacao, string> = {
     Botao,
     Cartao,
     CampoEtiquetas,
+    ConferenciaFunis,
     CampoTexto,
     Esqueleto,
     EstadoVazio,
@@ -443,6 +453,40 @@ export class Importar implements OnInit {
     return funil && etapa ? { funil: funil.nome, etapa: etapa.nome } : null;
   });
 
+  // Conferência de funis e etapas
+  protected readonly traducaoFunis = signal<TraducaoFunis>({});
+  protected readonly traducaoEtapas = signal<TraducaoEtapas>({});
+  protected readonly funisPlanilha = signal<FunisDaPlanilha | null>(null);
+  protected readonly carregandoConferencia = signal(false);
+  protected readonly erroConferencia = signal<string | null>(null);
+  private readonly versaoConferencia = signal(0);
+  protected readonly formatoOrigem = computed(
+    () => this.previa()?.formatoOrigem ?? this.rascunho()?.formatoOrigem ?? null,
+  );
+  /** Aparece quando a planilha tem coluna de funil ou de etapa. */
+  protected readonly mostraConferencia = computed(() => {
+    if (!this.rascunho() || !this.ehContatos()) {
+      return false;
+    }
+    const campos = Object.values(this.mapeamento());
+    return campos.includes('negocio.funil') || campos.includes('negocio.etapa');
+  });
+  /** Muda quando algo que altera a conferência muda (mapeamento, filtro, cartão, traduções). */
+  private readonly chaveConferencia = computed<string | null>(() =>
+    this.mostraConferencia()
+      ? JSON.stringify([
+          this.rascunho()?.id,
+          this.mapeamento(),
+          this.rascunho()?.filtro ?? null,
+          this.funilId(),
+          this.etapaId(),
+          this.traducaoFunis(),
+          this.traducaoEtapas(),
+          this.versaoConferencia(),
+        ])
+      : null,
+  );
+
   // Filtro
   protected readonly filtroIncompleto = computed(() =>
     this.regras().some((r) => !regraCompleta(r)),
@@ -529,6 +573,8 @@ export class Importar implements OnInit {
   private pedidoLinhas = 0;
   private pedidoFiltro = 0;
   private chaveRegra = 0;
+  private atrasoConferencia: ReturnType<typeof setTimeout> | null = null;
+  private pedidoConferencia = 0;
 
   constructor() {
     const destruir = inject(DestroyRef);
@@ -540,6 +586,13 @@ export class Importar implements OnInit {
       if (this.atrasoFiltro !== null) {
         clearTimeout(this.atrasoFiltro);
       }
+      if (this.atrasoConferencia !== null) {
+        clearTimeout(this.atrasoConferencia);
+      }
+    });
+    effect(() => {
+      const chave = this.chaveConferencia();
+      untracked(() => this.agendarConferencia(chave));
     });
   }
 
@@ -734,6 +787,8 @@ export class Importar implements OnInit {
     this.abaDaPlanilha.set(imp.leitura.aba ?? previa?.abas?.[0] ?? null);
     this.temCabecalho.set(!imp.leitura.semCabecalho);
     this.ddiPadrao.set(imp.ddiPadrao ?? '55');
+    this.traducaoFunis.set(imp.traducaoFunis ?? {});
+    this.traducaoEtapas.set(imp.traducaoEtapas ?? {});
     this.combinacao.set(imp.filtro?.combinacao ?? 'TODAS');
     this.regras.set(
       (imp.filtro?.regras ?? []).map((r) => ({
@@ -764,6 +819,10 @@ export class Importar implements OnInit {
     this.regras.set([]);
     this.erroFiltro.set(null);
     this.nomeModeloAberto.set(false);
+    this.traducaoFunis.set({});
+    this.traducaoEtapas.set({});
+    this.funisPlanilha.set(null);
+    this.erroConferencia.set(null);
   }
 
   // ----- Opções de leitura -------------------------------------------------------------------
@@ -863,7 +922,12 @@ export class Importar implements OnInit {
           etiquetas: this.etiquetas(),
           filtro: this.filtroAtual(),
           ...(contatos
-            ? { negocio: this.negocioParaEnviar(), ddiPadrao: String(this.ddiPadrao()).trim() }
+            ? {
+                negocio: this.negocioParaEnviar(),
+                ddiPadrao: String(this.ddiPadrao()).trim(),
+                traducaoFunis: this.traducaoFunis(),
+                traducaoEtapas: this.traducaoEtapas(),
+              }
             : {}),
         },
       });
@@ -1025,6 +1089,129 @@ export class Importar implements OnInit {
     }
   }
 
+  // ----- Conferência de funis e etapas -------------------------------------------------------
+
+  private agendarConferencia(chave: string | null): void {
+    if (this.atrasoConferencia !== null) {
+      clearTimeout(this.atrasoConferencia);
+      this.atrasoConferencia = null;
+    }
+    if (chave === null) {
+      this.pedidoConferencia++;
+      this.funisPlanilha.set(null);
+      this.erroConferencia.set(null);
+      this.carregandoConferencia.set(false);
+      return;
+    }
+    this.carregandoConferencia.set(true);
+    this.atrasoConferencia = setTimeout(() => {
+      this.atrasoConferencia = null;
+      void this.conferir();
+    }, ATRASO_CONFERENCIA_MS);
+  }
+
+  protected reconferir(): void {
+    this.versaoConferencia.update((v) => v + 1);
+  }
+
+  /** Salva o que a conferência usa (colunas, cartão e traduções) e pede o destino de cada funil e etapa. */
+  private async conferir(): Promise<void> {
+    const imp = this.rascunho();
+    if (!imp || !this.mostraConferencia()) {
+      return;
+    }
+    const pedido = ++this.pedidoConferencia;
+    this.carregandoConferencia.set(true);
+    this.erroConferencia.set(null);
+    try {
+      const alteracao: {
+        mapeamento?: Mapeamento;
+        negocio?: {
+          funilId: string;
+          etapaId: string;
+          titulo: string | null;
+          valor: string | null;
+        } | null;
+        traducaoFunis?: TraducaoFunis;
+        traducaoEtapas?: TraducaoEtapas;
+      } = {};
+      if (!valoresIguais(this.mapeamento(), imp.mapeamento)) {
+        alteracao.mapeamento = this.mapeamento();
+      }
+      const negocio = this.negocioParaEnviar();
+      const cartaoCompleto = negocio !== null || !this.funilId();
+      const mudouNegocio =
+        (negocio?.funilId ?? null) !== (imp.negocio?.funilId ?? null) ||
+        (negocio?.etapaId ?? null) !== (imp.negocio?.etapaId ?? null);
+      if (cartaoCompleto && mudouNegocio) {
+        alteracao.negocio = negocio;
+      }
+      if (!valoresIguais(this.traducaoFunis(), imp.traducaoFunis ?? {})) {
+        alteracao.traducaoFunis = this.traducaoFunis();
+      }
+      if (!valoresIguais(this.traducaoEtapas(), imp.traducaoEtapas ?? {})) {
+        alteracao.traducaoEtapas = this.traducaoEtapas();
+      }
+      if (Object.keys(alteracao).length > 0) {
+        const novo = await this.api.alterar(imp.id, alteracao);
+        if (this.importacao()?.id === imp.id) {
+          this.importacao.set(novo);
+        }
+      }
+      const dados = await this.api.funisDaPlanilha(imp.id);
+      if (pedido === this.pedidoConferencia) {
+        this.funisPlanilha.set(dados);
+      }
+    } catch (falha) {
+      if (pedido === this.pedidoConferencia) {
+        const erro = erroDaApi(falha);
+        this.erroConferencia.set(erro.resumo);
+        // Escolha recusada pela API: volta ao que ficou salvo.
+        const salvo = this.importacao();
+        if (salvo?.id === imp.id) {
+          this.traducaoFunis.set(salvo.traducaoFunis ?? {});
+          this.traducaoEtapas.set(salvo.traducaoEtapas ?? {});
+        }
+      }
+    } finally {
+      if (pedido === this.pedidoConferencia) {
+        this.carregandoConferencia.set(false);
+      }
+    }
+  }
+
+  protected aoUsarFunil(escolha: { valor: string; funilId: string | null }): void {
+    const chave = normalizarValor(escolha.valor);
+    this.traducaoFunis.update((atual) => {
+      const { [chave]: _antigo, ...resto } = atual;
+      return escolha.funilId ? { ...resto, [chave]: escolha.funilId } : resto;
+    });
+  }
+
+  protected aoUsarEtapa(escolha: { funilId: string; valor: string; etapaId: string | null }): void {
+    const chave = normalizarValor(escolha.valor);
+    this.traducaoEtapas.update((atual) => {
+      const { [escolha.funilId]: doFunil = {}, ...outros } = atual;
+      const { [chave]: _antiga, ...resto } = doFunil;
+      const novo = escolha.etapaId ? { ...resto, [chave]: escolha.etapaId } : resto;
+      return Object.keys(novo).length > 0 ? { ...outros, [escolha.funilId]: novo } : outros;
+    });
+  }
+
+  /** Funil novo (ou etapa nova num funil que já existia): atualiza a lista e confere de novo. */
+  protected aoFunilCriado(evento: { valor: string | null; funil: Funil }): void {
+    this.funis.update((lista) =>
+      lista.some((f) => f.id === evento.funil.id)
+        ? lista.map((f) => (f.id === evento.funil.id ? evento.funil : f))
+        : [...lista, evento.funil],
+    );
+    if (evento.valor !== null) {
+      this.aoUsarFunil({ valor: evento.valor, funilId: evento.funil.id });
+    } else {
+      this.reconferir();
+    }
+  }
+
   // ----- Criar importação --------------------------------------------------------------------
 
   protected async criar(): Promise<void> {
@@ -1060,6 +1247,8 @@ export class Importar implements OnInit {
                 ? {
                     negocio: this.negocioParaEnviar(),
                     ddiPadrao: String(this.ddiPadrao()).trim(),
+                    traducaoFunis: this.traducaoFunis(),
+                    traducaoEtapas: this.traducaoEtapas(),
                   }
                 : {}),
             };

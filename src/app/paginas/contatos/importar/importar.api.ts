@@ -11,6 +11,9 @@ import type {
   ImportacaoCriada,
   LeituraArquivo,
   FiltroDaPlanilha,
+  FunisDaPlanilha,
+  TraducaoEtapas,
+  TraducaoFunis,
   LinhaImportada,
   ModeloMapeamento,
   NegocioParaTodos,
@@ -73,6 +76,26 @@ export class ImportarApi {
         params: parametros({ linhas }),
       }),
     );
+  }
+
+  /** Funis e etapas que a planilha cita, com o destino de cada um no CRM (usa o que está salvo). */
+  funisDaPlanilha(id: string): Promise<FunisDaPlanilha> {
+    return firstValueFrom(
+      this.http.get<FunisDaPlanilha>(urlApi('importacoes', id, 'funis-da-planilha')),
+    );
+  }
+
+  /** Cria um funil já com as etapas (ao menos uma aberta, um ganho e uma perda). */
+  criarFunil(dados: {
+    nome: string;
+    area: string;
+    etapas: readonly { nome: string; tipo: 'ABERTA' | 'GANHO' | 'PERDIDO' }[];
+  }): Promise<Funil> {
+    return firstValueFrom(this.http.post<Funil>(urlApi('funis'), dados));
+  }
+
+  criarEtapa(funilId: string, nome: string): Promise<Funil> {
+    return firstValueFrom(this.http.post<Funil>(urlApi('funis', funilId, 'etapas'), { nome }));
   }
 
   alterar(id: string, alteracao: AlteracaoImportacao): Promise<Importacao> {
@@ -149,6 +172,8 @@ export class ImportarApi {
       filtro?: FiltroDaPlanilha | null;
       negocio?: NegocioParaTodos | null;
       ddiPadrao?: string;
+      traducaoFunis?: TraducaoFunis;
+      traducaoEtapas?: TraducaoEtapas;
     };
   }): Promise<ModeloMapeamento> {
     return firstValueFrom(
