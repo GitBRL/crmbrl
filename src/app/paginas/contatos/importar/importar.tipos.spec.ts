@@ -4,9 +4,14 @@ import {
   aplicarProgresso,
   chaveDeCampoPersonalizado,
   erroDoArquivo,
+  etapasParaImportacao,
+  filtroDasRegras,
   exigenciasDoMapeamento,
   type Importacao,
   mapearColuna,
+  operadorSemValor,
+  regraCompleta,
+  resumoDoRodape,
 } from './importar.tipos';
 
 const BASE = {
@@ -83,5 +88,49 @@ describe('importação: regras da tela', () => {
     expect(erroDoArquivo({ name: 'a.xlsx', size: 10 })).toBeNull();
     expect(erroDoArquivo({ name: 'a.pdf', size: 10 })).toMatch(/formato/);
     expect(erroDoArquivo({ name: 'a.csv', size: 0 })).toMatch(/vazio/);
+  });
+});
+
+describe('importação: filtro, negócio e rodapé', () => {
+  it('regra incompleta (sem coluna ou sem valor) não vai para a API', () => {
+    const regras = [
+      { chave: 1, coluna: 'Cidade', operador: 'IGUAL' as const, valor: ' Recife ' },
+      { chave: 2, coluna: 'Cidade', operador: 'CONTEM' as const, valor: '' },
+      { chave: 3, coluna: null, operador: 'VAZIO' as const, valor: '' },
+      { chave: 4, coluna: 'Email', operador: 'PREENCHIDO' as const, valor: 'lixo' },
+    ];
+    expect(regras.map(regraCompleta)).toEqual([true, false, false, true]);
+    expect(filtroDasRegras('QUALQUER', regras)).toEqual({
+      combinacao: 'QUALQUER',
+      regras: [
+        { coluna: 'Cidade', operador: 'IGUAL', valor: 'Recife' },
+        { coluna: 'Email', operador: 'PREENCHIDO' },
+      ],
+    });
+    expect(filtroDasRegras('TODAS', [regras[1]])).toBeNull();
+  });
+
+  it('vazio e preenchido não têm valor', () => {
+    expect(operadorSemValor('VAZIO')).toBe(true);
+    expect(operadorSemValor('PREENCHIDO')).toBe(true);
+    expect(operadorSemValor('IGUAL')).toBe(false);
+  });
+
+  it('as etapas para o negócio não incluem a de perda', () => {
+    const etapas = [{ tipo: 'ABERTA' }, { tipo: 'GANHO' }, { tipo: 'PERDIDO' }];
+    expect(etapasParaImportacao(etapas).map((e) => e.tipo)).toEqual(['ABERTA', 'GANHO']);
+  });
+
+  it('resumo do rodapé', () => {
+    expect(
+      resumoDoRodape({
+        totalLinhas: 3500,
+        linhasNoFiltro: 1240,
+        negocio: { funil: 'Comercial', etapa: 'Novo lead' },
+      }),
+    ).toBe('1.240 de 3.500 linhas · negócio em Comercial › Novo lead');
+    expect(resumoDoRodape({ totalLinhas: 50, linhasNoFiltro: null, negocio: null })).toBe(
+      '50 linhas',
+    );
   });
 });
