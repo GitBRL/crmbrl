@@ -98,6 +98,11 @@ import { SetoresService } from '../../../nucleo/setores/setores.service';
 
 type AbaDaTela = 'nova' | 'execucoes';
 
+const MENSAGEM_FUNIL_NAO_ENCONTRADO =
+  'Funil não encontrado: ele foi excluído ou você não tem acesso a ele. Escolha outro funil.';
+const MENSAGEM_FUNIL_NAO_ENCONTRADO_TRADUCAO =
+  'Funil não encontrado: um dos funis escolhidos foi excluído ou você não tem acesso a ele. Escolha outro destino.';
+
 const ABAS: readonly ItemAba[] = [
   { id: 'nova', rotulo: 'Nova importação' },
   { id: 'execucoes', rotulo: 'Execuções' },
@@ -329,6 +334,8 @@ export class Importar implements OnInit {
   protected readonly etapaId = signal<string | null>(null);
   protected readonly tituloNegocio = signal('');
   protected readonly valorNegocio = signal('');
+  /** O funil do cartão não existe (ou a pessoa não o vê): 404 da API. */
+  protected readonly erroNegocio = signal<string | null>(null);
 
   // Filtro das linhas
   protected readonly combinacao = signal<FiltroDaPlanilha['combinacao']>('TODAS');
@@ -990,6 +997,7 @@ export class Importar implements OnInit {
   }
 
   protected mudarFunil(id: string | null): void {
+    this.erroNegocio.set(null);
     this.funilId.set(id);
     this.etapaId.set(null);
     if (!id) {
@@ -1122,6 +1130,8 @@ export class Importar implements OnInit {
     const pedido = ++this.pedidoConferencia;
     this.carregandoConferencia.set(true);
     this.erroConferencia.set(null);
+    let enviouCartao = false;
+    let enviouTraducao = false;
     try {
       const alteracao: {
         mapeamento?: Mapeamento;
@@ -1145,11 +1155,14 @@ export class Importar implements OnInit {
       if (cartaoCompleto && mudouNegocio) {
         alteracao.negocio = negocio;
       }
+      enviouCartao = 'negocio' in alteracao && alteracao.negocio !== null;
       if (!valoresIguais(this.traducaoFunis(), imp.traducaoFunis ?? {})) {
         alteracao.traducaoFunis = this.traducaoFunis();
+        enviouTraducao = true;
       }
       if (!valoresIguais(this.traducaoEtapas(), imp.traducaoEtapas ?? {})) {
         alteracao.traducaoEtapas = this.traducaoEtapas();
+        enviouTraducao = true;
       }
       if (Object.keys(alteracao).length > 0) {
         const novo = await this.api.alterar(imp.id, alteracao);
@@ -1164,7 +1177,14 @@ export class Importar implements OnInit {
     } catch (falha) {
       if (pedido === this.pedidoConferencia) {
         const erro = erroDaApi(falha);
-        this.erroConferencia.set(erro.resumo);
+        if (erro.status === 404 && enviouCartao) {
+          // Funil inexistente ou invisível (404): o cartão volta a "Não criar negócio".
+          this.recusarFunilDoCartao();
+        } else if (erro.status === 404 && enviouTraducao) {
+          this.erroConferencia.set(MENSAGEM_FUNIL_NAO_ENCONTRADO_TRADUCAO);
+        } else {
+          this.erroConferencia.set(erro.resumo);
+        }
         // Escolha recusada pela API: volta ao que ficou salvo.
         const salvo = this.importacao();
         if (salvo?.id === imp.id) {
@@ -1251,6 +1271,7 @@ export class Importar implements OnInit {
                   }
                 : {}),
             };
+      this.erroNegocio.set(null);
       await this.api.alterar(imp.id, alteracao);
       const iniciada = await this.api.iniciar(imp.id);
       this.zerarRascunho();
@@ -1259,10 +1280,28 @@ export class Importar implements OnInit {
       this.irParaImportacao(iniciada.id);
       void this.carregarHistorico();
     } catch (falha) {
-      this.avisos.erro(falha);
+      if (
+        erroDaApi(falha).status === 404 &&
+        imp.tipo === 'CONTATOS' &&
+        this.negocioParaEnviar() !== null
+      ) {
+        this.recusarFunilDoCartao();
+        this.avisos.erro(MENSAGEM_FUNIL_NAO_ENCONTRADO);
+      } else {
+        this.avisos.erro(falha);
+      }
     } finally {
       this.criando.set(false);
     }
+  }
+
+  /** 404 no funil do cartão "Negócio para todos": mostra o erro ali e tira a escolha. */
+  private recusarFunilDoCartao(): void {
+    this.erroNegocio.set(MENSAGEM_FUNIL_NAO_ENCONTRADO);
+    this.funilId.set(null);
+    this.etapaId.set(null);
+    this.tituloNegocio.set('');
+    this.valorNegocio.set('');
   }
 
   // ----- Execuções: andamento e relatório ----------------------------------------------------

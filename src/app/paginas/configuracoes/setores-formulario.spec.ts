@@ -220,6 +220,40 @@ describe('SetoresFormulario (criar e editar setor)', () => {
     );
   });
 
+  it('422 R1.7 com recusados lista quem não pode liderar; R1.2 de líderes vai ao campo de líderes', async () => {
+    await abrirNovo();
+    digitar(raiz(), 'Nome do setor', 'Pós-venda');
+    marcar('Lucas Pereira');
+    enviar();
+    await aguardar();
+    let falha = erroDaApiFalso(422, 'regra_violada', 'Admin e C-level não lideram setor.', {
+      regra: 'R1.7',
+      recusados: [
+        { id: 'u1', nome: 'Helena Duarte', papel: 'C_LEVEL' },
+        { id: 'u2', nome: 'Admin', papel: 'ADMIN' },
+      ],
+    });
+    http.expectOne('/api/v1/setores').flush(falha.corpo, falha.opcoes);
+    await aguardar();
+    const erroLideres = () =>
+      raiz().querySelector('.formulario__lideres .formulario__erro')!.textContent;
+    expect(erroLideres()).toContain('Helena Duarte (C-level)');
+    expect(erroLideres()).toContain('Admin (Admin)');
+
+    enviar();
+    await aguardar();
+    falha = erroDaApiFalso(422, 'regra_violada', 'O C-level responsável não pode ser líder.', {
+      regra: 'R1.2',
+      campo: 'lideres',
+    });
+    http.expectOne('/api/v1/setores').flush(falha.corpo, falha.opcoes);
+    await aguardar();
+    expect(erroLideres()).toContain('O C-level responsável não pode ser líder.');
+    expect(campoPeloRotulo(raiz(), 'C-level responsável').getAttribute('aria-invalid')).not.toBe(
+      'true',
+    );
+  });
+
   it('editar manda só o que mudou', async () => {
     fixture.componentInstance.pedido.set({ modo: 'editar', setor: COMERCIAL_BASE });
     fixture.detectChanges();

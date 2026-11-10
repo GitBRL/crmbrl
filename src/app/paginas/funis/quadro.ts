@@ -171,6 +171,10 @@ export class QuadroFunil {
   protected readonly podeAssumir = computed(
     () => this.podeAgir() && podeSerResponsavel(this.sessao.usuario(), this.areaAtual()),
   );
+  /** Age neste negócio (R5.12): quem só tem "Como membro" não age no de outra pessoa. */
+  protected podeAgirEm(negocio: Negocio): boolean {
+    return this.estado.podeAgirEm(negocio);
+  }
   protected readonly rotuloNivel = computed(() => ROTULO_NIVEL[this.estado.nivel()]);
   protected readonly linkConfigurarFunil = computed(() => [
     '/configuracoes/funis',
@@ -417,7 +421,7 @@ export class QuadroFunil {
     const pego = this.pego();
     const tecla = evento.key;
     if (!pego || pego.negocio.id !== negocio.id) {
-      if (tecla === ' ' || tecla === 'Enter') {
+      if ((tecla === ' ' || tecla === 'Enter') && this.podeAgirEm(negocio)) {
         evento.preventDefault();
         this.pegar(negocio);
       }

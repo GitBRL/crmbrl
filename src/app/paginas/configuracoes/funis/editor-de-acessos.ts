@@ -22,11 +22,13 @@ import {
   EditorDeAcessos as EditorDeAcessosUi,
   linhasDeAcessos,
   type LinhaEditavel,
+  pessoaEscolhivel,
   type PessoaEscolhivel,
   type SetorEscolhivel,
 } from '../../../ui/editor-de-acessos/editor-de-acessos';
+import { ConfiguracoesApi } from '../configuracoes.api';
 import { FunisApi } from '../../funis/funis.api';
-import type { AcessoFunil, Usuario, VisibilidadeFunil } from '../../funis/funis.tipos';
+import type { VisibilidadeFunil } from '../../funis/funis.tipos';
 
 export {
   acessosAlterados,
@@ -76,6 +78,7 @@ const AVISO_RESTRITA =
         [erroGeral]="erroGeral()"
         [errosDasLinhas]="errosDasLinhas()"
         [aviso]="restrita() ? avisoRestrita : null"
+        (buscarPessoas)="carregarPessoas($event)"
         (salvar)="salvar()"
         (descartar)="descartar()"
       />
@@ -102,6 +105,7 @@ export class EditorDeAcessos {
   readonly salvo = output<void>();
 
   private readonly api = inject(FunisApi);
+  private readonly usuarios = inject(ConfiguracoesApi);
   private readonly avisos = inject(AvisosService);
   private readonly setores = inject(SetoresService);
 
@@ -113,7 +117,8 @@ export class EditorDeAcessos {
   private readonly visibilidade = signal<VisibilidadeFunil>('SETOR');
   protected readonly linhas = signal<readonly LinhaEditavel[]>([]);
   private readonly salvas = signal<readonly LinhaEditavel[]>([]);
-  private readonly pessoas = signal<readonly Usuario[]>([]);
+  private readonly pessoas = signal<readonly PessoaEscolhivel[]>([]);
+  private buscaDePessoas = 0;
   protected readonly salvando = signal(false);
   protected readonly erroGeral = signal<string | null>(null);
   protected readonly errosDasLinhas = signal<Readonly<Record<string, string>>>({});
@@ -129,9 +134,7 @@ export class EditorDeAcessos {
       .map((setor) => ({ chave: setor.chave, nome: setor.nome })),
   );
   protected readonly pessoasEscolhiveis = computed<readonly PessoaEscolhivel[]>(() =>
-    this.pessoas()
-      .filter((pessoa) => pessoa.ativo && (pessoa.papel === 'LIDER' || pessoa.papel === 'MEMBRO'))
-      .map((pessoa) => ({ id: pessoa.id, nome: pessoa.nome, rotulo: pessoa.rotuloPapel })),
+    this.pessoas(),
   );
 
   constructor() {
@@ -165,12 +168,19 @@ export class EditorDeAcessos {
     }
   }
 
-  private async carregarPessoas(): Promise<void> {
+  /** Pessoas ativas de qualquer setor (`GET /usuarios/opcoes`), buscando pelo nome digitado. */
+  protected async carregarPessoas(busca = ''): Promise<void> {
+    const versao = ++this.buscaDePessoas;
     try {
-      this.pessoas.set((await this.api.usuariosAtivos()).itens);
+      const opcoes = await this.usuarios.opcoesDePessoas(busca);
+      if (versao === this.buscaDePessoas) {
+        this.pessoas.set(opcoes.map(pessoaEscolhivel));
+      }
     } catch {
       // Sem a lista de pessoas só dá para escolher setor.
-      this.pessoas.set([]);
+      if (versao === this.buscaDePessoas) {
+        this.pessoas.set([]);
+      }
     }
   }
 

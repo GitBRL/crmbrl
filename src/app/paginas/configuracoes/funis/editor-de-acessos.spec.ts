@@ -65,40 +65,26 @@ const RESPOSTA = (
   acessos,
 });
 
-const PESSOAS = {
-  itens: [
-    {
-      id: 'u-lucas',
-      nome: 'Lucas Prado',
-      papel: 'MEMBRO',
-      rotuloPapel: 'Customer Success',
-      area: 'CS',
-      ativo: true,
-      nivel: 'MEMBRO',
-    },
-    {
-      id: 'u-bia',
-      nome: 'Bia Lima',
-      papel: 'MEMBRO',
-      rotuloPapel: 'Marketing',
-      area: 'MARKETING',
-      ativo: true,
-      nivel: 'MEMBRO',
-    },
-    {
-      id: 'u-adm',
-      nome: 'Admin',
-      papel: 'ADMIN',
-      rotuloPapel: 'Admin',
-      area: null,
-      ativo: true,
-      nivel: 'ADMINISTRADOR',
-    },
-  ],
-  total: 3,
-  pagina: 1,
-  porPagina: 100,
-};
+const PESSOAS = [
+  {
+    id: 'u-lucas',
+    nome: 'Lucas Prado',
+    avatarUrl: null,
+    papel: 'MEMBRO',
+    rotuloPapel: 'Customer Success',
+    area: 'CS',
+    nomeSetor: 'Customer Success',
+  },
+  {
+    id: 'u-bia',
+    nome: 'Bia Lima',
+    avatarUrl: null,
+    papel: 'LIDER',
+    rotuloPapel: 'Líder',
+    area: 'MARKETING',
+    nomeSetor: 'Marketing',
+  },
+];
 
 @Component({
   imports: [EditorDeAcessos],
@@ -156,7 +142,9 @@ describe('EditorDeAcessos', () => {
     await microtarefas();
     responderSetores(http, [{ chave: 'ANTIGO', nome: 'Antigo', ativo: false }]);
     http.expectOne('/api/v1/funis/f1/acessos').flush(resposta);
-    http.expectOne((r) => r.url === '/api/v1/usuarios').flush(PESSOAS);
+    const opcoes = http.expectOne((r) => r.url === '/api/v1/usuarios/opcoes');
+    expect(opcoes.request.params.has('busca')).toBe(false);
+    opcoes.flush(PESSOAS);
     await microtarefas();
     fixture.detectChanges();
   }
@@ -226,7 +214,7 @@ describe('EditorDeAcessos', () => {
     expect(salvar().disabled).toBe(true);
   });
 
-  it('adiciona uma pessoa (sem Admin e C-level na lista)', async () => {
+  it('adiciona uma pessoa de qualquer setor (rótulo com papel e setor)', async () => {
     await abrir(RESPOSTA([]));
     [...raiz().querySelectorAll('label')]
       .find((l) => l.textContent?.includes('Uma pessoa'))!
@@ -234,7 +222,7 @@ describe('EditorDeAcessos', () => {
     fixture.detectChanges();
     expect(opcoesDe(raiz(), 'Pessoa')).toEqual([
       'Lucas Prado · Customer Success',
-      'Bia Lima · Marketing',
+      'Bia Lima · Líder · Marketing',
     ]);
     escolher(raiz(), 'Pessoa', 'Lucas Prado · Customer Success');
     fixture.detectChanges();
@@ -244,6 +232,41 @@ describe('EditorDeAcessos', () => {
     expect(http.expectOne('/api/v1/funis/f1/acessos').request.body).toEqual({
       acessos: [{ usuarioId: 'u-lucas', nivel: 'VER' }],
     });
+  });
+
+  it('busca pessoas pelo nome digitado, com 250 ms de espera, e mantém a escolhida', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      await abrir(RESPOSTA([]));
+      [...raiz().querySelectorAll('label')]
+        .find((l) => l.textContent?.includes('Uma pessoa'))!
+        .click();
+      fixture.detectChanges();
+      escolher(raiz(), 'Pessoa', 'Lucas Prado · Customer Success');
+      const campo = campoPeloRotulo(raiz(), 'Buscar pessoa');
+      campo.value = 'bi';
+      campo.dispatchEvent(new Event('input'));
+      campo.value = 'bia';
+      campo.dispatchEvent(new Event('input'));
+      vi.advanceTimersByTime(200);
+      http.expectNone((r) => r.url === '/api/v1/usuarios/opcoes');
+      vi.advanceTimersByTime(60);
+      const pedido = http.expectOne((r) => r.url === '/api/v1/usuarios/opcoes');
+      expect(pedido.request.params.get('busca')).toBe('bia');
+      pedido.flush([PESSOAS[1]]);
+      await microtarefas();
+      fixture.detectChanges();
+      // A escolhida antes continua na lista e pode ser adicionada.
+      expect(opcoesDe(raiz(), 'Pessoa')).toEqual([
+        'Lucas Prado · Customer Success',
+        'Bia Lima · Líder · Marketing',
+      ]);
+      botaoComTexto(raiz(), 'Adicionar').click();
+      fixture.detectChanges();
+      expect(linha('pessoa:u-lucas')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('troca o nível e remove, e "Descartar" volta ao que está salvo', async () => {

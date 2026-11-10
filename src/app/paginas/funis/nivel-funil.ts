@@ -40,6 +40,26 @@ export function podeAgirNoFunil(nivel: NivelNoFunil): boolean {
   return PESO[nivel] >= PESO.MEMBRO;
 }
 
+/**
+ * Pode agir neste negócio? Quem é `MEMBRO` e vê todos (`veTodos`) só age nos seus e nos sem
+ * responsável; `GESTOR` e `CONFIGURAR` agem em todos. Sem `veTodos` (API antiga), vale o nível.
+ */
+export function podeAgirNoNegocio(
+  funil: Pick<Funil, 'veTodos'> | null,
+  nivel: NivelNoFunil,
+  usuarioId: string | null | undefined,
+  negocio: { readonly responsavel?: { readonly id: string } | null } | null,
+): boolean {
+  if (!podeAgirNoFunil(nivel)) {
+    return false;
+  }
+  const dono = negocio?.responsavel?.id;
+  if (nivel === 'MEMBRO' && funil?.veTodos === true && dono) {
+    return dono === usuarioId;
+  }
+  return true;
+}
+
 /** Reabrir, excluir negócio e "Configurar funil": só `CONFIGURAR`. */
 export function podeConfigurarPorNivel(nivel: NivelNoFunil): boolean {
   return nivel === 'CONFIGURAR';

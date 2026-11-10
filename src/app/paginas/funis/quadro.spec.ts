@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { provideRouter } from '@angular/router';
 
 import { AvisosService } from '../../nucleo/avisos.service';
@@ -201,6 +202,45 @@ describe('QuadroFunil', () => {
         expect(raiz.textContent).not.toContain('Configurar funil');
       },
     );
+
+    describe('MEMBRO que vê todos (veTodos)', () => {
+      const negociosMistos = (meuId: string) => ({
+        novo: [
+          negocioDeTeste('outro', NOVO),
+          negocioDeTeste('meu', NOVO, { responsavel: { id: meuId, nome: 'Eu', avatarUrl: null } }),
+          negocioDeTeste('livre', NOVO, { responsavel: null }),
+        ],
+      });
+      const meuId = () => {
+        entrarComo('LIDER_COMERCIAL');
+        return TestBed.inject(SessaoService).usuario()!.id;
+      };
+      const movers = () =>
+        [...raiz.querySelectorAll<HTMLElement>('[data-mover]')].map((e) => e.dataset['mover']);
+
+      it('sem ações no negócio de outra pessoa; os próprios e os sem responsável seguem', async () => {
+        await abrir('LIDER_COMERCIAL', negociosMistos(meuId()), undefined, {
+          funil: funilDeTeste({ nivel: 'MEMBRO', veTodos: true }),
+        });
+        expect(raiz.querySelectorAll('.cartao').length).toBe(3);
+        expect(movers()).toEqual(['meu', 'livre']);
+        expect(raiz.querySelectorAll('.cartao__assumir').length).toBe(1);
+      });
+
+      it('sem veTodos (API antiga) mantém o comportamento: age em todos', async () => {
+        await abrir('LIDER_COMERCIAL', negociosMistos(meuId()), undefined, {
+          funil: funilDeTeste({ nivel: 'MEMBRO' }),
+        });
+        expect(movers()).toEqual(['outro', 'meu', 'livre']);
+      });
+
+      it('GESTOR com veTodos age em todos', async () => {
+        await abrir('LIDER_COMERCIAL', negociosMistos(meuId()), undefined, {
+          funil: funilDeTeste({ nivel: 'GESTOR', veTodos: true }),
+        });
+        expect(movers()).toEqual(['outro', 'meu', 'livre']);
+      });
+    });
 
     it('CONFIGURAR: também configura o funil (link para a tela) e as etapas', async () => {
       await abrir('COMERCIAL', undefined, undefined, comNivel('CONFIGURAR'));

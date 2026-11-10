@@ -429,14 +429,17 @@ export class SetoresFormulario {
           break;
         }
         case 'R1.2':
-          if (this.lideres().size > 0) {
+          if (erro.detalhes?.['campo'] === 'lideres') {
+            this.erroDeLideres.set(erro.resumo);
+            noLugar = true;
+          } else if (this.lideres().size > 0) {
             noCampo(c.cLevel as FormControl<unknown>, erro.resumo);
             noLugar = true;
           }
           break;
         case 'R1.7':
         case 'R1.4':
-          this.erroDeLideres.set(erro.resumo);
+          this.erroDeLideres.set(mensagemDeRecusados(erro) ?? erro.resumo);
           noLugar = true;
           break;
       }
@@ -470,4 +473,33 @@ export class SetoresFormulario {
       void this.carregarPessoas();
     }
   }
+}
+
+const ROTULO_PAPEL_RECUSADO: Readonly<Record<string, string>> = {
+  ADMIN: 'Admin',
+  C_LEVEL: 'C-level',
+};
+
+/**
+ * R1.7 com `detalhes.recusados`: quem não pode liderar setor e por quê ("Ana (C-level)…").
+ * `null` se a API não mandou a lista.
+ */
+export function mensagemDeRecusados(erro: ErroApi): string | null {
+  const bruto = erro.detalhes?.['recusados'];
+  if (!Array.isArray(bruto)) {
+    return null;
+  }
+  const nomes = bruto
+    .map((item: unknown) => {
+      const { nome, papel } = (item ?? {}) as { nome?: unknown; papel?: unknown };
+      if (typeof nome !== 'string' || !nome) {
+        return null;
+      }
+      const rotulo = typeof papel === 'string' ? ROTULO_PAPEL_RECUSADO[papel] : undefined;
+      return rotulo ? `${nome} (${rotulo})` : nome;
+    })
+    .filter((nome): nome is string => nome !== null);
+  return nomes.length
+    ? `Não podem liderar um setor: ${nomes.join(', ')}. Admin e C-level não lideram setor; escolha líderes ou membros.`
+    : null;
 }

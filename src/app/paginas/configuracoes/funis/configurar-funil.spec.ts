@@ -45,8 +45,8 @@ describe('ConfigurarFunilPagina', () => {
             visibilidade: funil.visibilidade ?? 'SETOR',
             acessos: [],
           });
-        } else if (pedido.request.url === '/api/v1/usuarios') {
-          pedido.flush({ itens: [], total: 0, pagina: 1, porPagina: 100 });
+        } else if (pedido.request.url === '/api/v1/usuarios/opcoes') {
+          pedido.flush([]);
         } else if (pedido.request.url === '/api/v1/setores') {
           pedido.flush([]);
         }

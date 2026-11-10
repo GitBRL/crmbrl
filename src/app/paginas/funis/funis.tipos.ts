@@ -46,6 +46,11 @@ export interface Funil {
   readonly visibilidade?: VisibilidadeFunil;
   /** Nível efetivo de quem consulta (decide os botões: S3b). */
   readonly nivel?: NivelNoFunil;
+  /**
+   * Vê todos os negócios do funil? O `nivel` é o de ação: com "Só ver" no próprio funil a pessoa vê
+   * os do colega, mas só age nos seus e nos sem responsável. Ausente (API antiga): como antes.
+   */
+  readonly veTodos?: boolean;
   /** Funil-base do setor (R5.1): não pode ser excluído. */
   readonly base: boolean;
   readonly ordem: number;

@@ -1,4 +1,11 @@
-import type { ConfigPasso, PassoDefinicao, RamoDefinicao, TipoDePasso } from './chatbot.tipos';
+import type { ErroApi } from '../../nucleo/api/erro-api';
+import type {
+  ConfigPasso,
+  PassoDefinicao,
+  ProblemaDefinicao,
+  RamoDefinicao,
+  TipoDePasso,
+} from './chatbot.tipos';
 
 /**
  * Funções puras da definição de um fluxo (a árvore de passos): criar passos novos, manter os ramos
@@ -498,3 +505,19 @@ export const DESCRICAO_DO_PASSO: Readonly<Record<string, string>> = {
   aguardar: 'O robô espera um tempo antes de seguir.',
   encerrar: 'O robô para por aqui. A conversa continua com a equipe.',
 };
+
+/**
+ * 422 `R5.9` (funil invisível) ou `R5.12` (sem permissão de criar) com `detalhes.passos` (ids dos
+ * passos "criar negócio"): um problema por passo, com a mensagem da API, para destacar no editor.
+ * `null` se o erro é de outro tipo.
+ */
+export function problemasDeNegocioDoPasso(erro: ErroApi): readonly ProblemaDefinicao[] | null {
+  if (erro.status !== 422 || (erro.regra !== 'R5.9' && erro.regra !== 'R5.12')) {
+    return null;
+  }
+  const passos = erro.detalhes?.['passos'];
+  const ids = Array.isArray(passos)
+    ? passos.filter((id): id is string => typeof id === 'string' && id !== '')
+    : [];
+  return ids.map((passoId) => ({ caminho: `passos.${passoId}`, mensagem: erro.resumo, passoId }));
+}

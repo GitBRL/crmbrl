@@ -67,7 +67,9 @@
                 ? null
                 : podeAgir()
                   ? 'Negócio fechado: só a liderança do setor, C-level e Admin reabrem.'
-                  : 'Você só pode ver este funil.'
+                  : outraPessoa()
+                    ? 'Este negócio é de outra pessoa: você só pode ver.'
+                    : 'Você só pode ver este funil.'
             "
             (valorChange)="mudarEtapa($event)"
           />
@@ -294,7 +296,12 @@
                 @if (erroSalvar(); as mensagem) {
                   <p class="dados__erro" role="alert">{{ mensagem }}</p>
                 }
-                @if (!podeAgir()) {
+                @if (outraPessoa()) {
+                  <p class="dados__somente-leitura">
+                    Este negócio é de outra pessoa: você só pode ver. Só o responsável e a liderança
+                    editam.
+                  </p>
+                } @else if (!podeAgir()) {
                   <p class="dados__somente-leitura">
                     Você só pode ver este funil: para editar os dados, peça o acesso “Como membro”
                     ou mais.

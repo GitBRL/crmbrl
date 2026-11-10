@@ -4,7 +4,12 @@ import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import type { Area } from '../../nucleo/sessao/perfil';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { FunisApi } from './funis.api';
-import { nivelDoFunil, podeAgirNoFunil, podeConfigurarPorNivel } from './nivel-funil';
+import {
+  nivelDoFunil,
+  podeAgirNoFunil,
+  podeAgirNoNegocio,
+  podeConfigurarPorNivel,
+} from './nivel-funil';
 import type {
   Atividade,
   ColunaQuadro,
@@ -75,6 +80,10 @@ export class EstadoQuadro {
   /** O nível da pessoa no funil aberto (decide os botões do quadro e do detalhe). */
   readonly nivel = computed(() => nivelDoFunil(this.funil(), this.sessao.perfil()));
   readonly podeAgir = computed(() => podeAgirNoFunil(this.nivel()));
+  /** Age neste negócio? (`MEMBRO` que vê todos só age nos seus e nos sem responsável.) */
+  podeAgirEm(negocio: Negocio): boolean {
+    return podeAgirNoNegocio(this.funil(), this.nivel(), this.sessao.usuario()?.id, negocio);
+  }
   readonly podeConfigurar = computed(() => podeConfigurarPorNivel(this.nivel()));
 
   /** Funis ativos do setor (arquivados não aparecem no quadro). */

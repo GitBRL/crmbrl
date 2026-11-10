@@ -10,6 +10,7 @@ import {
   nivelDoFunil,
   opcoesDeFunisPorSetor,
   podeAgirNoFunil,
+  podeAgirNoNegocio,
   podeConfigurarPorNivel,
 } from './nivel-funil';
 import { ErroApi } from '../../nucleo/api/erro-api';
@@ -22,6 +23,24 @@ describe('níveis no funil (R5.12)', () => {
     expect(podeAgirNoFunil('CONFIGURAR')).toBe(true);
     expect(podeConfigurarPorNivel('GESTOR')).toBe(false);
     expect(podeConfigurarPorNivel('CONFIGURAR')).toBe(true);
+  });
+
+  it('MEMBRO que vê todos só age nos próprios e nos sem responsável', () => {
+    const doColega = { responsavel: { id: 'u-colega' } };
+    const meu = { responsavel: { id: 'u-eu' } };
+    const livre = { responsavel: null };
+    const com = { veTodos: true };
+    expect(podeAgirNoNegocio(com, 'MEMBRO', 'u-eu', doColega)).toBe(false);
+    expect(podeAgirNoNegocio(com, 'MEMBRO', 'u-eu', meu)).toBe(true);
+    expect(podeAgirNoNegocio(com, 'MEMBRO', 'u-eu', livre)).toBe(true);
+    // GESTOR e CONFIGURAR agem em todos; VER em nenhum.
+    expect(podeAgirNoNegocio(com, 'GESTOR', 'u-eu', doColega)).toBe(true);
+    expect(podeAgirNoNegocio(com, 'CONFIGURAR', 'u-eu', doColega)).toBe(true);
+    expect(podeAgirNoNegocio(com, 'VER', 'u-eu', livre)).toBe(false);
+    // Sem veTodos (API antiga) ou veTodos falso: vale o nível.
+    expect(podeAgirNoNegocio({}, 'MEMBRO', 'u-eu', doColega)).toBe(true);
+    expect(podeAgirNoNegocio({ veTodos: false }, 'MEMBRO', 'u-eu', doColega)).toBe(true);
+    expect(podeAgirNoNegocio(null, 'MEMBRO', 'u-eu', doColega)).toBe(true);
   });
 
   it('usa o nível da API; sem ele, cai nas permissões do perfil', () => {

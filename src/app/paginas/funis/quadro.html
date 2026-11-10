@@ -311,7 +311,7 @@
                   <app-cartao-negocio
                     role="listitem"
                     cdkDrag
-                    [cdkDragDisabled]="!podeAgir()"
+                    [cdkDragDisabled]="!podeAgirEm(negocio)"
                     [cdkDragData]="negocio"
                     [cdkDragStartDelay]="atrasoArraste"
                     [negocio]="negocio"
@@ -320,8 +320,8 @@
                     [queryParams]="queryParams()"
                     [etapas]="estado.etapas()"
                     [podeSair]="podeSair(negocio)"
-                    [podeMover]="podeAgir()"
-                    [podeAssumir]="podeAssumir()"
+                    [podeMover]="podeAgirEm(negocio)"
+                    [podeAssumir]="podeAssumir() && podeAgirEm(negocio)"
                     [assumindo]="assumindo().has(negocio.id)"
                     [mostrarValor]="mostrarValores()"
                     [pego]="pego()?.negocio?.id === negocio.id"

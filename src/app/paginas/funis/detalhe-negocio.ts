@@ -68,6 +68,7 @@ import {
   mensagemDeNivel,
   nivelDoFunil,
   podeAgirNoFunil,
+  podeAgirNoNegocio,
   podeConfigurarPorNivel,
 } from './nivel-funil';
 
@@ -199,7 +200,18 @@ export class DetalheNegocio {
       this.sessao.perfil(),
     ),
   );
-  protected readonly podeAgir = computed(() => podeAgirNoFunil(this.nivel()));
+  /** Age neste negócio: `MEMBRO` que vê todos só age nos seus e nos sem responsável. */
+  protected readonly podeAgir = computed(() =>
+    podeAgirNoNegocio(
+      this.funil() ?? this.estado?.funil() ?? null,
+      this.nivel(),
+      this.sessao.usuario()?.id,
+      this.negocio(),
+    ),
+  );
+  protected readonly outraPessoa = computed(
+    () => podeAgirNoFunil(this.nivel()) && !this.podeAgir(),
+  );
   protected readonly podeReabrir = computed(() => podeConfigurarPorNivel(this.nivel()));
   protected readonly negocioFechado = computed(() => {
     const status = this.negocio()?.status;

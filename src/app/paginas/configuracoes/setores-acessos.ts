@@ -22,13 +22,13 @@ import {
   EditorDeAcessos,
   type LinhaEditavel,
   type PessoaEscolhivel,
+  pessoaEscolhivel,
   type SetorEscolhivel,
   linhasDeAcessos,
 } from '../../ui/editor-de-acessos/editor-de-acessos';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { Modal } from '../../ui/modal/modal';
 import { ConfiguracoesApi } from './configuracoes.api';
-import type { Usuario } from './configuracoes.modelos';
 import { SetoresApi } from './setores.api';
 import { DICA_ACESSOS_DO_SETOR } from './setores-regras';
 
@@ -75,6 +75,7 @@ import { DICA_ACESSOS_DO_SETOR } from './setores-regras';
           [erroGeral]="erroGeral()"
           [errosDasLinhas]="errosDasLinhas()"
           [aviso]="aviso"
+          (buscarPessoas)="carregarPessoas($event)"
           (salvar)="salvar()"
           (descartar)="descartar()"
         />
@@ -106,7 +107,8 @@ export class SetoresAcessos {
   protected readonly erroDeLeitura = signal<string | null>(null);
   protected readonly linhas = signal<readonly LinhaEditavel[]>([]);
   private readonly salvas = signal<readonly LinhaEditavel[]>([]);
-  private readonly pessoas = signal<readonly Usuario[]>([]);
+  private readonly pessoas = signal<readonly PessoaEscolhivel[]>([]);
+  private buscaDePessoas = 0;
   protected readonly salvando = signal(false);
   protected readonly erroGeral = signal<string | null>(null);
   protected readonly errosDasLinhas = signal<Readonly<Record<string, string>>>({});
@@ -119,14 +121,7 @@ export class SetoresAcessos {
       .map((item) => ({ chave: item.chave, nome: item.nome })),
   );
   protected readonly pessoasEscolhiveis = computed<readonly PessoaEscolhivel[]>(() =>
-    this.pessoas()
-      .filter(
-        (pessoa) =>
-          pessoa.ativo &&
-          (pessoa.papel === 'LIDER' || pessoa.papel === 'MEMBRO') &&
-          pessoa.area !== this.setor()?.chave,
-      )
-      .map((pessoa) => ({ id: pessoa.id, nome: pessoa.nome, rotulo: pessoa.rotuloPapel })),
+    this.pessoas().filter((pessoa) => pessoa.area !== this.setor()?.chave),
   );
 
   constructor() {
@@ -167,12 +162,19 @@ export class SetoresAcessos {
     }
   }
 
-  private async carregarPessoas(): Promise<void> {
+  /** Pessoas ativas de qualquer setor (`GET /usuarios/opcoes`), buscando pelo nome digitado. */
+  protected async carregarPessoas(busca = ''): Promise<void> {
+    const versao = ++this.buscaDePessoas;
     try {
-      this.pessoas.set((await this.usuarios.listarUsuarios({ ativo: true, porPagina: 100 })).itens);
+      const opcoes = await this.usuarios.opcoesDePessoas(busca);
+      if (versao === this.buscaDePessoas) {
+        this.pessoas.set(opcoes.map(pessoaEscolhivel));
+      }
     } catch {
       // Sem a lista de pessoas só dá para escolher setor.
-      this.pessoas.set([]);
+      if (versao === this.buscaDePessoas) {
+        this.pessoas.set([]);
+      }
     }
   }
 

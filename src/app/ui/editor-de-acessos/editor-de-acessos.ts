@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
+  inject,
   input,
   model,
   output,
@@ -11,6 +13,7 @@ import { LucideX } from '@lucide/angular';
 
 import { Botao } from '../botao/botao';
 import { BotaoIcone } from '../botao-icone/botao-icone';
+import { CampoTexto } from '../campo-texto/campo-texto';
 import { GrupoOpcoes, type OpcaoGrupo } from '../grupo-opcoes/grupo-opcoes';
 import { type OpcaoSeletor, Seletor } from '../seletor/seletor';
 import { Selo } from '../selo/selo';
@@ -103,7 +106,34 @@ export interface PessoaEscolhivel {
   readonly nome: string;
   /** "Customer Success", "Líder Comercial". */
   readonly rotulo: string;
+  /** Chave do setor da pessoa, se tiver. */
+  readonly area?: string | null;
 }
+
+/** Uma linha de `GET /usuarios/opcoes` (`OpcaoUsuarioDto`): pessoa ativa de qualquer setor. */
+export interface OpcaoDePessoa {
+  readonly id: string;
+  readonly nome: string;
+  readonly avatarUrl?: string | null;
+  readonly papel: string;
+  readonly rotuloPapel: string;
+  readonly area?: string | null;
+  readonly nomeSetor?: string | null;
+}
+
+/** A pessoa como escolha: "Líder Comercial" ou "Membro · Customer Success". */
+export function pessoaEscolhivel(opcao: OpcaoDePessoa): PessoaEscolhivel {
+  const setor = opcao.nomeSetor?.trim();
+  const papel = opcao.rotuloPapel?.trim() ?? '';
+  const rotulo =
+    setor && !papel.toLowerCase().includes(setor.toLowerCase())
+      ? [papel, setor].filter(Boolean).join(' · ')
+      : papel;
+  return { id: opcao.id, nome: opcao.nome, rotulo, area: opcao.area ?? null };
+}
+
+/** Espera depois da última tecla antes de buscar pessoas. */
+export const ESPERA_BUSCA_PESSOA_MS = 250;
 
 /** Corpo de uma linha do `PUT .../acessos`: um alvo e o nível. */
 export interface LinhaParaApi {
@@ -165,7 +195,7 @@ const OPCOES_ALVO: readonly OpcaoGrupo<TipoDeAlvo>[] = [
  */
 @Component({
   selector: 'app-editor-de-acessos',
-  imports: [Botao, BotaoIcone, GrupoOpcoes, Selo, Seletor],
+  imports: [Botao, BotaoIcone, CampoTexto, GrupoOpcoes, Selo, Seletor],
   template: `
     <div class="acessos">
       @if (aviso(); as textoAviso) {
@@ -242,12 +272,19 @@ const OPCOES_ALVO: readonly OpcaoGrupo<TipoDeAlvo>[] = [
               (valorChange)="escolhido.set($event)"
             />
           } @else {
+            <app-campo-texto
+              rotulo="Buscar pessoa"
+              placeholder="Digite parte do nome"
+              autocomplete="off"
+              [valor]="busca()"
+              (valorChange)="digitarBusca($event)"
+            />
             <app-seletor
               rotulo="Pessoa"
               placeholder="Escolha a pessoa"
               [opcoes]="opcoesDePessoa()"
               [valor]="escolhido()"
-              (valorChange)="escolhido.set($event)"
+              (valorChange)="escolherPessoa($event)"
             />
           }
           <app-seletor
@@ -301,7 +338,7 @@ export class EditorDeAcessos {
   readonly linhas = model<readonly LinhaEditavel[]>([]);
   /** Setores que dá para escolher (sem o dono, sem os inativos). */
   readonly setores = input<readonly SetorEscolhivel[]>([]);
-  /** Pessoas que dá para escolher. */
+  /** Pessoas que dá para escolher (o resultado da última busca). */
   readonly pessoas = input<readonly PessoaEscolhivel[]>([]);
   /** Há mudança a salvar (habilita "Salvar acessos" e mostra "Descartar"). */
   readonly alterado = input(false);
@@ -312,6 +349,8 @@ export class EditorDeAcessos {
   /** Aviso fixo acima da lista (ex.: funil restrito). */
   readonly aviso = input<string | null>(null);
 
+  /** O texto da busca de pessoas mudou (já com a espera de 250 ms); o pai busca e atualiza `pessoas`. */
+  readonly buscarPessoas = output<string>();
   readonly salvar = output<void>();
   readonly descartar = output<void>();
 
@@ -321,6 +360,18 @@ export class EditorDeAcessos {
 
   protected readonly tipo = signal<TipoDeAlvo>('SETOR');
   protected readonly escolhido = signal<string | null>(null);
+  protected readonly busca = signal('');
+  /** A pessoa escolhida fica guardada: nova busca pode tirá-la da lista de resultados. */
+  private readonly pessoaEscolhida = signal<PessoaEscolhivel | null>(null);
+  private espera: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      if (this.espera) {
+        clearTimeout(this.espera);
+      }
+    });
+  }
   protected readonly nivelNovo = signal<NivelDoAcesso>('VER');
 
   protected readonly dicaDoNivel = computed(() => DICA_NIVEL[this.nivelNovo()]);
@@ -334,10 +385,21 @@ export class EditorDeAcessos {
   );
 
   protected readonly opcoesDePessoa = computed<readonly OpcaoSeletor<string>[]>(() =>
-    this.pessoas()
+    this.listaDePessoas()
       .filter((pessoa) => !this.usados().has(`pessoa:${pessoa.id}`))
-      .map((pessoa) => ({ valor: pessoa.id, rotulo: `${pessoa.nome} · ${pessoa.rotulo}` })),
+      .map((pessoa) => ({
+        valor: pessoa.id,
+        rotulo: pessoa.rotulo ? `${pessoa.nome} · ${pessoa.rotulo}` : pessoa.nome,
+      })),
   );
+
+  private readonly listaDePessoas = computed<readonly PessoaEscolhivel[]>(() => {
+    const lista = this.pessoas();
+    const escolhida = this.pessoaEscolhida();
+    return escolhida && !lista.some((pessoa) => pessoa.id === escolhida.id)
+      ? [escolhida, ...lista]
+      : lista;
+  });
 
   protected erroDaLinha(linha: LinhaEditavel): string | null {
     return this.errosDasLinhas()[linha.chave] ?? null;
@@ -347,7 +409,25 @@ export class EditorDeAcessos {
     if (tipo) {
       this.tipo.set(tipo);
       this.escolhido.set(null);
+      this.pessoaEscolhida.set(null);
     }
+  }
+
+  protected digitarBusca(valor: string | number | null): void {
+    const texto = String(valor ?? '');
+    this.busca.set(texto);
+    if (this.espera) {
+      clearTimeout(this.espera);
+    }
+    this.espera = setTimeout(() => {
+      this.espera = null;
+      this.buscarPessoas.emit(texto.trim());
+    }, ESPERA_BUSCA_PESSOA_MS);
+  }
+
+  protected escolherPessoa(id: string | null): void {
+    this.escolhido.set(id);
+    this.pessoaEscolhida.set(id ? (this.pessoas().find((item) => item.id === id) ?? null) : null);
   }
 
   protected adicionar(): void {
@@ -371,7 +451,7 @@ export class EditorDeAcessos {
           }
         : null;
     } else {
-      const pessoa = this.pessoas().find((item) => item.id === id);
+      const pessoa = this.listaDePessoas().find((item) => item.id === id);
       nova = pessoa
         ? {
             chave: `pessoa:${id}`,
@@ -387,6 +467,7 @@ export class EditorDeAcessos {
     if (nova) {
       this.linhas.update((linhas) => comAcesso(linhas, nova));
       this.escolhido.set(null);
+      this.pessoaEscolhida.set(null);
     }
   }
 

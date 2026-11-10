@@ -280,6 +280,37 @@ describe('Importar: página única', () => {
     expect(botaoCriar(fixture).disabled).toBe(true);
   });
 
+  it('negócio para todos: 404 no funil mostra "Funil não encontrado" no cartão e limpa a escolha', async () => {
+    const fixture = await montar();
+    const avisos = TestBed.inject(AvisosService);
+    const erro = vi.spyOn(avisos, 'erro');
+    const c = fixture.componentInstance as unknown as {
+      mudarFunil(id: string): void;
+      etapaId: { set(v: string): void };
+      funilId: () => string | null;
+      criar(): Promise<void>;
+    };
+    c.mudarFunil('f1');
+    c.etapaId.set('e1');
+    await estabilizar(fixture);
+    const acao = c.criar();
+    await new Promise((resolver) => setTimeout(resolver));
+    const falha = {
+      statusCode: 404,
+      erro: 'nao_encontrado',
+      mensagem: 'Funil não encontrado.',
+      requisicaoId: 'r',
+    };
+    http
+      .expectOne((r) => r.url === '/api/v1/importacoes/i1' && r.method === 'PATCH')
+      .flush(falha, { status: 404, statusText: 'Not Found' });
+    await acao;
+    await estabilizar(fixture);
+    expect(c.funilId()).toBeNull();
+    expect(el(fixture).textContent).toContain('Funil não encontrado');
+    expect(erro).toHaveBeenCalledWith(expect.stringContaining('Funil não encontrado'));
+  });
+
   it('parcelas: sem os cartões de contato (etiquetas, responsável, negócio) nem DDI', async () => {
     const fixture = await montar('PARCELAS');
     expect(titulos(fixture)).toEqual([
