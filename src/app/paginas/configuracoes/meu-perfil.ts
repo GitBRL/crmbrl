@@ -37,6 +37,29 @@ import { formatarTelefone } from './textos';
  * Meu perfil (`/configuracoes/perfil`, todos) — TELAS-FASE1 §6: os seus dados e a troca de
  * senha. Nome e e-mail só o Admin muda (R1.5); o próprio Admin edita o nome aqui mesmo.
  */
+/** Fotos aceitas (R2.10, R11): as mesmas que a API confere no contexto `AVATAR`. */
+export const TIPOS_DE_FOTO: readonly string[] = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+];
+export const FOTO_MAXIMO_BYTES = 5 * 1024 * 1024;
+
+/** O que impede a foto de ser enviada (tipo, tamanho), ou `null` se ela serve. */
+export function problemaDaFoto(arquivo: Pick<File, 'type' | 'size'>): string | null {
+  if (!TIPOS_DE_FOTO.includes(arquivo.type)) {
+    return 'A foto precisa ser uma imagem JPG, PNG, GIF ou WebP.';
+  }
+  if (arquivo.size === 0) {
+    return 'Esse arquivo está vazio. Escolha outra imagem.';
+  }
+  if (arquivo.size > FOTO_MAXIMO_BYTES) {
+    return 'A foto pode ter até 5 MB. Escolha uma imagem menor.';
+  }
+  return null;
+}
+
 @Component({
   selector: 'app-meu-perfil',
   imports: [ReactiveFormsModule, Avatar, Botao, CampoSenha, CampoTexto, Cartao, CartaoPush, Selo],
@@ -61,6 +84,12 @@ export class MeuPerfil {
     const criadaEm = this.sessao.perfil()?.sessao.criadaEm;
     return criadaEm ? formatarDataHora(criadaEm) : null;
   });
+
+  // Foto (todos, R2.10) -----------------------------------------------------------------------
+  protected readonly tiposDeFoto = TIPOS_DE_FOTO.join(',');
+  protected readonly enviandoFoto = signal(false);
+  protected readonly removendoFoto = signal(false);
+  protected readonly erroFoto = signal<string | null>(null);
 
   // Nome (só o Admin) ------------------------------------------------------------------------
   protected readonly nome = new FormControl('', {
@@ -107,6 +136,48 @@ export class MeuPerfil {
       this.nome.reset(nome, { emitEvent: false });
       this.nomeMudou.set(false);
     });
+  }
+
+  protected async aoEscolherFoto(evento: Event): Promise<void> {
+    const campo = evento.target as HTMLInputElement;
+    const arquivo = campo.files?.[0];
+    // Limpa o campo: escolher a mesma imagem de novo também dispara a troca.
+    campo.value = '';
+    if (!arquivo || this.enviandoFoto()) {
+      return;
+    }
+    const problema = problemaDaFoto(arquivo);
+    this.erroFoto.set(problema);
+    if (problema) {
+      return;
+    }
+    this.enviandoFoto.set(true);
+    try {
+      await this.api.trocarMinhaFoto(arquivo);
+      await this.sessao.carregar(true);
+      this.avisos.sucesso('Foto atualizada.');
+    } catch (falha) {
+      this.erroFoto.set(erroDaApi(falha).mensagem);
+    } finally {
+      this.enviandoFoto.set(false);
+    }
+  }
+
+  protected async removerFoto(): Promise<void> {
+    if (this.removendoFoto()) {
+      return;
+    }
+    this.erroFoto.set(null);
+    this.removendoFoto.set(true);
+    try {
+      await this.api.removerMinhaFoto();
+      await this.sessao.carregar(true);
+      this.avisos.sucesso('Foto removida.');
+    } catch (falha) {
+      this.erroFoto.set(erroDaApi(falha).mensagem);
+    } finally {
+      this.removendoFoto.set(false);
+    }
   }
 
   protected async salvarNome(): Promise<void> {

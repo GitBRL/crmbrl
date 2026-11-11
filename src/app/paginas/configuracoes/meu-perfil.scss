@@ -30,6 +30,29 @@
   gap: var(--esp-4);
 }
 
+.perfil__foto {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.perfil__foto-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.perfil__foto-dica {
+  margin: 0;
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.perfil__foto-erro {
+  margin: 0;
+  color: var(--cor-destaque-texto);
+  font: var(--fonte-corpo-sm);
+}
+
 .perfil__quem {
   display: grid;
   justify-items: start;
