@@ -70,12 +70,10 @@ import { formatarTelefone } from './novo-negocio';
             <dt>Nome</dt>
             <dd>{{ c.nome }}</dd>
           </div>
-          @if (c.cargo) {
-            <div class="ficha__linha">
-              <dt>Cargo</dt>
-              <dd>{{ c.cargo }}</dd>
-            </div>
-          }
+          <div class="ficha__linha">
+            <dt>Cargo</dt>
+            <dd>{{ c.cargo || '—' }}</dd>
+          </div>
           <div class="ficha__linha">
             <dt>E-mail</dt>
             <dd>
