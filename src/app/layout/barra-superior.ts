@@ -16,7 +16,7 @@ import { LucideMenu, LucideSearch } from '@lucide/angular';
 import { filter, map } from 'rxjs';
 
 import type { ModuloBase } from '../nucleo/modulos';
-import { moduloPorRota } from '../nucleo/navegacao';
+import { moduloDaNavegacaoPorRota, modulosDaNavegacao } from '../nucleo/navegacao';
 import { SessaoService } from '../nucleo/sessao/sessao.service';
 import { AlternadorTema } from '../ui/alternador-tema/alternador-tema';
 import { BotaoIcone } from '../ui/botao-icone/botao-icone';
@@ -119,13 +119,14 @@ export class BarraSuperior {
     ),
     { initialValue: this.router.url },
   );
+  private readonly areas = computed(() => this.sessao.permissoes()?.areasVisiveis ?? []);
   /** Título da seção no mobile (o nome do módulo da página atual). */
   protected readonly secao = computed(() => {
     const url = this.url();
     if (url.startsWith('/sem-acesso')) {
       return 'Sem acesso';
     }
-    return moduloPorRota(url)?.rotulo ?? 'Página não encontrada';
+    return moduloDaNavegacaoPorRota(url, this.areas())?.rotulo ?? 'Página não encontrada';
   });
 
   private readonly campo = viewChild.required(CampoBusca);
@@ -146,7 +147,10 @@ export class BarraSuperior {
     if (!texto) {
       return;
     }
-    const modulo = buscarModulo(texto, this.sessao.modulosVisiveis());
+    const modulo = buscarModulo(
+      texto,
+      modulosDaNavegacao(this.areas()).filter((item) => this.sessao.pode(item)),
+    );
     if (!modulo && !this.sessao.pode('contatos')) {
       this.mostrarAviso(`Nenhum módulo encontrado para “${texto}”.`);
       return;

@@ -4,7 +4,8 @@ import { provideRouter, Router } from '@angular/router';
 
 import { MODULOS } from '../nucleo/navegacao';
 import { SessaoService } from '../nucleo/sessao/sessao.service';
-import { entrarComo } from '../nucleo/sessao/sessao-de-teste';
+import { entrarComo, setoresDeTeste } from '../nucleo/sessao/sessao-de-teste';
+import { definirRegistroDeSetores } from '../nucleo/setores/setores';
 import { TempoRealService } from '../nucleo/tempo-real/tempo-real.service';
 import { provideSocketFalso } from '../nucleo/tempo-real/tempo-real-de-teste';
 import { descreverNaoLidas, MenuLateral } from './menu-lateral';
@@ -149,6 +150,42 @@ describe('MenuLateral', () => {
     expect(rotas).toContain('/bi');
     expect(rotas).not.toContain('/automacoes');
     expect(rotas).not.toContain('/financeiro');
+  });
+
+  it('setor criado depois aparece em Funis (Admin), com o nome dele; desativado, some', () => {
+    const { fixture, itens } = criar();
+    const funis = () =>
+      itens()
+        .map((item) => item.getAttribute('href'))
+        .filter((rota) => rota?.startsWith('/funis/'));
+    expect(funis()).toEqual(['/funis/marketing', '/funis/comercial', '/funis/cs']);
+    // O formulário de setores recarrega a lista ao criar: o menu acompanha sem recarregar a sessão.
+    definirRegistroDeSetores(setoresDeTeste([{ chave: 'POS_VENDA', nome: 'Pós-venda' }]));
+    fixture.detectChanges();
+    expect(funis()).toEqual([
+      '/funis/marketing',
+      '/funis/comercial',
+      '/funis/cs',
+      '/funis/pos_venda',
+    ]);
+    const novo = itens().find((item) => item.getAttribute('href') === '/funis/pos_venda');
+    expect(novo?.querySelector('.menu__rotulo')?.textContent?.trim()).toBe('Pós-venda');
+    definirRegistroDeSetores(
+      setoresDeTeste([{ chave: 'POS_VENDA', nome: 'Pós-venda', ativo: false }]),
+    );
+    fixture.detectChanges();
+    expect(funis()).not.toContain('/funis/pos_venda');
+  });
+
+  it('membro de um setor criado depois vê só o funil do próprio setor', () => {
+    entrarComo('MEMBRO', {
+      usuario: { area: 'POS_VENDA' },
+      permissoes: { areasVisiveis: ['POS_VENDA'] },
+    });
+    definirRegistroDeSetores(setoresDeTeste([{ chave: 'POS_VENDA', nome: 'Pós-venda' }]));
+    const { itens } = criar();
+    const rotas = itens().map((item) => item.getAttribute('href'));
+    expect(rotas.filter((rota) => rota?.startsWith('/funis/'))).toEqual(['/funis/pos_venda']);
   });
 
   it('marca a página atual com aria-current e o círculo invertido', async () => {

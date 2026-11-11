@@ -1,6 +1,7 @@
+import { inject } from '@angular/core';
 import type { ResolveFn, Routes } from '@angular/router';
 
-import { MODULOS_BASE, moduloBasePorId, moduloBasePorRota } from './nucleo/modulos';
+import { MODULOS_BASE, moduloBasePorId } from './nucleo/modulos';
 import {
   acessoAoModulo,
   apenasVisitante,
@@ -12,6 +13,8 @@ import {
   paraPrimeiroFunil,
   redirecionarFunilPorId,
 } from './nucleo/sessao/guardas';
+import { areaDoSlug, CHAVES_BASE, nomeDoSetor, setorCarregado } from './nucleo/setores/setores';
+import { SetoresService } from './nucleo/setores/setores.service';
 
 /**
  * Rotas do CRM. Todas carregam sob demanda (`loadComponent`/`loadChildren`).
@@ -80,9 +83,19 @@ export function acrescentarSecoes(rotas: Routes, secoes: Routes): Routes {
   return [{ ...pagina, children: [...filhas, ...novas] }, ...resto];
 }
 
-/** "Comercial", "Marketing", "Customer Success" pelo `:area` da URL. */
-const tituloDoFunil: ResolveFn<string> = (rota) =>
-  moduloBasePorRota(`/funis/${rota.paramMap.get('area') ?? ''}`)?.rotulo ?? 'Funis';
+/** Nome do setor pelo `:area` da URL ("Comercial", "Customer Success", um setor criado depois). */
+const tituloDoFunil: ResolveFn<string> = async (rota) => {
+  const area = areaDoSlug(rota.paramMap.get('area'));
+  if (!area) {
+    return 'Funis';
+  }
+  // Setor criado depois e lista ainda não carregada (a casca já a pede): espera por ela, para
+  // não mostrar a chave. Os de base e os já carregados têm nome na hora.
+  if (!setorCarregado(area) && !CHAVES_BASE.includes(area)) {
+    await inject(SetoresService).carregar();
+  }
+  return nomeDoSetor(area);
+};
 
 export const routes: Routes = [
   // A raiz sozinha: as duas cascas abaixo têm caminho vazio e a de acesso (sem filha vazia) a

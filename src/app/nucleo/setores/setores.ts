@@ -40,6 +40,16 @@ export function definirRegistroDeSetores(setores: readonly Setor[]): void {
   registro.set(new Map(setores.map((setor) => [setor.chave, setor])));
 }
 
+/** O setor já carregado pela chave (lê signal), ou `undefined` se a lista não chegou ou não o tem. */
+export function setorCarregado(chave: string | null | undefined): Setor | undefined {
+  return chave ? registro().get(chave) : undefined;
+}
+
+/** Setores ativos já carregados (lê signal); vazio antes de o `SetoresService` carregar. */
+export function setoresAtivosCarregados(): readonly Setor[] {
+  return [...registro().values()].filter((setor) => setor.ativo);
+}
+
 /** "POS_VENDA" → "Pos venda": último recurso quando o setor não está na lista. */
 function humanizar(chave: string): string {
   const texto = chave.toLowerCase().replace(/_/g, ' ');
