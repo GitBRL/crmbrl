@@ -41,6 +41,7 @@ import { PainelLateral } from '../../ui/painel-lateral/painel-lateral';
 import { type OpcaoSeletor, Seletor } from '../../ui/seletor/seletor';
 import { Selo } from '../../ui/selo/selo';
 import { AtividadesNegocio } from './atividades-negocio';
+import { ClienteNegocio } from './cliente-negocio';
 import { EstadoQuadro } from './estado-quadro';
 import { FunisApi } from './funis.api';
 import type {
@@ -78,6 +79,8 @@ const ABAS: readonly ItemAba[] = [
   { id: 'linha', rotulo: 'Linha do tempo' },
   { id: 'atividades', rotulo: 'Atividades' },
   { id: 'dados', rotulo: 'Dados' },
+  // O cadastro do contato e da empresa, com os campos personalizados (só leitura).
+  { id: 'cliente', rotulo: 'Cliente' },
 ];
 
 export const ROTULO_ORIGEM: Readonly<Record<OrigemContato, string>> = {
@@ -124,6 +127,7 @@ interface Vinculo {
     Botao,
     CampoData,
     CampoTexto,
+    ClienteNegocio,
     Esqueleto,
     EstadoVazio,
     LinhaDoTempoNegocio,

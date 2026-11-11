@@ -6,6 +6,7 @@ import { provideRouter, Router } from '@angular/router';
 import { AvisosService } from '../../nucleo/avisos.service';
 import type { Papel } from '../../nucleo/papeis';
 import { entrarComo, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
+import { contatoDeTeste } from '../contatos/dados-de-teste';
 import { DetalheNegocio } from './detalhe-negocio';
 import { ETAPAS, FUNIL_ID, funilDeTeste, negocioDeTeste } from './funis-de-teste';
 import type { JornadaDoNegocio, Negocio } from './funis.tipos';
@@ -287,6 +288,33 @@ describe('DetalheNegocio', () => {
     const itens = [...raiz.querySelectorAll('.jornada__item')];
     expect(itens).toHaveLength(1);
     expect(itens[0].querySelector('a')?.getAttribute('href')).toBe('/funis/cs/cs1?funil=f-cs');
+  });
+
+  it('aba Cliente mostra o cadastro do contato do negócio, com os campos personalizados', async () => {
+    const negocio = negocioDeTeste('n1', NOVO);
+    await abrir(negocio);
+    const abas = [...raiz.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    expect(abas.map((aba) => aba.textContent?.trim())).toEqual([
+      'Linha do tempo',
+      'Atividades',
+      'Dados',
+      'Cliente',
+    ]);
+    abas[3].click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    http.expectOne(`/api/v1/contatos/${negocio.contato.id}`).flush(
+      contatoDeTeste({
+        id: negocio.contato.id,
+        empresa: null,
+        camposPersonalizados: { cidade_do_lead: 'Brasília' },
+      }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const aba = raiz.querySelector('app-cliente-negocio');
+    expect(aba?.textContent).toContain('Cidade do lead');
+    expect(aba?.textContent).toContain('Brasília');
   });
 
   it('aba Dados salva só o que mudou', async () => {

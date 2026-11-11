@@ -236,6 +236,9 @@
               (alterou)="versaoLinha.set(versaoLinha() + 1)"
             />
           }
+          @case ('cliente') {
+            <app-cliente-negocio [contatoId]="n.contato.id" />
+          }
           @case ('dados') {
             <div class="dados">
               <form
