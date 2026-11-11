@@ -1,17 +1,68 @@
 <header class="cabecalho">
-  @if (tipoFixo === 'PARCELAS') {
-    <h1 class="texto-display">Importar parcelas a receber</h1>
-    <p class="cabecalho__frase">
-      Traga os títulos de uma planilha CSV ou Excel. Quem já existe é atualizado pelo número do
-      título. Você confere tudo antes de importar.
-    </p>
-  } @else {
-    <h1 class="texto-display">Importar contatos e empresas</h1>
-    <p class="cabecalho__frase">
-      Traga os cadastros de uma planilha CSV ou Excel. Você confere tudo antes de importar.
-    </p>
+  <div class="cabecalho__texto">
+    @if (tipoFixo === 'PARCELAS') {
+      <h1 class="texto-display">Importar parcelas a receber</h1>
+      <p class="cabecalho__frase">
+        Envie um CSV ou XLSX, confira a amostra e crie a importação. Quem já existe é atualizado
+        pelo número do título.
+      </p>
+    } @else {
+      <h1 class="texto-display">Importar contatos e empresas</h1>
+      <p class="cabecalho__frase">Envie um CSV ou XLSX, confira a amostra e crie a importação.</p>
+    }
+  </div>
+  @if (tipoFixo !== 'PARCELAS' && podeImportar()) {
+    <button appBotao variante="contorno" tamanho="sm" type="button" (click)="verTutorial()">
+      <svg lucideCircleHelp [size]="16" aria-hidden="true" /> Ver tutorial
+    </button>
   }
 </header>
+
+@if (tipoFixo !== 'PARCELAS') {
+  <app-painel-lateral
+    titulo="Como importar"
+    complemento="· passo a passo"
+    [(aberto)]="tutorialAberto"
+  >
+    <ol class="tutorial">
+      <li>
+        <strong>Escolha a planilha.</strong> CSV ou XLSX, até 10 MB e 50 mil linhas. Se preferir,
+        baixe a planilha modelo: as colunas dela são reconhecidas sozinhas.
+      </li>
+      <li>
+        <strong>Confira as opções do arquivo.</strong> Diga se a primeira linha é o cabeçalho. No
+        CSV, o delimitador e a acentuação são detectados, mas você pode trocar. Escolha o que fazer
+        com quem já existe (mesmo e-mail ou telefone).
+      </li>
+      <li>
+        <strong>Aplique a todos, se quiser.</strong> Etiquetas, responsável e um negócio (funil e
+        etapa) para cada contato importado. Funil, etapa, título, valor e responsável também podem
+        vir de colunas da planilha, linha a linha, e a coluna vale mais que o cartão. Escreva os
+        nomes como estão no CRM: maiúsculas, acentos e espaços a mais não importam.
+      </li>
+      <li>
+        <strong>Filtre as linhas, se precisar.</strong> Importe só as linhas que atendem às regras,
+        usando qualquer coluna (ex.: <em>Status é igual a Aluno</em>). A contagem mostra quantas
+        passam.
+      </li>
+      <li>
+        <strong>Mapeie as colunas.</strong> Para cada coluna, escolha o campo do CRM ou "Ignorar
+        coluna". O nome e o e-mail ou o telefone são obrigatórios. Salve o mapeamento como modelo
+        para usar de novo.
+      </li>
+      <li>
+        <strong>Crie a importação.</strong> O processamento acontece em segundo plano. Em Execuções
+        você acompanha o progresso, os contatos criados e atualizados, os negócios, as linhas com
+        problema e baixa o relatório.
+      </li>
+    </ol>
+    <div painel-rodape>
+      <button appBotao variante="neutro" tamanho="sm" type="button" (click)="perguntarNaAjuda()">
+        Perguntar ao assistente de Ajuda
+      </button>
+    </div>
+  </app-painel-lateral>
+}
 
 @if (!podeImportar()) {
   <app-cartao>
@@ -44,471 +95,607 @@
     </app-estado-vazio>
   </app-cartao>
 } @else {
-  <nav class="passos" aria-label="Etapas da importação">
-    <ol>
-      @for (passo of passos; track passo.numero) {
-        <li
-          class="passo"
-          [class.passo--atual]="passo.numero === etapa()"
-          [class.passo--feito]="passo.numero < etapa()"
-          [attr.aria-current]="passo.numero === etapa() ? 'step' : null"
-        >
-          <span class="passo__numero" aria-hidden="true">
-            @if (passo.numero < etapa()) {
-              <svg lucideCheck [size]="14" />
-            } @else {
-              {{ passo.numero }}
-            }
-          </span>
-          <span class="passo__rotulo">{{ passo.rotulo }}</span>
-        </li>
-      }
-    </ol>
-  </nav>
+  <app-abas
+    rotulo="Importação"
+    [abas]="abasDaTela"
+    [selecionada]="aba()"
+    (selecionadaChange)="mudarAba($event)"
+  >
+    @if (aba() === 'nova') {
+      <div class="pagina">
+        <div class="cartoes" [class.cartoes--cinco]="ehContatos()">
+          <!-- 1. Arquivo -->
+          <app-cartao titulo="Arquivo" [nivel]="3">
+            <div class="cartao-corpo">
+              @if (!tipoFixo) {
+                <app-grupo-opcoes
+                  rotulo="O que você vai importar?"
+                  disposicao="pilulas"
+                  [opcoes]="opcoesTipo"
+                  [valor]="tipo()"
+                  (valorChange)="tipo.set($event ?? 'CONTATOS')"
+                  [desabilitado]="!!rascunho()"
+                />
+              }
 
-  @switch (etapa()) {
-    @case (1) {
-      <app-cartao
-        titulo="1. Escolha a planilha"
-        dica="Aceitamos arquivos .csv e .xlsx (Excel), com até 50 mil linhas. A primeira linha deve ter os nomes das colunas."
-      >
-        <div class="envio">
-          @if (!tipoFixo) {
-            <app-grupo-opcoes
-              rotulo="O que você vai importar?"
-              disposicao="pilulas"
-              [opcoes]="opcoesTipo"
-              [(valor)]="tipo"
-            />
-          }
+              <div
+                class="soltar"
+                [class.soltar--sobre]="arrastando()"
+                (dragenter)="sobrevoar($event, true)"
+                (dragover)="sobrevoar($event, true)"
+                (dragleave)="sobrevoar($event, false)"
+                (drop)="soltarArquivo($event)"
+              >
+                @if (rascunho(); as imp) {
+                  <svg lucideFileSpreadsheet [size]="24" aria-hidden="true" />
+                  <p class="soltar__nome">{{ imp.nome }}</p>
+                  <p class="soltar__dica">
+                    {{ numero(imp.totalLinhas) }} linhas · {{ imp.colunas.length }} colunas
+                  </p>
+                } @else {
+                  <svg lucideUpload [size]="24" aria-hidden="true" />
+                  <p class="soltar__nome">Arraste a planilha para cá</p>
+                }
+                <label class="soltar__escolher">
+                  <input
+                    class="visualmente-oculto"
+                    type="file"
+                    accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    [disabled]="enviando()"
+                    (change)="escolherArquivo($event)"
+                  />
+                  <span appBotao variante="contorno" tamanho="sm" class="soltar__falso">
+                    {{
+                      enviando()
+                        ? 'Enviando…'
+                        : rascunho()
+                          ? 'Trocar arquivo'
+                          : 'Selecionar arquivo'
+                    }}
+                  </span>
+                </label>
+              </div>
 
-          <div
-            class="soltar"
-            [class.soltar--sobre]="arrastando()"
-            (dragenter)="sobrevoar($event, true)"
-            (dragover)="sobrevoar($event, true)"
-            (dragleave)="sobrevoar($event, false)"
-            (drop)="soltarArquivo($event)"
-          >
-            @if (arquivo(); as escolhido) {
-              <svg lucideFileSpreadsheet [size]="28" aria-hidden="true" />
-              <p class="soltar__nome">{{ escolhido.name }}</p>
-              <p class="soltar__dica">{{ (escolhido.size / 1024).toFixed(0) }} KB</p>
+              <p class="cartao-nota">CSV ou XLSX, até 10 MB e 50 mil linhas.</p>
+
+              @if (erroArquivo(); as mensagem) {
+                <p class="erro-inline" role="alert">
+                  <svg lucideCircleAlert [size]="16" aria-hidden="true" />
+                  {{ mensagem }}
+                </p>
+              }
+
               <button
                 appBotao
-                variante="contorno"
+                variante="neutro"
                 tamanho="sm"
                 type="button"
-                (click)="tirarArquivo()"
+                class="cartao-acao"
+                [carregando]="baixandoModelo()"
+                (click)="baixarModelo()"
               >
-                Trocar arquivo
+                <svg lucideDownload [size]="16" aria-hidden="true" /> Baixar planilha modelo
               </button>
-            } @else {
-              <svg lucideUpload [size]="28" aria-hidden="true" />
-              <p class="soltar__nome">Arraste a planilha para cá</p>
-              <p class="soltar__dica">ou escolha um arquivo do seu computador ou celular</p>
-              <label class="soltar__escolher">
-                <input
-                  class="visualmente-oculto"
-                  type="file"
-                  accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  (change)="escolherArquivo($event)"
-                />
-                <span appBotao variante="contorno" tamanho="sm" class="soltar__falso">
-                  Escolher arquivo
-                </span>
-              </label>
-            }
-          </div>
+            </div>
+          </app-cartao>
 
-          <div class="modelo">
-            <p class="modelo__dica">Use a planilha modelo: as colunas são reconhecidas sozinhas.</p>
-            <button
-              appBotao
-              variante="neutro"
-              tamanho="sm"
-              type="button"
-              [carregando]="baixandoModelo()"
-              (click)="baixarModelo()"
-            >
-              <svg lucideDownload [size]="16" aria-hidden="true" /> Baixar planilha modelo
-            </button>
-          </div>
+          <!-- 2. Opções do arquivo -->
+          <app-cartao titulo="Opções do arquivo" [nivel]="3">
+            <div class="cartao-corpo">
+              <app-alternador
+                rotulo="Arquivo tem cabeçalho"
+                [valor]="temCabecalho()"
+                (valorChange)="mudarCabecalho($event)"
+                dica="Desligue se a primeira linha já é um registro: as colunas viram “Coluna 1”, “Coluna 2”…"
+              />
 
-          @if (erroArquivo(); as mensagem) {
-            <p class="erro-inline" role="alert">
-              <svg lucideCircleAlert [size]="16" aria-hidden="true" />
-              {{ mensagem }}
-            </p>
-          }
-
-          <div class="acoes">
-            <button
-              appBotao
-              variante="marca"
-              type="button"
-              [disabled]="!arquivo() || enviando()"
-              [carregando]="enviando()"
-              (click)="enviar()"
-            >
-              Enviar e continuar
-            </button>
-          </div>
-        </div>
-      </app-cartao>
-
-      <app-cartao
-        titulo="Importações recentes"
-        dica="Abra uma importação para ver o relatório ou continuar de onde parou."
-      >
-        @if (erroHistorico(); as erro) {
-          <app-estado-vazio
-            variante="erro"
-            compacto
-            [falha]="erro"
-            titulo="Não conseguimos carregar a lista"
-            [texto]="erro.resumo"
-          >
-            <button appBotao variante="contorno" type="button" (click)="carregarHistorico()">
-              Tentar de novo
-            </button>
-          </app-estado-vazio>
-        } @else if (historico(); as lista) {
-          @if (lista.itens.length === 0) {
-            <app-estado-vazio
-              compacto
-              titulo="Nenhuma importação ainda"
-              texto="Quando você importar uma planilha, ela aparece aqui com o relatório."
-            />
-          } @else {
-            <ul class="historico">
-              @for (item of lista.itens; track item.id) {
-                <li>
-                  <button type="button" class="historico__item" (click)="abrir(item.id)">
-                    <span class="historico__nome">
-                      <svg lucideFileSpreadsheet [size]="18" aria-hidden="true" />
-                      {{ item.nome }}
-                    </span>
-                    <span class="historico__meta">
-                      {{ rotuloTipo[item.tipo] }} · {{ numero(item.totalLinhas) }} linhas ·
-                      {{ dataHora(item.criadoEm) }}
-                    </span>
-                    <span class="historico__estado">
-                      <app-selo [variante]="varianteStatus[item.status]" tamanho="sm">{{
-                        rotuloStatus[item.status]
-                      }}</app-selo>
-                      @if (item.status === 'CONCLUIDA') {
-                        <span class="historico__contagem"
-                          >{{ numero(item.criados) }} novos · {{ numero(item.erros) }} com
-                          erro</span
-                        >
-                      }
-                    </span>
-                  </button>
-                </li>
-              }
-            </ul>
-          }
-        } @else {
-          <div aria-busy="true">
-            <p class="visualmente-oculto" role="status">Carregando importações…</p>
-            <app-esqueleto altura="3rem" />
-          </div>
-        }
-      </app-cartao>
-    }
-
-    @case (2) {
-      @if (importacao(); as imp) {
-        <app-cartao
-          [titulo]="'2. Diga o que é cada coluna'"
-          [complemento]="imp.nome + ' · ' + numero(imp.totalLinhas) + ' linhas'"
-          dica="Para cada coluna da planilha, escolha em qual campo do CRM ela vai. Colunas sem campo não são importadas."
-        >
-          <div class="colunas">
-            @if (modelos().length > 0 || nomeModeloAberto()) {
-              <div class="modelos">
+              @if (rascunho()?.formato === 'xlsx' && opcoesAbas().length > 1) {
                 <app-seletor
-                  rotulo="Usar um modelo salvo"
-                  placeholder="Escolher um modelo"
-                  permitirVazio
-                  ajuda="Um modelo lembra quais colunas vão para quais campos. Útil para planilhas que chegam sempre no mesmo formato."
-                  [opcoes]="opcoesModelo()"
-                  [valor]="modeloId()"
-                  (valorChange)="usarModelo($event)"
+                  rotulo="Aba da planilha"
+                  [opcoes]="opcoesAbas()"
+                  [valor]="abaDaPlanilha()"
+                  (valorChange)="mudarAbaDaPlanilha($event)"
                 />
-                @if (modeloId()) {
-                  <button
-                    appBotao
-                    variante="contorno"
-                    tamanho="sm"
-                    type="button"
-                    (click)="excluirModelo()"
-                  >
-                    Excluir este modelo
-                  </button>
+              } @else if (rascunho()?.formato !== 'xlsx') {
+                <app-seletor
+                  rotulo="Delimitador (CSV)"
+                  placeholder="Detectar automaticamente"
+                  permitirVazio
+                  [opcoes]="opcoesSeparador"
+                  [valor]="separador()"
+                  (valorChange)="mudarSeparador($event)"
+                />
+                <app-seletor
+                  rotulo="Acentuação (CSV)"
+                  placeholder="Detectar automaticamente"
+                  permitirVazio
+                  [opcoes]="opcoesCodificacao"
+                  [valor]="codificacao()"
+                  (valorChange)="mudarCodificacao($event)"
+                />
+              }
+
+              <app-seletor
+                [rotulo]="
+                  ehParcelas()
+                    ? 'Títulos duplicados'
+                    : substantivo() === 'empresas'
+                      ? 'Empresas duplicadas'
+                      : 'Contatos duplicados'
+                "
+                [opcoes]="ehParcelas() ? opcoesDuplicadosParcelas : opcoesDuplicados"
+                [ajuda]="
+                  ehParcelas()
+                    ? 'O título é o mesmo quando o número do título já existe no CRM.'
+                    : 'A pessoa ou empresa é a mesma quando o e-mail, o telefone ou o documento já existe no CRM. Escolha se a planilha completa o cadastro, é pulada ou o substitui.'
+                "
+                [dica]="dicaDuplicados()"
+                [(valor)]="duplicados"
+              />
+
+              @if (ehContatos()) {
+                <app-campo-texto
+                  rotulo="DDI padrão"
+                  dica="Entra nos telefones sem + ou 00. Use 55 para o Brasil."
+                  teclado="numeric"
+                  prefixo="+"
+                  [maximoCaracteres]="3"
+                  [(valor)]="ddiPadrao"
+                />
+              }
+            </div>
+          </app-cartao>
+
+          @if (!ehParcelas()) {
+            <!-- 3. Etiquetas -->
+            <app-cartao titulo="Etiquetas para todos" [nivel]="3">
+              <div class="cartao-corpo">
+                <p class="cartao-nota">
+                  As etiquetas escolhidas entram em todos os registros importados, qualquer que seja
+                  o mapeamento.
+                </p>
+                <app-campo-etiquetas
+                  rotulo="Etiquetas"
+                  opcional
+                  dica="Tecle Enter para acrescentar cada uma."
+                  [(valor)]="etiquetas"
+                />
+                <app-campo-texto
+                  rotulo="De onde vem esta lista?"
+                  opcional
+                  placeholder="Ex.: Feira de negócios 2026"
+                  [maximoCaracteres]="120"
+                  [(valor)]="origemDetalhe"
+                />
+              </div>
+            </app-cartao>
+
+            <!-- 4. Responsável -->
+            <app-cartao titulo="Responsável para todos" [nivel]="3">
+              <div class="cartao-corpo">
+                <p class="cartao-nota">
+                  Quem fica com os registros novos. Uma coluna de responsável na planilha tem
+                  prioridade.
+                </p>
+                <app-seletor
+                  rotulo="Quem fica responsável"
+                  [opcoes]="opcoesResponsavel"
+                  [dica]="dicaResponsavel()"
+                  [valor]="estrategia()"
+                  (valorChange)="mudarEstrategia($event)"
+                />
+                @if (estrategia() === 'RODIZIO') {
+                  <app-seletor
+                    rotulo="Setor do rodízio"
+                    placeholder="Escolha o setor"
+                    [opcoes]="opcoesArea()"
+                    [(valor)]="areaRodizio"
+                  />
+                } @else if (estrategia() === 'RESPONSAVEL_FIXO') {
+                  <app-seletor
+                    rotulo="Responsável"
+                    [placeholder]="
+                      responsaveis().length === 0 ? 'Carregando pessoas…' : 'Escolha a pessoa'
+                    "
+                    [opcoes]="opcoesResponsaveis()"
+                    [(valor)]="responsavelId"
+                  />
                 }
               </div>
-            }
+            </app-cartao>
+          }
 
-            <ul class="mapa" aria-label="Colunas da planilha">
-              @for (linha of linhasDeColuna(); track linha.coluna) {
-                <li class="mapa__linha">
-                  <div class="mapa__origem">
-                    <span class="mapa__coluna">{{ linha.coluna }}</span>
-                    <span class="mapa__amostra">
-                      {{ linha.amostra || 'Sem valores nas primeiras linhas' }}
-                    </span>
-                  </div>
+          @if (ehContatos()) {
+            <!-- 5. Negócio para todos -->
+            <app-cartao titulo="Negócio para todos" [nivel]="3">
+              <div class="cartao-corpo">
+                <p class="cartao-nota">
+                  Cria um negócio para cada contato importado que não tiver funil e etapa em coluna.
+                </p>
+                <app-seletor
+                  rotulo="Funil"
+                  placeholder="Não criar negócio"
+                  permitirVazio
+                  [opcoes]="opcoesFunil()"
+                  [valor]="funilId()"
+                  [erro]="erroNegocio()"
+                  (valorChange)="mudarFunil($event)"
+                />
+                @if (funilId()) {
                   <app-seletor
-                    [rotulo]="'Campo para a coluna ' + linha.coluna"
-                    rotuloOculto
-                    placeholder="Não importar"
-                    permitirVazio
-                    [opcoes]="linha.opcoes"
-                    [valor]="linha.campo"
-                    (valorChange)="mudarCampo(linha.coluna, $event)"
+                    rotulo="Etapa"
+                    placeholder="Escolha a etapa"
+                    [opcoes]="opcoesEtapa()"
+                    [(valor)]="etapaId"
                   />
-                </li>
-              }
-            </ul>
+                  <app-campo-texto
+                    rotulo="Título do negócio"
+                    opcional
+                    placeholder="Padrão: nome do contato"
+                    [maximoCaracteres]="160"
+                    [(valor)]="tituloNegocio"
+                  />
+                  <app-campo-texto
+                    rotulo="Valor do negócio"
+                    opcional
+                    prefixo="R$"
+                    teclado="decimal"
+                    placeholder="0,00"
+                    [(valor)]="valorNegocio"
+                  />
+                }
+              </div>
+            </app-cartao>
+          }
+        </div>
 
-            <ul class="exigencias" aria-label="O que não pode faltar">
-              @for (exigencia of exigencias(); track exigencia.texto) {
-                <li [class.exigencias--ok]="exigencia.atendida">
-                  @if (exigencia.atendida) {
-                    <svg lucideCheck [size]="16" aria-hidden="true" />
-                    <span>{{ exigencia.texto }}: escolhido</span>
-                  } @else {
-                    <svg lucideCircleAlert [size]="16" aria-hidden="true" />
-                    <span>Falta escolher uma coluna para: {{ exigencia.texto }}</span>
+        <!-- Filtro -->
+        <app-cartao
+          titulo="Filtrar linhas da planilha"
+          [nivel]="3"
+          dica="Só as linhas que passam nas regras são importadas. Vale para qualquer coluna, mesmo as que você não vai importar."
+        >
+          <div class="cartao-corpo">
+            @if (!rascunho()) {
+              <p class="cartao-nota">Escolha a planilha para criar regras de filtro.</p>
+            } @else {
+              <div class="filtro__combinacao">
+                <span id="filtro-rotulo">Importar só as linhas que atendem a</span>
+                <app-seletor
+                  class="filtro__combinacao-campo"
+                  rotulo="Combinação das regras"
+                  rotuloOculto
+                  [opcoes]="opcoesCombinacao"
+                  [valor]="combinacao()"
+                  (valorChange)="mudarCombinacao($event)"
+                />
+                <span>das regras</span>
+              </div>
+
+              @if (regras().length === 0) {
+                <p class="cartao-nota">Sem regras: todas as linhas serão importadas.</p>
+              }
+
+              <ul class="regras" aria-label="Regras do filtro">
+                @for (regra of regras(); track regra.chave; let i = $index) {
+                  <li class="regra">
+                    <app-seletor
+                      [rotulo]="'Coluna da regra ' + (i + 1)"
+                      rotuloOculto
+                      placeholder="Coluna"
+                      [opcoes]="opcoesColunas()"
+                      [valor]="regra.coluna"
+                      (valorChange)="mudarRegra(regra.chave, { coluna: $event })"
+                    />
+                    <app-seletor
+                      [rotulo]="'Condição da regra ' + (i + 1)"
+                      rotuloOculto
+                      [opcoes]="opcoesOperador"
+                      [valor]="regra.operador"
+                      (valorChange)="mudarRegra(regra.chave, { operador: $event ?? 'IGUAL' })"
+                    />
+                    @if (!semValor(regra.operador)) {
+                      <app-campo-texto
+                        [rotulo]="'Valor da regra ' + (i + 1)"
+                        rotuloOculto
+                        [placeholder]="
+                          regra.operador === 'UM_DE' ? 'valor1; valor2; valor3' : 'Valor'
+                        "
+                        [valor]="regra.valor"
+                        (valorChange)="mudarRegra(regra.chave, { valor: '' + ($event ?? '') })"
+                      />
+                    } @else {
+                      <span class="regra__sem-valor"></span>
+                    }
+                    <button
+                      appBotao
+                      variante="contorno"
+                      tamanho="sm"
+                      type="button"
+                      [attr.aria-label]="'Remover a regra ' + (i + 1)"
+                      (click)="removerRegra(regra.chave)"
+                    >
+                      <svg lucideTrash2 [size]="16" aria-hidden="true" />
+                    </button>
+                  </li>
+                }
+              </ul>
+
+              <div class="filtro__rodape">
+                <button
+                  appBotao
+                  variante="contorno"
+                  tamanho="sm"
+                  type="button"
+                  [disabled]="regras().length >= maximoRegras"
+                  (click)="adicionarRegra()"
+                >
+                  <svg lucidePlus [size]="16" aria-hidden="true" /> Adicionar regra
+                </button>
+                <p class="filtro__contagem" aria-live="polite">
+                  @if (salvandoFiltro()) {
+                    Contando as linhas…
+                  } @else if (linhasNoFiltro() !== null) {
+                    {{ numero(linhasNoFiltro()!) }} de {{ numero(rascunho()!.totalLinhas) }} linhas
+                    passam no filtro
+                  } @else if (regras().length >= maximoRegras) {
+                    Limite de {{ maximoRegras }} regras.
                   }
-                </li>
-              }
-            </ul>
+                </p>
+              </div>
 
-            <details class="detalhes" [open]="false">
-              <summary>Ver as primeiras linhas da planilha</summary>
-              @if (previa(); as p) {
-                <div class="previa" tabindex="0" role="region" aria-label="Prévia da planilha">
-                  <table>
-                    <thead>
+              @if (erroFiltro(); as mensagem) {
+                <p class="erro-inline" role="alert">
+                  <svg lucideCircleAlert [size]="16" aria-hidden="true" />
+                  {{ mensagem }}
+                </p>
+              }
+            }
+          </div>
+        </app-cartao>
+
+        <!-- Mapeamento -->
+        <app-cartao
+          titulo="Mapeamento de colunas"
+          [nivel]="3"
+          dica="Para cada coluna da planilha, escolha em qual campo do CRM ela vai. Colunas sem campo não são importadas. Funil, etapa e responsável precisam existir no CRM; o vínculo ignora maiúsculas, espaços e acentos."
+        >
+          <div class="cartao-corpo">
+            @if (!rascunho()) {
+              <div class="mapa-vazio">Selecione uma planilha para ver a amostra.</div>
+            } @else {
+              @if (formatoOrigem() === 'CLINT') {
+                <div class="aviso-origem" role="status">
+                  <svg lucideInfo [size]="18" aria-hidden="true" />
+                  <p>
+                    <strong>Esta planilha parece uma exportação do Clint.</strong> Já ligamos as
+                    colunas: origin → Funil, stage → Etapa, status → Status do negócio, lost_status
+                    → Motivo da perda, user_email → Responsável. Cada linha vira um negócio com o
+                    contato dele. Confira abaixo os funis e etapas.
+                  </p>
+                </div>
+              }
+              @if (modelos().length > 0) {
+                <div class="modelos">
+                  <app-seletor
+                    rotulo="Usar um modelo salvo"
+                    placeholder="Escolher um modelo"
+                    permitirVazio
+                    ajuda="Um modelo lembra colunas, filtro, negócio e opções. Útil para planilhas que chegam sempre no mesmo formato."
+                    [opcoes]="opcoesModelo()"
+                    [valor]="modeloId()"
+                    (valorChange)="usarModelo($event)"
+                  />
+                  @if (modeloId()) {
+                    <button
+                      appBotao
+                      variante="contorno"
+                      tamanho="sm"
+                      type="button"
+                      (click)="excluirModelo()"
+                    >
+                      Excluir este modelo
+                    </button>
+                  }
+                </div>
+              }
+
+              <div
+                class="tabela-rolagem"
+                tabindex="0"
+                role="region"
+                aria-label="Mapeamento das colunas"
+              >
+                <table class="mapa">
+                  <thead>
+                    <tr>
+                      <th scope="col">Coluna da planilha</th>
+                      <th scope="col">Amostra</th>
+                      <th scope="col">Campo do CRM</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (linha of linhasDeColuna(); track linha.coluna) {
                       <tr>
-                        <th scope="col">#</th>
-                        @for (coluna of p.colunas; track $index) {
-                          <th scope="col">{{ coluna }}</th>
-                        }
+                        <th scope="row" class="mapa__coluna">{{ linha.coluna }}</th>
+                        <td class="mapa__amostra">
+                          {{ linha.amostra || 'Sem valores nas primeiras linhas' }}
+                        </td>
+                        <td class="mapa__campo">
+                          <app-seletor
+                            [rotulo]="'Campo para a coluna ' + linha.coluna"
+                            rotuloOculto
+                            placeholder="Ignorar coluna"
+                            permitirVazio
+                            [opcoes]="linha.opcoes"
+                            [valor]="linha.campo"
+                            (valorChange)="mudarCampo(linha.coluna, $event)"
+                          />
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      @for (linha of p.linhas; track linha.numero) {
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <ul class="exigencias" aria-label="O que não pode faltar">
+                @for (exigencia of exigencias(); track exigencia.texto) {
+                  <li [class.exigencias--ok]="exigencia.atendida">
+                    @if (exigencia.atendida) {
+                      <svg lucideCheck [size]="16" aria-hidden="true" />
+                      <span>{{ exigencia.texto }}: escolhido</span>
+                    } @else {
+                      <svg lucideCircleAlert [size]="16" aria-hidden="true" />
+                      <span>Falta escolher uma coluna para: {{ exigencia.texto }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+
+              <details class="detalhes">
+                <summary>
+                  {{
+                    linhasNoFiltro() !== null
+                      ? 'Ver as primeiras linhas que passam no filtro'
+                      : 'Ver as primeiras linhas da planilha'
+                  }}
+                </summary>
+                @if (previa(); as p) {
+                  <div class="previa" tabindex="0" role="region" aria-label="Prévia da planilha">
+                    <table>
+                      <thead>
                         <tr>
-                          <th scope="row">{{ linha.numero }}</th>
-                          @for (valor of linha.valores; track $index) {
-                            <td>{{ valor }}</td>
+                          <th scope="col">#</th>
+                          @for (coluna of p.colunas; track $index) {
+                            <th scope="col">{{ coluna }}</th>
                           }
                         </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
-            </details>
-
-            <details
-              class="detalhes"
-              [open]="leituraAberta()"
-              (toggle)="leituraAberta.set($any($event.target).open)"
-            >
-              <summary>As colunas saíram erradas ou com símbolos estranhos?</summary>
-              <div class="leitura">
-                <p class="leitura__dica">
-                  Ajuste como o arquivo é lido e confira de novo. Isso refaz as colunas.
-                </p>
-                @if (imp.formato === 'csv') {
-                  <app-seletor
-                    rotulo="Separador das colunas"
-                    placeholder="Detectar sozinho"
-                    permitirVazio
-                    [opcoes]="opcoesSeparador"
-                    [(valor)]="separador"
-                  />
-                  <app-seletor
-                    rotulo="Acentuação"
-                    placeholder="Detectar sozinho"
-                    permitirVazio
-                    [opcoes]="opcoesCodificacao"
-                    [(valor)]="codificacao"
-                  />
-                } @else if (opcoesAbas().length > 1) {
-                  <app-seletor rotulo="Aba da planilha" [opcoes]="opcoesAbas()" [(valor)]="aba" />
+                      </thead>
+                      <tbody>
+                        @for (linha of p.linhas; track linha.numero) {
+                          <tr>
+                            <th scope="row">{{ linha.numero }}</th>
+                            @for (valor of linha.valores; track $index) {
+                              <td>{{ valor }}</td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
                 }
-                <div class="acoes acoes--inicio">
-                  <button
-                    appBotao
-                    variante="contorno"
-                    tamanho="sm"
-                    type="button"
-                    [carregando]="salvando()"
-                    (click)="aplicarLeitura()"
-                  >
-                    <svg lucideRefreshCw [size]="14" aria-hidden="true" /> Ler de novo
-                  </button>
-                </div>
-              </div>
-            </details>
+              </details>
 
-            @if (nomeModeloAberto()) {
-              <form class="novo-modelo" (submit)="$event.preventDefault(); salvarModelo()">
-                <app-campo-texto
-                  rotulo="Nome do modelo"
-                  placeholder="Ex.: Lista de feira"
-                  [maximoCaracteres]="80"
-                  [(valor)]="nomeModelo"
-                />
-                <div class="acoes acoes--inicio">
-                  <button
-                    appBotao
-                    variante="marca"
-                    tamanho="sm"
-                    type="submit"
-                    [disabled]="nomeModelo().trim() === ''"
-                    [carregando]="salvandoModelo()"
-                  >
-                    Salvar modelo
-                  </button>
-                  <button
-                    appBotao
-                    variante="contorno"
-                    tamanho="sm"
-                    type="button"
-                    (click)="nomeModeloAberto.set(false)"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            }
-          </div>
-
-          <div class="acoes acoes--rodape">
-            <button appBotao variante="contorno" type="button" (click)="comecarDeNovo()">
-              <svg lucideArrowLeft [size]="16" aria-hidden="true" /> Escolher outro arquivo
-            </button>
-            @if (!nomeModeloAberto() && totalMapeadas() > 0) {
-              <button
-                appBotao
-                variante="contorno"
-                type="button"
-                (click)="nomeModeloAberto.set(true)"
-              >
-                Salvar como modelo
-              </button>
-            }
-            <button
-              appBotao
-              variante="marca"
-              type="button"
-              [disabled]="!mapeamentoCompleto()"
-              [carregando]="salvando()"
-              (click)="continuarParaOpcoes()"
-            >
-              Continuar
-            </button>
-          </div>
-        </app-cartao>
-      }
-    }
-
-    @case (3) {
-      @if (importacao(); as imp) {
-        <app-cartao
-          titulo="3. Opções da importação"
-          [complemento]="numero(imp.totalLinhas) + ' linhas serão lidas'"
-        >
-          <div class="opcoes">
-            @if (ehParcelas()) {
-              <app-grupo-opcoes
-                rotulo="Se o número do título já existir no CRM"
-                [opcoes]="opcoesDuplicadosParcelas"
-                [(valor)]="duplicados"
-              />
-            } @else {
-              <app-grupo-opcoes
-                rotulo="Se a pessoa ou empresa já existir no CRM"
-                [opcoes]="opcoesDuplicados"
-                [(valor)]="duplicados"
-              />
-            }
-
-            @if (!ehParcelas()) {
-              <app-campo-etiquetas
-                rotulo="Etiquetas para todos os importados"
-                dica="Ajudam a achar esta lista depois. Tecle Enter para acrescentar cada uma."
-                opcional
-                [(valor)]="etiquetas"
-              />
-
-              <app-campo-texto
-                rotulo="De onde vem esta lista?"
-                opcional
-                placeholder="Ex.: Feira de negócios 2026"
-                dica="Fica registrado na origem de cada {{
-                  substantivo() === 'empresas' ? 'empresa' : 'contato'
-                }}."
-                [maximoCaracteres]="120"
-                [(valor)]="origemDetalhe"
-              />
-
-              <app-grupo-opcoes
-                rotulo="Quem fica responsável pelos registros"
-                [opcoes]="opcoesResponsavel"
-                [(valor)]="estrategia"
-              />
-              @if (estrategia() === 'RODIZIO') {
-                <app-seletor
-                  rotulo="Área do rodízio"
-                  placeholder="Escolha a área"
-                  [opcoes]="opcoesArea"
-                  [(valor)]="areaRodizio"
-                />
-              } @else if (estrategia() === 'RESPONSAVEL_FIXO') {
-                <app-seletor
-                  rotulo="Responsável"
-                  [placeholder]="
-                    responsaveis().length === 0 ? 'Carregando pessoas…' : 'Escolha a pessoa'
-                  "
-                  [opcoes]="opcoesResponsaveis()"
-                  [(valor)]="responsavelId"
-                />
+              @if (nomeModeloAberto()) {
+                <form class="novo-modelo" (submit)="$event.preventDefault(); salvarModelo()">
+                  <app-campo-texto
+                    rotulo="Nome do modelo"
+                    placeholder="Ex.: Lista de feira"
+                    [maximoCaracteres]="80"
+                    [(valor)]="nomeModelo"
+                  />
+                  <div class="acoes acoes--inicio">
+                    <button
+                      appBotao
+                      variante="marca"
+                      tamanho="sm"
+                      type="submit"
+                      [disabled]="nomeModelo().trim() === ''"
+                      [carregando]="salvandoModelo()"
+                    >
+                      Salvar modelo
+                    </button>
+                    <button
+                      appBotao
+                      variante="contorno"
+                      tamanho="sm"
+                      type="button"
+                      (click)="nomeModeloAberto.set(false)"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
               }
+
+              <div class="acoes acoes--inicio">
+                @if (!nomeModeloAberto() && totalMapeadas() > 0) {
+                  <button
+                    appBotao
+                    variante="contorno"
+                    tamanho="sm"
+                    type="button"
+                    (click)="nomeModeloAberto.set(true)"
+                  >
+                    Salvar como modelo
+                  </button>
+                }
+                <button
+                  appBotao
+                  variante="contorno"
+                  tamanho="sm"
+                  type="button"
+                  (click)="descartarRascunho()"
+                >
+                  Descartar planilha
+                </button>
+              </div>
             }
-
-            <p class="resumo" aria-live="polite">{{ resumoDasOpcoes() }}</p>
-          </div>
-
-          <div class="acoes acoes--rodape">
-            <button appBotao variante="contorno" type="button" (click)="voltarParaColunas()">
-              <svg lucideArrowLeft [size]="16" aria-hidden="true" /> Voltar às colunas
-            </button>
-            <button
-              appBotao
-              variante="marca"
-              type="button"
-              [disabled]="!opcoesOk()"
-              [carregando]="iniciando()"
-              (click)="iniciar()"
-            >
-              Começar a importar
-            </button>
           </div>
         </app-cartao>
-      }
-    }
 
-    @case (4) {
-      @if (importacao(); as imp) {
-        <app-cartao titulo="4. Importação" [complemento]="imp.nome + ' · ' + rotuloTipo[imp.tipo]">
+        <!-- Conferência de funis e etapas -->
+        @if (mostraConferencia()) {
+          <app-cartao
+            titulo="Funis e etapas da planilha"
+            [nivel]="3"
+            dica="Mostra onde cada funil e etapa da planilha vão cair no CRM. O que não for encontrado pode ser ligado a um existente ou criado aqui. Só as linhas abertas usam a etapa da coluna; ganhos e perdas vão direto para a etapa de ganho ou de perda."
+          >
+            <div class="cartao-corpo">
+              <app-conferencia-funis
+                [dados]="funisPlanilha()"
+                [carregando]="carregandoConferencia()"
+                [erro]="erroConferencia()"
+                [funis]="funis()"
+                (usarFunil)="aoUsarFunil($event)"
+                (usarEtapa)="aoUsarEtapa($event)"
+                (funilCriado)="aoFunilCriado($event)"
+                (tentarDeNovo)="reconferir()"
+              />
+            </div>
+          </app-cartao>
+        }
+
+        <!-- Rodapé -->
+        <div class="rodape">
+          <div class="rodape__texto">
+            <p class="rodape__aviso">
+              <svg lucideInfo [size]="16" aria-hidden="true" />
+              O processamento acontece em segundo plano e pode ser acompanhado em Execuções.
+            </p>
+            @if (resumoRodape(); as resumo) {
+              <p class="rodape__resumo" aria-live="polite">{{ resumo }}</p>
+            }
+            @if (rascunho() && pendencias().length > 0) {
+              <p class="rodape__pendencia">{{ pendencias()[0] }}</p>
+            }
+          </div>
+          <button
+            appBotao
+            variante="marca"
+            type="button"
+            [icone]="iconeCriar"
+            [disabled]="!podeCriar()"
+            [carregando]="criando()"
+            (click)="criar()"
+          >
+            Criar importação
+          </button>
+        </div>
+      </div>
+    } @else {
+      @if (execucao(); as imp) {
+        <app-cartao titulo="Importação" [complemento]="imp.nome + ' · ' + rotuloTipo[imp.tipo]">
           <div class="andamento">
             <div class="andamento__estado">
               <app-selo [variante]="varianteStatus[imp.status]">{{
@@ -538,9 +725,11 @@
               <div class="barra__preenchida" [style.width.%]="imp.progresso"></div>
             </div>
             <p class="andamento__texto" aria-live="polite">
-              {{ numero(imp.processadas) }} de {{ numero(imp.totalLinhas) }} linhas ({{
-                imp.progresso
-              }}%)
+              {{ numero(imp.processadas) }} de {{ numero(imp.totalLinhas) }} linhas
+              @if (imp.filtradas) {
+                · {{ numero(imp.filtradas) }} fora do filtro
+              }
+              ({{ imp.progresso }}%)
             </p>
 
             <dl class="totais">
@@ -560,6 +749,31 @@
                 <dt>Com erro</dt>
                 <dd>{{ numero(imp.erros) }}</dd>
               </div>
+              @if (imp.filtro) {
+                <div class="total">
+                  <dt>Fora do filtro</dt>
+                  <dd>{{ numero(imp.filtradas ?? 0) }}</dd>
+                </div>
+              }
+              @if (
+                imp.negocio ||
+                (imp.negociosCriados ?? 0) > 0 ||
+                (imp.negociosReconvertidos ?? 0) > 0 ||
+                (imp.negociosAtualizados ?? 0) > 0
+              ) {
+                <div class="total">
+                  <dt>Negócios criados</dt>
+                  <dd>{{ numero(imp.negociosCriados ?? 0) }}</dd>
+                </div>
+                <div class="total">
+                  <dt>Reconversões</dt>
+                  <dd>{{ numero(imp.negociosReconvertidos ?? 0) }}</dd>
+                </div>
+                <div class="total">
+                  <dt>Negócios atualizados</dt>
+                  <dd>{{ numero(imp.negociosAtualizados ?? 0) }}</dd>
+                </div>
+              }
             </dl>
 
             @if (imp.status === 'FALHOU') {
@@ -572,8 +786,8 @@
           </div>
 
           <div class="acoes acoes--rodape">
-            <button appBotao variante="contorno" type="button" (click)="limpar()">
-              Nova importação
+            <button appBotao variante="contorno" type="button" (click)="voltarParaLista()">
+              Ver todas as execuções
             </button>
             @if (imp.status === 'FALHOU') {
               <button
@@ -681,7 +895,70 @@
             }
           </app-cartao>
         }
+      } @else {
+        <app-cartao
+          titulo="Execuções"
+          [nivel]="3"
+          dica="Abra uma importação para ver o relatório ou continuar de onde parou."
+        >
+          @if (erroHistorico(); as erro) {
+            <app-estado-vazio
+              variante="erro"
+              compacto
+              [falha]="erro"
+              titulo="Não conseguimos carregar a lista"
+              [texto]="erro.resumo"
+            >
+              <button appBotao variante="contorno" type="button" (click)="carregarHistorico()">
+                Tentar de novo
+              </button>
+            </app-estado-vazio>
+          } @else if (historico(); as lista) {
+            @if (lista.itens.length === 0) {
+              <app-estado-vazio
+                compacto
+                titulo="Nenhuma importação ainda"
+                texto="Quando você criar uma importação, ela aparece aqui com o andamento e o relatório."
+              />
+            } @else {
+              <ul class="historico">
+                @for (item of lista.itens; track item.id) {
+                  <li>
+                    <button type="button" class="historico__item" (click)="abrir(item.id)">
+                      <span class="historico__nome">
+                        <svg lucideFileSpreadsheet [size]="18" aria-hidden="true" />
+                        {{ item.nome }}
+                      </span>
+                      <span class="historico__meta">
+                        {{ rotuloTipo[item.tipo] }} · {{ numero(item.totalLinhas) }} linhas ·
+                        {{ dataHora(item.criadoEm) }}
+                      </span>
+                      <span class="historico__estado">
+                        <app-selo [variante]="varianteStatus[item.status]" tamanho="sm">{{
+                          rotuloStatus[item.status]
+                        }}</app-selo>
+                        @if (item.status === 'PROCESSANDO' || item.status === 'NA_FILA') {
+                          <span class="historico__contagem">{{ item.progresso }}%</span>
+                        } @else if (item.status === 'CONCLUIDA') {
+                          <span class="historico__contagem"
+                            >{{ numero(item.criados) }} novos · {{ numero(item.erros) }} com
+                            erro</span
+                          >
+                        }
+                      </span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          } @else {
+            <div aria-busy="true">
+              <p class="visualmente-oculto" role="status">Carregando importações…</p>
+              <app-esqueleto altura="3rem" />
+            </div>
+          }
+        </app-cartao>
       }
     }
-  }
+  </app-abas>
 }

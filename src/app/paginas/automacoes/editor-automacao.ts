@@ -22,7 +22,7 @@ import {
 import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
-import { AREAS, ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Abas, type ItemAba } from '../../ui/abas/abas';
 import { AreaTexto } from '../../ui/area-texto/area-texto';
@@ -90,6 +90,7 @@ import {
   passosDaApi,
   passosParaApi,
 } from './passos-automacao';
+import { SetoresService } from '../../nucleo/setores/setores.service';
 
 type Texto = string | number | null;
 
@@ -158,7 +159,7 @@ const ORIGENS: readonly OpcaoSeletor<string>[] = [
   ['WEBHOOK', 'Integração (webhook)'],
   ['IMPORTACAO', 'Importação'],
   ['INDICACAO', 'Indicação'],
-  ['PASSAGEM', 'Passagem entre áreas'],
+  ['PASSAGEM', 'Passagem entre setores'],
   ['OUTRO', 'Outra'],
 ].map(([valor, rotulo]) => ({ valor, rotulo }));
 
@@ -221,6 +222,7 @@ const CRITERIOS: readonly CriterioParada[] = ['RESPONDEU', 'GANHOU', 'PERDEU', '
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditorAutomacao {
+  protected readonly setores = inject(SetoresService);
   private readonly api = inject(AutomacoesApi);
   private readonly router = inject(Router);
   private readonly avisos = inject(AvisosService);
@@ -321,10 +323,7 @@ export class EditorAutomacao {
     { valor: 'UMA_VEZ_POR_PERIODO', rotulo: 'Uma vez a cada tantos dias' },
     { valor: 'SEMPRE', rotulo: 'Toda vez que acontecer' },
   ];
-  protected readonly opcoesArea: readonly OpcaoSeletor<string>[] = AREAS.map((a) => ({
-    valor: a,
-    rotulo: ROTULO_AREA[a],
-  }));
+  protected readonly opcoesArea = computed(() => this.setores.opcoes());
 
   // --- derivados
   protected readonly ehNova = computed(() => !this.id());
@@ -377,6 +376,7 @@ export class EditorAutomacao {
       .filter((m) => m.canal === null || m.canal === 'EMAIL')
       .map((m) => ({ valor: m.id, rotulo: m.nome })),
     etiquetas: this.etiquetas().map((e) => ({ valor: e, rotulo: e })),
+    setores: this.setores.opcoes(),
   }));
   protected readonly definicoes = computed(() => definicoesDePassos(this.apoio()));
   protected readonly camposSegmento = computed<readonly CampoSegmento[]>(() => [
@@ -470,12 +470,13 @@ export class EditorAutomacao {
   });
 
   constructor() {
+    void this.setores.carregar();
     // Também recarrega quando a rota troca só o `:id` (ex.: depois de duplicar).
     effect(() => {
       this.id();
       untracked(() => void this.iniciar());
     });
-    // Automação nova da área de Marketing nasce como "mensagem de marketing" (R4.6): assim o
+    // Automação nova do setor de Marketing nasce como "mensagem de marketing" (R4.6): assim o
     // e-mail dela não chega a quem pediu para não receber.
     effect(() => {
       const area = this.sessao.ehDiretoria() ? this.area() : (this.sessao.usuario()?.area ?? null);

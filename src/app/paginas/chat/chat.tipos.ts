@@ -1,5 +1,6 @@
 import type { Papel } from '../../nucleo/papeis';
 import type { Area } from '../../nucleo/sessao/perfil';
+import { ordemDoSetor } from '../../nucleo/setores/setores';
 import {
   type AnexoMensagem,
   type MensagemConversa,
@@ -516,10 +517,13 @@ function porMaisRecente(a: ChatCanal, b: ChatCanal): number {
   return momento(b) - momento(a) || a.nome.localeCompare(b.nome, 'pt-BR');
 }
 
-const ORDEM_AREA: readonly (Area | null)[] = ['MARKETING', 'COMERCIAL', 'CS'];
+/** Canais de setor: os de base primeiro (Marketing, Comercial, CS), os outros por nome. */
+function ordemDaArea(area: Area | null): number {
+  return area ? ordemDoSetor(area) : -1;
+}
 
 /**
- * Seções da lista: **Canais** (o Geral e os das áreas, nesta ordem), **Grupos** e **Conversas
+ * Seções da lista: **Canais** (o Geral e os dos setores, nesta ordem), **Grupos** e **Conversas
  * diretas** (as mais recentes primeiro) e **Arquivados**. Com `filtro`, só os canais cujo nome
  * contém o termo (sem acentos); seções vazias somem.
  */
@@ -532,8 +536,8 @@ export function secoesDosCanais(canais: readonly ChatCanal[], filtro = ''): read
     .filter((canal) => canal.tipo === 'GERAL' || canal.tipo === 'AREA')
     .sort(
       (a, b) =>
-        (a.tipo === 'GERAL' ? -1 : ORDEM_AREA.indexOf(a.area)) -
-        (b.tipo === 'GERAL' ? -1 : ORDEM_AREA.indexOf(b.area)),
+        (a.tipo === 'GERAL' ? -2 : ordemDaArea(a.area)) -
+          (b.tipo === 'GERAL' ? -2 : ordemDaArea(b.area)) || a.nome.localeCompare(b.nome, 'pt-BR'),
     );
   const grupos = visiveis
     .filter((canal) => canal.tipo === 'GRUPO' && !canal.arquivadoEm)
@@ -553,13 +557,13 @@ export function secoesDosCanais(canais: readonly ChatCanal[], filtro = ''): read
     .map(([id, lista]) => ({ id, rotulo: ROTULO_SECAO[id], canais: lista }));
 }
 
-/** "Canal geral", "Canal da área", "Grupo", "Conversa direta". */
+/** "Canal geral", "Canal do setor", "Grupo", "Conversa direta". */
 export function rotuloDoTipo(canal: Pick<ChatCanal, 'tipo' | 'arquivadoEm'>): string {
   switch (canal.tipo) {
     case 'GERAL':
       return 'Canal de toda a equipe';
     case 'AREA':
-      return 'Canal da área';
+      return 'Canal do setor';
     case 'GRUPO':
       return canal.arquivadoEm ? 'Grupo arquivado' : 'Grupo';
     default:

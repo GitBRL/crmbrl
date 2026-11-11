@@ -22,7 +22,9 @@ import {
   paraDecimal,
   paraNumero,
 } from '../../nucleo/formatos';
-import { type Area, areaDoSlug, ROTULO_AREA, SLUG_AREA } from '../../nucleo/sessao/perfil';
+import { type Area } from '../../nucleo/sessao/perfil';
+import { areaDoSlug, nomeDoSetor, slugDaArea } from '../../nucleo/setores/setores';
+import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Abas, type ItemAba } from '../../ui/abas/abas';
 import { CartaoQualificacao } from '../../nucleo/sdr/cartao-qualificacao';
@@ -39,6 +41,7 @@ import { PainelLateral } from '../../ui/painel-lateral/painel-lateral';
 import { type OpcaoSeletor, Seletor } from '../../ui/seletor/seletor';
 import { Selo } from '../../ui/selo/selo';
 import { AtividadesNegocio } from './atividades-negocio';
+import { ClienteNegocio } from './cliente-negocio';
 import { EstadoQuadro } from './estado-quadro';
 import { FunisApi } from './funis.api';
 import type {
@@ -58,10 +61,17 @@ import {
   mensagemDaMovimentacao,
   mostraValores,
   ordenarEtapas,
-  podeReabrir,
   podeSerResponsavel,
   rotuloDias,
 } from './regras-funis';
+import {
+  falhaClara,
+  mensagemDeNivel,
+  nivelDoFunil,
+  podeAgirNoFunil,
+  podeAgirNoNegocio,
+  podeConfigurarPorNivel,
+} from './nivel-funil';
 
 type IdAba = 'linha' | 'atividades' | 'dados';
 
@@ -69,6 +79,8 @@ const ABAS: readonly ItemAba[] = [
   { id: 'linha', rotulo: 'Linha do tempo' },
   { id: 'atividades', rotulo: 'Atividades' },
   { id: 'dados', rotulo: 'Dados' },
+  // O cadastro do contato e da empresa, com os campos personalizados (só leitura).
+  { id: 'cliente', rotulo: 'Cliente' },
 ];
 
 export const ROTULO_ORIGEM: Readonly<Record<OrigemContato, string>> = {
@@ -115,6 +127,7 @@ interface Vinculo {
     Botao,
     CampoData,
     CampoTexto,
+    ClienteNegocio,
     Esqueleto,
     EstadoVazio,
     LinhaDoTempoNegocio,
@@ -141,6 +154,7 @@ export class DetalheNegocio {
   private readonly router = inject(Router);
   private readonly documento = inject(DOCUMENT);
   private readonly avisos = inject(AvisosService);
+  private readonly confirmacao = inject(ConfirmacaoService);
   protected readonly sessao = inject(SessaoService);
   private readonly estado = inject(EstadoQuadro, { optional: true });
 
@@ -183,14 +197,33 @@ export class DetalheNegocio {
   );
   protected readonly mostrarRecorrente = computed(() => mostraValores(this.areaAtual()));
   protected readonly etapas = computed(() => ordenarEtapas(this.funil()?.etapas ?? []));
-  protected readonly podeReabrir = computed(() =>
-    podeReabrir(this.sessao.perfil(), this.areaAtual()),
+  /** Nível da pessoa neste funil (R5.12): `VER` só lê; `MEMBRO` e `GESTOR` agem; `CONFIGURAR` reabre e exclui. */
+  protected readonly nivel = computed(() =>
+    nivelDoFunil(
+      this.funil() ?? this.estado?.funil() ?? { area: this.areaAtual(), nivel: undefined },
+      this.sessao.perfil(),
+    ),
   );
+  /** Age neste negócio: `MEMBRO` que vê todos só age nos seus e nos sem responsável. */
+  protected readonly podeAgir = computed(() =>
+    podeAgirNoNegocio(
+      this.funil() ?? this.estado?.funil() ?? null,
+      this.nivel(),
+      this.sessao.usuario()?.id,
+      this.negocio(),
+    ),
+  );
+  protected readonly outraPessoa = computed(
+    () => podeAgirNoFunil(this.nivel()) && !this.podeAgir(),
+  );
+  protected readonly podeReabrir = computed(() => podeConfigurarPorNivel(this.nivel()));
   protected readonly negocioFechado = computed(() => {
     const status = this.negocio()?.status;
     return !!status && status !== 'ABERTO';
   });
-  protected readonly podeMudarEtapa = computed(() => !this.negocioFechado() || this.podeReabrir());
+  protected readonly podeMudarEtapa = computed(
+    () => this.podeAgir() && (!this.negocioFechado() || this.podeReabrir()),
+  );
   protected readonly opcoesEtapa = computed<OpcaoSeletor<string>[]>(() => {
     const atual = this.negocio();
     const etapas = this.etapas();
@@ -200,8 +233,8 @@ export class DetalheNegocio {
     return etapas.map((etapa) => ({ valor: etapa.id, rotulo: etapa.nome }));
   });
   private readonly usuarios = computed(() => this.estado?.usuarios() ?? this.usuariosLocais());
-  protected readonly podeAssumir = computed(() =>
-    podeSerResponsavel(this.sessao.usuario(), this.areaAtual()),
+  protected readonly podeAssumir = computed(
+    () => this.podeAgir() && podeSerResponsavel(this.sessao.usuario(), this.areaAtual()),
   );
   protected readonly opcoesResponsavel = computed<OpcaoSeletor<string>[]>(() => {
     const area = this.areaAtual();
@@ -254,7 +287,7 @@ export class DetalheNegocio {
               ? // Visível, mas a lista do contato ainda não chegou: só a área, por enquanto.
                 {
                   rotulo: 'Veio de',
-                  funil: ROTULO_AREA[daJornada.area],
+                  funil: nomeDoSetor(daJornada.area),
                   titulo: null,
                   link: null,
                   carregando: true,
@@ -279,8 +312,13 @@ export class DetalheNegocio {
     if (!negocio) {
       return [];
     }
-    const itens: ItemMenuAcoes[] = [{ id: 'editar', rotulo: 'Editar título e valores' }];
+    const itens: ItemMenuAcoes[] = this.podeAgir()
+      ? [{ id: 'editar', rotulo: 'Editar título e valores' }]
+      : [];
     itens.push({ id: 'contato', rotulo: 'Abrir o contato' });
+    if (!this.podeAgir()) {
+      return itens;
+    }
     if (negocio.status === 'ABERTO') {
       itens.push({
         id: 'perda',
@@ -295,8 +333,11 @@ export class DetalheNegocio {
         desabilitado: !this.podeReabrir(),
         motivo: this.podeReabrir()
           ? undefined
-          : 'Só a liderança da área, C-level e Admin reabrem negócios.',
+          : 'Só a liderança do setor, C-level e Admin reabrem negócios.',
       });
+    }
+    if (this.podeReabrir()) {
+      itens.push({ id: 'excluir', rotulo: 'Excluir negócio' });
     }
     return itens;
   });
@@ -370,7 +411,7 @@ export class DetalheNegocio {
   protected voltar(): void {
     const id = this.negocioId();
     void this.router
-      .navigate(['/funis', SLUG_AREA[this.areaAtual()]], { queryParamsHandling: 'preserve' })
+      .navigate(['/funis', slugDaArea(this.areaAtual())], { queryParamsHandling: 'preserve' })
       .then(() => {
         const ativo = this.documento.activeElement;
         if (!ativo || ativo === this.documento.body || !ativo.isConnected) {
@@ -401,6 +442,11 @@ export class DetalheNegocio {
       case 'reabrir':
         if (this.podeReabrir()) {
           void this.reabrir();
+        }
+        break;
+      case 'excluir':
+        if (this.podeReabrir()) {
+          void this.excluir();
         }
         break;
     }
@@ -446,9 +492,31 @@ export class DetalheNegocio {
       this.aplicarMovimentacao(resultado);
     } catch (falha) {
       this.etapaSelecionada.set(negocio.etapa.id);
-      this.avisos.erro(falha, { titulo: `Não deu para mover “${negocio.titulo}”` });
+      this.avisos.erro(falhaClara(falha), { titulo: `Não deu para mover “${negocio.titulo}”` });
     } finally {
       this.movendo.set(false);
+    }
+  }
+
+  /** Exclui o negócio (só `CONFIGURAR`), depois de confirmar; o quadro recarrega sem ele. */
+  private async excluir(): Promise<void> {
+    const negocio = this.negocio()!;
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Excluir este negócio?',
+      mensagem: `“${negocio.titulo}” sai do quadro e das listas. Os contatos e o histórico de atividades continuam guardados.`,
+      confirmar: 'Excluir negócio',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
+    try {
+      await this.api.excluirNegocio(negocio.id);
+      this.avisos.sucesso(`Negócio “${negocio.titulo}” excluído.`);
+      void this.estado?.recarregar();
+      this.aberto.set(false);
+    } catch (falha) {
+      this.avisos.erro(falhaClara(falha));
     }
   }
 
@@ -461,7 +529,7 @@ export class DetalheNegocio {
       this.versaoLinha.update((versao) => versao + 1);
       this.avisos.sucesso(`Negócio reaberto em ${resultado.negocio.etapa.nome}.`);
     } catch (falha) {
-      this.avisos.erro(falha);
+      this.avisos.erro(falhaClara(falha));
     } finally {
       this.movendo.set(false);
     }
@@ -525,7 +593,7 @@ export class DetalheNegocio {
       );
     } catch (falha) {
       this.responsavelSelecionado.set(negocio.responsavel?.id ?? null);
-      this.avisos.erro(falha);
+      this.avisos.erro(falhaClara(falha));
     } finally {
       this.trocandoResponsavel.set(false);
     }
@@ -543,7 +611,7 @@ export class DetalheNegocio {
       this.versaoLinha.update((versao) => versao + 1);
       this.avisos.sucesso(`Você assumiu “${negocio.titulo}”.`);
     } catch (falha) {
-      this.avisos.erro(falha);
+      this.avisos.erro(falhaClara(falha));
     } finally {
       this.assumindo.set(false);
     }
@@ -583,7 +651,8 @@ export class DetalheNegocio {
       this.versaoLinha.update((versao) => versao + 1);
       this.avisos.sucesso('Alterações salvas.');
     } catch (falha) {
-      this.erroSalvar.set(erroDaApi(falha).mensagem);
+      const erro = erroDaApi(falha);
+      this.erroSalvar.set(mensagemDeNivel(erro.regra, erro.mensagem));
     } finally {
       this.salvando.set(false);
     }
@@ -683,9 +752,9 @@ export class DetalheNegocio {
   private vinculo(rotulo: Vinculo['rotulo'], negocio: Negocio): Vinculo {
     return {
       rotulo,
-      funil: negocio.funil.nome || ROTULO_AREA[negocio.funil.area],
+      funil: negocio.funil.nome || nomeDoSetor(negocio.funil.area),
       titulo: negocio.titulo,
-      link: ['/funis', SLUG_AREA[negocio.funil.area], negocio.id],
+      link: ['/funis', slugDaArea(negocio.funil.area), negocio.id],
       queryParams: { funil: negocio.funil.id },
     };
   }
@@ -729,5 +798,5 @@ export class DetalheNegocio {
 
 /** "Gerou: negócio em Customer Success (sem acesso)": o outro funil existe, mas a pessoa não o vê. */
 function semAcesso(rotulo: Vinculo['rotulo'], area: Area): Vinculo {
-  return { rotulo, funil: ROTULO_AREA[area], titulo: null, link: null, semAcesso: true };
+  return { rotulo, funil: nomeDoSetor(area), titulo: null, link: null, semAcesso: true };
 }

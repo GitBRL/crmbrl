@@ -562,7 +562,7 @@ export class AssistenteAplicativo {
       const area = this.funilEscolhido()?.nome ?? 'do funil';
       return (['RODIZIO', 'RESPONSAVEL_FIXO', 'LIDER_DA_AREA'] as const).map((valor) => ({
         valor,
-        rotulo: valor === 'RODIZIO' ? `Rodízio da área (${area})` : ROTULO_ESTRATEGIA[valor],
+        rotulo: valor === 'RODIZIO' ? `Rodízio do setor (${area})` : ROTULO_ESTRATEGIA[valor],
         dica: DICA_ESTRATEGIA[valor],
       }));
     },

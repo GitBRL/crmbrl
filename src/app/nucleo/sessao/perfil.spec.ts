@@ -8,11 +8,7 @@ describe('podeImportarContatos (R16.1)', () => {
       const perfil = perfilDeTeste(papel);
       return podeImportarContatos(perfil.permissoes, perfil);
     });
-    expect(podem).toEqual(
-      ['ADMIN', 'C_LEVEL', 'LIDER_COMERCIAL', 'LIDER_MARKETING', 'LIDER_CS'].filter((papel) =>
-        PAPEIS.includes(papel as never),
-      ),
-    );
+    expect(podem).toEqual(['ADMIN', 'C_LEVEL', 'LIDER']);
   });
 
   it('sem a permissão no perfil, vale o papel', () => {

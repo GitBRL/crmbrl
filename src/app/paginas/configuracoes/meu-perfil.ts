@@ -20,7 +20,8 @@ import {
 import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarDataHora } from '../../nucleo/formatos';
-import { ROTULO_AREA, SENHA_MAXIMO, SENHA_MINIMO } from '../../nucleo/sessao/perfil';
+import { SENHA_MAXIMO, SENHA_MINIMO } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
@@ -53,7 +54,7 @@ export class MeuPerfil {
   protected readonly podeEditarNome = this.sessao.ehAdmin;
   protected readonly area = computed(() => {
     const area = this.usuario()?.area;
-    return area ? ROTULO_AREA[area] : null;
+    return this.usuario()?.nomeSetor ?? (area ? nomeDoSetor(area) : null);
   });
   protected readonly telefone = computed(() => formatarTelefone(this.usuario()?.telefone));
   protected readonly sessaoDesde = computed(() => {

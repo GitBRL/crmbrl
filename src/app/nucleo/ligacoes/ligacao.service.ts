@@ -180,8 +180,8 @@ function gravarPreferencia(chave: string, valor: string | null): void {
 }
 
 /** R12: Marketing não usa o Atendimento, então também não liga nem atende. */
-export function papelUsaAtendimento(papel: string | null | undefined): boolean {
-  return !!papel && papel !== 'MARKETING' && papel !== 'LIDER_MARKETING';
+export function usuarioUsaAtendimento(usuario: { readonly area?: string | null } | null): boolean {
+  return !!usuario && usuario.area !== 'MARKETING';
 }
 
 /**
@@ -268,7 +268,7 @@ export class LigacaoService {
   readonly suportaAltoFalante =
     typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
 
-  readonly usaAtendimento = computed(() => papelUsaAtendimento(this.sessao.usuario()?.papel));
+  readonly usaAtendimento = computed(() => usuarioUsaAtendimento(this.sessao.usuario()));
   readonly ocupado = computed(() => this._emCurso() !== null);
   readonly emAndamento = computed(() => this._emCurso()?.fase === 'em-andamento');
   /** A conexão com o CRM caiu durante a ligação (a API encerra se passar de 15 s). */

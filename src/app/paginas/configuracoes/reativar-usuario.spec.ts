@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { Component, signal } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 
+import { responderSetores } from '../../nucleo/setores/setores-de-teste';
 import type { Usuario } from './configuracoes.modelos';
 import {
   botaoComTexto,
@@ -31,19 +32,23 @@ class Hospedeiro {
   readonly reativados: Usuario[] = [];
 }
 
-const LIDERES_COMERCIAIS = '/api/v1/usuarios?papel=LIDER_COMERCIAL&ativo=true&porPagina=100';
+const lideresDo = (area: string) =>
+  `/api/v1/usuarios?papel=LIDER&area=${area}&ativo=true&porPagina=100`;
+const LIDERES_COMERCIAIS = lideresDo('COMERCIAL');
 
 describe('ReativarUsuario (R7.5)', () => {
   let http: HttpTestingController;
   let fixture: ComponentFixture<Hospedeiro>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(Hospedeiro);
     fixture.detectChanges();
+    responderSetores(http);
+    await microtarefas();
   });
   afterEach(() => http.verify());
 
@@ -64,7 +69,7 @@ describe('ReativarUsuario (R7.5)', () => {
     expect(opcoesDe(raiz(), 'Líder')).toEqual(['Rafael Mendes', 'Carla Nogueira']);
     botaoComTexto(raiz(), 'Reativar Pedro').click();
     const pedido = http.expectOne('/api/v1/usuarios/u-pedro/reativar');
-    expect(pedido.request.body).toEqual({ liderId: 'u-rafael' });
+    expect(pedido.request.body).toEqual({ area: 'COMERCIAL', liderId: 'u-rafael' });
     pedido.flush({ ...PEDRO, ativo: true });
     await microtarefas();
     expect(fixture.componentInstance.reativados).toHaveLength(1);
@@ -96,7 +101,7 @@ describe('ReativarUsuario (R7.5)', () => {
 
   it('voltar em outro papel troca as opções de líder e manda o papel novo', async () => {
     await abrir(PEDRO, [RAFAEL]);
-    escolher(raiz(), 'Papel', 'Líder Comercial · Comercial');
+    escolher(raiz(), 'Papel', 'Líder');
     fixture.detectChanges();
     http
       .expectOne('/api/v1/usuarios?papel=C_LEVEL&ativo=true&porPagina=100')
@@ -106,8 +111,41 @@ describe('ReativarUsuario (R7.5)', () => {
     expect(opcoesDe(raiz(), 'Líder')).toEqual(['Helena Duarte']);
     botaoComTexto(raiz(), 'Reativar Pedro').click();
     const pedido = http.expectOne('/api/v1/usuarios/u-pedro/reativar');
-    expect(pedido.request.body).toEqual({ papel: 'LIDER_COMERCIAL', liderId: 'u-helena' });
-    pedido.flush({ ...PEDRO, ativo: true, papel: 'LIDER_COMERCIAL' });
+    expect(pedido.request.body).toEqual({
+      papel: 'LIDER',
+      area: 'COMERCIAL',
+      liderId: 'u-helena',
+    });
+    pedido.flush({ ...PEDRO, ativo: true, papel: 'LIDER' });
     await microtarefas();
+  });
+
+  it('voltar em outro setor pede os líderes do setor novo e manda o setor', async () => {
+    await abrir(PEDRO, [RAFAEL]);
+    escolher(raiz(), 'Setor', 'Customer Success');
+    fixture.detectChanges();
+    http
+      .expectOne(lideresDo('CS'))
+      .flush(pagina([usuario('u-bruno', 'Bruno Tavares', 'LIDER_CS')]));
+    await microtarefas();
+    fixture.detectChanges();
+    expect(opcoesDe(raiz(), 'Líder')).toEqual(['Bruno Tavares']);
+    botaoComTexto(raiz(), 'Reativar Pedro').click();
+    const pedido = http.expectOne('/api/v1/usuarios/u-pedro/reativar');
+    expect(pedido.request.body).toEqual({ area: 'CS', liderId: 'u-bruno' });
+    pedido.flush({ ...PEDRO, ativo: true });
+    await microtarefas();
+  });
+
+  it('o setor de antes foi desativado: a pessoa escolhe um setor ativo antes de reativar', async () => {
+    const antigo = { ...PEDRO, area: 'POS_VENDA', nomeSetor: 'Pós-venda' };
+    fixture.componentInstance.usuario.set(antigo);
+    fixture.detectChanges();
+    await microtarefas();
+    fixture.detectChanges();
+    botaoComTexto(raiz(), 'Reativar Pedro').click();
+    fixture.detectChanges();
+    http.expectNone('/api/v1/usuarios/u-pedro/reativar');
+    expect(raiz().textContent).toContain('Escolha o setor.');
   });
 });

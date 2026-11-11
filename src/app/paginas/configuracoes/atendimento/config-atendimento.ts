@@ -140,6 +140,6 @@ export class ConfigAtendimento {
   protected readonly frase = computed(() =>
     this.sessao.ehDiretoria()
       ? 'Como as conversas chegam a cada pessoa, os prazos de resposta, quando cada canal atende e as mensagens prontas da equipe.'
-      : 'As filas, os prazos e as mensagens prontas da sua área, e quando cada canal atende.',
+      : 'As filas, os prazos e as mensagens prontas do seu setor, e quando cada canal atende.',
   );
 }

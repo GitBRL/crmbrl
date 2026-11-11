@@ -29,7 +29,7 @@
       "
       [texto]="
         falha.status === 404
-          ? 'Ela pode ter sido excluída ou ser de outra área.'
+          ? 'Ela pode ter sido excluída ou ser de outro setor.'
           : 'Tente de novo em instantes.'
       "
       [falha]="falha"
@@ -162,11 +162,11 @@
         />
         @if (sessao.ehDiretoria()) {
           <app-seletor
-            rotulo="Área"
+            rotulo="Setor"
             permitirVazio
-            placeholder="Todas as áreas"
-            dica="A automação só mexe em registros dessa área. Vazio: vale para todas."
-            [opcoes]="opcoesArea"
+            placeholder="Todos os setores"
+            dica="A automação só mexe em registros desse setor. Vazio: vale para todas."
+            [opcoes]="opcoesArea()"
             [(valor)]="area"
           />
         }
@@ -467,7 +467,7 @@
       />
       <p class="nota">
         Mensagens de marketing não são enviadas para quem pediu para não receber (opt-out). Deixe
-        desmarcado para avisos e mensagens de acompanhamento. Na área de Marketing a caixa já vem
+        desmarcado para avisos e mensagens de acompanhamento. No setor de Marketing a caixa já vem
         marcada, para a automação nunca alcançar quem saiu da lista.
       </p>
     </app-cartao>

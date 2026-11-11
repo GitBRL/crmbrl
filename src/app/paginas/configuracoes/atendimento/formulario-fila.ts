@@ -59,7 +59,7 @@ const OPCOES_UNIDADE: readonly OpcaoSeletor<UnidadeDeTempo>[] = [
 /**
  * Criar e editar uma fila (R12): nome, área (Comercial ou CS; o líder só a dele), descrição,
  * estratégia de distribuição e os dois prazos (SLA) — cada um pode ficar "sem prazo". Quem recebe
- * se ajusta depois, no cartão da fila (a fila nova vale para a área inteira).
+ * se ajusta depois, no cartão da fila (a fila nova vale para o setor inteiro).
  */
 @Component({
   selector: 'app-formulario-fila',
@@ -99,14 +99,14 @@ const OPCOES_UNIDADE: readonly OpcaoSeletor<UnidadeDeTempo>[] = [
           />
           @if (opcoesArea().length > 1) {
             <app-grupo-opcoes
-              rotulo="Área"
+              rotulo="Setor"
               disposicao="pilulas"
               [opcoes]="opcoesArea()"
               formControlName="area"
             />
           } @else {
             <div class="formulario__fixo">
-              <span class="formulario__fixo-rotulo">Área</span>
+              <span class="formulario__fixo-rotulo">Setor</span>
               <span class="formulario__fixo-valor">{{ rotuloArea() }}</span>
             </div>
           }
@@ -180,7 +180,7 @@ const OPCOES_UNIDADE: readonly OpcaoSeletor<UnidadeDeTempo>[] = [
 
         @if (!editando()) {
           <p class="formulario__nota">
-            A fila nova vale para todas as pessoas ativas da área. Depois de criar, ligue ou
+            A fila nova vale para todas as pessoas ativas do setor. Depois de criar, ligue ou
             desligue cada pessoa no cartão da fila.
           </p>
         }
@@ -244,8 +244,8 @@ const OPCOES_UNIDADE: readonly OpcaoSeletor<UnidadeDeTempo>[] = [
 export class FormularioFila {
   /** `null` = fechado. */
   readonly pedido = input<PedidoFormularioFila | null>(null);
-  /** Áreas em que a pessoa pode criar (Admin e C-level: as duas; o líder: a dele). */
-  readonly areasPermitidas = input<readonly AreaDoAtendimento[]>(['COMERCIAL', 'CS']);
+  /** Setores em que a pessoa pode criar (Admin e C-level: todos os que atendem; o líder: o dele). */
+  readonly areasPermitidas = input<readonly AreaDoAtendimento[]>([]);
   readonly salva = output<Fila>();
   readonly fechado = output<void>();
 
@@ -267,7 +267,10 @@ export class FormularioFila {
       nonNullable: true,
       validators: [Validators.required, Validators.maxLength(100)],
     }),
-    area: new FormControl<AreaDoAtendimento>('COMERCIAL', { nonNullable: true }),
+    area: new FormControl<AreaDoAtendimento>('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
     descricao: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(500)] }),
     estrategia: new FormControl<EstrategiaFila>('RODIZIO', { nonNullable: true }),
     comPrimeira: new FormControl(true, { nonNullable: true }),
@@ -312,7 +315,7 @@ export class FormularioFila {
     if (pedido.modo === 'criar') {
       this.formulario.reset({
         nome: '',
-        area: this.areasPermitidas()[0] ?? 'COMERCIAL',
+        area: this.areasPermitidas()[0] ?? '',
         descricao: '',
         estrategia: 'RODIZIO',
         comPrimeira: true,

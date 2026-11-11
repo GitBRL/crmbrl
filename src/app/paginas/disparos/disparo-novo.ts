@@ -27,7 +27,8 @@ import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { formatarDataHora, formatarEspera } from '../../nucleo/formatos';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
-import { AREAS, podeImportarContatos, ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { podeImportarContatos } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { Alternador } from '../../ui/alternador/alternador';
 import { Botao } from '../../ui/botao/botao';
 import { CaixaSelecao } from '../../ui/caixa-selecao/caixa-selecao';
@@ -69,6 +70,7 @@ import {
   type RevisaoCampanha,
   type TipoPublico,
 } from './disparos.tipos';
+import { SetoresService } from '../../nucleo/setores/setores.service';
 
 const OPCOES_CANAL: readonly OpcaoGrupo<CanalCampanha>[] = [
   { valor: 'WHATSAPP', rotulo: 'WhatsApp', dica: 'Mensagem no WhatsApp dos contatos.' },
@@ -215,9 +217,9 @@ function numero(valor: string | number | null): number {
                 />
                 @if (ehDiretoria()) {
                   <app-seletor
-                    rotulo="Área da campanha"
-                    ajuda="De qual área é esta campanha. O líder dela acompanha e aprova."
-                    [opcoes]="opcoesArea"
+                    rotulo="Setor da campanha"
+                    ajuda="De qual setor é esta campanha. O líder dela acompanha e aprova."
+                    [opcoes]="opcoesArea()"
                     [desabilitado]="campanhaId() !== null"
                     [valor]="area()"
                     (valorChange)="area.set($event)"
@@ -256,7 +258,7 @@ function numero(valor: string | number | null): number {
                       @if (podeImportar()) {
                         <a routerLink="/contatos/importar">Importar contatos</a>
                       } @else {
-                        Peça ao líder da sua área para importar a lista.
+                        Peça ao líder do seu setor para importar a lista.
                       }
                     </p>
                   }
@@ -633,7 +635,7 @@ function numero(valor: string | number | null): number {
               </app-cartao>
               @if (r.exigeAprovacao) {
                 <p class="nota nota--atencao" role="status">
-                  Esta campanha precisa da aprovação do líder da área antes de começar.
+                  Esta campanha precisa da aprovação do líder do setor antes de começar.
                 </p>
               }
             }
@@ -1042,6 +1044,7 @@ function numero(valor: string | number | null): number {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DisparoNovo {
+  protected readonly setores = inject(SetoresService);
   /** `:id` da rota quando é edição (vinculado por `withComponentInputBinding`). */
   readonly id = input<string>();
 
@@ -1063,10 +1066,7 @@ export class DisparoNovo {
   };
   protected readonly opcoesPublico = OPCOES_PUBLICO;
   protected readonly opcoesRitmo = OPCOES_RITMO;
-  protected readonly opcoesArea: readonly OpcaoSeletor<string>[] = AREAS.map((a) => ({
-    valor: a,
-    rotulo: ROTULO_AREA[a],
-  }));
+  protected readonly opcoesArea = computed(() => this.setores.opcoes());
   protected readonly numero = numero;
   protected readonly ehDiretoria = this.sessao.ehDiretoria;
   protected readonly podeImportar = computed(() => this.sessao.permite(podeImportarContatos));
@@ -1247,6 +1247,7 @@ export class DisparoNovo {
   };
 
   constructor() {
+    void this.setores.carregar();
     // Edição: carrega a campanha uma vez e preenche o formulário.
     effect(() => {
       const id = this.id();
@@ -1601,7 +1602,7 @@ export class DisparoNovo {
       const campanha = await this.api.iniciar(id, agendada);
       this.avisos.sucesso(
         campanha.status === 'AGUARDANDO_APROVACAO'
-          ? 'Pedido enviado ao líder da área.'
+          ? 'Pedido enviado ao líder do setor.'
           : campanha.status === 'AGENDADA'
             ? 'Campanha agendada.'
             : 'Campanha iniciada.',

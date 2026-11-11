@@ -31,6 +31,7 @@ import {
   type StatusContrato,
   VARIANTE_STATUS_CONTRATO,
 } from './financeiro.tipos';
+import { ehCarteiraDeCs } from './acesso-financeiro';
 
 const CONSULTA_INICIAL: ConsultaContratos = { pagina: 1, porPagina: 20, status: [], busca: '' };
 
@@ -111,7 +112,7 @@ const COLUNAS: readonly ColunaTabela[] = [
             : 'Não conseguimos carregar os contratos'
         "
         [texto]="
-          falha.ehSemPermissao ? 'Peça ao líder da sua área para liberar o acesso.' : falha.resumo
+          falha.ehSemPermissao ? 'Peça ao líder do seu setor para liberar o acesso.' : falha.resumo
         "
         [codigo]="falha.requisicaoId"
       >
@@ -231,9 +232,7 @@ export class Contratos {
   protected readonly data = (v: string) => formatarData(v);
   protected readonly consulta = signal<ConsultaContratos>(CONSULTA_INICIAL);
   protected readonly buscaDigitada = signal('');
-  protected readonly podeCriar = computed(() =>
-    this.sessao.temPapel('ADMIN', 'C_LEVEL', 'LIDER_CS', 'CS'),
-  );
+  protected readonly podeCriar = computed(() => ehCarteiraDeCs(this.sessao.usuario()));
 
   protected readonly dados = resource({
     params: () => this.consulta(),

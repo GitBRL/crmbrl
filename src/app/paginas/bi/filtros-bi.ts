@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   model,
   output,
@@ -10,6 +11,7 @@ import {
 import { LucideListFilter } from '@lucide/angular';
 
 import type { Area } from '../../nucleo/sessao/perfil';
+import { SetoresService } from '../../nucleo/setores/setores.service';
 import { Abas, type ItemAba } from '../../ui/abas/abas';
 import { Alternador } from '../../ui/alternador/alternador';
 import { Botao } from '../../ui/botao/botao';
@@ -46,12 +48,6 @@ const AREA_DO_PAINEL: Partial<Record<IdPainel, Area>> = {
   cs: 'CS',
 };
 
-const OPCOES_AREA: readonly OpcaoSeletor<string>[] = [
-  { valor: 'MARKETING', rotulo: 'Marketing' },
-  { valor: 'COMERCIAL', rotulo: 'Comercial' },
-  { valor: 'CS', rotulo: 'Sucesso do cliente' },
-];
-
 /** AAAA-MM-DD do dia local, `atras` dias antes de hoje. */
 export function diaLocal(atras = 0, referencia = new Date()): string {
   const dia = new Date(
@@ -77,7 +73,7 @@ const PERIODOS: readonly ItemAba[] = [
 
 /**
  * Filtros do topo do BI: período (7, 30, 90 dias ou datas livres, até 1 ano), comparação com
- * o período anterior e, conforme o painel e o papel, área, equipe, responsável, funil, canal e
+ * o período anterior e, conforme o painel e o papel, setor, equipe, responsável, funil, canal e
  * fila. Só aparece o filtro que a pessoa pode usar; o que muda a lista volta em `filtros`.
  */
 @Component({
@@ -141,10 +137,10 @@ const PERIODOS: readonly ItemAba[] = [
       <div class="filtros__mais" id="filtros-mais">
         @if (mostrarArea()) {
           <app-seletor
-            rotulo="Área"
+            rotulo="Setor"
             placeholder="Todas"
             permitirVazio
-            [opcoes]="opcoesArea"
+            [opcoes]="setores.opcoes()"
             [valor]="filtros().area"
             (valorChange)="alterar({ area: $event })"
           />
@@ -216,7 +212,7 @@ export class FiltrosBiComponente {
 
   protected readonly iconeFiltro = LucideListFilter;
   protected readonly periodos = PERIODOS;
-  protected readonly opcoesArea = OPCOES_AREA;
+  protected readonly setores = inject(SetoresService);
   protected readonly hoje = diaLocal(0);
   protected readonly preset = signal<string | null>('30');
   protected readonly maisAberto = signal(false);
@@ -287,6 +283,7 @@ export class FiltrosBiComponente {
   });
 
   constructor() {
+    void this.setores.carregar();
     // Filtro que já veio ligado (link do clique, por exemplo) abre a área.
     queueMicrotask(() => this.maisAberto.set(this.ativos() > 0));
   }

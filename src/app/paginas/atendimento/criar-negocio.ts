@@ -14,7 +14,7 @@ import {
 import { erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { paraDecimal } from '../../nucleo/formatos';
-import { ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { Botao } from '../../ui/botao/botao';
 import { CampoTexto } from '../../ui/campo-texto/campo-texto';
 import { Modal } from '../../ui/modal/modal';
@@ -23,7 +23,7 @@ import type { ConversaDetalhe } from './atendimento.tipos';
 import { CANAL } from './apresentacao';
 
 /**
- * Criar um negócio para o contato da conversa: entra no funil da área da fila (ou da área de
+ * Criar um negócio para o contato da conversa: entra no funil do setor da fila (ou do setor de
  * quem cria), na primeira etapa, com a origem do canal, e fica ligado à conversa.
  */
 @Component({
@@ -111,8 +111,8 @@ export class CriarNegocio {
   protected readonly complemento = computed(() => `· ${this.conversa().contato.nome}`);
   protected readonly frase = computed(() => {
     const conversa = this.conversa();
-    const area = conversa.fila ? ROTULO_AREA[conversa.fila.area] : null;
-    return `O negócio entra no funil ${area ? `de ${area}` : 'da sua área'}, na primeira etapa, com a origem ${CANAL[conversa.canal.tipo].rotulo}, e fica ligado a esta conversa.`;
+    const area = conversa.fila ? nomeDoSetor(conversa.fila.area) : null;
+    return `O negócio entra no funil ${area ? `de ${area}` : 'do seu setor'}, na primeira etapa, com a origem ${CANAL[conversa.canal.tipo].rotulo}, e fica ligado a esta conversa.`;
   });
 
   constructor() {

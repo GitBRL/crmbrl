@@ -16,7 +16,8 @@ import { urlApi } from '../api/api';
 import { AvisosService } from '../avisos.service';
 import { moduloBasePorRota } from '../modulos';
 import type { Papel } from '../papeis';
-import { type Area, areaDoSlug, type Perfil, type Permissoes, SLUG_AREA } from './perfil';
+import { areaDoSlug, slugDaArea } from '../setores/setores';
+import type { Area, Perfil, Permissoes } from './perfil';
 import { SessaoService, voltarSeguro } from './sessao.service';
 
 /**
@@ -27,7 +28,7 @@ import { SessaoService, voltarSeguro } from './sessao.service';
  *
  * ```ts
  * { path: 'usuarios', canActivate: [exigirPermissao((p) => p.gerenciarUsuarios)], loadComponent: … }
- * { path: 'equipe', canActivate: [exigirPapel('C_LEVEL', ...LIDERES)], loadComponent: … }
+ * { path: 'equipe', canActivate: [exigirPapel('C_LEVEL', 'LIDER')], loadComponent: … }
  * ```
  */
 
@@ -106,8 +107,24 @@ export const apenasVisitante: CanActivateFn = async (rota) => {
 export const acessoAoModulo: CanActivateChildFn = (_rota, estado) => {
   const sessao = inject(SessaoService);
   const modulo = moduloBasePorRota(estado.url);
-  return !modulo || sessao.pode(modulo) ? true : paraSemAcesso(inject(Router), estado.url);
+  if (!modulo || sessao.pode(modulo)) {
+    return true;
+  }
+  // Funil de outro setor visto por acesso (R5.11): o link leva `?funil=<id>`; quem decide o que a
+  // pessoa vê é a API (o quadro mostra o funil se ela o vê e o estado vazio se não).
+  if (modulo.grupo === 'funis' && sessao.temPapel(...modulo.papeis) && funilNaUrl(estado.url)) {
+    return true;
+  }
+  return paraSemAcesso(inject(Router), estado.url);
 };
+
+const FUNIL_NA_URL =
+  /[?&]funil=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:&|#|$)/i;
+
+/** A URL pede um funil específico (`?funil=<uuid>`). */
+function funilNaUrl(url: string): boolean {
+  return FUNIL_NA_URL.test(url);
+}
 
 /** Libera a rota quando o teste das permissões passa: `exigirPermissao((p) => p.verAuditoria)`. */
 export function exigirPermissao(
@@ -145,7 +162,7 @@ export function redirecionar(
   };
 }
 
-/** `canMatch` da rota `funis/:area`: só `marketing`, `comercial` ou `cs`. */
+/** `canMatch` da rota `funis/:area`: a chave de um setor em minúsculas (`comercial`, `pos_venda`). */
 export const ehAreaDeFunil: CanMatchFn = (_rota, segmentos) =>
   areaDoSlug(segmentos[0]?.path) !== null;
 
@@ -171,7 +188,7 @@ export const paraInicioOuEntrar: CanActivateFn = async () => {
 export const paraPrimeiroFunil: CanActivateFn = () => {
   const router = inject(Router);
   const area = inject(SessaoService).permissoes()?.areasVisiveis[0];
-  return router.parseUrl(area ? `/funis/${SLUG_AREA[area]}` : '/inicio');
+  return router.parseUrl(area ? `/funis/${slugDaArea(area)}` : '/inicio');
 };
 
 /**
@@ -188,7 +205,7 @@ export const redirecionarFunilPorId: CanActivateFn = async (rota) => {
   const negocio = rota.queryParamMap.get('negocio');
   try {
     const funil = await firstValueFrom(http.get<{ area: Area }>(urlApi('funis', funilId)));
-    return router.createUrlTree(['/funis', SLUG_AREA[funil.area], ...(negocio ? [negocio] : [])], {
+    return router.createUrlTree(['/funis', slugDaArea(funil.area), ...(negocio ? [negocio] : [])], {
       queryParams: { funil: funilId },
     });
   } catch (falha) {

@@ -5,7 +5,8 @@ import { provideRouter, Router } from '@angular/router';
 
 import { AvisosService } from '../../nucleo/avisos.service';
 import type { Papel } from '../../nucleo/papeis';
-import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
+import { entrarComo, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
+import { contatoDeTeste } from '../contatos/dados-de-teste';
 import { DetalheNegocio } from './detalhe-negocio';
 import { ETAPAS, FUNIL_ID, funilDeTeste, negocioDeTeste } from './funis-de-teste';
 import type { JornadaDoNegocio, Negocio } from './funis.tipos';
@@ -36,9 +37,10 @@ describe('DetalheNegocio', () => {
 
   async function abrir(
     negocio: Negocio,
-    papel: Papel = 'LIDER_COMERCIAL',
+    papel: PapelDeTeste = 'LIDER_COMERCIAL',
     relacionados: Negocio[] = [],
     jornada?: JornadaDoNegocio,
+    funil = funilDeTeste(),
   ) {
     entrarComo(papel);
     fixture = TestBed.createComponent(DetalheNegocio);
@@ -50,7 +52,7 @@ describe('DetalheNegocio', () => {
       .expectOne(`/api/v1/negocios/${negocio.id}`)
       .flush(jornada ? { ...negocio, jornada } : negocio);
     await microtarefas();
-    http.expectOne(`/api/v1/funis/${FUNIL_ID}`).flush(funilDeTeste());
+    http.expectOne(`/api/v1/funis/${FUNIL_ID}`).flush(funil);
     http
       .expectOne(
         (req) =>
@@ -69,7 +71,7 @@ describe('DetalheNegocio', () => {
           {
             id: 'u-juliana',
             nome: 'Juliana Alves',
-            papel: 'COMERCIAL',
+            papel: 'MEMBRO',
             rotuloPapel: 'Comercial',
             area: 'COMERCIAL',
             ativo: true,
@@ -78,7 +80,7 @@ describe('DetalheNegocio', () => {
           {
             id: 'u-mariana',
             nome: 'Mariana Costa',
-            papel: 'MARKETING',
+            papel: 'MEMBRO',
             rotuloPapel: 'Marketing',
             area: 'MARKETING',
             ativo: true,
@@ -189,7 +191,40 @@ describe('DetalheNegocio', () => {
   it('negócio ganho: membro não muda a etapa (R5.5) e vê o motivo no menu', async () => {
     await abrir(negocioDeTeste('n1', GANHO), 'COMERCIAL');
     expect(seletor('Etapa').disabled).toBe(true);
-    expect(raiz.textContent).toContain('só a liderança da área, C-level e Admin reabrem');
+    expect(raiz.textContent).toContain('só a liderança do setor, C-level e Admin reabrem');
+  });
+
+  it('nível VER (R5.12): só leitura, sem mudar etapa, responsável nem editar dados', async () => {
+    await abrir(
+      negocioDeTeste('n1', NOVO),
+      'LIDER_COMERCIAL',
+      [],
+      undefined,
+      funilDeTeste({ nivel: 'VER' }),
+    );
+    expect(seletor('Etapa').disabled).toBe(true);
+    expect(seletor('Responsável').disabled).toBe(true);
+    expect(raiz.textContent).not.toContain('Assumir');
+    [...raiz.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+      .find((b) => b.textContent?.includes('Dados'))!
+      .click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(raiz.querySelector<HTMLFieldSetElement>('fieldset.dados__campos')?.disabled).toBe(true);
+    expect(raiz.querySelector('.dados__acoes')?.hasAttribute('hidden')).toBe(true);
+    expect(raiz.textContent).toContain('Você só pode ver este funil');
+  });
+
+  it('nível MEMBRO: muda a etapa e edita, mas não reabre negócio fechado', async () => {
+    await abrir(
+      negocioDeTeste('n1', GANHO),
+      'LIDER_COMERCIAL',
+      [],
+      undefined,
+      funilDeTeste({ nivel: 'MEMBRO' }),
+    );
+    expect(seletor('Etapa').disabled).toBe(true);
+    expect(seletor('Responsável').disabled).toBe(false);
   });
 
   it('jornada: "Gerou" com link para o negócio do outro funil', async () => {
@@ -253,6 +288,33 @@ describe('DetalheNegocio', () => {
     const itens = [...raiz.querySelectorAll('.jornada__item')];
     expect(itens).toHaveLength(1);
     expect(itens[0].querySelector('a')?.getAttribute('href')).toBe('/funis/cs/cs1?funil=f-cs');
+  });
+
+  it('aba Cliente mostra o cadastro do contato do negócio, com os campos personalizados', async () => {
+    const negocio = negocioDeTeste('n1', NOVO);
+    await abrir(negocio);
+    const abas = [...raiz.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    expect(abas.map((aba) => aba.textContent?.trim())).toEqual([
+      'Linha do tempo',
+      'Atividades',
+      'Dados',
+      'Cliente',
+    ]);
+    abas[3].click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    http.expectOne(`/api/v1/contatos/${negocio.contato.id}`).flush(
+      contatoDeTeste({
+        id: negocio.contato.id,
+        empresa: null,
+        camposPersonalizados: { cidade_do_lead: 'Brasília' },
+      }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const aba = raiz.querySelector('app-cliente-negocio');
+    expect(aba?.textContent).toContain('Cidade do lead');
+    expect(aba?.textContent).toContain('Brasília');
   });
 
   it('aba Dados salva só o que mudou', async () => {

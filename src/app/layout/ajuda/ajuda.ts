@@ -3,8 +3,10 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   signal,
+  untracked,
   type ElementRef,
   viewChild,
 } from '@angular/core';
@@ -20,6 +22,7 @@ import {
 } from '@lucide/angular';
 
 import { erroDaApi, type ErroApi } from '../../nucleo/api/erro-api';
+import { AjudaPainel } from '../../nucleo/ajuda-painel';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarHora, formatarTempoRelativo } from '../../nucleo/formatos';
 import { AreaTexto } from '../../ui/area-texto/area-texto';
@@ -164,6 +167,7 @@ export class Ajuda {
   private readonly api = inject(AjudaApi);
   private readonly router = inject(Router);
   private readonly avisos = inject(AvisosService);
+  private readonly painel = inject(AjudaPainel);
 
   protected readonly icones = {
     ajuda: LucideCircleHelp,
@@ -237,6 +241,18 @@ export class Ajuda {
   );
 
   constructor() {
+    // Pedido de outra tela ("Ver tutorial"): abre o painel e já faz a pergunta.
+    effect(() => {
+      const pedido = this.painel.pedido();
+      if (pedido) {
+        untracked(() => {
+          this.modo.set('conversa');
+          this.abrir();
+          this.usarExemplo(pedido.pergunta);
+          this.painel.pedido.set(null);
+        });
+      }
+    });
     inject(DestroyRef).onDestroy(() => {
       this.controle?.abort();
       this.temporizadores.forEach((t) => clearTimeout(t));

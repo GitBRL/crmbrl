@@ -31,7 +31,7 @@ describe('MeuPerfil', () => {
     entrarComo(papel, {
       usuario:
         papel === 'COMERCIAL'
-          ? { lider: { id: 'u-r', nome: 'Rafael Mendes', papel: 'LIDER_COMERCIAL' } }
+          ? { lider: { id: 'u-r', nome: 'Rafael Mendes', papel: 'LIDER' } }
           : {},
     });
     fixture = TestBed.createComponent(MeuPerfil);

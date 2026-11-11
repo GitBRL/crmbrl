@@ -57,19 +57,21 @@ export type AcaoCartao =
           >{{ negocio().titulo }}</a
         >
         <div class="cartao__acoes">
-          <button
-            type="button"
-            class="cartao__mover"
-            [class.cartao__mover--ativo]="pego()"
-            [attr.aria-label]="'Mover ' + negocio().titulo"
-            [attr.aria-pressed]="pego()"
-            aria-describedby="kanban-instrucoes"
-            [attr.data-mover]="negocio().id"
-            (keydown)="teclaMover.emit($event)"
-            (focusout)="saiuDoMover.emit()"
-          >
-            <svg lucideGripVertical [size]="18" />
-          </button>
+          @if (podeMover()) {
+            <button
+              type="button"
+              class="cartao__mover"
+              [class.cartao__mover--ativo]="pego()"
+              [attr.aria-label]="'Mover ' + negocio().titulo"
+              [attr.aria-pressed]="pego()"
+              aria-describedby="kanban-instrucoes"
+              [attr.data-mover]="negocio().id"
+              (keydown)="teclaMover.emit($event)"
+              (focusout)="saiuDoMover.emit()"
+            >
+              <svg lucideGripVertical [size]="18" />
+            </button>
+          }
           <app-menu-acoes
             class="cartao__menu"
             [rotulo]="'Ações de ' + negocio().titulo"
@@ -193,6 +195,8 @@ export class CartaoNegocio {
   readonly etapas = input<readonly Etapa[]>([]);
   /** Pode sair da etapa (falso: ganho/perdido para quem não reabre, R5.5). */
   readonly podeSair = input(true, { transform: booleanAttribute });
+  /** Nível `VER` não move: sem a alça e sem "Mover para…" (R5.12). */
+  readonly podeMover = input(true, { transform: booleanAttribute });
   readonly podeAssumir = input(false, { transform: booleanAttribute });
   readonly assumindo = input(false, { transform: booleanAttribute });
   readonly mostrarValor = input(true, { transform: booleanAttribute });
@@ -217,7 +221,7 @@ export class CartaoNegocio {
     const mensal = this.negocio().valorRecorrente;
     return mensal && Number(mensal) > 0 ? formatarMoeda(mensal, { centavos: false }) : null;
   });
-  /** Sem responsável e ainda aberto: quem é da área pode assumir (ganho/perdido, não). */
+  /** Sem responsável e ainda aberto: quem é do setor pode assumir (ganho/perdido, não). */
   protected readonly oferecerAssumir = computed(() => {
     const { responsavel, status } = this.negocio();
     return !responsavel && status === 'ABERTO' && this.podeAssumir();
@@ -247,7 +251,7 @@ export class CartaoNegocio {
     if (this.oferecerAssumir()) {
       itens.push({ id: 'assumir', rotulo: 'Assumir' });
     }
-    this.etapas()
+    (this.podeMover() ? this.etapas() : [])
       .filter((etapa) => etapa.id !== negocio.etapa.id)
       .forEach((etapa, indice) => {
         itens.push({
@@ -257,7 +261,7 @@ export class CartaoNegocio {
           desabilitado: !this.podeSair(),
           motivo: this.podeSair()
             ? undefined
-            : 'Só a liderança da área, C-level e Admin reabrem negócios fechados.',
+            : 'Só a liderança do setor, C-level e Admin reabrem negócios fechados.',
         });
       });
     return itens;

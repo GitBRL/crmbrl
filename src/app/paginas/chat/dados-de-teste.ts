@@ -20,7 +20,7 @@ export function pessoa(id: string, nome: string, ajustes: Partial<ChatPessoa> = 
     id,
     nome,
     avatarUrl: null,
-    papel: 'COMERCIAL',
+    papel: 'MEMBRO',
     rotuloPapel: 'Comercial',
     area: 'COMERCIAL',
     ativo: true,
@@ -31,7 +31,7 @@ export function pessoa(id: string, nome: string, ajustes: Partial<ChatPessoa> = 
 
 export const ANA = pessoa('u-ana', 'Ana Lima', { online: true });
 export const BRUNO = pessoa('u-bruno', 'Bruno Tavares', {
-  papel: 'LIDER_CS',
+  papel: 'LIDER',
   rotuloPapel: 'Líder CS',
   area: 'CS',
 });

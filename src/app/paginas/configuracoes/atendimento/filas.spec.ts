@@ -6,6 +6,7 @@ import { provideRouter } from '@angular/router';
 import { AvisosService } from '../../../nucleo/avisos.service';
 import { ConfirmacaoService, type PedidoConfirmacao } from '../../../nucleo/confirmacao.service';
 import { entrarComo } from '../../../nucleo/sessao/sessao-de-teste';
+import { responderSetores } from '../../../nucleo/setores/setores-de-teste';
 import { microtarefas } from '../canais/dados-de-teste';
 import { fila } from './dados-de-teste';
 import { Filas } from './filas';
@@ -37,6 +38,7 @@ describe('Filas e SLA (R12)', () => {
     entrarComo(papel);
     fixture = TestBed.createComponent(Filas);
     fixture.detectChanges();
+    responderSetores(http);
     http.expectOne(LISTA).flush(filas);
     await microtarefas();
     fixture.detectChanges();

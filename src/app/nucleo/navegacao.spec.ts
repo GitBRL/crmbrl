@@ -1,8 +1,19 @@
-import { LucideLayoutDashboard } from '@lucide/angular';
+import { LucideLayoutDashboard, LucideSquareKanban } from '@lucide/angular';
 
 import { MODULOS_BASE, moduloBasePorRota } from './modulos';
-import { agruparModulos, GRUPOS, MODULOS, moduloPorId, moduloPorRota } from './navegacao';
+import {
+  agruparModulos,
+  GRUPOS,
+  MODULOS,
+  moduloDaNavegacaoPorRota,
+  moduloDoFunil,
+  moduloPorId,
+  moduloPorRota,
+  modulosDaNavegacao,
+} from './navegacao';
 import { listarPapeis } from './papeis';
+import { perfilDeTeste, setoresDeTeste } from './sessao/sessao-de-teste';
+import { definirRegistroDeSetores } from './setores/setores';
 
 describe('navegacao', () => {
   it('ids e rotas são únicos; módulos "em breve" têm fase e funcionalidades', () => {
@@ -42,15 +53,103 @@ describe('navegacao', () => {
     ]);
   });
 
-  it('R12: Marketing e o líder de Marketing não veem o Atendimento (a API recusa os dois)', () => {
-    const papeis = moduloPorId('atendimento')?.papeis ?? [];
-    expect(papeis).not.toContain('MARKETING');
-    expect(papeis).not.toContain('LIDER_MARKETING');
-    expect(papeis).toContain('LIDER_CS');
+  it('R12: o setor de Marketing (líder e membro) não vê o Atendimento (a API recusa)', () => {
+    const modulo = moduloPorId('atendimento');
+    const acesso = (papel: Parameters<typeof perfilDeTeste>[0]) => {
+      const perfil = perfilDeTeste(papel);
+      return modulo?.acesso?.(perfil.permissoes, perfil.usuario) ?? true;
+    };
+    expect(acesso('LIDER_MARKETING')).toBe(false);
+    expect(acesso('MARKETING')).toBe(false);
+    expect(acesso('LIDER_CS')).toBe(true);
+    expect(acesso('COMERCIAL')).toBe(true);
+    expect(acesso('C_LEVEL')).toBe(true);
+  });
+
+  describe('funis por setor (setores criados depois)', () => {
+    const POS_VENDA = { chave: 'POS_VENDA', nome: 'Pós-venda' };
+    const idsDosFunis = (areas?: readonly string[]) =>
+      modulosDaNavegacao(areas)
+        .filter((modulo) => modulo.grupo === 'funis')
+        .map((modulo) => modulo.id);
+    afterEach(() => definirRegistroDeSetores([]));
+
+    it('antes de a lista chegar, os de base (e o setor da própria pessoa)', () => {
+      definirRegistroDeSetores([]);
+      expect(idsDosFunis()).toEqual(['funil-marketing', 'funil-comercial', 'funil-cs']);
+      expect(idsDosFunis(['POS_VENDA'])).toEqual([
+        'funil-marketing',
+        'funil-comercial',
+        'funil-cs',
+        'funil-pos_venda',
+      ]);
+    });
+
+    it('um item por setor ativo, na ordem da jornada; o desativado some', () => {
+      // `ordem` 0: o setor novo vem antes de todos; empate de ordem desempata pelo nome.
+      definirRegistroDeSetores(setoresDeTeste([{ ...POS_VENDA, ordem: 0 }]));
+      expect(idsDosFunis()).toEqual([
+        'funil-pos_venda',
+        'funil-marketing',
+        'funil-comercial',
+        'funil-cs',
+      ]);
+      definirRegistroDeSetores(setoresDeTeste([{ ...POS_VENDA, ordem: 2 }]));
+      expect(idsDosFunis()).toEqual([
+        'funil-marketing',
+        'funil-comercial',
+        'funil-pos_venda',
+        'funil-cs',
+      ]);
+      definirRegistroDeSetores(setoresDeTeste([POS_VENDA]));
+      const novo = modulosDaNavegacao().find((modulo) => modulo.id === 'funil-pos_venda');
+      expect(novo).toMatchObject({
+        rotulo: 'Pós-venda',
+        rota: '/funis/pos_venda',
+        grupo: 'funis',
+        status: 'pronto',
+        icone: LucideSquareKanban,
+      });
+      // Os de base mantêm ícone e descrição; o nome é o atual do setor.
+      const cs = modulosDaNavegacao().find((modulo) => modulo.id === 'funil-cs');
+      expect(cs?.icone).toBe(moduloPorId('funil-cs')?.icone);
+      expect(cs?.descricao).toBe(moduloPorId('funil-cs')?.descricao);
+      definirRegistroDeSetores(setoresDeTeste([{ ...POS_VENDA, ativo: false }]));
+      expect(idsDosFunis(['POS_VENDA'])).not.toContain('funil-pos_venda');
+    });
+
+    it('Admin e C-level acessam o funil de qualquer setor; os demais, os do areasVisiveis', () => {
+      const modulo = moduloDoFunil('POS_VENDA');
+      const pode = (perfil: ReturnType<typeof perfilDeTeste>) =>
+        modulo.acesso?.(perfil.permissoes, perfil.usuario);
+      // A sessão do Admin é anterior ao setor: o areasVisiveis dela não o tem.
+      expect(pode(perfilDeTeste('ADMIN'))).toBe(true);
+      expect(pode(perfilDeTeste('C_LEVEL'))).toBe(true);
+      expect(pode(perfilDeTeste('COMERCIAL'))).toBe(false);
+      expect(pode(perfilDeTeste('LIDER_CS'))).toBe(false);
+      const membro = perfilDeTeste('MEMBRO', {
+        usuario: { area: 'POS_VENDA' },
+        permissoes: { areasVisiveis: ['POS_VENDA'] },
+      });
+      expect(pode(membro)).toBe(true);
+    });
+
+    it('acha o funil de qualquer setor pela URL (o id de funil na URL não é setor)', () => {
+      definirRegistroDeSetores([]);
+      expect(moduloDaNavegacaoPorRota('/funis/pos_venda/123?funil=x')?.rotulo).toBe('Pos venda');
+      definirRegistroDeSetores(setoresDeTeste([POS_VENDA]));
+      expect(moduloDaNavegacaoPorRota('/funis/pos_venda')?.rotulo).toBe('Pós-venda');
+      expect(moduloDaNavegacaoPorRota('/funis/cs/9')?.id).toBe('funil-cs');
+      expect(moduloDaNavegacaoPorRota('/empresas/1')?.id).toBe('contatos');
+      expect(
+        moduloDaNavegacaoPorRota('/funis/0b8f3c2e-1d4a-4f6b-9c7d-2e5f8a1b3c4d'),
+      ).toBeUndefined();
+      expect(moduloDaNavegacaoPorRota('/nada')).toBeUndefined();
+    });
   });
 
   it('lista papéis em português', () => {
-    expect(listarPapeis(['ADMIN', 'C_LEVEL', 'LIDER_CS'])).toBe('Admin, C-level e Líder CS');
+    expect(listarPapeis(['ADMIN', 'C_LEVEL', 'LIDER'])).toBe('Admin, C-level e Líder');
     expect(listarPapeis(['ADMIN'])).toBe('Admin');
   });
 });

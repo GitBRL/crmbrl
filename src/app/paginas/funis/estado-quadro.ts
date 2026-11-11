@@ -4,6 +4,12 @@ import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import type { Area } from '../../nucleo/sessao/perfil';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { FunisApi } from './funis.api';
+import {
+  nivelDoFunil,
+  podeAgirNoFunil,
+  podeAgirNoNegocio,
+  podeConfigurarPorNivel,
+} from './nivel-funil';
 import type {
   Atividade,
   ColunaQuadro,
@@ -41,7 +47,7 @@ const FILTROS_PADRAO: FiltrosQuadro = { visao: 'TODOS', busca: '', etiqueta: nul
 
 /**
  * Estado do quadro de um funil (fornecido pelo `QuadroFunil`, que o detalhe do negócio — rota
- * filha, no `<router-outlet>` do quadro — também injeta). Guarda os funis da área, o funil
+ * filha, no `<router-outlet>` do quadro — também injeta). Guarda os funis do setor, o funil
  * escolhido, os filtros, as colunas e a próxima atividade de cada cartão, e faz a
  * movimentação **otimista**: o cartão muda de lugar na hora e volta, com a mensagem da API,
  * se ela recusar.
@@ -68,7 +74,19 @@ export class EstadoQuadro {
   /** Etapas carregando "mais cartões". */
   readonly carregandoMais = signal<ReadonlySet<string>>(new Set());
 
-  /** Funis ativos da área (arquivados não aparecem no quadro). */
+  /** Todos os funis que a pessoa vê (de todos os setores, inclusive por acesso): o seletor do quadro. */
+  readonly todosOsFunis = signal<readonly Funil[]>([]);
+
+  /** O nível da pessoa no funil aberto (decide os botões do quadro e do detalhe). */
+  readonly nivel = computed(() => nivelDoFunil(this.funil(), this.sessao.perfil()));
+  readonly podeAgir = computed(() => podeAgirNoFunil(this.nivel()));
+  /** Age neste negócio? (`MEMBRO` que vê todos só age nos seus e nos sem responsável.) */
+  podeAgirEm(negocio: Negocio): boolean {
+    return podeAgirNoNegocio(this.funil(), this.nivel(), this.sessao.usuario()?.id, negocio);
+  }
+  readonly podeConfigurar = computed(() => podeConfigurarPorNivel(this.nivel()));
+
+  /** Funis ativos do setor (arquivados não aparecem no quadro). */
   readonly funisAtivos = computed(() => this.funis().filter((funil) => funil.ativo));
   readonly funil = computed(
     () => this.funis().find((funil) => funil.id === this.funilId()) ?? null,
@@ -107,6 +125,7 @@ export class EstadoQuadro {
         return;
       }
       this.funis.set(funis);
+      void this.carregarTodosOsFunis();
       const ativos = funis.filter((funil) => funil.ativo);
       const escolhido =
         ativos.find((funil) => funil.id === funilPreferido) ??
@@ -166,7 +185,7 @@ export class EstadoQuadro {
     void this.recarregar();
   }
 
-  /** Funil escolhido entre os da área (quando há funis extras). */
+  /** Funil escolhido entre os do setor (quando há funis extras). */
   escolherFunil(funilId: string): void {
     if (funilId === this.funilId()) {
       return;
@@ -377,6 +396,15 @@ export class EstadoQuadro {
   });
 
   // Carga ------------------------------------------------------------------------------------
+
+  private async carregarTodosOsFunis(): Promise<void> {
+    try {
+      this.todosOsFunis.set(await this.api.funis());
+    } catch {
+      // O seletor cai para os funis do setor.
+      this.todosOsFunis.set([]);
+    }
+  }
 
   private async carregarQuadro(versao: number): Promise<void> {
     const funilId = this.funilId()!;

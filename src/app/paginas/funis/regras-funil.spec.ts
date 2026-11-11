@@ -2,11 +2,10 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import type { Papel } from '../../nucleo/papeis';
-import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
+import { entrarComo, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
 import type { PassagemDoFunil, RegraDoRodizio } from './funis.tipos';
 import { RegrasFunil } from './regras-funil';
-import { DICAS_DO_FUNIL, dicaDasPassagens, dicaDoRodizio } from './regras-funis';
+import { dicasDoFunil, dicaDasPassagens, dicaDoRodizio } from './regras-funis';
 
 const MKT_COM: PassagemDoFunil = {
   id: 'p1',
@@ -52,7 +51,7 @@ describe('RegrasFunil', () => {
   });
   afterEach(() => http.verify());
 
-  function montar(papel: Papel, area: 'MARKETING' | 'COMERCIAL' | 'CS') {
+  function montar(papel: PapelDeTeste, area: 'MARKETING' | 'COMERCIAL' | 'CS') {
     entrarComo(papel);
     const fixture = TestBed.createComponent(RegrasFunil);
     fixture.componentRef.setInput('area', area);
@@ -79,7 +78,7 @@ describe('RegrasFunil', () => {
 
   it('membro não lê a configuração: vê a padrão em frases condicionais', () => {
     const { raiz } = montar('MARKETING', 'MARKETING');
-    expect(textoDaDica(raiz, 0)).toContain(DICAS_DO_FUNIL.MARKETING.passagens);
+    expect(textoDaDica(raiz, 0)).toContain(dicasDoFunil('MARKETING').passagens);
     expect(textoDaDica(raiz, 0)).toContain('só enquanto a passagem estiver ligada');
     expect(textoDaDica(raiz, 1)).toContain('webhooks configurados com rodízio');
   });
@@ -97,7 +96,7 @@ describe('RegrasFunil', () => {
     expect(passagens).toContain('aos cuidados do líder de Customer Success');
     expect(passagens).toContain('Esta passagem está desligada no momento');
     // Sem regra do Comercial na resposta: fica a padrão.
-    expect(textoDaDica(raiz, 1)).toContain(DICAS_DO_FUNIL.COMERCIAL.rodizio);
+    expect(textoDaDica(raiz, 1)).toContain(dicasDoFunil('COMERCIAL').rodizio);
   });
 
   it('clicar na pílula (e não só no "?") abre o balão', async () => {

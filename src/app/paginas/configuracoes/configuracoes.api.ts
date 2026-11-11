@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { type Pagina, parametros, POR_PAGINA_MAXIMO, urlApi } from '../../nucleo/api/api';
+import type { OpcaoDePessoa } from '../../ui/editor-de-acessos/editor-de-acessos';
 import type { Papel } from '../../nucleo/papeis';
 import type { Area } from '../../nucleo/sessao/perfil';
 import type {
@@ -36,10 +37,30 @@ export class ConfiguracoesApi {
     );
   }
 
-  /** Quem pode liderar quem tem o papel (R1.2): os ativos com o papel de líder esperado. */
-  async listarAtivosDoPapel(papel: Papel): Promise<readonly Usuario[]> {
-    const pagina = await this.listarUsuarios({ papel, ativo: true, porPagina: POR_PAGINA_MAXIMO });
+  /**
+   * Quem pode liderar (R1.2): os ativos com o papel de líder esperado — líderes do setor `area`
+   * para quem é membro, C-levels para quem é líder.
+   */
+  async listarAtivosDoPapel(papel: Papel, area: Area | null = null): Promise<readonly Usuario[]> {
+    const pagina = await this.listarUsuarios({
+      papel,
+      ...(area ? { area } : {}),
+      ativo: true,
+      porPagina: POR_PAGINA_MAXIMO,
+    });
     return pagina.itens;
+  }
+
+  /**
+   * Pessoas ativas de qualquer setor, em ordem de nome, para escolher a quem dar acesso
+   * (`GET /usuarios/opcoes`: Admin, C-level e líderes). `busca` procura só no nome.
+   */
+  opcoesDePessoas(busca = '', limite = 20): Promise<readonly OpcaoDePessoa[]> {
+    return firstValueFrom(
+      this.http.get<readonly OpcaoDePessoa[]>(urlApi('usuarios', 'opcoes'), {
+        params: parametros({ busca: busca.trim() || undefined, limite }),
+      }),
+    );
   }
 
   detalharUsuario(id: string): Promise<Usuario> {

@@ -14,6 +14,7 @@ import { Botao } from '../../ui/botao/botao';
 import { Cartao } from '../../ui/cartao/cartao';
 import { FinanceiroApi } from './financeiro.api';
 import { ROTULO_PERIODICIDADE } from './financeiro.tipos';
+import { ehCarteiraDeCs } from './acesso-financeiro';
 
 /**
  * No negócio ganho: sugere criar o contrato (a API diz se ainda não existe um). Só aparece para
@@ -67,8 +68,7 @@ export class SugestaoContrato {
   protected readonly moeda = (v: string) => formatarMoeda(v);
 
   private readonly dados = resource({
-    params: () =>
-      this.sessao.temPapel('ADMIN', 'C_LEVEL', 'LIDER_CS', 'CS') ? this.negocioId() : null,
+    params: () => (ehCarteiraDeCs(this.sessao.usuario()) ? this.negocioId() : null),
     loader: async ({ params }) => {
       if (!params) {
         return null;

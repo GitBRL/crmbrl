@@ -19,7 +19,7 @@ import {
 } from '@lucide/angular';
 import { filter, map } from 'rxjs';
 
-import { moduloPorId } from '../nucleo/navegacao';
+import { moduloPorId, modulosDaNavegacao, type Modulo } from '../nucleo/navegacao';
 import { NotificacoesService } from '../nucleo/notificacoes.service';
 import { SessaoService } from '../nucleo/sessao/sessao.service';
 import { TempoRealService } from '../nucleo/tempo-real/tempo-real.service';
@@ -45,8 +45,11 @@ interface AcaoRapida {
   readonly icone: LucideIcon;
 }
 
-/** Funis na ordem em que o primeiro que o papel acessa vira o destino do item "Funis". */
-const FUNIS = ['funil-comercial', 'funil-marketing', 'funil-cs'] as const;
+/**
+ * Preferência do destino do item "Funis": o primeiro destes que a pessoa acessa; sem nenhum, o
+ * primeiro funil de setor que ela acessa (um setor criado depois, por exemplo).
+ */
+const FUNIS_PREFERIDOS = ['funil-comercial', 'funil-marketing', 'funil-cs'] as const;
 
 /**
  * Navegação inferior do celular (< 900 px, DESIGN-SYSTEM.md §5): Início, Atendimento,
@@ -83,9 +86,16 @@ export class NavegacaoInferior {
   protected readonly icones = { sino: LucideBell, mais: LucidePlus, fechar: LucideX };
   protected readonly menuAberto = signal(false);
 
-  private readonly rotaDosFunis = computed(() => {
-    const id = FUNIS.find((funil) => this.sessao.pode(funil));
-    return id ? (moduloPorId(id)?.rota ?? null) : null;
+  /** O funil que o item "Funis" abre (`null` se a pessoa não acessa nenhum). */
+  private readonly funil = computed<Modulo | null>(() => {
+    const funis = modulosDaNavegacao(this.sessao.permissoes()?.areasVisiveis ?? []).filter(
+      (modulo) => modulo.grupo === 'funis' && this.sessao.pode(modulo),
+    );
+    return (
+      FUNIS_PREFERIDOS.map((id) => funis.find((modulo) => modulo.id === id)).find(Boolean) ??
+      funis[0] ??
+      null
+    );
   });
 
   protected readonly itens = computed<readonly ItemInferior[]>(() => {
@@ -110,12 +120,17 @@ export class NavegacaoInferior {
     if (this.sessao.pode('atividades')) {
       incluir('atividades', 'Atividades', '/atividades', '/atividades');
     }
-    incluir(
-      FUNIS.find((f) => this.sessao.pode(f)) ?? 'funil-comercial',
-      'Funis',
-      this.rotaDosFunis(),
-      '/funis',
-    );
+    const funil = this.funil();
+    if (funil) {
+      itens.push({
+        id: funil.id,
+        rotulo: 'Funis',
+        rota: funil.rota,
+        prefixo: '/funis',
+        icone: funil.icone,
+        contagem: 0,
+      });
+    }
     return itens;
   });
 
@@ -152,14 +167,14 @@ export class NavegacaoInferior {
         icone: icone('atividades'),
       });
     }
-    const funis = this.rotaDosFunis();
-    if (funis) {
+    const funil = this.funil();
+    if (funil) {
       acoes.push({
         id: 'negocio',
         rotulo: 'Mover negócio',
         dica: 'No cartão, use o menu «⋯» e escolha “Mover para…”.',
-        rota: funis,
-        icone: icone(FUNIS.find((f) => this.sessao.pode(f))!),
+        rota: funil.rota,
+        icone: funil.icone,
       });
     }
     return acoes;

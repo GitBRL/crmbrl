@@ -28,15 +28,10 @@ import { rotuloDaArea } from './apresentacao';
 import { AtendimentoConfigApi } from './atendimento.api';
 import type { AreaDoAtendimento, RespostaRapida, Variavel } from './atendimento.modelos';
 import { FormularioResposta, type PedidoFormularioResposta } from './formulario-resposta';
+import { SETOR_MARKETING } from '../../../nucleo/setores/setores';
+import { SetoresService } from '../../../nucleo/setores/setores.service';
 
 type FiltroArea = 'TODAS' | 'GLOBAL' | AreaDoAtendimento;
-
-const OPCOES_AREA: readonly OpcaoFiltro[] = [
-  { id: 'TODAS', rotulo: 'Todas' },
-  { id: 'GLOBAL', rotulo: 'Todas as áreas' },
-  { id: 'COMERCIAL', rotulo: 'Comercial' },
-  { id: 'CS', rotulo: 'Customer Success' },
-];
 
 const COLUNAS: readonly ColunaTabela[] = [
   { id: 'atalho', rotulo: 'Atalho', largura: '12rem' },
@@ -56,8 +51,8 @@ function simplificar(texto: string): string {
 
 /**
  * Respostas rápidas (`/configuracoes/atendimento/respostas`) — R12: a lista com busca (atalho,
- * título e texto, sem diferenciar acentos), filtro por área e as desativadas; criar, editar,
- * ativar/desativar e excluir. Admin e C-level gerenciam todas; o líder, as da área dele; os outros
+ * título e texto, sem diferenciar acentos), filtro por setor e as desativadas; criar, editar,
+ * ativar/desativar e excluir. Admin e C-level gerenciam todas; o líder, as do setor dele; os outros
  * só leem (e usam pelo "/" no Atendimento).
  */
 @Component({
@@ -80,6 +75,7 @@ function simplificar(texto: string): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RespostasRapidas {
+  protected readonly setores = inject(SetoresService);
   private readonly api = inject(AtendimentoConfigApi);
   private readonly avisos = inject(AvisosService);
   private readonly confirmacao = inject(ConfirmacaoService);
@@ -87,7 +83,11 @@ export class RespostasRapidas {
 
   protected readonly icones = { novo: LucidePlus, tentar: LucideRefreshCw };
   protected readonly colunas = COLUNAS;
-  protected readonly opcoesArea = OPCOES_AREA;
+  protected readonly opcoesArea = computed<readonly OpcaoFiltro[]>(() => [
+    { id: 'TODAS', rotulo: 'Todas' },
+    { id: 'GLOBAL', rotulo: 'Todos os setores' },
+    ...this.setores.atendem().map((setor) => ({ id: setor.chave, rotulo: setor.nome })),
+  ]);
 
   protected readonly dados = new Carregamento<readonly RespostaRapida[]>();
   protected readonly variaveis = signal<readonly Variavel[]>([]);
@@ -96,13 +96,13 @@ export class RespostasRapidas {
   protected readonly incluirInativas = signal(true);
   protected readonly formulario = signal<PedidoFormularioResposta | null>(null);
 
-  /** Onde a pessoa cria respostas (`TODAS` = todas as áreas, só Admin e C-level). */
+  /** Onde a pessoa cria respostas (`TODAS` = todos os setores, só Admin e C-level). */
   protected readonly areasPermitidas = computed<readonly ('TODAS' | AreaDoAtendimento)[]>(() => {
     if (this.sessao.ehDiretoria()) {
-      return ['TODAS', 'COMERCIAL', 'CS'];
+      return ['TODAS', ...this.setores.atendem().map((setor) => setor.chave)];
     }
-    const papel = this.sessao.papel();
-    return papel === 'LIDER_COMERCIAL' ? ['COMERCIAL'] : papel === 'LIDER_CS' ? ['CS'] : [];
+    const area = this.sessao.area();
+    return this.sessao.ehLider() && area && area !== SETOR_MARKETING ? [area] : [];
   });
   protected readonly podeCriar = computed(() => this.areasPermitidas().length > 0);
 
@@ -120,7 +120,7 @@ export class RespostasRapidas {
       if (area === 'GLOBAL' && resposta.area !== null) {
         return false;
       }
-      if ((area === 'COMERCIAL' || area === 'CS') && resposta.area !== area) {
+      if (area !== 'TODAS' && area !== 'GLOBAL' && resposta.area !== area) {
         return false;
       }
       if (!termo) {
@@ -133,6 +133,7 @@ export class RespostasRapidas {
   });
 
   constructor() {
+    void this.setores.carregar();
     this.carregar();
     void this.api
       .variaveis()
@@ -164,17 +165,13 @@ export class RespostasRapidas {
   }
 
   protected rotuloArea(area: Area | null): string {
-    return area === 'COMERCIAL' || area === 'CS'
-      ? rotuloDaArea(area)
-      : area
-        ? area
-        : 'Todas as áreas';
+    return area ? rotuloDaArea(area) : 'Todos os setores';
   }
 
   private motivoSemEdicao(resposta: RespostaRapida): string {
     return resposta.area
       ? `Só Admin, C-level e o líder de ${this.rotuloArea(resposta.area)} alteram.`
-      : 'Só Admin e C-level alteram as respostas de todas as áreas.';
+      : 'Só Admin e C-level alteram as respostas de todos os setores.';
   }
 
   protected acoesDa(resposta: RespostaRapida): readonly ItemMenuAcoes[] {

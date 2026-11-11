@@ -44,7 +44,7 @@ export function eventoDetalhe(
       id: 'u-rafael',
       nome: 'Rafael Mendes',
       email: 'lider.comercial@demo.local',
-      papel: 'LIDER_COMERCIAL',
+      papel: 'LIDER',
       ativo: true,
     },
     ...ajustes,

@@ -1,5 +1,5 @@
-import { LIDERES, PAPEIS, type Papel } from './papeis';
-import type { Permissoes } from './sessao/perfil';
+import { PAPEIS, type Papel } from './papeis';
+import type { Permissoes, UsuarioDoPerfil } from './sessao/perfil';
 
 /**
  * Módulos do CRM (contrato §6.3) **sem os ícones** — fonte única para a guarda de acesso das
@@ -31,7 +31,9 @@ export interface ModuloBase {
    * Conferência extra com as permissões reais do `auth/eu` (além do papel). Ex.: o funil de
    * Marketing exige `areasVisiveis` com MARKETING.
    */
-  readonly acesso?: (permissoes: Permissoes) => boolean;
+  readonly acesso?: (permissoes: Permissoes, usuario: UsuarioDoPerfil) => boolean;
+  /** Texto de "quem acessa" quando o acesso depende do setor (a lista de papéis não basta). */
+  readonly quemAcessa?: string;
   /**
    * Outros caminhos que pertencem ao módulo (o detalhe da empresa, `/empresas/:id`, é de
    * Contatos e empresas): o menu marca o módulo e a guarda confere o acesso a ele.
@@ -78,8 +80,10 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rotulo: 'Atendimento',
     rota: '/atendimento',
     grupo: null,
-    // R12: a área de Marketing (inclusive o líder) não usa o Atendimento — a API recusa.
-    papeis: TODOS.filter((papel) => papel !== 'MARKETING' && papel !== 'LIDER_MARKETING'),
+    papeis: TODOS,
+    // R12: o setor de Marketing (inclusive o líder) não usa o Atendimento — a API recusa.
+    acesso: (_permissoes, usuario) => usuario.area !== 'MARKETING',
+    quemAcessa: 'todos, menos o setor de Marketing',
     status: 'pronto',
     fase: null,
     descricao: 'Converse com clientes de todos os canais sem sair do CRM.',
@@ -97,7 +101,7 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rotulo: 'Marketing',
     rota: '/funis/marketing',
     grupo: 'funis',
-    papeis: [...DIRECAO, 'LIDER_MARKETING', 'MARKETING'],
+    papeis: [...DIRECAO, 'LIDER', 'MEMBRO'],
     acesso: (permissoes) => permissoes.areasVisiveis.includes('MARKETING'),
     status: 'pronto',
     fase: null,
@@ -115,7 +119,7 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rotulo: 'Comercial',
     rota: '/funis/comercial',
     grupo: 'funis',
-    papeis: [...DIRECAO, 'LIDER_COMERCIAL', 'COMERCIAL'],
+    papeis: [...DIRECAO, 'LIDER', 'MEMBRO'],
     acesso: (permissoes) => permissoes.areasVisiveis.includes('COMERCIAL'),
     status: 'pronto',
     fase: null,
@@ -133,7 +137,7 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rotulo: 'Customer Success',
     rota: '/funis/cs',
     grupo: 'funis',
-    papeis: [...DIRECAO, 'LIDER_CS', 'CS'],
+    papeis: [...DIRECAO, 'LIDER', 'MEMBRO'],
     acesso: (permissoes) => permissoes.areasVisiveis.includes('CS'),
     status: 'pronto',
     fase: null,
@@ -188,7 +192,7 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     status: 'pronto',
     fase: null,
     descricao: 'Converse com o time em tempo real, dentro do CRM.',
-    funcionalidades: ['Canais por área', 'Mensagens diretas', 'Menções a contatos e negócios'],
+    funcionalidades: ['Canais por setor', 'Mensagens diretas', 'Menções a contatos e negócios'],
   },
   {
     id: 'disparos',
@@ -215,7 +219,7 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rota: '/chatbot',
     grupo: 'relacionamento',
     // Fluxos de atendimento automático: a configuração é de quem lidera (como as automações).
-    papeis: [...DIRECAO, ...LIDERES],
+    papeis: [...DIRECAO, 'LIDER'],
     status: 'pronto',
     fase: null,
     descricao:
@@ -238,7 +242,7 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     fase: null,
     descricao: 'Métricas de Marketing, Comercial, CS, Atendimento e Financeiro num só painel.',
     funcionalidades: [
-      'Painéis por área',
+      'Painéis por setor',
       'Filtros por período, equipe e pessoa',
       'Exportação',
       'Análise por IA com sugestões de ação (Admin)',
@@ -249,7 +253,7 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rotulo: 'Automações',
     rota: '/automacoes',
     grupo: 'gestao',
-    papeis: [...DIRECAO, ...LIDERES],
+    papeis: [...DIRECAO, 'LIDER'],
     status: 'pronto',
     fase: null,
     descricao: 'Regras que trabalham por você.',
@@ -265,8 +269,14 @@ export const MODULOS_BASE: readonly ModuloBase[] = [
     rotulo: 'Financeiro',
     rota: '/financeiro',
     grupo: 'gestao',
-    // CS e líder de CS cuidam da carteira; Comercial só consulta os contratos que ganhou.
-    papeis: [...DIRECAO, 'LIDER_CS', 'CS', 'LIDER_COMERCIAL', 'COMERCIAL'],
+    // CS cuida da carteira; Comercial só consulta os contratos que ganhou (presos às chaves de base).
+    papeis: [...DIRECAO, 'LIDER', 'MEMBRO'],
+    acesso: (_permissoes, usuario) =>
+      usuario.papel === 'ADMIN' ||
+      usuario.papel === 'C_LEVEL' ||
+      usuario.area === 'CS' ||
+      usuario.area === 'COMERCIAL',
+    quemAcessa: 'Admin, C-level e os setores Customer Success e Comercial',
     status: 'pronto',
     fase: null,
     descricao: 'Contratos, parcelas a receber e a régua de cobrança ligados aos clientes.',

@@ -8,6 +8,7 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
+import { responderSetores } from '../../nucleo/setores/setores-de-teste';
 import type { Equipe, Usuario } from './configuracoes.modelos';
 import {
   LUCAS,
@@ -51,6 +52,7 @@ describe('Usuarios (Configurações › Usuários)', () => {
     entrarComo('ADMIN', { usuario: { id: 'u-admin', nome: 'Ana Ribeiro' } });
     fixture = TestBed.createComponent(Usuarios);
     fixture.detectChanges();
+    responderSetores(http);
     http.expectOne(LISTA_ATIVOS).flush(pagina(itens));
     http.expectOne('/api/v1/usuarios/equipes').flush(equipes);
     await microtarefas();
@@ -66,6 +68,8 @@ describe('Usuarios (Configurações › Usuários)', () => {
     const [rafael, lucas, rodrigo] = linhas().map((linha) => linha.textContent ?? '');
     expect(rafael).toContain('Rafael Mendes');
     expect(rafael).toContain('Líder Comercial');
+    // Coluna do setor (nome do setor; Admin e C-level ficam com "—").
+    expect(rafael).toContain('Comercial');
     expect(rafael).toContain('Helena Duarte');
     expect(lucas).toContain('lucas@brl.com.br');
     expect(lucas).toContain('há 5 min');
@@ -103,16 +107,27 @@ describe('Usuarios (Configurações › Usuários)', () => {
     fixture.detectChanges();
     expect(linhas()[0].textContent).toContain('Desligado');
 
-    const seletor = elemento().querySelector<HTMLSelectElement>('.usuarios__papel select')!;
-    const opcao = Array.from(seletor.options).findIndex(
-      (o) => o.textContent?.trim() === 'Comercial · Comercial',
-    );
-    seletor.selectedIndex = opcao;
-    seletor.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
+    const escolher = (indice: number, texto: string) => {
+      const seletor =
+        elemento().querySelectorAll<HTMLSelectElement>('.usuarios__papel select')[indice];
+      seletor.selectedIndex = Array.from(seletor.options).findIndex(
+        (o) => o.textContent?.trim() === texto,
+      );
+      seletor.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    };
+    escolher(0, 'Membro');
     http
-      .expectOne('/api/v1/usuarios?papel=COMERCIAL&ativo=false&pagina=1&porPagina=20')
+      .expectOne('/api/v1/usuarios?papel=MEMBRO&ativo=false&pagina=1&porPagina=20')
       .flush(pagina([PEDRO]));
+    await microtarefas();
+    fixture.detectChanges();
+
+    // Filtro por setor (os setores ativos vêm de `GET /setores`).
+    escolher(1, 'Customer Success');
+    http
+      .expectOne('/api/v1/usuarios?papel=MEMBRO&area=CS&ativo=false&pagina=1&porPagina=20')
+      .flush(pagina([]));
     await microtarefas();
   });
 
@@ -183,6 +198,7 @@ describe('Usuarios (Configurações › Usuários)', () => {
     entrarComo('ADMIN');
     fixture = TestBed.createComponent(Usuarios);
     fixture.detectChanges();
+    responderSetores(http);
     http
       .expectOne(LISTA_ATIVOS)
       .flush(

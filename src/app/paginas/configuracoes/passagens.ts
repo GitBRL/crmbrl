@@ -4,7 +4,7 @@ import { LucideArrowRight, LucideRefreshCw, LucideWorkflow } from '@lucide/angul
 import { erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarNumero } from '../../nucleo/formatos';
-import { ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { Alternador } from '../../ui/alternador/alternador';
 import { Botao } from '../../ui/botao/botao';
 import { Cartao } from '../../ui/cartao/cartao';
@@ -21,7 +21,7 @@ export const DICA_PASSAGENS =
 
 /** Quem recebe o negócio criado. */
 export function quemRecebe(passagem: Passagem): string {
-  const area = ROTULO_AREA[passagem.funilDestino.area];
+  const area = nomeDoSetor(passagem.funilDestino.area);
   switch (passagem.estrategia) {
     case 'RODIZIO':
       return `Rodízio de ${area}: a próxima pessoa da fila`;

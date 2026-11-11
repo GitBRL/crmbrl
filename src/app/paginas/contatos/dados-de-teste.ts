@@ -13,7 +13,7 @@ export function contatoDeTeste(ajustes: Partial<Contato> = {}): Contato {
     telefone: '5541988771201',
     cargo: 'Diretora',
     empresa: { id: '22222222-2222-4222-8222-222222222222', nome: 'Clínica Vida Plena' },
-    responsavel: { id: 'u1', nome: 'Mariana Costa', papel: 'MARKETING', ativo: true },
+    responsavel: { id: 'u1', nome: 'Mariana Costa', papel: 'MEMBRO', ativo: true },
     primeiraOrigem: { tipo: 'SITE', detalhe: null, utm: { source: 'google', medium: 'cpc' } },
     ultimaOrigem: {
       tipo: 'WEBHOOK',
@@ -47,7 +47,7 @@ export function empresaDeTeste(ajustes: Partial<Empresa> = {}): Empresa {
     segmento: 'Saúde',
     cidade: 'Curitiba',
     uf: 'PR',
-    responsavel: { id: 'u2', nome: 'Juliana Alves', papel: 'COMERCIAL', ativo: true },
+    responsavel: { id: 'u2', nome: 'Juliana Alves', papel: 'MEMBRO', ativo: true },
     etiquetas: ['Cliente'],
     camposPersonalizados: {},
     quantidadeContatos: 2,

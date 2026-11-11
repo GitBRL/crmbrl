@@ -4,7 +4,13 @@ import { LucideLock, LucideRefreshCw } from '@lucide/angular';
 
 import type { ErroApi } from '../../nucleo/api/erro-api';
 import { formatarData, formatarMoeda, tempoNaEtapa } from '../../nucleo/formatos';
-import { type Area, ROTULO_AREA, SLUG_AREA } from '../../nucleo/sessao/perfil';
+import { type Area } from '../../nucleo/sessao/perfil';
+import {
+  CHAVES_BASE,
+  compararNaJornada,
+  nomeDoSetor,
+  slugDaArea,
+} from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
@@ -15,7 +21,6 @@ import { Selo, type VarianteSelo } from '../../ui/selo/selo';
 import {
   montarJornada,
   type NegocioRelacionado,
-  ORDEM_DAS_AREAS,
   ROTULO_STATUS_NEGOCIO,
   type StatusNegocio,
   type VinculoDaJornada,
@@ -27,7 +32,7 @@ const VARIANTE_STATUS: Readonly<Record<StatusNegocio, VarianteSelo>> = {
   PERDIDO: 'contorno',
 };
 
-/** Cor de cada área na jornada, na ordem das séries de dado (ciano → menta → lima). */
+/** Cor de cada setor na jornada, na ordem das séries de dado (ciano → menta → lima). */
 const DADO_DA_AREA: Readonly<Record<Area, string>> = {
   MARKETING: 'var(--dado-1)',
   COMERCIAL: 'var(--dado-2)',
@@ -57,7 +62,7 @@ export class NegociosRelacionados {
   private readonly sessao = inject(SessaoService);
 
   protected readonly icones = { tentar: LucideRefreshCw };
-  protected readonly rotuloArea = ROTULO_AREA;
+  protected readonly rotuloArea = nomeDoSetor;
   protected readonly rotuloStatus = ROTULO_STATUS_NEGOCIO;
   protected readonly varianteStatus = VARIANTE_STATUS;
   protected readonly dadoDaArea = DADO_DA_AREA;
@@ -79,7 +84,7 @@ export class NegociosRelacionados {
 
   /** Áreas cujos funis o papel vê (sem o perfil, todas). */
   private readonly areasVisiveis = computed(
-    () => new Set<Area>(this.sessao.permissoes()?.areasVisiveis ?? ORDEM_DAS_AREAS),
+    () => new Set<Area>(this.sessao.permissoes()?.areasVisiveis ?? CHAVES_BASE),
   );
 
   /** Membro: vê só os próprios negócios e os sem responsável (R5.9) — dito fora do balão. */
@@ -93,8 +98,11 @@ export class NegociosRelacionados {
    * Quantos negócios em cada etapa da jornada (para a faixa do topo). Área que o papel não
    * vê fica "sem acesso" (e não "nenhum": pode haver negócios lá).
    */
-  protected readonly etapas = computed(() =>
-    ORDEM_DAS_AREAS.map((area) => {
+  protected readonly etapas = computed(() => {
+    // Os três setores de base sempre aparecem; os demais, quando têm negócios do contato.
+    const areas = new Set<string>(CHAVES_BASE);
+    this.negocios().forEach((negocio) => areas.add(negocio.funil.area));
+    return [...areas].sort(compararNaJornada).map((area) => {
       const daArea = this.negocios().filter((negocio) => negocio.funil.area === area);
       return {
         area,
@@ -103,17 +111,17 @@ export class NegociosRelacionados {
         abertos: daArea.filter((negocio) => negocio.status === 'ABERTO').length,
         ganhos: daArea.filter((negocio) => negocio.status === 'GANHO').length,
       };
-    }),
-  );
+    });
+  });
 
   protected readonly explicacao = computed(() =>
     this.dono() === 'empresa'
-      ? 'Negócios da empresa em todos os funis que você acompanha. Pode haver outros em áreas que o seu papel não vê.'
-      : 'Negócios da pessoa em todos os funis que você acompanha, na ordem da jornada: Marketing, Comercial e Customer Success. Pode haver outros em áreas que o seu papel não vê.',
+      ? 'Negócios da empresa em todos os funis que você acompanha. Pode haver outros em setores que o seu papel não vê.'
+      : 'Negócios da pessoa em todos os funis que você acompanha, na ordem da jornada: Marketing, Comercial e Customer Success. Pode haver outros em setores que o seu papel não vê.',
   );
 
   protected link(vinculo: { readonly id: string; readonly area: Area; readonly funilId: string }) {
-    return ['/funis', SLUG_AREA[vinculo.area], vinculo.id];
+    return ['/funis', slugDaArea(vinculo.area), vinculo.id];
   }
 
   protected linkDoNegocio(negocio: NegocioRelacionado) {
@@ -135,6 +143,6 @@ export class NegociosRelacionados {
   }
 
   protected titulo(vinculo: VinculoDaJornada): string {
-    return `${ROTULO_AREA[vinculo.area]} — ${vinculo.titulo}`;
+    return `${nomeDoSetor(vinculo.area)} — ${vinculo.titulo}`;
   }
 }

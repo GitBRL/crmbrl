@@ -16,7 +16,8 @@ import {
   type LucideIcon,
 } from '@lucide/angular';
 
-import { AREAS, type Area } from '../../nucleo/sessao/perfil';
+import { type Area } from '../../nucleo/sessao/perfil';
+import { CHAVES_BASE } from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Dica } from '../../ui/dica/dica';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
@@ -76,7 +77,7 @@ export function semQuebraNumeroUnidade(texto: string): string {
 }
 
 /**
- * Linha de indicadores do período. Negócios novos (leads do Marketing, ou os da área de quem
+ * Linha de indicadores do período. Negócios novos (leads do Marketing, ou os do setor de quem
  * vê uma só) e a taxa de ganho do Comercial (para quem vê a jornada inteira) são reais, das
  * métricas dos funis (R5.10); a receita recorrente (MRR) e os
  * clientes em risco alto vêm do BI (`GET /bi/financeiro` e `/bi/cs`), para quem vê esses painéis.
@@ -158,7 +159,7 @@ export class InicioIndicadores {
 
     // Negócios novos: os leads do Marketing para quem vê a jornada inteira; os da própria
     // área para quem vê uma só (a primeira área visível, na ordem da jornada).
-    const areaNovos = AREAS.find((area) => areas.includes(area));
+    const areaNovos = CHAVES_BASE.find((area) => areas.includes(area));
     if (areaNovos) {
       const novos = reais?.novos;
       const nome = periodo.rotuloLeads.replace('Leads', ROTULO_NOVOS[areaNovos]);

@@ -1,6 +1,7 @@
 import type { Routes } from '@angular/router';
 
-import { exigirPapel } from '../../nucleo/sessao/guardas';
+import { exigirPermissao } from '../../nucleo/sessao/guardas';
+import { ehCarteiraDeCs, ehGestorDaCarteira } from './acesso-financeiro';
 
 /**
  * Rotas de `/financeiro` (carregadas sob demanda por app.routes.ts). A casca (`financeiro.ts`)
@@ -20,7 +21,7 @@ export const ROTAS_FINANCEIRO: Routes = [
       {
         path: 'contratos/novo',
         title: 'Novo contrato',
-        canActivate: [exigirPapel('ADMIN', 'C_LEVEL', 'LIDER_CS', 'CS')],
+        canActivate: [exigirPermissao((_p, perfil) => ehCarteiraDeCs(perfil.usuario))],
         loadComponent: () => import('./contrato-novo').then((m) => m.ContratoNovo),
       },
       {
@@ -36,14 +37,14 @@ export const ROTAS_FINANCEIRO: Routes = [
       {
         path: 'parcelas/importar',
         title: 'Importar parcelas',
-        canActivate: [exigirPapel('ADMIN', 'C_LEVEL', 'LIDER_CS')],
+        canActivate: [exigirPermissao((_p, perfil) => ehGestorDaCarteira(perfil.usuario))],
         data: { tipo: 'PARCELAS' },
         loadComponent: () => import('../contatos/importar/importar').then((m) => m.Importar),
       },
       {
         path: 'regua',
         title: 'Régua de cobrança',
-        canActivate: [exigirPapel('ADMIN', 'C_LEVEL', 'LIDER_CS', 'CS')],
+        canActivate: [exigirPermissao((_p, perfil) => ehCarteiraDeCs(perfil.usuario))],
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'hoje' },
           {

@@ -509,16 +509,16 @@ export interface UsuarioDoDestino {
 // ---------------------------------------------------------------------------------------------
 
 export const ROTULO_ESTRATEGIA: Readonly<Record<EstrategiaDistribuicao, string>> = {
-  RODIZIO: 'Rodízio da área',
+  RODIZIO: 'Rodízio do setor',
   RESPONSAVEL_FIXO: 'Responsável fixo',
-  LIDER_DA_AREA: 'Líder da área',
+  LIDER_DA_AREA: 'Líder do setor',
 };
 
 export const DICA_ESTRATEGIA: Readonly<Record<EstrategiaDistribuicao, string>> = {
   RODIZIO:
-    'Cada lead novo vai para a próxima pessoa da vez no rodízio da área do funil (Configurações → Distribuição de leads).',
+    'Cada lead novo vai para a próxima pessoa da vez no rodízio do setor do funil (Configurações → Distribuição de leads).',
   RESPONSAVEL_FIXO: 'Todo lead que chegar por aqui fica com a mesma pessoa.',
-  LIDER_DA_AREA: 'Os leads ficam com o líder da área do funil, que distribui depois.',
+  LIDER_DA_AREA: 'Os leads ficam com o líder do setor do funil, que distribui depois.',
 };
 
 export const ROTULO_MODELO: Readonly<Record<ModeloMapeamento, string>> = {

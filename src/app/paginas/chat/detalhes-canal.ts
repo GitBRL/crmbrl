@@ -49,7 +49,7 @@ import { SeletorPessoas } from './seletor-pessoas';
  * Detalhes do canal (painel lateral): sobre (nome e descrição, editáveis por quem administra o
  * grupo), silenciar, as pessoas (com quem está online e quem administra) e as ações do grupo —
  * adicionar e tirar pessoas, dar ou tirar a administração, arquivar e sair. Na conversa direta,
- * a outra pessoa e o aviso de que é privada; no Geral e nas áreas, que quem participa é
+ * a outra pessoa e o aviso de que é privada; no Geral e nos setores, que quem participa é
  * definido pelo papel.
  */
 @Component({
