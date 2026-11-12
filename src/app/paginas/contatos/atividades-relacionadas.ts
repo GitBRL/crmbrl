@@ -30,6 +30,9 @@ import { Selo } from '../../ui/selo/selo';
 import { ContatosApi, type DonoDoHistorico } from './contatos.api';
 import { type AtividadeRelacionada, ROTULO_TIPO_ATIVIDADE } from './contatos.tipos';
 import { ICONE_TIPO_ATIVIDADE } from './icones-atividade';
+import { RESULTADOS } from '../atividades/apresentacao';
+import type { ConclusaoDeAtividade } from '../atividades/atividades.api';
+import { ResultadoReuniaoModal } from '../atividades/resultado-reuniao';
 import { NovaAtividade } from './nova-atividade';
 
 const OPCOES: readonly OpcaoFiltro[] = [
@@ -81,6 +84,7 @@ function comPreposicao(relativo: string): string {
     FiltrosPilula,
     LucideDynamicIcon,
     NovaAtividade,
+    ResultadoReuniaoModal,
     RouterLink,
     Selo,
   ],
@@ -145,10 +149,35 @@ export class AtividadesRelacionadas {
     return atividade.negocio ? ['/funis', atividade.negocio.funilId] : null;
   }
 
-  protected async concluir(atividade: AtividadeRelacionada): Promise<void> {
+  /** R6.6 — a reunião que espera o resultado no modal (a caixa fica marcada enquanto isso). */
+  protected readonly reuniaoAguardando = signal<AtividadeRelacionada | null>(null);
+  protected readonly resultadoAberto = signal(false);
+  protected readonly resultados = RESULTADOS;
+
+  protected confirmarResultado(conclusao: ConclusaoDeAtividade): void {
+    const atividade = this.reuniaoAguardando();
+    this.reuniaoAguardando.set(null);
+    if (atividade) {
+      void this.concluir(atividade, conclusao);
+    }
+  }
+
+  protected cancelarResultado(): void {
+    this.reuniaoAguardando.set(null);
+  }
+
+  protected async concluir(
+    atividade: AtividadeRelacionada,
+    conclusao?: ConclusaoDeAtividade,
+  ): Promise<void> {
+    if (atividade.tipo === 'REUNIAO' && !conclusao) {
+      this.reuniaoAguardando.set(atividade);
+      this.resultadoAberto.set(true);
+      return;
+    }
     this.concluindo.update((ids) => new Set([...ids, atividade.id]));
     try {
-      await this.api.concluirAtividade(atividade.id);
+      await this.api.concluirAtividade(atividade.id, conclusao);
       this.avisos.sucesso(`Atividade “${atividade.titulo}” concluída.`, {
         acao: { rotulo: 'Desfazer', executar: () => void this.reabrir(atividade) },
       });

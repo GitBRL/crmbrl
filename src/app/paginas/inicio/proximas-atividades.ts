@@ -10,7 +10,12 @@ import { Cartao } from '../../ui/cartao/cartao';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { GRUPOS_PENDENTES, quandoDaAtividade, TIPOS } from '../atividades/apresentacao';
-import { AtividadesApi, type Atividade } from '../atividades/atividades.api';
+import {
+  AtividadesApi,
+  type Atividade,
+  type ConclusaoDeAtividade,
+} from '../atividades/atividades.api';
+import { ResultadoReuniaoModal } from '../atividades/resultado-reuniao';
 import { RELOGIO } from './relogio';
 
 type Estado = 'carregando' | 'pronto' | 'erro';
@@ -25,7 +30,16 @@ export const ATIVIDADES_NO_CARTAO = 5;
  */
 @Component({
   selector: 'app-inicio-atividades',
-  imports: [Botao, CaixaSelecao, Cartao, EstadoVazio, Esqueleto, LucideClock, RouterLink],
+  imports: [
+    Botao,
+    CaixaSelecao,
+    Cartao,
+    EstadoVazio,
+    Esqueleto,
+    LucideClock,
+    ResultadoReuniaoModal,
+    RouterLink,
+  ],
   template: `
     <app-cartao
       titulo="Próximas atividades"
@@ -73,7 +87,9 @@ export const ATIVIDADES_NO_CARTAO = 5;
                     forma="circulo"
                     rotuloOculto
                     [rotulo]="'Concluir “' + atividade.titulo + '”'"
-                    [valor]="marcadas().has(atividade.id)"
+                    [valor]="
+                      marcadas().has(atividade.id) || reuniaoAguardando()?.id === atividade.id
+                    "
                     [desabilitado]="marcadas().has(atividade.id)"
                     (valorChange)="$event && concluir(atividade)"
                   />
@@ -86,10 +102,14 @@ export const ATIVIDADES_NO_CARTAO = 5;
                     >
                     <span
                       class="proxima__meta"
-                      [class.proxima__meta--atrasada]="atividade.atrasada"
+                      [class.proxima__meta--atrasada]="
+                        atividade.atrasada && !atividade.aguardandoResultado
+                      "
                     >
                       <svg lucideClock [size]="14" />
-                      {{ quando(atividade) }} · {{ tipo(atividade) }}
+                      {{ atividade.aguardandoResultado ? 'Aguardando resultado · ' : ''
+                      }}{{ quando(atividade) }} ·
+                      {{ tipo(atividade) }}
                     </span>
                   </div>
                 </li>
@@ -125,6 +145,13 @@ export const ATIVIDADES_NO_CARTAO = 5;
         }
       }
     </app-cartao>
+
+    <app-resultado-reuniao
+      [(aberto)]="resultadoAberto"
+      [reuniao]="reuniaoAguardando()?.titulo ?? ''"
+      (confirmado)="confirmarResultado($event)"
+      (cancelado)="cancelarResultado()"
+    />
   `,
   styleUrl: './proximas-atividades.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -199,10 +226,31 @@ export class ProximasAtividades {
     }
   }
 
-  protected async concluir(atividade: Atividade): Promise<void> {
+  /** R6.6 — a reunião que espera o resultado no modal (a caixa fica marcada enquanto isso). */
+  protected readonly reuniaoAguardando = signal<Atividade | null>(null);
+  protected readonly resultadoAberto = signal(false);
+
+  protected confirmarResultado(conclusao: ConclusaoDeAtividade): void {
+    const atividade = this.reuniaoAguardando();
+    this.reuniaoAguardando.set(null);
+    if (atividade) {
+      void this.concluir(atividade, conclusao);
+    }
+  }
+
+  protected cancelarResultado(): void {
+    this.reuniaoAguardando.set(null);
+  }
+
+  protected async concluir(atividade: Atividade, conclusao?: ConclusaoDeAtividade): Promise<void> {
+    if (atividade.tipo === 'REUNIAO' && !conclusao) {
+      this.reuniaoAguardando.set(atividade);
+      this.resultadoAberto.set(true);
+      return;
+    }
     this.marcadas.update((ids) => new Set(ids).add(atividade.id));
     try {
-      await this.api.concluir(atividade.id);
+      await this.api.concluir(atividade.id, conclusao);
       this.avisos.sucesso('Atividade concluída.', {
         chave: `conclusao-${atividade.id}`,
         acao: { rotulo: 'Desfazer', executar: () => void this.desfazer(atividade) },

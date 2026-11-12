@@ -13,6 +13,7 @@ import type {
   Atividade,
   GrupoAtividade,
   PrioridadeAtividade,
+  ResultadoReuniao,
   TipoAtividade,
 } from './atividades.api';
 
@@ -67,6 +68,18 @@ export const ROTULO_PRIORIDADE: Readonly<Record<PrioridadeAtividade, string>> = 
   BAIXA: 'Baixa',
   MEDIA: 'Média',
   ALTA: 'Alta',
+};
+
+/** R6.6 — rótulo e cor do selo do resultado da reunião. */
+export const RESULTADOS: Readonly<
+  Record<
+    ResultadoReuniao,
+    { readonly rotulo: string; readonly variante: 'menta' | 'coral' | 'ciano' }
+  >
+> = {
+  COMPARECEU: { rotulo: 'Compareceu', variante: 'menta' },
+  NAO_COMPARECEU: { rotulo: 'Não compareceu', variante: 'coral' },
+  REMARCADA: { rotulo: 'Remarcada', variante: 'ciano' },
 };
 
 const DIA_MS = 86_400_000;

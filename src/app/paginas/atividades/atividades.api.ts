@@ -13,6 +13,10 @@ import { fusoDoNavegador } from '../../nucleo/formatos';
 
 export type TipoAtividade = 'TAREFA' | 'LIGACAO' | 'REUNIAO' | 'EMAIL' | 'WHATSAPP' | 'NOTA';
 export type StatusAtividade = 'PENDENTE' | 'CONCLUIDA' | 'CANCELADA';
+/** R6.6 — como terminou a reunião concluída (nulo = sem resultado). */
+export type ResultadoReuniao = 'COMPARECEU' | 'NAO_COMPARECEU' | 'REMARCADA';
+/** Filtro por resultado da reunião (R6.6): um resultado ou nenhum. */
+export type ResultadoDoFiltro = ResultadoReuniao | 'SEM_RESULTADO';
 export type PrioridadeAtividade = 'BAIXA' | 'MEDIA' | 'ALTA';
 export type GrupoAtividade =
   'ATRASADAS' | 'HOJE' | 'PROXIMOS_7_DIAS' | 'MAIS_TARDE' | 'SEM_DATA' | 'CONCLUIDAS';
@@ -38,6 +42,11 @@ export interface Atividade {
   readonly fimEm: string | null;
   /** R6.3 — pendente com o prazo no passado (calculado pela API). */
   readonly atrasada: boolean;
+  /** R6.6 — reunião pendente cujo início já passou. */
+  readonly aguardandoResultado?: boolean;
+  readonly resultadoReuniao?: ResultadoReuniao | null;
+  /** R6.6 — a reunião de origem, quando nasceu de uma remarcação. */
+  readonly remarcadaDeId?: string | null;
   /** Agrupamento da agenda (nulo para nota e cancelada). */
   readonly grupo: GrupoAtividade | null;
   readonly responsavel: PessoaDaAtividade;
@@ -84,6 +93,26 @@ export interface FiltrosAtividades {
   readonly escopo: EscopoAtividades;
   /** Vazio = todos os tipos (menos a nota, que só aparece na linha do tempo, R6.2). */
   readonly tipos: readonly TipoAtividade[];
+  /** R6.6 — filtra reuniões por resultado (`undefined` = sem filtro). */
+  readonly resultado?: FiltroDeResultado;
+}
+
+/** Escolha do filtro "Resultado da reunião": aguardando, um resultado ou nenhum. */
+export type FiltroDeResultado = 'AGUARDANDO' | ResultadoDoFiltro;
+
+/** O que a API espera para o filtro de resultado (`aguardandoResultado` ou `resultadoReuniao`). */
+export function paramsDeResultado(resultado: FiltroDeResultado | undefined) {
+  return {
+    aguardandoResultado: resultado === 'AGUARDANDO' ? true : undefined,
+    resultadoReuniao: resultado && resultado !== 'AGUARDANDO' ? [resultado] : [],
+  };
+}
+
+/** Corpo de `POST /atividades/:id/concluir` (R6.6: obrigatório para reunião). */
+export interface ConclusaoDeAtividade {
+  readonly resultadoReuniao?: ResultadoReuniao;
+  /** Com `REMARCADA`: início da nova reunião (ISO, no futuro). */
+  readonly novaData?: string;
 }
 
 export interface NovaAtividade {
@@ -101,7 +130,11 @@ export interface NovaAtividade {
 }
 
 /** `PATCH /atividades/:id`: só os campos enviados mudam; `null` limpa. */
-export type AlteracaoAtividade = Partial<NovaAtividade>;
+export type AlteracaoAtividade = Partial<NovaAtividade> & {
+  /** R6.6 — corrige o resultado de uma reunião concluída (`REMARCADA` exige `novaData`). */
+  readonly resultadoReuniao?: ResultadoReuniao;
+  readonly novaData?: string;
+};
 
 /**
  * Ligação de uma atividade com contato, empresa ou negócio (R6.1). Guarda também os ids que
@@ -167,6 +200,7 @@ export class AtividadesApi {
         params: parametros({
           escopo: filtros.escopo,
           tipo: filtros.tipos,
+          ...paramsDeResultado(filtros.resultado),
           limitePorGrupo,
           fusoHorario: fusoDoNavegador(),
         }),
@@ -190,6 +224,7 @@ export class AtividadesApi {
         params: parametros({
           escopo: filtros.escopo,
           tipo: filtros.tipos,
+          ...paramsDeResultado(filtros.resultado),
           grupo: extras.grupo,
           status: extras.status ?? [],
           encaminhadas: extras.encaminhadas,
@@ -217,8 +252,10 @@ export class AtividadesApi {
     return firstValueFrom(this.http.patch<Atividade>(urlApi('atividades', id), alteracao));
   }
 
-  concluir(id: string) {
-    return firstValueFrom(this.http.post<Atividade>(urlApi('atividades', id, 'concluir'), {}));
+  concluir(id: string, conclusao: ConclusaoDeAtividade = {}) {
+    return firstValueFrom(
+      this.http.post<Atividade>(urlApi('atividades', id, 'concluir'), conclusao),
+    );
   }
 
   reabrir(id: string) {

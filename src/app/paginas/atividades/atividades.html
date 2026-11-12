@@ -56,6 +56,12 @@
           [selecionados]="tipos()"
           (selecionadosChange)="escolherTipos($event)"
         />
+        <app-filtros-pilula
+          rotulo="Resultado da reunião"
+          [opcoes]="opcoesResultado"
+          [selecionado]="resultado()"
+          (selecionadoChange)="escolherResultado($event)"
+        />
       </div>
 
       <app-abas
@@ -139,8 +145,8 @@
                 @if (comFiltroDeTipo()) {
                   <app-estado-vazio
                     variante="busca"
-                    titulo="Nenhuma pendente desses tipos"
-                    texto="Tire o filtro de tipo para ver todas as atividades pendentes."
+                    titulo="Nenhuma pendente com esses filtros"
+                    texto="Tire os filtros de tipo e de resultado para ver todas as atividades pendentes."
                   >
                     <button appBotao variante="contorno" type="button" (click)="limparFiltros()">
                       Limpar filtros
@@ -334,4 +340,14 @@
   [editarAoAbrir]="editarId() !== null && editarId() === atividade()"
   (fechado)="fecharPainel()"
   (mudou)="aoMudarNoPainel($event)"
+/>
+
+<app-resultado-reuniao
+  [(aberto)]="resultadoAberto"
+  [reuniao]="reuniaoAConcluir()?.titulo ?? ''"
+  [titulo]="corrigindo() ? 'Corrigir o resultado' : 'Resultado da reunião'"
+  [rotuloConfirmar]="corrigindo() ? 'Salvar resultado' : 'Concluir reunião'"
+  [resultadoAtual]="corrigindo() ? (reuniaoAConcluir()?.resultadoReuniao ?? null) : null"
+  (confirmado)="confirmarResultado($event)"
+  (cancelado)="cancelarResultado()"
 />

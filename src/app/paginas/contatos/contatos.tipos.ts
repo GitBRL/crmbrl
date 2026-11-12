@@ -525,6 +525,9 @@ export interface AtividadeRelacionada {
   readonly inicioEm?: string | null;
   readonly fimEm?: string | null;
   readonly atrasada: boolean;
+  /** R6.6 — reunião pendente cujo início já passou. */
+  readonly aguardandoResultado?: boolean;
+  readonly resultadoReuniao?: 'COMPARECEU' | 'NAO_COMPARECEU' | 'REMARCADA' | null;
   readonly responsavel: { readonly id: string; readonly nome: string };
   readonly concluidaEm?: string | null;
   readonly canceladaEm?: string | null;

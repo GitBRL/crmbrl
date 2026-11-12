@@ -13,19 +13,21 @@ import {
   LucideDynamicIcon,
   LucideFlag,
   LucideForward,
+  LucideHourglass,
   LucidePencil,
   LucideRotateCcw,
+  LucideUsers,
 } from '@lucide/angular';
 
 import { Avatar } from '../../ui/avatar/avatar';
 import { CaixaSelecao } from '../../ui/caixa-selecao/caixa-selecao';
 import { MenuAcoes, type ItemMenuAcoes } from '../../ui/menu-acoes/menu-acoes';
 import { Selo } from '../../ui/selo/selo';
-import { linkDoNegocio, quandoDaAtividade, TIPOS } from './apresentacao';
+import { linkDoNegocio, quandoDaAtividade, RESULTADOS, TIPOS } from './apresentacao';
 import { vinculoDaAtividade, type Atividade } from './atividades.api';
 import { ICONE_DO_VINCULO, ROTULO_DO_VINCULO } from './seletor-vinculo';
 
-export type AcaoItem = 'editar' | 'cancelar' | 'reabrir';
+export type AcaoItem = 'editar' | 'cancelar' | 'reabrir' | 'corrigir-resultado';
 
 /**
  * Uma atividade na lista: a caixa grande para concluir (círculo de 28px num alvo de 44px), o
@@ -78,12 +80,27 @@ export type AcaoItem = 'editar' | 'cancelar' | 'reabrir';
           </a>
         }
       </p>
-      @if (atividade().encaminhadaDe || atividade().prioridade === 'ALTA') {
+      @if (
+        atividade().encaminhadaDe ||
+        atividade().prioridade === 'ALTA' ||
+        aguardando() ||
+        resultado() ||
+        atividade().remarcadaDeId
+      ) {
         <p class="item__selos">
           @if (atividade().encaminhadaDe; as origem) {
             <app-selo variante="ciano" [icone]="iconeEncaminhada">
               Encaminhada de {{ origem.nome }}
             </app-selo>
+          }
+          @if (aguardando()) {
+            <app-selo variante="lima" [icone]="iconeAguardando"> Aguardando resultado </app-selo>
+          }
+          @if (resultado(); as info) {
+            <app-selo [variante]="info.variante">{{ info.rotulo }}</app-selo>
+          }
+          @if (atividade().remarcadaDeId) {
+            <app-selo variante="contorno">Remarcada de outra reunião</app-selo>
           }
           @if (atividade().prioridade === 'ALTA') {
             <app-selo variante="contorno" [icone]="iconePrioridade"> Prioridade alta </app-selo>
@@ -142,12 +159,23 @@ export class ItemAtividade {
 
   protected readonly iconeEncaminhada = LucideForward;
   protected readonly iconePrioridade = LucideFlag;
+  protected readonly iconeAguardando = LucideHourglass;
 
   protected readonly tipo = computed(() => TIPOS[this.atividade().tipo]);
   protected readonly feita = computed(
     () => this.marcada() ?? this.atividade().status === 'CONCLUIDA',
   );
-  protected readonly atrasada = computed(() => this.atividade().atrasada && !this.feita());
+  /** R6.6 — reunião pendente que já começou: "Aguardando resultado" no lugar de "Atrasada". */
+  protected readonly aguardando = computed(
+    () => this.atividade().aguardandoResultado === true && !this.feita(),
+  );
+  protected readonly resultado = computed(() => {
+    const resultado = this.atividade().resultadoReuniao;
+    return resultado ? RESULTADOS[resultado] : null;
+  });
+  protected readonly atrasada = computed(
+    () => this.atividade().atrasada && !this.feita() && !this.aguardando(),
+  );
   protected readonly quando = computed(() => quandoDaAtividade(this.atividade(), this.agora()));
   protected readonly rotuloCaixa = computed(() =>
     this.feita() ? `Reabrir “${this.atividade().titulo}”` : `Concluir “${this.atividade().titulo}”`,
@@ -189,6 +217,9 @@ export class ItemAtividade {
         return [
           { id: 'reabrir', rotulo: 'Reabrir', icone: LucideRotateCcw },
           { id: 'editar', rotulo: 'Editar', icone: LucidePencil },
+          ...(this.atividade().tipo === 'REUNIAO'
+            ? [{ id: 'corrigir-resultado', rotulo: 'Corrigir resultado', icone: LucideUsers }]
+            : []),
         ];
       default:
         return [{ id: 'reabrir', rotulo: 'Reabrir', icone: LucideRotateCcw }];
