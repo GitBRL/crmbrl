@@ -198,6 +198,17 @@ export interface Negocio {
   readonly atualizadoEm: string;
   /** SDR com IA (Onda G): temperatura e nota do lead; nulo = a IA nunca qualificou o contato. */
   readonly sdr?: SdrDoCartao | null;
+  /** R6.7 — primeira ação de uma pessoa com o contato depois da criação do negócio; nulo = ainda não atendido. */
+  readonly primeiraInteracao?: PrimeiraInteracao | null;
+}
+
+export type TipoPrimeiraInteracao = 'LIGACAO' | 'MENSAGEM' | 'EMAIL' | 'ATIVIDADE';
+
+/** R6.7 — a primeira interação humana do negócio (gravada uma vez pela API). */
+export interface PrimeiraInteracao {
+  readonly em: string;
+  readonly tipo: TipoPrimeiraInteracao;
+  readonly por: ResumoUsuario | null;
 }
 
 /** Um negócio do outro lado da jornada (passagem entre funis, R5.7). */
@@ -341,6 +352,9 @@ export interface Atividade {
   readonly fimEm?: string | null;
   /** Pendente com o prazo no passado (R6.3). */
   readonly atrasada: boolean;
+  /** R6.6 — reunião pendente cujo início já passou. */
+  readonly aguardandoResultado?: boolean;
+  readonly resultadoReuniao?: 'COMPARECEU' | 'NAO_COMPARECEU' | 'REMARCADA' | null;
   readonly responsavel: ResumoUsuario;
   readonly concluidaEm?: string | null;
   readonly negocio?: {
@@ -451,4 +465,37 @@ export interface RegraDoRodizio {
   readonly area: Area;
   readonly incluirLideres: boolean;
   readonly participantes: readonly { readonly id: string; readonly nome: string }[];
+}
+
+/** Ações em massa do quadro (R5.16). */
+export type AcaoEmMassa =
+  | 'MOVER'
+  | 'RESPONSAVEL'
+  | 'GANHAR'
+  | 'PERDER'
+  | 'ETIQUETAR'
+  | 'DESETIQUETAR'
+  | 'ATIVIDADE'
+  | 'EXCLUIR'
+  | 'DISCADOR';
+
+export interface PedidoEmMassa {
+  readonly negocioIds: readonly string[];
+  readonly acao: AcaoEmMassa;
+  readonly dados?: Readonly<Record<string, unknown>>;
+}
+
+export interface FalhaEmMassa {
+  readonly negocioId: string;
+  /** Nulo quando a pessoa não vê o negócio. */
+  readonly titulo: string | null;
+  readonly statusCode: number;
+  readonly regra: string | null;
+  readonly mensagem: string;
+}
+
+export interface ResultadoEmMassa {
+  readonly total: number;
+  readonly sucesso: number;
+  readonly falhas: readonly FalhaEmMassa[];
 }

@@ -34,6 +34,7 @@ import { LigacoesApi } from '../../nucleo/ligacoes/ligacoes.api';
 import { formatarDuracao } from '../../nucleo/ligacoes/ligacoes.textos';
 import type { Ligacao } from '../../nucleo/ligacoes/ligacoes.tipos';
 import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
+import { BotaoLigarTresc } from '../../layout/tresc-plus/botao-ligar-tresc';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
@@ -94,6 +95,7 @@ const ROTULO_ATIVIDADE: Readonly<Record<string, string>> = {
     Botao,
     BotaoIcone,
     BotaoLigar,
+    BotaoLigarTresc,
     Dica,
     Esqueleto,
     LucideDynamicIcon,

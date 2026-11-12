@@ -17,6 +17,8 @@ import type {
   FiltrosQuadro,
   Funil,
   Negocio,
+  PedidoEmMassa,
+  ResultadoEmMassa,
   ResultadoMovimentacao,
   Usuario,
 } from './funis.tipos';
@@ -41,6 +43,16 @@ export interface Movimento {
   readonly de: Lugar;
   readonly para: Lugar;
   readonly etapa: Etapa;
+}
+
+/** Quem pode ser escolhido como responsável (seletor do cartão e da barra de ações em massa). */
+export interface OpcaoResponsavel {
+  readonly id: string;
+  readonly nome: string;
+  /** "Líder · Comercial" etc.; nulo para "você". */
+  readonly detalhe: string | null;
+  readonly avatarUrl: string | null;
+  readonly voce: boolean;
 }
 
 const FILTROS_PADRAO: FiltrosQuadro = { visao: 'TODOS', busca: '', etiqueta: null };
@@ -71,6 +83,16 @@ export class EstadoQuadro {
   readonly proximas = signal<ReadonlyMap<string, Atividade>>(new Map());
   readonly usuarios = signal<readonly Usuario[]>([]);
   readonly etiquetas = signal<readonly string[]>([]);
+  /** Modo seleção do quadro (R5.16) e os negócios marcados. Vale só no funil aberto. */
+  readonly modoSelecao = signal(false);
+  readonly selecao = signal<ReadonlySet<string>>(new Set());
+  /** Os negócios marcados que estão carregados no quadro. */
+  readonly selecionados = computed(() => {
+    const marcados = this.selecao();
+    return this.colunas()
+      .flatMap((coluna) => coluna.negocios)
+      .filter((negocio) => marcados.has(negocio.id));
+  });
   /** Etapas carregando "mais cartões". */
   readonly carregandoMais = signal<ReadonlySet<string>>(new Set());
 
@@ -115,6 +137,7 @@ export class EstadoQuadro {
     if (mudouDeArea) {
       this.filtros.set(FILTROS_PADRAO);
       this.colunas.set([]);
+      this.sairDaSelecao();
       this.proximas.set(new Map());
     }
     this.situacao.set('carregando');
@@ -192,6 +215,7 @@ export class EstadoQuadro {
     }
     this.funilId.set(funilId);
     this.colunas.set([]);
+    this.sairDaSelecao();
     void this.recarregar();
   }
 
@@ -366,6 +390,131 @@ export class EstadoQuadro {
     }
   }
 
+  /**
+   * Responsável pelo cartão (R5.15): troca na hora e volta se a API recusar (a falha sobe para
+   * a tela avisar). `novo` nulo deixa o negócio sem responsável.
+   */
+  async trocarResponsavel(negocio: Negocio, novo: OpcaoResponsavel | null): Promise<Negocio> {
+    const otimista: Negocio = {
+      ...negocio,
+      responsavel: novo ? { id: novo.id, nome: novo.nome, avatarUrl: novo.avatarUrl } : null,
+    };
+    this.atualizarNegocio(otimista);
+    try {
+      const atualizado = await this.api.alterarNegocio(negocio.id, {
+        responsavelId: novo?.id ?? null,
+      });
+      this.atualizarNegocio(atualizado);
+      return atualizado;
+    } catch (falha) {
+      this.atualizarNegocio(negocio);
+      throw erroDaApi(falha);
+    }
+  }
+
+  /**
+   * As opções do seletor "Responsável" (as mesmas do detalhe do negócio): você, quem é do
+   * setor, o C-level e o Admin, e o responsável atual mesmo que já não caiba na regra.
+   */
+  opcoesDeResponsavel(atual?: { id: string; nome: string; avatarUrl?: string | null } | null) {
+    const area = this.area();
+    const eu = this.sessao.usuario();
+    const opcoes = new Map<string, OpcaoResponsavel>();
+    if (area && eu && podeSerResponsavel(eu, area)) {
+      opcoes.set(eu.id, {
+        id: eu.id,
+        nome: eu.nome,
+        detalhe: null,
+        avatarUrl: eu.avatarUrl ?? null,
+        voce: true,
+      });
+    }
+    for (const usuario of this.responsaveisPossiveis()) {
+      if (!opcoes.has(usuario.id)) {
+        opcoes.set(usuario.id, {
+          id: usuario.id,
+          nome: usuario.nome,
+          detalhe: usuario.rotuloPapel,
+          avatarUrl: usuario.avatarUrl ?? null,
+          voce: false,
+        });
+      }
+    }
+    if (atual && !opcoes.has(atual.id)) {
+      opcoes.set(atual.id, {
+        id: atual.id,
+        nome: atual.nome,
+        detalhe: null,
+        avatarUrl: atual.avatarUrl ?? null,
+        voce: false,
+      });
+    }
+    return [...opcoes.values()];
+  }
+
+  // Seleção e ações em massa (R5.16) ---------------------------------------------------------
+
+  entrarNaSelecao(): void {
+    this.modoSelecao.set(true);
+  }
+
+  /** Sai do modo e limpa a seleção. */
+  sairDaSelecao(): void {
+    this.modoSelecao.set(false);
+    this.selecao.set(new Set());
+  }
+
+  alternarSelecao(negocioId: string): void {
+    this.selecao.update((atual) => {
+      const nova = new Set(atual);
+      if (nova.has(negocioId)) {
+        nova.delete(negocioId);
+      } else {
+        nova.add(negocioId);
+      }
+      return nova;
+    });
+    this.modoSelecao.set(true);
+  }
+
+  /** Marca todos os carregados da etapa (os que a pessoa pode alterar) ou, se já estavam, desmarca. */
+  alternarEtapa(etapaId: string): void {
+    const coluna = this.colunas().find((item) => item.etapa.id === etapaId);
+    if (!coluna) {
+      return;
+    }
+    const ids = coluna.negocios.map((negocio) => negocio.id);
+    const todos = ids.length > 0 && ids.every((id) => this.selecao().has(id));
+    this.selecao.update((atual) => {
+      const nova = new Set(atual);
+      ids.forEach((id) => (todos ? nova.delete(id) : nova.add(id)));
+      return nova;
+    });
+    this.modoSelecao.set(true);
+  }
+
+  /** A etapa está toda marcada ("todos os carregados")? */
+  etapaMarcada(etapaId: string): 'nenhum' | 'alguns' | 'todos' {
+    const coluna = this.colunas().find((item) => item.etapa.id === etapaId);
+    const marcados = this.selecao();
+    const conta = coluna?.negocios.filter((negocio) => marcados.has(negocio.id)).length ?? 0;
+    if (!coluna || conta === 0) {
+      return 'nenhum';
+    }
+    return conta === coluna.negocios.length ? 'todos' : 'alguns';
+  }
+
+  /**
+   * Manda a ação à API e recarrega o quadro (cada negócio passou pelas regras do servidor;
+   * o sucesso é parcial). Fica marcado só o que falhou.
+   */
+  async executarEmMassa(pedido: PedidoEmMassa): Promise<ResultadoEmMassa> {
+    const resultado = await this.api.acaoEmMassa(pedido);
+    this.selecao.set(new Set(resultado.falhas.map((falha) => falha.negocioId)));
+    await this.recarregar();
+    return resultado;
+  }
+
   /** Usuários que a pessoa vê (para escolher o responsável), carregados uma vez. */
   carregarUsuarios(): Promise<void> {
     this.usuariosCarregando ??= this.api
@@ -413,6 +562,10 @@ export class EstadoQuadro {
       return;
     }
     this.colunas.set(ordenarColunas(quadro.colunas));
+    const carregados = new Set(
+      quadro.colunas.flatMap((coluna) => coluna.negocios.map((negocio) => negocio.id)),
+    );
+    this.selecao.update((atual) => new Set([...atual].filter((id) => carregados.has(id))));
     this.funilAtivo.set(quadro.ativo);
     this.situacao.set('pronto');
     void this.carregarProximas(versao);

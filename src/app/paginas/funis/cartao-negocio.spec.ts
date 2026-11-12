@@ -168,4 +168,62 @@ describe('CartaoNegocio', () => {
     montar(negocioDeTeste('s', PROPOSTA));
     expect(raiz.querySelector('.cartao__ia')).toBeNull();
   });
+
+  describe('responsável como botão (R5.15) e seleção (R5.16)', () => {
+    it('com permissão, o responsável é um botão com o nome acessível e emite "responsavel"', () => {
+      montar(negocioDeTeste('r1', NOVO, { responsavel: { id: 'u1', nome: 'Lucas Prado' } }), {
+        podeTrocarResponsavel: true,
+      });
+      const botao = raiz.querySelector<HTMLButtonElement>('.cartao__responsavel--botao')!;
+      expect(botao.getAttribute('aria-label')).toBe('Responsável: Lucas Prado. Trocar responsável');
+      botao.click();
+      expect(acoes).toEqual([{ tipo: 'responsavel' }]);
+    });
+
+    it('sem responsável, "Sem responsável" é o botão (e "Assumir" continua ao lado)', () => {
+      montar(negocioDeTeste('r2', NOVO, { responsavel: null }), {
+        podeTrocarResponsavel: true,
+        podeAssumir: true,
+      });
+      const botao = raiz.querySelector<HTMLButtonElement>('.cartao__sem-responsavel--botao')!;
+      expect(botao.getAttribute('aria-label')).toBe('Sem responsável. Trocar responsável');
+      expect(raiz.querySelector('.cartao__assumir')).not.toBeNull();
+    });
+
+    it('sem permissão, o responsável fica como texto (sem botão)', () => {
+      montar(negocioDeTeste('r3', NOVO, { responsavel: { id: 'u1', nome: 'Lucas Prado' } }));
+      expect(raiz.querySelector('.cartao__responsavel--botao')).toBeNull();
+      expect(raiz.querySelector('.cartao__responsavel')).not.toBeNull();
+    });
+
+    it('o clique no botão do responsável não chega ao cartão (não marca nem abre)', () => {
+      montar(negocioDeTeste('r4', NOVO), { podeTrocarResponsavel: true, selecionando: true });
+      raiz.querySelector<HTMLButtonElement>('.cartao__responsavel--botao')!.click();
+      expect(acoes).toEqual([{ tipo: 'responsavel' }]);
+    });
+
+    it('no modo seleção: caixa de marcar com nome acessível, título sem link, clique no cartão marca', () => {
+      montar(negocioDeTeste('s1', NOVO, { titulo: 'Padaria' }), { selecionando: true });
+      const caixa = raiz.querySelector<HTMLInputElement>('.cartao__marcar')!;
+      expect(caixa.getAttribute('aria-label')).toBe('Selecionar Padaria');
+      expect(raiz.querySelector('a.cartao__titulo')).toBeNull();
+      raiz.querySelector<HTMLElement>('.cartao')!.click();
+      expect(acoes).toEqual([{ tipo: 'selecionar' }]);
+      expect(raiz.querySelector('.cartao__mover')).toBeNull();
+    });
+
+    it('marcado: caixa marcada e destaque', () => {
+      montar(negocioDeTeste('s2', NOVO), { selecionando: true, selecionado: true });
+      expect(raiz.querySelector<HTMLInputElement>('.cartao__marcar')!.checked).toBe(true);
+      expect(raiz.querySelector('.cartao--selecionado')).not.toBeNull();
+    });
+
+    it('Ctrl+clique no título (fora do modo) marca em vez de abrir', () => {
+      montar(negocioDeTeste('s3', NOVO));
+      const evento = new MouseEvent('click', { ctrlKey: true, bubbles: true, cancelable: true });
+      raiz.querySelector('a.cartao__titulo')!.dispatchEvent(evento);
+      expect(acoes).toEqual([{ tipo: 'selecionar' }]);
+      expect(evento.defaultPrevented).toBe(true);
+    });
+  });
 });

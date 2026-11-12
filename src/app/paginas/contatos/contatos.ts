@@ -67,6 +67,9 @@ export class Contatos {
   readonly porPagina = input<string | null>(null);
   /** `?novo=1` abre o cadastro (atalho de outras telas). */
   readonly novo = input<string | null>(null);
+  /** Com `?novo=1&telefone=…`, o cadastro abre com o telefone preenchido. */
+  readonly telefone = input<string | null>(null);
+  protected readonly telefoneDoCadastro = signal<string | null>(null);
 
   private readonly router = inject(Router);
   private readonly rota = inject(ActivatedRoute);
@@ -106,10 +109,11 @@ export class Contatos {
     effect(() => {
       if (this.novo()) {
         untracked(() => {
+          this.telefoneDoCadastro.set(this.telefone());
           this.abrirCadastro();
           void this.router.navigate([], {
             relativeTo: this.rota,
-            queryParams: { novo: null },
+            queryParams: { novo: null, telefone: null },
             queryParamsHandling: 'merge',
             replaceUrl: true,
           });

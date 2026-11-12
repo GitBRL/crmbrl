@@ -123,11 +123,13 @@ describe('ClienteNegocio (aba Cliente do negócio)', () => {
     await abrir();
     await responder(
       `/api/v1/contatos/${CONTATO}`,
-      contatoDeTeste({ empresa: null, podeEditar: false, conversoes: 1 }),
+      contatoDeTeste({ empresa: null, podeEditar: false, conversoes: 1, cargo: null }),
     );
     expect(raiz.textContent).toContain('Este contato não tem campos personalizados.');
     expect(raiz.querySelectorAll('section')).toHaveLength(1);
     expect(linhas(raiz.querySelector('section'))['Empresa']).toBe('—');
+    // O cargo aparece sempre: vazio mostra "—" (dá para ver que não veio).
+    expect(linhas(raiz.querySelector('section'))['Cargo']).toBe('—');
     expect(linhas(raiz.querySelector('section'))['Última origem']).toBeUndefined();
     expect(raiz.querySelector('a[href="/contatos/' + CONTATO + '"]')?.textContent?.trim()).toBe(
       'Abrir o contato',

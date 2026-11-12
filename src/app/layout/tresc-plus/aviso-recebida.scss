@@ -1,0 +1,80 @@
+@use 'mixins' as m;
+
+:host {
+  display: contents;
+}
+
+.aviso {
+  position: fixed;
+  top: calc(var(--casca-altura-topo) + var(--esp-3));
+  right: var(--esp-4);
+  z-index: var(--z-flutuante);
+  display: flex;
+  gap: var(--esp-3);
+  align-items: flex-start;
+  width: min(26rem, calc(100vw - var(--esp-4) * 2));
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-xl);
+  background: var(--cor-flutuante);
+  color: var(--cor-texto);
+  box-shadow: var(--sombra-flutuante);
+
+  @include m.abaixo(m.$md) {
+    right: var(--esp-2);
+    width: calc(100vw - var(--esp-2) * 2);
+  }
+}
+
+.aviso__icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cor-vidro-forte);
+}
+
+.aviso__corpo {
+  display: grid;
+  flex: 1;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.aviso__titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.aviso__linha {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.875rem;
+}
+
+.aviso__negocios {
+  display: grid;
+  gap: var(--esp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.aviso__acoes {
+  margin-top: var(--esp-2);
+}
+
+.aviso__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+}

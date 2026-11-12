@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { formatarData, formatarDataHora } from '../../nucleo/formatos';
+import { BotaoLigarTresc } from '../../layout/tresc-plus/botao-ligar-tresc';
 import { Botao } from '../../ui/botao/botao';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
@@ -37,7 +38,7 @@ import { formatarTelefone } from './novo-negocio';
  */
 @Component({
   selector: 'app-cliente-negocio',
-  imports: [Botao, Esqueleto, EstadoVazio, RouterLink, Selo],
+  imports: [Botao, BotaoLigarTresc, Esqueleto, EstadoVazio, RouterLink, Selo],
   template: `
     @if (carregando() && !contato()) {
       <div aria-busy="true">
@@ -70,12 +71,10 @@ import { formatarTelefone } from './novo-negocio';
             <dt>Nome</dt>
             <dd>{{ c.nome }}</dd>
           </div>
-          @if (c.cargo) {
-            <div class="ficha__linha">
-              <dt>Cargo</dt>
-              <dd>{{ c.cargo }}</dd>
-            </div>
-          }
+          <div class="ficha__linha">
+            <dt>Cargo</dt>
+            <dd>{{ c.cargo || '—' }}</dd>
+          </div>
           <div class="ficha__linha">
             <dt>E-mail</dt>
             <dd>
@@ -88,7 +87,16 @@ import { formatarTelefone } from './novo-negocio';
           </div>
           <div class="ficha__linha">
             <dt>Telefone</dt>
-            <dd class="numeros">{{ telefone() || '—' }}</dd>
+            <dd class="numeros ficha__telefone">
+              {{ telefone() || '—' }}
+              @if (c.telefone) {
+                <app-botao-ligar-tresc
+                  [contatoId]="c.id"
+                  [negocioId]="negocioId()"
+                  [nome]="c.nome"
+                />
+              }
+            </dd>
           </div>
           <div class="ficha__linha">
             <dt>Empresa</dt>
@@ -354,11 +362,19 @@ import { formatarTelefone } from './novo-negocio';
         gap: 2px;
       }
     }
+    .ficha__telefone {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--esp-2) var(--esp-3);
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClienteNegocio {
   readonly contatoId = input.required<string>();
+  /** Negócio da ligação pelo 3C+ (a ligação entra nele). */
+  readonly negocioId = input<string | null>(null);
 
   private readonly api = inject(ContatosApi);
   protected readonly contato = signal<Contato | null>(null);

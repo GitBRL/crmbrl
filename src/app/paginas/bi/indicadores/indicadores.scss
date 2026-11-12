@@ -1,0 +1,141 @@
+:host {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-6);
+  max-width: var(--largura-pagina, 1600px);
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-5) var(--esp-6);
+}
+
+.cabecalho__texto {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.cabecalho__voltar {
+  font: var(--fonte-legenda-lg);
+  color: var(--cor-texto-suave);
+}
+
+.cabecalho__titulo {
+  font: var(--fonte-display);
+  letter-spacing: var(--tracking-display);
+  overflow-wrap: anywhere;
+}
+
+.cabecalho__frase {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+.cabecalho__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.carregando,
+.conteudo {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.periodo {
+  margin: 0;
+  font: var(--fonte-legenda-lg);
+  color: var(--cor-texto-suave);
+}
+
+.periodo__hora {
+  color: var(--cor-texto-fraco);
+}
+
+.modelo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+  border: 1px dashed var(--cor-borda);
+  border-radius: var(--raio-lg);
+}
+
+.modelo__texto {
+  margin: 0;
+  min-width: 0;
+  color: var(--cor-texto-suave);
+}
+
+.paineis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: var(--esp-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paineis__item {
+  min-width: 0;
+}
+
+.painel__selos,
+.painel__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin-top: var(--esp-3);
+}
+
+.painel__descricao {
+  margin: var(--esp-3) 0 0;
+  color: var(--cor-texto-suave);
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-5);
+}
+
+.grade__item {
+  display: block;
+  min-width: 0;
+}
+
+@container (min-width: 640px) {
+  .grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grade__item--2,
+  .grade__item--3 {
+    grid-column: span 2;
+  }
+}
+
+@container (min-width: 1000px) {
+  .grade {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .grade__item--2 {
+    grid-column: span 2;
+  }
+
+  .grade__item--3 {
+    grid-column: span 3;
+  }
+}

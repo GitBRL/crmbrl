@@ -26,11 +26,13 @@ import type {
   NovoContato,
   NovoNegocio,
   PassagemDoFunil,
+  PedidoEmMassa,
   PedidoMover,
   Quadro,
   RegraDoRodizio,
   RegistroLinhaDoTempo,
   ResultadoCriacaoContato,
+  ResultadoEmMassa,
   ResultadoMovimentacao,
   Usuario,
 } from './funis.tipos';
@@ -182,6 +184,11 @@ export class FunisApi {
     return firstValueFrom(this.http.patch<Negocio>(urlApi('negocios', id), alteracao));
   }
 
+  /** Ação em massa nos negócios do quadro (R5.16): sucesso parcial, falhas na resposta. */
+  acaoEmMassa(pedido: PedidoEmMassa): Promise<ResultadoEmMassa> {
+    return firstValueFrom(this.http.post<ResultadoEmMassa>(urlApi('negocios', 'em-massa'), pedido));
+  }
+
   mover(id: string, pedido: PedidoMover): Promise<ResultadoMovimentacao> {
     return firstValueFrom(
       this.http.post<ResultadoMovimentacao>(urlApi('negocios', id, 'mover'), pedido),
@@ -262,8 +269,14 @@ export class FunisApi {
     return firstValueFrom(this.http.post<Atividade>(urlApi('atividades'), atividade));
   }
 
-  concluirAtividade(id: string): Promise<Atividade> {
-    return firstValueFrom(this.http.post<Atividade>(urlApi('atividades', id, 'concluir'), {}));
+  /** R6.6: a reunião só conclui com `resultadoReuniao` (e `novaData` se remarcada). */
+  concluirAtividade(
+    id: string,
+    conclusao: { readonly resultadoReuniao?: string; readonly novaData?: string } = {},
+  ): Promise<Atividade> {
+    return firstValueFrom(
+      this.http.post<Atividade>(urlApi('atividades', id, 'concluir'), conclusao),
+    );
   }
 
   reabrirAtividade(id: string): Promise<Atividade> {

@@ -10,6 +10,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { BotaoLigarTresc } from '../../layout/tresc-plus/botao-ligar-tresc';
 import { Router, RouterLink } from '@angular/router';
 import { LucideWorkflow } from '@lucide/angular';
 
@@ -56,6 +57,7 @@ import type {
 } from './funis.tipos';
 import { LinhaDoTempoNegocio } from './linha-do-tempo-negocio';
 import { MOTIVO_MAXIMO, MotivoPerda } from './motivo-perda';
+import { descreverPrimeiroAtendimento } from './primeiro-atendimento';
 import { formatarTelefone } from './novo-negocio';
 import {
   mensagemDaMovimentacao,
@@ -121,6 +123,7 @@ interface Vinculo {
 @Component({
   selector: 'app-detalhe-negocio',
   imports: [
+    BotaoLigarTresc,
     Abas,
     AreaTexto,
     AtividadesNegocio,
@@ -357,6 +360,7 @@ export class DetalheNegocio {
       telefone: formatarTelefone(negocio.contato.telefone),
       origem: ROTULO_ORIGEM[negocio.origem] ?? negocio.origem,
       criadoEm: formatarDataHora(negocio.criadoEm),
+      primeiroAtendimento: descreverPrimeiroAtendimento(negocio),
       atualizadoEm: formatarDataHora(negocio.atualizadoEm),
       etapaDesde: formatarDataHora(negocio.etapaDesde),
       utm: Object.entries(negocio.utm ?? {}).filter(([, valor]) => !!valor),

@@ -27,6 +27,7 @@ import { EstadoCasca } from './estado-casca';
 import { IndicadorConexao } from './indicador-conexao';
 import { MenuConta } from './menu-conta';
 import { Notificacoes } from './notificacoes';
+import { PainelAgente } from './tresc-plus/painel-agente';
 
 /** Tempo que o aviso da busca fica na tela. */
 const DURACAO_AVISO_MS = 6000;
@@ -88,6 +89,7 @@ export function buscarModulo<T extends ModuloBase>(
     IndicadorConexao,
     Notificacoes,
     MenuConta,
+    PainelAgente,
   ],
   templateUrl: './barra-superior.html',
   styleUrl: './barra-superior.scss',

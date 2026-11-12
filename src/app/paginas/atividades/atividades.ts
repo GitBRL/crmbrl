@@ -37,12 +37,15 @@ import {
   type Atividade,
   type AtividadesAgrupadas,
   type EscopoAtividades,
+  type ConclusaoDeAtividade,
+  type FiltroDeResultado,
   type FiltrosAtividades,
   type GrupoAtividade,
   type GrupoDeAtividades,
   type TipoAtividade,
 } from './atividades.api';
 import { CriacaoRapida } from './criacao-rapida';
+import { ResultadoReuniaoModal } from './resultado-reuniao';
 import { DetalheAtividade, type MudancaAtividade } from './detalhe-atividade';
 import { ItemAtividade, type AcaoItem } from './item-atividade';
 
@@ -85,6 +88,7 @@ const ROTULO_ESCOPO: Readonly<Record<EscopoAtividades, string>> = {
     ItemAtividade,
     LucideBell,
     Paginacao,
+    ResultadoReuniaoModal,
     Selo,
   ],
   templateUrl: './atividades.html',
@@ -104,6 +108,12 @@ export class Atividades {
   /** Atividade a abrir no painel (query `atividade`, vinda das notificações). */
   readonly atividade = input<string | null>(null);
 
+  /** Filtros iniciais vindos da URL (os cliques dos indicadores do BI, R33.8): `tipo`, `resultado`, `escopo` e `aba`. */
+  readonly tipoDaUrl = input<string | null>(null, { alias: 'tipo' });
+  readonly resultadoDaUrl = input<string | null>(null, { alias: 'resultado' });
+  readonly escopoDaUrl = input<string | null>(null, { alias: 'escopo' });
+  readonly abaDaUrl = input<string | null>(null, { alias: 'aba' });
+
   protected readonly iconeNova = LucidePlus;
   /** Linhas dos dois cartões-esqueleto da agenda. */
   protected readonly esqueleto = [
@@ -121,9 +131,21 @@ export class Atividades {
 
   protected readonly escopo = signal<EscopoAtividades>('MINHAS');
   protected readonly tipos = signal<readonly TipoAtividade[]>([]);
+  /** R6.6 — filtro "Resultado da reunião" (`QUALQUER` = sem filtro). */
+  protected readonly resultado = signal<'QUALQUER' | FiltroDeResultado>('QUALQUER');
+  protected readonly opcoesResultado: readonly OpcaoFiltro[] = [
+    { id: 'QUALQUER', rotulo: 'Qualquer' },
+    { id: 'AGUARDANDO', rotulo: 'Aguardando resultado' },
+    { id: 'COMPARECEU', rotulo: 'Compareceu' },
+    { id: 'NAO_COMPARECEU', rotulo: 'Não compareceu' },
+    { id: 'REMARCADA', rotulo: 'Remarcada' },
+    { id: 'SEM_RESULTADO', rotulo: 'Sem resultado' },
+  ];
   protected readonly filtros = computed<FiltrosAtividades>(() => ({
     escopo: this.escopo(),
     tipos: this.tipos(),
+    resultado:
+      this.resultado() === 'QUALQUER' ? undefined : (this.resultado() as FiltroDeResultado),
   }));
 
   /** Da equipe: quem lidera alguém (líderes e o C-level, que lidera os líderes). */
@@ -153,7 +175,9 @@ export class Atividades {
     rotulo: TIPOS[tipo].rotulo,
     icone: TIPOS[tipo].icone,
   }));
-  protected readonly comFiltroDeTipo = computed(() => this.tipos().length > 0);
+  protected readonly comFiltroDeTipo = computed(
+    () => this.tipos().length > 0 || this.resultado() !== 'QUALQUER',
+  );
 
   // Abas -----------------------------------------------------------------------------------
 
@@ -239,6 +263,34 @@ export class Atividades {
       clearTimeout(this.esperaDestaque);
     });
 
+    // Filtros que vieram na URL (cliques do BI): valem uma vez, sem sair do que a pessoa pode usar.
+    effect(() => {
+      const tipo = this.tipoDaUrl();
+      const resultado = this.resultadoDaUrl();
+      const escopo = this.escopoDaUrl();
+      const aba = this.abaDaUrl();
+      untracked(() => {
+        const tipos = (tipo ?? '')
+          .split(',')
+          .filter((t): t is TipoAtividade => (TIPOS_DA_AGENDA as readonly string[]).includes(t));
+        if (tipos.length > 0) {
+          this.tipos.set(tipos);
+        }
+        if (resultado && this.opcoesResultado.some((o) => o.id === resultado)) {
+          this.resultado.set(resultado as FiltroDeResultado);
+        }
+        const permitido = this.opcoesEscopo().find((o) => o.id === escopo && !o.desabilitada);
+        if (permitido) {
+          this.escopo.set(permitido.id as EscopoAtividades);
+        } else if (escopo === 'TODAS' && this.temEquipe()) {
+          this.escopo.set('EQUIPE');
+        }
+        if (aba === 'concluidas' || aba === 'pendentes') {
+          this.aba.set(aba);
+        }
+      });
+    });
+
     // Filtros novos: a agenda recomeça (sem os "mostrar mais"), e a aba aberta também.
     effect(() => {
       this.filtros();
@@ -278,8 +330,17 @@ export class Atividades {
     this.tipos.set(ids.filter((id): id is TipoAtividade => id in TIPOS));
   }
 
+  protected escolherResultado(id: string | null): void {
+    this.resultado.set(
+      this.opcoesResultado.some((opcao) => opcao.id === id)
+        ? (id as 'QUALQUER' | FiltroDeResultado)
+        : 'QUALQUER',
+    );
+  }
+
   protected limparFiltros(): void {
     this.tipos.set([]);
+    this.resultado.set('QUALQUER');
   }
 
   protected mostrarResponsavel(atividade: Atividade): boolean {
@@ -324,16 +385,31 @@ export class Atividades {
     }
   }
 
+  /** R6.6 — a reunião que espera o resultado no modal (a caixa fica marcada enquanto isso). */
+  protected readonly reuniaoAConcluir = signal<Atividade | null>(null);
+  protected readonly resultadoAberto = signal(false);
+
   /** A caixa da linha: concluir (com "Desfazer" no aviso) ou reabrir. */
-  protected async alternar(atividade: Atividade, concluir: boolean): Promise<void> {
-    if (this.marcadas().has(atividade.id)) {
+  protected async alternar(
+    atividade: Atividade,
+    concluir: boolean,
+    conclusao?: ConclusaoDeAtividade,
+  ): Promise<void> {
+    if (!conclusao && this.marcadas().has(atividade.id)) {
+      return;
+    }
+    if (concluir && atividade.tipo === 'REUNIAO' && !conclusao) {
+      // R6.6: a reunião só conclui com o resultado.
+      this.marcar(atividade.id, true);
+      this.reuniaoAConcluir.set(atividade);
+      this.resultadoAberto.set(true);
       return;
     }
     const proxima = this.vizinha(atividade.id);
     this.marcar(atividade.id, concluir);
     try {
       if (concluir) {
-        const concluida = await this.api.concluir(atividade.id);
+        const concluida = await this.api.concluir(atividade.id, conclusao);
         this.avisos.sucesso('Atividade concluída.', {
           chave: `conclusao-${atividade.id}`,
           acao: { rotulo: 'Desfazer', executar: () => void this.desfazer(concluida) },
@@ -351,6 +427,50 @@ export class Atividades {
     }
   }
 
+  /** Corrigindo o resultado de uma reunião já concluída (menu da linha). */
+  protected readonly corrigindo = signal(false);
+
+  protected confirmarResultado(conclusao: ConclusaoDeAtividade): void {
+    const atividade = this.reuniaoAConcluir();
+    if (!atividade) {
+      return;
+    }
+    if (this.corrigindo()) {
+      this.corrigindo.set(false);
+      void this.corrigirResultado(atividade, conclusao);
+      return;
+    }
+    void this.alternar(atividade, true, conclusao);
+  }
+
+  private async corrigirResultado(
+    atividade: Atividade,
+    conclusao: ConclusaoDeAtividade,
+  ): Promise<void> {
+    try {
+      await this.api.atualizar(atividade.id, conclusao);
+      this.avisos.sucesso('Resultado da reunião corrigido.');
+      this.destacar(atividade.id);
+      await this.recarregarTudo();
+    } catch (falha) {
+      this.avisos.erro(falha);
+    }
+  }
+
+  /** Fechou o modal sem escolher: a reunião continua pendente e a caixa volta. */
+  protected cancelarResultado(): void {
+    const atividade = this.reuniaoAConcluir();
+    if (this.corrigindo()) {
+      this.corrigindo.set(false);
+      this.reuniaoAConcluir.set(null);
+      return;
+    }
+    if (atividade) {
+      this.desmarcar(atividade.id);
+      this.reuniaoAConcluir.set(null);
+    }
+  }
+
   protected agir(atividade: Atividade, acao: AcaoItem): void {
     switch (acao) {
       case 'editar':
@@ -362,6 +482,11 @@ export class Atividades {
         break;
       case 'reabrir':
         void this.alternar(atividade, false);
+        break;
+      case 'corrigir-resultado':
+        this.corrigindo.set(true);
+        this.reuniaoAConcluir.set(atividade);
+        this.resultadoAberto.set(true);
         break;
     }
   }

@@ -18,6 +18,10 @@ import { Botao } from '../../ui/botao/botao';
 import { CaixaSelecao } from '../../ui/caixa-selecao/caixa-selecao';
 import { CampoData, localParaIso } from '../../ui/campo-data/campo-data';
 import { CampoTexto, type ValorCampoTexto } from '../../ui/campo-texto/campo-texto';
+import { RESULTADOS } from '../atividades/apresentacao';
+import type { ConclusaoDeAtividade } from '../atividades/atividades.api';
+import { ResultadoReuniaoModal } from '../atividades/resultado-reuniao';
+import { Selo } from '../../ui/selo/selo';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
 import { GrupoOpcoes, type OpcaoGrupo } from '../../ui/grupo-opcoes/grupo-opcoes';
@@ -56,7 +60,17 @@ export function proximaPendente(atividades: readonly Atividade[]): Atividade | n
  */
 @Component({
   selector: 'app-atividades-negocio',
-  imports: [Botao, CaixaSelecao, CampoData, CampoTexto, Esqueleto, EstadoVazio, GrupoOpcoes],
+  imports: [
+    Botao,
+    CaixaSelecao,
+    CampoData,
+    CampoTexto,
+    Esqueleto,
+    EstadoVazio,
+    GrupoOpcoes,
+    ResultadoReuniaoModal,
+    Selo,
+  ],
   template: `
     <form class="nova" novalidate (submit)="$event.preventDefault(); criar()">
       <h3 class="nova__titulo">Nova atividade</h3>
@@ -136,7 +150,7 @@ export function proximaPendente(atividades: readonly Atividade[]): Atividade | n
                   forma="circulo"
                   rotuloOculto
                   [rotulo]="'Concluir ' + atividade.titulo"
-                  [valor]="ocupadas().has(atividade.id)"
+                  [valor]="ocupadas().has(atividade.id) || reuniaoAguardando()?.id === atividade.id"
                   [desabilitado]="ocupadas().has(atividade.id)"
                   (valorChange)="$event && concluir(atividade)"
                 />
@@ -147,10 +161,18 @@ export function proximaPendente(atividades: readonly Atividade[]): Atividade | n
                     @if (quando(atividade); as data) {
                       ·
                       <span
-                        [class.atividade__atraso]="atividade.atrasada"
+                        [class.atividade__atraso]="
+                          atividade.atrasada && !atividade.aguardandoResultado
+                        "
                         [title]="dataCompleta(atividade)"
                       >
-                        {{ atividade.atrasada ? 'Atrasada · ' : '' }}{{ data }}
+                        {{
+                          atividade.aguardandoResultado
+                            ? 'Aguardando resultado · '
+                            : atividade.atrasada
+                              ? 'Atrasada · '
+                              : ''
+                        }}{{ data }}
                       </span>
                     }
                     · {{ atividade.responsavel.nome }}
@@ -185,6 +207,11 @@ export function proximaPendente(atividades: readonly Atividade[]): Atividade | n
                   <p class="atividade__titulo">{{ atividade.titulo }}</p>
                   <p class="atividade__detalhe">
                     {{ rotuloTipo(atividade.tipo) }} · concluída {{ concluidaHa(atividade) }}
+                    @if (atividade.resultadoReuniao; as resultado) {
+                      <app-selo tamanho="sm" [variante]="resultados[resultado].variante">{{
+                        resultados[resultado].rotulo
+                      }}</app-selo>
+                    }
                   </p>
                 </div>
               </li>
@@ -193,6 +220,13 @@ export function proximaPendente(atividades: readonly Atividade[]): Atividade | n
         </section>
       }
     }
+
+    <app-resultado-reuniao
+      [(aberto)]="resultadoAberto"
+      [reuniao]="reuniaoAguardando()?.titulo ?? ''"
+      (confirmado)="confirmarResultado($event)"
+      (cancelado)="cancelarResultado()"
+    />
   `,
   styleUrl: './atividades-negocio.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -366,8 +400,30 @@ export class AtividadesNegocio {
     }
   }
 
-  protected async concluir(atividade: Atividade): Promise<void> {
-    await this.trocarStatus(atividade, () => this.api.concluirAtividade(atividade.id));
+  /** R6.6 — a reunião que espera o resultado no modal (a caixa fica marcada enquanto isso). */
+  protected readonly reuniaoAguardando = signal<Atividade | null>(null);
+  protected readonly resultadoAberto = signal(false);
+  protected readonly resultados = RESULTADOS;
+
+  protected confirmarResultado(conclusao: ConclusaoDeAtividade): void {
+    const atividade = this.reuniaoAguardando();
+    this.reuniaoAguardando.set(null);
+    if (atividade) {
+      void this.concluir(atividade, conclusao);
+    }
+  }
+
+  protected cancelarResultado(): void {
+    this.reuniaoAguardando.set(null);
+  }
+
+  protected async concluir(atividade: Atividade, conclusao?: ConclusaoDeAtividade): Promise<void> {
+    if (atividade.tipo === 'REUNIAO' && !conclusao) {
+      this.reuniaoAguardando.set(atividade);
+      this.resultadoAberto.set(true);
+      return;
+    }
+    await this.trocarStatus(atividade, () => this.api.concluirAtividade(atividade.id, conclusao));
     if (this.atividades().find((item) => item.id === atividade.id)?.status === 'CONCLUIDA') {
       this.avisos.sucesso(`Atividade “${atividade.titulo}” concluída.`, {
         acao: { rotulo: 'Desfazer', executar: () => void this.reabrir(atividade) },

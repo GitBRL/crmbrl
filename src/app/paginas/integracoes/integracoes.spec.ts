@@ -105,7 +105,7 @@ describe('Integracoes (moldura)', () => {
     const secoes = Array.from(raiz.querySelectorAll('.moldura__secao')).map((a) =>
       a.textContent?.trim(),
     );
-    expect(secoes).toEqual(['Aplicativos', 'Histórico', 'Webhooks de saída']);
+    expect(secoes).toEqual(['Aplicativos', 'Histórico', 'Webhooks de saída', '3C+']);
     const ativa = raiz.querySelector('[aria-current="page"]');
     expect(ativa?.textContent?.trim()).toBe('Webhooks de saída');
     const acao = raiz.querySelector<HTMLButtonElement>('.moldura__acao')!;

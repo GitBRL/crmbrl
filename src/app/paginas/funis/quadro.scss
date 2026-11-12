@@ -320,6 +320,19 @@
   padding: 0 var(--esp-3) var(--esp-3);
 }
 
+// Modo seleção (R5.16): a caixa "todos desta etapa" no cabeçalho e folga para a barra de ações.
+.coluna__marcar {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--cor-destaque);
+  cursor: pointer;
+}
+
+:host(.quadro--selecionando) {
+  padding-bottom: 6rem;
+}
+
 // Ação principal no celular: botão flutuante circular, no canto inferior direito.
 .novo-flutuante {
   position: fixed;

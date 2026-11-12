@@ -166,6 +166,12 @@
               tamanho="sm"
               somenteIcone
             />
+            <app-botao-ligar-tresc
+              [contatoId]="conversa.contato.id"
+              [nome]="conversa.contato.nome"
+              rotulo="Ligar pelo 3C+"
+              somenteIcone
+            />
             @if (conversa.acoes.transferir) {
               <button
                 appBotaoIcone

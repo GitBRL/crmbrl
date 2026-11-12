@@ -19,6 +19,51 @@
             </div>
           </div>
 
+          <div class="perfil__foto">
+            <!-- O botão abre a escolha do arquivo; o campo fica fora da ordem do teclado. -->
+            <input
+              #seletorFoto
+              type="file"
+              class="visualmente-oculto"
+              tabindex="-1"
+              aria-hidden="true"
+              [accept]="tiposDeFoto"
+              (change)="aoEscolherFoto($event)"
+            />
+            <div class="perfil__foto-acoes">
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                aria-describedby="perfil-foto-dica"
+                [carregando]="enviandoFoto()"
+                [disabled]="removendoFoto()"
+                (click)="seletorFoto.click()"
+              >
+                {{ eu.avatarUrl ? 'Trocar foto' : 'Adicionar foto' }}
+              </button>
+              @if (eu.avatarUrl) {
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  [carregando]="removendoFoto()"
+                  [disabled]="enviandoFoto()"
+                  (click)="removerFoto()"
+                >
+                  Remover foto
+                </button>
+              }
+            </div>
+            <p class="perfil__foto-dica" id="perfil-foto-dica">
+              JPG, PNG, GIF ou WebP, até 5 MB. A foto aparece para toda a equipe no CRM.
+            </p>
+            @if (erroFoto(); as mensagem) {
+              <p class="perfil__foto-erro" role="alert">{{ mensagem }}</p>
+            }
+          </div>
+
           <dl class="perfil__dados">
             <div>
               <dt>Setor</dt>
@@ -132,6 +177,7 @@
           </div>
         </form>
       </app-cartao>
+      <app-conectar-3c />
       <app-preferencias-push />
     </div>
   }

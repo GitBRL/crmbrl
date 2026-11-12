@@ -12,6 +12,7 @@
     "src/**/*.spec.ts",
     "src/provedores-teste.ts",
     "src/app/nucleo/ligacoes/ligacoes-de-teste.ts",
-    "src/app/layout/ligacao/ligacoes-stub.ts"
+    "src/app/layout/ligacao/ligacoes-stub.ts",
+    "src/app/nucleo/tresc-plus/tresc-plus-de-teste.ts"
   ]
 }
