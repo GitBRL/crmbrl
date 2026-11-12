@@ -15,6 +15,8 @@ import {
 } from './funis-de-teste';
 
 const [NOVO, PROPOSTA, , PERDIDO] = ETAPAS;
+const FUNIL_DO_CS = funilDeTeste({ id: 'funil-cs', nome: 'Pós-venda', area: 'CS', nivel: 'VER' });
+const TODOS_OS_FUNIS = [funilDeTeste(), FUNIL_DO_CS];
 
 async function microtarefas(): Promise<void> {
   for (let i = 0; i < 8; i++) {
@@ -41,6 +43,11 @@ describe('EstadoQuadro', () => {
   async function abrir() {
     const iniciando = estado.iniciar('COMERCIAL', null);
     http.expectOne('/api/v1/funis?area=COMERCIAL').flush([funilDeTeste()]);
+    // A lista geral (com os funis de outros setores) alimenta o seletor do quadro.
+    await microtarefas();
+    http
+      .expectOne((req) => req.url === '/api/v1/funis' && !req.params.has('area'))
+      .flush(TODOS_OS_FUNIS);
     await microtarefas();
     http
       .expectOne((req) => req.url === `/api/v1/funis/${FUNIL_ID}/quadro`)
@@ -75,6 +82,15 @@ describe('EstadoQuadro', () => {
     expect(estado.colunas().map((coluna) => coluna.negocios.length)).toEqual([2, 1, 0, 0]);
     expect(estado.totalAbertos()).toBe(3);
     expect(estado.etiquetas()).toEqual(['Agro', 'VIP']);
+  });
+
+  it('guarda os funis de todos os setores que a pessoa vê, e o nível dela no funil aberto', async () => {
+    await abrir();
+    expect(estado.todosOsFunis().map((funil) => funil.id)).toEqual([FUNIL_ID, 'funil-cs']);
+    // Sem `nivel` na resposta, a líder do Comercial configura o funil do setor dela.
+    expect(estado.nivel()).toBe('CONFIGURAR');
+    expect(estado.podeAgir()).toBe(true);
+    expect(estado.podeConfigurar()).toBe(true);
   });
 
   it('filtros recarregam o quadro com visão, busca e etiqueta', async () => {
@@ -165,5 +181,114 @@ describe('EstadoQuadro', () => {
     http.match(() => true).forEach((pedido) => pedido.flush([]));
     expect(estado.situacao()).toBe('erro');
     expect(estado.erro()?.requisicaoId).toBe('req-9');
+  });
+
+  describe('responsável pelo cartão e seleção em massa', () => {
+    it('trocarResponsavel é otimista, confirma com o PATCH e volta se a API recusa', async () => {
+      await abrir();
+      const antes = estado.negocio('a')!;
+      const bia = {
+        id: 'u-bia',
+        nome: 'Bia',
+        detalhe: null,
+        avatarUrl: null,
+        voce: false,
+      };
+      const trocando = estado.trocarResponsavel(antes, bia);
+      expect(estado.negocio('a')?.responsavel?.id).toBe('u-bia');
+      http
+        .expectOne('/api/v1/negocios/a')
+        .flush(
+          { statusCode: 422, erro: 'regra_violada', mensagem: 'x', requisicaoId: 'r' },
+          { status: 422, statusText: 'Unprocessable' },
+        );
+      await expect(trocando).rejects.toBeInstanceOf(ErroApi);
+      expect(estado.negocio('a')?.responsavel?.id).toBe(antes.responsavel?.id);
+
+      const ok = estado.trocarResponsavel(antes, null);
+      expect(estado.negocio('a')?.responsavel).toBeNull();
+      const pedido = http.expectOne('/api/v1/negocios/a');
+      expect(pedido.request.body).toEqual({ responsavelId: null });
+      pedido.flush({ ...antes, responsavel: null });
+      await ok;
+    });
+
+    it('opcoesDeResponsavel: você primeiro, só gente do setor, e o responsável atual mesmo fora da regra', async () => {
+      await abrir();
+      estado.usuarios.set([
+        {
+          id: 'u1',
+          nome: 'Bia',
+          papel: 'MEMBRO',
+          rotuloPapel: 'Comercial',
+          area: 'COMERCIAL',
+          ativo: true,
+          nivel: 'MEMBRO',
+        },
+        {
+          id: 'u2',
+          nome: 'Caio',
+          papel: 'MEMBRO',
+          rotuloPapel: 'CS',
+          area: 'CS',
+          ativo: true,
+          nivel: 'MEMBRO',
+        },
+      ]);
+      const opcoes = estado.opcoesDeResponsavel({ id: 'u2', nome: 'Caio' });
+      expect(opcoes[0].voce).toBe(true);
+      expect(opcoes.map((o) => o.id)).toContain('u1');
+      expect(opcoes.map((o) => o.id)).toContain('u2');
+      expect(estado.opcoesDeResponsavel(null).map((o) => o.id)).not.toContain('u2');
+    });
+
+    it('seleção: marcar, marcar a etapa toda, "alguns"/"todos", sair limpa e trocar de funil limpa', async () => {
+      await abrir();
+      expect(estado.modoSelecao()).toBe(false);
+      estado.alternarSelecao('a');
+      expect(estado.modoSelecao()).toBe(true);
+      expect(estado.etapaMarcada(NOVO.id)).toBe('alguns');
+      estado.alternarEtapa(NOVO.id);
+      expect(estado.etapaMarcada(NOVO.id)).toBe('todos');
+      expect(estado.selecionados().map((n) => n.id)).toEqual(['a', 'b']);
+      estado.alternarEtapa(NOVO.id);
+      expect(estado.selecionados()).toEqual([]);
+      estado.alternarSelecao('c');
+      estado.sairDaSelecao();
+      expect(estado.modoSelecao()).toBe(false);
+      expect(estado.selecao().size).toBe(0);
+      estado.alternarSelecao('c');
+      estado.escolherFunil('outro');
+      http.match(() => true);
+      expect(estado.selecao().size).toBe(0);
+    });
+
+    it('executarEmMassa recarrega o quadro e deixa marcado só o que falhou', async () => {
+      await abrir();
+      estado.alternarEtapa(NOVO.id);
+      const rodando = estado.executarEmMassa({ negocioIds: ['a', 'b'], acao: 'GANHAR' });
+      http.expectOne('/api/v1/negocios/em-massa').flush({
+        total: 2,
+        sucesso: 1,
+        falhas: [
+          { negocioId: 'b', titulo: 'Negócio b', statusCode: 403, regra: 'R5.12', mensagem: 'x' },
+        ],
+      });
+      await microtarefas();
+      http
+        .expectOne((req) => req.url === `/api/v1/funis/${FUNIL_ID}/quadro`)
+        .flush(
+          quadroDeTeste(
+            colunasDeTeste({
+              novo: [negocioDeTeste('b', NOVO)],
+              proposta: [negocioDeTeste('c', PROPOSTA)],
+            }),
+          ),
+        );
+      const resultado = await rodando;
+      expect(resultado.sucesso).toBe(1);
+      expect([...estado.selecao()]).toEqual(['b']);
+      http.match(() => true);
+    });
   });
 });

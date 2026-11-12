@@ -6,8 +6,7 @@ import { provideRouter, Router, withComponentInputBinding } from '@angular/route
 import { RouterTestingHarness } from '@angular/router/testing';
 
 import { AvisosService } from '../../nucleo/avisos.service';
-import type { Papel } from '../../nucleo/papeis';
-import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
+import { entrarComo, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
 import { contatoDeTeste } from './dados-de-teste';
 import type { NegocioRelacionado, RegistroDaLinhaDoTempo } from './contatos.tipos';
 import { DetalheContato } from './detalhe-contato';
@@ -62,7 +61,7 @@ describe('DetalheContato (/contatos/:id)', () => {
   let http: HttpTestingController;
   let harness: RouterTestingHarness;
 
-  async function abrir(papel: Papel, url = `/contatos/${ID}`) {
+  async function abrir(papel: PapelDeTeste, url = `/contatos/${ID}`) {
     TestBed.configureTestingModule({
       providers: [
         provideRouter(

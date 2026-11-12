@@ -65,10 +65,10 @@
   min-width: 0;
 }
 
-// Com mais de um funil na área, a escolha do funil ocupa a própria linha.
+// A escolha do funil (agrupada por setor) fica ao lado dos filtros.
 .filtros__funil {
-  flex: 1 1 100%;
-  min-width: 0;
+  flex: 0 1 18rem;
+  min-width: 12rem;
 }
 
 .filtros__campos {
@@ -320,6 +320,19 @@
   padding: 0 var(--esp-3) var(--esp-3);
 }
 
+// Modo seleção (R5.16): a caixa "todos desta etapa" no cabeçalho e folga para a barra de ações.
+.coluna__marcar {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--cor-destaque);
+  cursor: pointer;
+}
+
+:host(.quadro--selecionando) {
+  padding-bottom: 6rem;
+}
+
 // Ação principal no celular: botão flutuante circular, no canto inferior direito.
 .novo-flutuante {
   position: fixed;
@@ -391,7 +404,8 @@
     max-width: none;
   }
 
-  .filtros__etiqueta {
+  .filtros__etiqueta,
+  .filtros__funil {
     flex: 1 1 100%;
   }
 

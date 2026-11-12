@@ -48,10 +48,10 @@
         (valorChange)="mudou()"
       />
       <app-seletor
-        rotulo="Área"
+        rotulo="Setor"
         permitirVazio
         placeholder="Todas"
-        [opcoes]="opcoesArea"
+        [opcoes]="opcoesArea()"
         [(valor)]="area"
         (valorChange)="mudou()"
       />
@@ -149,7 +149,7 @@
       </ng-template>
       <ng-template appCelula="usuario" [appCelulaDe]="itens()" let-p>
         {{ p.usuario.nome }}
-        <span class="consulta__fraco">{{ rotuloPapel[p.usuario.papel] }}</span>
+        <span class="consulta__fraco">{{ rotuloPessoa(p.usuario) }}</span>
       </ng-template>
       <ng-template appCelula="pergunta" [appCelulaDe]="itens()" let-p>
         <span class="resumo">{{ p.pergunta }}</span>

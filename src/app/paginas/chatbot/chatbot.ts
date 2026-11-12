@@ -158,7 +158,7 @@ export class Chatbot {
   }
 
   protected acoesDe(fluxo: FluxoResumo): readonly ItemMenuAcoes[] {
-    const semEdicao = fluxo.podeEditar ? undefined : 'Só quem cuida da área edita este fluxo.';
+    const semEdicao = fluxo.podeEditar ? undefined : 'Só quem cuida do setor edita este fluxo.';
     return [
       { id: 'abrir', rotulo: 'Abrir', icone: LucideExternalLink },
       fluxo.ativo

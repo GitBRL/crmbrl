@@ -67,9 +67,9 @@ export class Atendimento {
       return `${chegada}Você vê todas as conversas de todos os canais.`;
     }
     if (this.sessao.ehLider()) {
-      return `${chegada}Você vê as conversas das filas da sua área (de toda a equipe) e as suas.`;
+      return `${chegada}Você vê as conversas das filas do seu setor (de toda a equipe) e as suas.`;
     }
-    return `${chegada}Você vê as conversas que estão com você e as sem responsável das filas da sua área, que qualquer pessoa da área pode assumir.`;
+    return `${chegada}Você vê as conversas que estão com você e as sem responsável das filas do seu setor, que qualquer pessoa do setor pode assumir.`;
   });
 
   /** "Atendimento · 7 em aberto" (o complemento só depois de carregar a lista). */

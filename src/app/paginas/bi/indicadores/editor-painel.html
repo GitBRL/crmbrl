@@ -1,0 +1,263 @@
+<div class="editor">
+  <section class="editor__bloco" aria-labelledby="ed-dados">
+    <h2 class="editor__titulo" id="ed-dados">Dados do painel</h2>
+    <div class="editor__campos">
+      <app-campo-texto rotulo="Nome" [maximoCaracteres]="80" [erro]="erroNome()" [(valor)]="nome" />
+      <app-campo-texto rotulo="Descrição" opcional [maximoCaracteres]="300" [(valor)]="descricao" />
+    </div>
+    <h3 class="editor__subtitulo">
+      Filtros padrão
+      <app-dica
+        rotulo="Sobre os filtros do painel"
+        texto="Valem para todos os indicadores do painel. Quem abre pode mudar o período e os filtros no topo, e cada indicador pode ter filtros só dele."
+      />
+    </h3>
+    <app-filtros-indicador
+      [(filtros)]="filtrosPadrao"
+      [opcoes]="opcoes()"
+      [diretoria]="diretoria()"
+    />
+  </section>
+
+  <div class="editor__colunas">
+    <section class="editor__bloco" aria-labelledby="ed-lista">
+      <h2 class="editor__titulo" id="ed-lista">
+        Indicadores do painel <app-selo tamanho="sm">{{ widgets().length }}</app-selo>
+      </h2>
+      @if (widgets().length === 0) {
+        <app-estado-vazio
+          compacto
+          titulo="O painel ainda não tem indicadores"
+          texto="Escolha um no catálogo ao lado para começar."
+        />
+      } @else {
+        <p class="editor__ajuda">
+          Arraste pela alça para reordenar ou use os botões Subir e Descer.
+        </p>
+        <ul
+          class="lista"
+          cdkDropList
+          [cdkDropListData]="widgets()"
+          (cdkDropListDropped)="soltar($event)"
+          aria-label="Indicadores do painel"
+        >
+          @for (widget of widgets(); track widget.id; let i = $index) {
+            <li
+              class="item"
+              cdkDrag
+              cdkDragPreviewContainer="parent"
+              [class.item--aberto]="aberto() === widget.id"
+            >
+              <div class="item__cabecalho">
+                <button
+                  appBotaoIcone
+                  type="button"
+                  tamanho="sm"
+                  cdkDragHandle
+                  [icone]="icones.arrastar"
+                  [rotulo]="'Arrastar ' + tituloDoWidget(widget)"
+                ></button>
+                <div class="item__texto">
+                  <strong class="item__nome">{{ tituloDoWidget(widget) }}</strong>
+                  <span class="item__meta"
+                    >{{ visualizacoesRotulo[widget.visualizacao] }} · {{ widget.largura }}
+                    {{ widget.largura === 1 ? 'coluna' : 'colunas' }}</span
+                  >
+                </div>
+                <div class="item__acoes">
+                  <button
+                    appBotaoIcone
+                    type="button"
+                    tamanho="sm"
+                    [icone]="icones.sobe"
+                    [rotulo]="'Subir ' + tituloDoWidget(widget)"
+                    [disabled]="i === 0"
+                    (click)="mover(i, i - 1)"
+                  ></button>
+                  <button
+                    appBotaoIcone
+                    type="button"
+                    tamanho="sm"
+                    [icone]="icones.desce"
+                    [rotulo]="'Descer ' + tituloDoWidget(widget)"
+                    [disabled]="i === widgets().length - 1"
+                    (click)="mover(i, i + 1)"
+                  ></button>
+                  <button
+                    appBotaoIcone
+                    type="button"
+                    tamanho="sm"
+                    [icone]="icones.editar"
+                    [rotulo]="'Configurar ' + tituloDoWidget(widget)"
+                    [attr.aria-expanded]="aberto() === widget.id"
+                    [attr.aria-controls]="'cfg-' + widget.id"
+                    (click)="alternar(widget.id)"
+                  ></button>
+                  <button
+                    appBotaoIcone
+                    type="button"
+                    tamanho="sm"
+                    variante="contorno"
+                    [icone]="icones.remover"
+                    [rotulo]="'Remover ' + tituloDoWidget(widget)"
+                    (click)="remover(widget)"
+                  ></button>
+                </div>
+              </div>
+
+              @if (aberto() === widget.id) {
+                <div class="config" [id]="'cfg-' + widget.id">
+                  @if (definicao(widget); as def) {
+                    <p class="config__descricao">{{ def.descricao }}</p>
+                  }
+                  @if (erroWidget(); as e) {
+                    @if (e.id === widget.id) {
+                      <p class="config__erro" role="alert">{{ e.mensagem }}</p>
+                    }
+                  }
+                  <div class="config__campos">
+                    <app-seletor
+                      rotulo="Como mostrar"
+                      [opcoes]="opcoesDeVisualizacao(widget)"
+                      [valor]="widget.visualizacao"
+                      (valorChange)="trocarVisualizacao(widget, $event)"
+                    />
+                    <app-seletor
+                      rotulo="Largura"
+                      [opcoes]="opcoesLargura"
+                      [valor]="widget.largura"
+                      (valorChange)="definirLargura(widget, $event)"
+                    />
+                    <app-campo-texto
+                      rotulo="Título"
+                      opcional
+                      [maximoCaracteres]="80"
+                      [placeholder]="definicao(widget)?.nome ?? ''"
+                      [valor]="widget.titulo ?? ''"
+                      (valorChange)="definirTitulo(widget, $event)"
+                    />
+                    @for (p of parametrosVisiveis(widget); track p.chave) {
+                      <app-seletor
+                        [rotulo]="p.rotulo"
+                        [dica]="p.dica"
+                        [opcional]="!obrigatorio(p, widget)"
+                        placeholder="Escolha"
+                        [permitirVazio]="aceitaVazio(p, widget)"
+                        [opcoes]="opcoesDoParametro(p)"
+                        [valor]="widget.parametros[p.chave] ?? null"
+                        (valorChange)="definirParametro(widget, p.chave, $event)"
+                      />
+                    }
+                  </div>
+
+                  @if (comMeta(widget)) {
+                    <h3 class="editor__subtitulo">
+                      Meta
+                      <app-dica
+                        rotulo="Sobre a meta"
+                        texto="O valor que se quer atingir no período. No ranking, a meta por pessoa aparece em cada linha. Em indicadores em que menos é melhor, a meta é um teto."
+                      />
+                    </h3>
+                    <div class="config__campos">
+                      <app-campo-texto
+                        rotulo="Meta geral"
+                        opcional
+                        tipo="number"
+                        [minimo]="0"
+                        passo="any"
+                        [prefixo]="unidadeDaMeta(widget).prefixo"
+                        [sufixo]="unidadeDaMeta(widget).sufixo"
+                        [valor]="valorDaMeta(widget, 'geral')"
+                        (valorChange)="definirMeta(widget, 'geral', $event)"
+                      />
+                      @if (widget.visualizacao === 'RANKING') {
+                        <app-campo-texto
+                          rotulo="Meta por pessoa"
+                          opcional
+                          tipo="number"
+                          [minimo]="0"
+                          passo="any"
+                          [prefixo]="unidadeDaMeta(widget).prefixo"
+                          [sufixo]="unidadeDaMeta(widget).sufixo"
+                          [valor]="valorDaMeta(widget, 'porPessoa')"
+                          (valorChange)="definirMeta(widget, 'porPessoa', $event)"
+                        />
+                      }
+                    </div>
+                  }
+
+                  <h3 class="editor__subtitulo">Filtros só deste indicador</h3>
+                  <app-filtros-indicador
+                    [filtros]="widget.filtros ?? {}"
+                    (filtrosChange)="definirFiltros(widget, $event)"
+                    [opcoes]="opcoes()"
+                    [diretoria]="diretoria()"
+                  />
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="editor__bloco" aria-labelledby="ed-catalogo">
+      <h2 class="editor__titulo" id="ed-catalogo">Catálogo de indicadores</h2>
+      <app-campo-busca
+        rotulo="Buscar indicador"
+        placeholder="Buscar indicador…"
+        [(valor)]="busca"
+      />
+      @for (grupo of grupos(); track grupo.chave) {
+        <div class="catalogo__grupo">
+          <h3 class="catalogo__titulo">{{ grupo.rotulo }}</h3>
+          <ul class="catalogo__lista">
+            @for (item of grupo.itens; track item.chave) {
+              <li class="catalogo__item">
+                <div class="catalogo__texto">
+                  <strong>{{ item.nome }}</strong>
+                  <span class="catalogo__desc">{{ item.descricao }}</span>
+                </div>
+                <button
+                  appBotao
+                  type="button"
+                  tamanho="sm"
+                  [icone]="icones.adicionar"
+                  [attr.aria-label]="'Adicionar ' + item.nome"
+                  (click)="adicionar(item)"
+                >
+                  Adicionar
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      } @empty {
+        <app-estado-vazio
+          compacto
+          variante="busca"
+          titulo="Nenhum indicador encontrado"
+          texto="Tente outra palavra."
+        />
+      }
+    </section>
+  </div>
+
+  @if (erro(); as e) {
+    <app-estado-vazio
+      compacto
+      variante="erro"
+      titulo="Não foi possível salvar"
+      [falha]="e"
+      [texto]="e.resumo"
+      [codigo]="e.requisicaoId ?? null"
+    />
+  }
+
+  <div class="editor__rodape">
+    <button appBotao type="button" variante="contorno" (click)="cancelado.emit()">Cancelar</button>
+    <button appBotao type="button" variante="marca" [carregando]="salvando()" (click)="salvar()">
+      Salvar painel
+    </button>
+  </div>
+</div>

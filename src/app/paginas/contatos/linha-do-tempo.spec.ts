@@ -53,7 +53,7 @@ function atividade(id: string, ocorridoEm: string, atrasada: boolean): RegistroD
       fimEm: null,
       concluidaEm: null,
       canceladaEm: null,
-      responsavel: { id: 'u1', nome: 'Lucas Pereira', papel: 'COMERCIAL', ativo: true },
+      responsavel: { id: 'u1', nome: 'Lucas Pereira', papel: 'MEMBRO', ativo: true },
       criadoPor: null,
       contatoId: 'c1',
       empresaId: null,
@@ -186,6 +186,36 @@ describe('LinhaDoTempo', () => {
           ligacao({ direcao: 'FEITA', resultado: 'sem_resposta', duracaoSegundos: null }).ligacao!,
         ),
       ).toBe('Ligação feita · sem resposta');
+    });
+
+    it('ligação do 3C+ mostra o selo, a campanha e a qualificação no lugar do canal', async () => {
+      fixture.detectChanges();
+      await esperar();
+      http
+        .expectOne((req) => req.url === '/api/v1/contatos/c1/linha-do-tempo')
+        .flush({
+          itens: [
+            ligacao({
+              provedor: 'TRESC_PLUS',
+              canalId: null,
+              canalNome: null,
+              campanhaNome: 'Prospecção Demo',
+              qualificacaoNome: 'Interessado',
+            }),
+          ],
+          total: 1,
+          pagina: 1,
+          porPagina: 20,
+        });
+      await esperar();
+      fixture.detectChanges();
+      const meta = (fixture.nativeElement as HTMLElement).querySelector(
+        '.item__meta',
+      ) as HTMLElement;
+      expect(meta.textContent).toContain('3C+');
+      expect(meta.textContent).toContain('Prospecção Demo');
+      expect(meta.textContent).toContain('Interessado');
+      expect(meta.textContent).not.toContain('WhatsApp Oficial');
     });
 
     it('mostra a ligação com resumo e abre o painel ali mesmo (player e transcrição)', async () => {

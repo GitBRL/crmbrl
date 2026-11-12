@@ -166,6 +166,12 @@
               tamanho="sm"
               somenteIcone
             />
+            <app-botao-ligar-tresc
+              [contatoId]="conversa.contato.id"
+              [nome]="conversa.contato.nome"
+              rotulo="Ligar pelo 3C+"
+              somenteIcone
+            />
             @if (conversa.acoes.transferir) {
               <button
                 appBotaoIcone
@@ -240,7 +246,7 @@
                 <app-dica
                   rotulo="O que é o prazo"
                   titulo="Prazo da fila (SLA)"
-                  texto="A fila desta conversa tem um prazo para a primeira resposta e outro para resolver. Este já passou: responda ou transfira assim que puder. A liderança da área foi avisada."
+                  texto="A fila desta conversa tem um prazo para a primeira resposta e outro para resolver. Este já passou: responda ou transfira assim que puder. A liderança do setor foi avisada."
                 />
               </span>
             }

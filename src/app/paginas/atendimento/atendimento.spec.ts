@@ -52,7 +52,7 @@ describe('Atendimento (página)', () => {
   it('a dica de filas diz o que cada posição vê', async () => {
     const membro = await criar('COMERCIAL');
     const dica = membro.raiz.querySelector('.cabecalho__dicas app-dica')!;
-    expect(dica.textContent).toContain('sem responsável das filas da sua área');
+    expect(dica.textContent).toContain('sem responsável das filas do seu setor');
   });
 
   it('Alt+↓ e Alt+↑ abrem a próxima e a anterior; Alt+B pede o foco na busca', async () => {

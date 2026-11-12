@@ -217,7 +217,7 @@ export const ROTULO_CRITERIO: Readonly<Record<CriterioParada, string>> = {
 export const ROTULO_MOTIVO_CONDICOES: Readonly<Record<string, string>> = {
   fora_do_segmento: 'A pessoa não atende às condições da automação.',
   opt_out: 'A pessoa pediu para não receber mensagens de marketing.',
-  fora_da_area: 'O registro é de outra área.',
+  fora_da_area: 'O registro é de outro setor.',
 };
 
 /** Rótulo do passo para quem lê o histórico. */

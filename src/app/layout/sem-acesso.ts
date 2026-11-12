@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { RouterLink } from '@angular/router';
 import { LucideArrowLeft, LucideLockKeyhole } from '@lucide/angular';
 
-import { moduloPorRota } from '../nucleo/navegacao';
+import { moduloDaNavegacaoPorRota } from '../nucleo/navegacao';
 import { listarPapeis } from '../nucleo/papeis';
 import { SessaoService } from '../nucleo/sessao/sessao.service';
 import { Botao } from '../ui/botao/botao';
@@ -102,7 +102,7 @@ export class SemAcesso {
 
   protected readonly sessao = inject(SessaoService);
   protected readonly voltar = LucideArrowLeft;
-  protected readonly modulo = computed(() => moduloPorRota(this.pagina()));
+  protected readonly modulo = computed(() => moduloDaNavegacaoPorRota(this.pagina()));
   /** Só quando o módulo inteiro é negado (dentro de um módulo, quem decide é a seção). */
   protected readonly quemAcessa = computed(() => {
     const modulo = this.modulo();

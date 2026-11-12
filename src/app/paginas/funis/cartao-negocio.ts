@@ -22,7 +22,9 @@ import { rotuloDias } from './regras-funis';
 export type AcaoCartao =
   | { readonly tipo: 'abrir' }
   | { readonly tipo: 'assumir' }
-  | { readonly tipo: 'mover'; readonly etapaId: string };
+  | { readonly tipo: 'mover'; readonly etapaId: string }
+  | { readonly tipo: 'responsavel' }
+  | { readonly tipo: 'selecionar' };
 
 /**
  * Cartão do negócio no kanban (TELAS-FASE1 §3.1): título (link para o detalhe), contato e
@@ -47,29 +49,52 @@ export type AcaoCartao =
     SeloTemperatura,
   ],
   template: `
-    <article class="cartao" [class.cartao--pego]="pego()" [class.cartao--parado]="negocio().parado">
+    <article
+      class="cartao"
+      [class.cartao--pego]="pego()"
+      [class.cartao--parado]="negocio().parado"
+      [class.cartao--selecionavel]="selecionando()"
+      [class.cartao--selecionado]="selecionado()"
+      (click)="aoClicarNoCartao($event)"
+    >
       <div class="cartao__topo">
-        <a
-          class="cartao__titulo"
-          [routerLink]="link()"
-          [queryParams]="queryParams()"
-          [attr.aria-describedby]="idResumo()"
-          >{{ negocio().titulo }}</a
-        >
-        <div class="cartao__acoes">
-          <button
-            type="button"
-            class="cartao__mover"
-            [class.cartao__mover--ativo]="pego()"
-            [attr.aria-label]="'Mover ' + negocio().titulo"
-            [attr.aria-pressed]="pego()"
-            aria-describedby="kanban-instrucoes"
-            [attr.data-mover]="negocio().id"
-            (keydown)="teclaMover.emit($event)"
-            (focusout)="saiuDoMover.emit()"
+        @if (selecionando()) {
+          <input
+            type="checkbox"
+            class="cartao__marcar"
+            [checked]="selecionado()"
+            [attr.aria-label]="'Selecionar ' + negocio().titulo"
+            (change)="acao.emit({ tipo: 'selecionar' })"
+          />
+          <span class="cartao__titulo" [attr.id]="idResumo() + '-titulo'">{{
+            negocio().titulo
+          }}</span>
+        } @else {
+          <a
+            class="cartao__titulo"
+            [routerLink]="link()"
+            [queryParams]="queryParams()"
+            [attr.aria-describedby]="idResumo()"
+            (click)="aoClicarNoTitulo($event)"
+            >{{ negocio().titulo }}</a
           >
-            <svg lucideGripVertical [size]="18" />
-          </button>
+        }
+        <div class="cartao__acoes">
+          @if (podeMover() && !selecionando()) {
+            <button
+              type="button"
+              class="cartao__mover"
+              [class.cartao__mover--ativo]="pego()"
+              [attr.aria-label]="'Mover ' + negocio().titulo"
+              [attr.aria-pressed]="pego()"
+              aria-describedby="kanban-instrucoes"
+              [attr.data-mover]="negocio().id"
+              (keydown)="teclaMover.emit($event)"
+              (focusout)="saiuDoMover.emit()"
+            >
+              <svg lucideGripVertical [size]="18" />
+            </button>
+          }
           <app-menu-acoes
             class="cartao__menu"
             [rotulo]="'Ações de ' + negocio().titulo"
@@ -140,31 +165,69 @@ export type AcaoCartao =
 
       <div class="cartao__rodape">
         @if (negocio().responsavel; as responsavel) {
-          <span class="cartao__responsavel" [title]="'Responsável: ' + responsavel.nome">
-            <app-avatar
-              [nome]="responsavel.nome"
-              [foto]="responsavel.avatarUrl ?? null"
-              tamanho="sm"
-              decorativo
-            />
-            <span class="cartao__responsavel-nome">{{ primeiroNome(responsavel.nome) }}</span>
-            <span class="visualmente-oculto">{{ ', responsável: ' + responsavel.nome }}</span>
-          </span>
-        } @else if (oferecerAssumir()) {
-          <button
-            appBotao
-            type="button"
-            tamanho="sm"
-            variante="contorno"
-            class="cartao__assumir"
-            [carregando]="assumindo()"
-            [attr.aria-label]="'Assumir ' + negocio().titulo"
-            (click)="acao.emit({ tipo: 'assumir' })"
-          >
-            Assumir
-          </button>
+          @if (podeTrocarResponsavel()) {
+            <button
+              type="button"
+              class="cartao__responsavel cartao__responsavel--botao"
+              aria-haspopup="dialog"
+              [attr.aria-label]="'Responsável: ' + responsavel.nome + '. Trocar responsável'"
+              [title]="'Responsável: ' + responsavel.nome + '. Clique para trocar'"
+              (click)="trocarResponsavel($event)"
+              (mousedown)="$event.stopPropagation()"
+              (touchstart)="$event.stopPropagation()"
+            >
+              <app-avatar
+                [nome]="responsavel.nome"
+                [foto]="responsavel.avatarUrl ?? null"
+                tamanho="sm"
+                decorativo
+              />
+              <span class="cartao__responsavel-nome">{{ primeiroNome(responsavel.nome) }}</span>
+            </button>
+          } @else {
+            <span class="cartao__responsavel" [title]="'Responsável: ' + responsavel.nome">
+              <app-avatar
+                [nome]="responsavel.nome"
+                [foto]="responsavel.avatarUrl ?? null"
+                tamanho="sm"
+                decorativo
+              />
+              <span class="cartao__responsavel-nome">{{ primeiroNome(responsavel.nome) }}</span>
+              <span class="visualmente-oculto">{{ ', responsável: ' + responsavel.nome }}</span>
+            </span>
+          }
         } @else {
-          <span class="cartao__sem-responsavel">Sem responsável</span>
+          <span class="cartao__sem">
+            @if (podeTrocarResponsavel()) {
+              <button
+                type="button"
+                class="cartao__sem-responsavel cartao__sem-responsavel--botao"
+                aria-haspopup="dialog"
+                aria-label="Sem responsável. Trocar responsável"
+                (click)="trocarResponsavel($event)"
+                (mousedown)="$event.stopPropagation()"
+                (touchstart)="$event.stopPropagation()"
+              >
+                Sem responsável
+              </button>
+            } @else {
+              <span class="cartao__sem-responsavel">Sem responsável</span>
+            }
+            @if (oferecerAssumir()) {
+              <button
+                appBotao
+                type="button"
+                tamanho="sm"
+                variante="contorno"
+                class="cartao__assumir"
+                [carregando]="assumindo()"
+                [attr.aria-label]="'Assumir ' + negocio().titulo"
+                (click)="acao.emit({ tipo: 'assumir' })"
+              >
+                Assumir
+              </button>
+            }
+          </span>
         }
 
         <app-selo
@@ -193,9 +256,16 @@ export class CartaoNegocio {
   readonly etapas = input<readonly Etapa[]>([]);
   /** Pode sair da etapa (falso: ganho/perdido para quem não reabre, R5.5). */
   readonly podeSair = input(true, { transform: booleanAttribute });
+  /** Nível `VER` não move: sem a alça e sem "Mover para…" (R5.12). */
+  readonly podeMover = input(true, { transform: booleanAttribute });
   readonly podeAssumir = input(false, { transform: booleanAttribute });
   readonly assumindo = input(false, { transform: booleanAttribute });
   readonly mostrarValor = input(true, { transform: booleanAttribute });
+  /** Troca o responsável pelo cartão (R5.15): `podeAgirEm` e o negócio. */
+  readonly podeTrocarResponsavel = input(false, { transform: booleanAttribute });
+  /** Modo seleção do quadro (R5.16): o clique marca em vez de abrir. */
+  readonly selecionando = input(false, { transform: booleanAttribute });
+  readonly selecionado = input(false, { transform: booleanAttribute });
   /** Pego pelo teclado (modo de mover). */
   readonly pego = input(false, { transform: booleanAttribute });
 
@@ -217,7 +287,7 @@ export class CartaoNegocio {
     const mensal = this.negocio().valorRecorrente;
     return mensal && Number(mensal) > 0 ? formatarMoeda(mensal, { centavos: false }) : null;
   });
-  /** Sem responsável e ainda aberto: quem é da área pode assumir (ganho/perdido, não). */
+  /** Sem responsável e ainda aberto: quem é do setor pode assumir (ganho/perdido, não). */
   protected readonly oferecerAssumir = computed(() => {
     const { responsavel, status } = this.negocio();
     return !responsavel && status === 'ABERTO' && this.podeAssumir();
@@ -247,7 +317,7 @@ export class CartaoNegocio {
     if (this.oferecerAssumir()) {
       itens.push({ id: 'assumir', rotulo: 'Assumir' });
     }
-    this.etapas()
+    (this.podeMover() ? this.etapas() : [])
       .filter((etapa) => etapa.id !== negocio.etapa.id)
       .forEach((etapa, indice) => {
         itens.push({
@@ -257,11 +327,35 @@ export class CartaoNegocio {
           desabilitado: !this.podeSair(),
           motivo: this.podeSair()
             ? undefined
-            : 'Só a liderança da área, C-level e Admin reabrem negócios fechados.',
+            : 'Só a liderança do setor, C-level e Admin reabrem negócios fechados.',
         });
       });
     return itens;
   });
+
+  protected trocarResponsavel(evento: Event): void {
+    evento.stopPropagation();
+    this.acao.emit({ tipo: 'responsavel' });
+  }
+
+  /** Ctrl/Cmd+clique no título marca o cartão em vez de abrir o detalhe (R5.16). */
+  protected aoClicarNoTitulo(evento: MouseEvent): void {
+    if (evento.ctrlKey || evento.metaKey) {
+      evento.preventDefault();
+      this.acao.emit({ tipo: 'selecionar' });
+    }
+  }
+
+  /** No modo seleção, clicar no cartão (fora dos botões) marca; Ctrl/Cmd+clique também. */
+  protected aoClicarNoCartao(evento: MouseEvent): void {
+    const alvo = evento.target as HTMLElement | null;
+    if (alvo?.closest('button, a, input, app-menu-acoes')) {
+      return;
+    }
+    if (this.selecionando() || evento.ctrlKey || evento.metaKey) {
+      this.acao.emit({ tipo: 'selecionar' });
+    }
+  }
 
   protected primeiroNome(nome: string): string {
     return nome.trim().split(/\s+/)[0] ?? nome;

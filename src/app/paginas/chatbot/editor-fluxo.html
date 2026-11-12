@@ -5,7 +5,7 @@
     [falha]="falha"
     [titulo]="falha.status === 404 ? 'Fluxo não encontrado' : 'Não conseguimos abrir o fluxo'"
     [texto]="
-      falha.status === 404 ? 'Ele pode ter sido excluído ou ser de outra área.' : falha.resumo
+      falha.status === 404 ? 'Ele pode ter sido excluído ou ser de outro setor.' : falha.resumo
     "
     [codigo]="falha.ehFalhaDoServidor ? falha.requisicaoId : null"
     [manterAcoes]="true"
@@ -83,7 +83,7 @@
 
   @if (!podeEditar()) {
     <p class="aviso" role="note">
-      Você pode ver e testar este fluxo, mas só quem cuida da área dele consegue editar.
+      Você pode ver e testar este fluxo, mas só quem cuida do setor dele consegue editar.
     </p>
   }
 

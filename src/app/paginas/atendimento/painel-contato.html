@@ -40,6 +40,7 @@
         verPermissao
         coluna
       />
+      <app-botao-ligar-tresc [contatoId]="conversa().contato.id" [nome]="conversa().contato.nome" />
     </section>
 
     <!-- Meios de contato -->
@@ -326,7 +327,7 @@
         <app-dica
           rotulo="O que são os prazos"
           titulo="Prazos (SLA)"
-          texto="Cada fila define em quanto tempo a primeira resposta deve sair e em quanto tempo a conversa deve ser resolvida. Os prazos contam a partir da chegada da conversa; quando estouram, a lista mostra o tempo de espera em coral e a liderança da área é avisada."
+          texto="Cada fila define em quanto tempo a primeira resposta deve sair e em quanto tempo a conversa deve ser resolvida. Os prazos contam a partir da chegada da conversa; quando estouram, a lista mostra o tempo de espera em coral e a liderança do setor é avisada."
         />
       </div>
       <dl class="prazos">

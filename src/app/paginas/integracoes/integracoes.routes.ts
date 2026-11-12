@@ -42,6 +42,11 @@ export const ROTAS_INTEGRACOES: Routes = [
         loadComponent: () => import('./historico').then((m) => m.Historico),
       },
       {
+        path: '3c-plus',
+        title: '3C+',
+        loadComponent: () => import('./tresc-plus').then((m) => m.TrescPlusIntegracao),
+      },
+      {
         path: 'saida',
         title: 'Webhooks de saída',
         loadComponent: () => import('./webhooks-saida').then((m) => m.WebhooksSaida),

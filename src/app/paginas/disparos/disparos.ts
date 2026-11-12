@@ -148,7 +148,7 @@ const COLUNAS: readonly ColunaTabela[] = [
         <app-estado-vazio
           variante="sem-acesso"
           titulo="Você não tem acesso aos Disparos"
-          texto="Peça ao líder da sua área para liberar o acesso."
+          texto="Peça ao líder do seu setor para liberar o acesso."
         />
       } @else {
         <app-estado-vazio

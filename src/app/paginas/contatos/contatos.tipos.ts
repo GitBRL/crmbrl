@@ -1,4 +1,5 @@
 import type { Papel } from '../../nucleo/papeis';
+import { compararNaJornada } from '../../nucleo/setores/setores';
 import type { Area } from '../../nucleo/sessao/perfil';
 
 /**
@@ -364,6 +365,11 @@ export interface LigacaoDaLinhaDoTempo {
   readonly conversaId: string | null;
   readonly canalId: string | null;
   readonly canalNome: string | null;
+  /** R34.3: de onde vem a ligação (ausente = WhatsApp). */
+  readonly provedor?: 'WHATSAPP' | 'TRESC_PLUS';
+  readonly negocioId?: string | null;
+  readonly qualificacaoNome?: string | null;
+  readonly campanhaNome?: string | null;
   readonly atendente: { readonly id: string; readonly nome: string } | null;
   readonly iniciadaEm: string;
   readonly encerradaEm: string | null;
@@ -524,6 +530,9 @@ export interface AtividadeRelacionada {
   readonly inicioEm?: string | null;
   readonly fimEm?: string | null;
   readonly atrasada: boolean;
+  /** R6.6 — reunião pendente cujo início já passou. */
+  readonly aguardandoResultado?: boolean;
+  readonly resultadoReuniao?: 'COMPARECEU' | 'NAO_COMPARECEU' | 'REMARCADA' | null;
   readonly responsavel: { readonly id: string; readonly nome: string };
   readonly concluidaEm?: string | null;
   readonly canceladaEm?: string | null;
@@ -559,9 +568,6 @@ export interface UsuarioResumo {
 // Jornada entre funis (R5.7)
 // ---------------------------------------------------------------------------------------------
 
-/** Ordem da jornada do cliente: Marketing → Comercial → Customer Success. */
-export const ORDEM_DAS_AREAS: readonly Area[] = ['MARKETING', 'COMERCIAL', 'CS'];
-
 export interface VinculoDaJornada {
   readonly id: string;
   readonly titulo: string;
@@ -589,20 +595,17 @@ function vinculo(negocio: NegocioRelacionado): VinculoDaJornada {
 }
 
 /**
- * Os negócios do contato na ordem da jornada (Marketing → Comercial → CS; em cada área, os
+ * Os negócios do contato na ordem da jornada (a `ordem` dos setores; em cada setor, os
  * mais antigos primeiro), com os vínculos "veio de" e "gerou" entre eles.
  */
 export function montarJornada(
   negocios: readonly NegocioRelacionado[],
 ): readonly NegocioNaJornada[] {
   const porId = new Map(negocios.map((negocio) => [negocio.id, negocio]));
-  const ordem = (area: Area) => {
-    const indice = ORDEM_DAS_AREAS.indexOf(area);
-    return indice === -1 ? ORDEM_DAS_AREAS.length : indice;
-  };
   return [...negocios]
     .sort(
-      (a, b) => ordem(a.funil.area) - ordem(b.funil.area) || a.criadoEm.localeCompare(b.criadoEm),
+      (a, b) =>
+        compararNaJornada(a.funil.area, b.funil.area) || a.criadoEm.localeCompare(b.criadoEm),
     )
     .map((negocio) => {
       const origemId = negocio.negocioOrigemId ?? null;

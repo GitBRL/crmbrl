@@ -180,8 +180,8 @@ function gravarPreferencia(chave: string, valor: string | null): void {
 }
 
 /** R12: Marketing não usa o Atendimento, então também não liga nem atende. */
-export function papelUsaAtendimento(papel: string | null | undefined): boolean {
-  return !!papel && papel !== 'MARKETING' && papel !== 'LIDER_MARKETING';
+export function usuarioUsaAtendimento(usuario: { readonly area?: string | null } | null): boolean {
+  return !!usuario && usuario.area !== 'MARKETING';
 }
 
 /**
@@ -268,7 +268,7 @@ export class LigacaoService {
   readonly suportaAltoFalante =
     typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
 
-  readonly usaAtendimento = computed(() => papelUsaAtendimento(this.sessao.usuario()?.papel));
+  readonly usaAtendimento = computed(() => usuarioUsaAtendimento(this.sessao.usuario()));
   readonly ocupado = computed(() => this._emCurso() !== null);
   readonly emAndamento = computed(() => this._emCurso()?.fase === 'em-andamento');
   /** A conexão com o CRM caiu durante a ligação (a API encerra se passar de 15 s). */
@@ -405,7 +405,12 @@ export class LigacaoService {
       }
     }
     for (const ligacao of ativas.tocando) {
-      if (this.ocupado() || this.dispensadas.has(ligacao.id) || !ligacao.ofertaSdp) {
+      if (
+        this.ocupado() ||
+        this.dispensadas.has(ligacao.id) ||
+        !ligacao.ofertaSdp ||
+        !ligacao.canal
+      ) {
         continue;
       }
       this.adicionarToque({
@@ -455,7 +460,7 @@ export class LigacaoService {
     }
     try {
       const ligacao = await this.api.detalhar(id);
-      if (ligacao.estado === 'TOCANDO' && ligacao.ofertaSdp && !this.ocupado()) {
+      if (ligacao.estado === 'TOCANDO' && ligacao.ofertaSdp && ligacao.canal && !this.ocupado()) {
         this.dispensadas.delete(id);
         this.adicionarToque({
           ligacaoId: ligacao.id,
@@ -614,7 +619,8 @@ export class LigacaoService {
         return { ok: false, mensagem: 'Ligação cancelada.', motivo: 'cancelada' };
       }
       this.criando = false;
-      this.paraGravar = ligacao.gravar ? { id: ligacao.id, canalId: ligacao.canal.id } : null;
+      this.paraGravar =
+        ligacao.gravar && ligacao.canal ? { id: ligacao.id, canalId: ligacao.canal.id } : null;
       this.definirCurso({
         ...this._emCurso()!,
         id: ligacao.id,
@@ -925,7 +931,7 @@ export class LigacaoService {
     this.ligarAudioDoCliente();
     this.vigiarMidia();
     void this.listarDispositivos();
-    if (ligacao.gravar) {
+    if (ligacao.gravar && ligacao.canal) {
       this.comecarGravacao({ id: ligacao.id, canalId: ligacao.canal.id });
     }
   }

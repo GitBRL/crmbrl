@@ -30,11 +30,28 @@ export interface Etapa {
   readonly probabilidade?: number | null;
 }
 
+/** Quem vê o funil: o setor dono (`SETOR`) ou só líderes e quem tem acesso explícito (`RESTRITA`). */
+export type VisibilidadeFunil = 'SETOR' | 'RESTRITA';
+
+/** Nível de quem consulta no funil: `VER` < `MEMBRO` < `GESTOR` < `CONFIGURAR`. */
+export type NivelNoFunil = 'VER' | 'MEMBRO' | 'GESTOR' | 'CONFIGURAR';
+
 export interface Funil {
   readonly id: string;
   readonly nome: string;
+  /** Chave do setor dono do funil. */
   readonly area: Area;
-  /** Funil-base da área (R5.1): não pode ser excluído. */
+  /** Nome do setor dono. */
+  readonly nomeSetor?: string | null;
+  readonly visibilidade?: VisibilidadeFunil;
+  /** Nível efetivo de quem consulta (decide os botões: S3b). */
+  readonly nivel?: NivelNoFunil;
+  /**
+   * Vê todos os negócios do funil? O `nivel` é o de ação: com "Só ver" no próprio funil a pessoa vê
+   * os do colega, mas só age nos seus e nos sem responsável. Ausente (API antiga): como antes.
+   */
+  readonly veTodos?: boolean;
+  /** Funil-base do setor (R5.1): não pode ser excluído. */
   readonly base: boolean;
   readonly ordem: number;
   /** Falso = arquivado. */
@@ -42,6 +59,67 @@ export interface Funil {
   readonly descricao?: string | null;
   /** Em ordem. */
   readonly etapas: readonly Etapa[];
+}
+
+/** Nível de um acesso extra (o `CONFIGURAR` nunca se concede por acesso). */
+export type NivelDoAcesso = 'VER' | 'MEMBRO' | 'GESTOR';
+
+/** Uma linha de `GET /funis/:id/acessos` (`AcessoDto`). */
+export interface AcessoFunil {
+  readonly id: string;
+  readonly alvo: 'SETOR' | 'PESSOA';
+  readonly area: string | null;
+  readonly nomeSetor: string | null;
+  readonly setorAtivo: boolean | null;
+  readonly usuario: {
+    readonly id: string;
+    readonly nome: string;
+    readonly avatarUrl?: string | null;
+    readonly papel: Papel;
+    readonly area?: Area | null;
+    readonly rotuloPapel: string;
+    readonly ativo: boolean;
+  } | null;
+  readonly nivel: NivelDoAcesso;
+  readonly atualizadoEm?: string;
+}
+
+export interface AcessosDoFunil {
+  readonly funilId: string;
+  readonly nome: string;
+  readonly area: Area;
+  readonly nomeSetor: string;
+  readonly visibilidade: VisibilidadeFunil;
+  readonly acessos: readonly AcessoFunil[];
+}
+
+/** Linha enviada no `PUT /funis/:id/acessos`: um alvo (setor ou pessoa) e o nível. */
+export interface LinhaDeAcesso {
+  readonly area?: string;
+  readonly usuarioId?: string;
+  readonly nivel: NivelDoAcesso;
+}
+
+export interface EtapaNovaDoFunil {
+  readonly nome: string;
+  readonly tipo: TipoEtapa;
+}
+
+/** Corpo do `POST /funis`. */
+export interface NovoFunil {
+  readonly nome: string;
+  readonly area: Area;
+  readonly descricao?: string | null;
+  readonly visibilidade?: VisibilidadeFunil;
+  readonly etapas?: readonly EtapaNovaDoFunil[];
+}
+
+/** Corpo do `PATCH /funis/:id`. */
+export interface AlteracaoFunil {
+  readonly nome?: string;
+  readonly descricao?: string | null;
+  readonly visibilidade?: VisibilidadeFunil;
+  readonly ativo?: boolean;
 }
 
 export interface ResumoFunil {
@@ -113,13 +191,24 @@ export interface Negocio {
   readonly etapa: EtapaDoNegocio;
   readonly contato: ResumoContato;
   readonly empresa?: ResumoEmpresa | null;
-  /** Nulo = sem responsável (o membro da área pode assumir). */
+  /** Nulo = sem responsável (o membro do setor pode assumir). */
   readonly responsavel?: ResumoUsuario | null;
   readonly criadoPorId?: string | null;
   readonly criadoEm: string;
   readonly atualizadoEm: string;
   /** SDR com IA (Onda G): temperatura e nota do lead; nulo = a IA nunca qualificou o contato. */
   readonly sdr?: SdrDoCartao | null;
+  /** R6.7 — primeira ação de uma pessoa com o contato depois da criação do negócio; nulo = ainda não atendido. */
+  readonly primeiraInteracao?: PrimeiraInteracao | null;
+}
+
+export type TipoPrimeiraInteracao = 'LIGACAO' | 'MENSAGEM' | 'EMAIL' | 'ATIVIDADE';
+
+/** R6.7 — a primeira interação humana do negócio (gravada uma vez pela API). */
+export interface PrimeiraInteracao {
+  readonly em: string;
+  readonly tipo: TipoPrimeiraInteracao;
+  readonly por: ResumoUsuario | null;
 }
 
 /** Um negócio do outro lado da jornada (passagem entre funis, R5.7). */
@@ -263,6 +352,9 @@ export interface Atividade {
   readonly fimEm?: string | null;
   /** Pendente com o prazo no passado (R6.3). */
   readonly atrasada: boolean;
+  /** R6.6 — reunião pendente cujo início já passou. */
+  readonly aguardandoResultado?: boolean;
+  readonly resultadoReuniao?: 'COMPARECEU' | 'NAO_COMPARECEU' | 'REMARCADA' | null;
   readonly responsavel: ResumoUsuario;
   readonly concluidaEm?: string | null;
   readonly negocio?: {
@@ -351,7 +443,7 @@ export interface AlteracaoEtapa {
 }
 
 // Regras automáticas (para as dicas do quadro; só Admin e C-level leem as passagens, e a
-// liderança, o rodízio da área) ------------------------------------------------------------
+// liderança, o rodízio do setor) ------------------------------------------------------------
 
 export type EstrategiaDistribuicao = 'RODIZIO' | 'RESPONSAVEL_FIXO' | 'LIDER_DA_AREA';
 
@@ -373,4 +465,37 @@ export interface RegraDoRodizio {
   readonly area: Area;
   readonly incluirLideres: boolean;
   readonly participantes: readonly { readonly id: string; readonly nome: string }[];
+}
+
+/** Ações em massa do quadro (R5.16). */
+export type AcaoEmMassa =
+  | 'MOVER'
+  | 'RESPONSAVEL'
+  | 'GANHAR'
+  | 'PERDER'
+  | 'ETIQUETAR'
+  | 'DESETIQUETAR'
+  | 'ATIVIDADE'
+  | 'EXCLUIR'
+  | 'DISCADOR';
+
+export interface PedidoEmMassa {
+  readonly negocioIds: readonly string[];
+  readonly acao: AcaoEmMassa;
+  readonly dados?: Readonly<Record<string, unknown>>;
+}
+
+export interface FalhaEmMassa {
+  readonly negocioId: string;
+  /** Nulo quando a pessoa não vê o negócio. */
+  readonly titulo: string | null;
+  readonly statusCode: number;
+  readonly regra: string | null;
+  readonly mensagem: string;
+}
+
+export interface ResultadoEmMassa {
+  readonly total: number;
+  readonly sucesso: number;
+  readonly falhas: readonly FalhaEmMassa[];
 }

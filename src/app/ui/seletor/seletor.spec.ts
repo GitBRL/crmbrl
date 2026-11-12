@@ -83,4 +83,26 @@ describe('Seletor', () => {
     await fixture.whenStable();
     expect(hospedeiro.lider.value).toBeNull();
   });
+
+  it('opções com `grupo` ficam sob um optgroup e o valor segue o índice da opção', async () => {
+    const fixture = TestBed.createComponent(Seletor<string>);
+    fixture.componentRef.setInput('rotulo', 'Campo');
+    fixture.componentRef.setInput('opcoes', [
+      { valor: 'nome', rotulo: 'Nome', grupo: 'Contato' },
+      { valor: 'email', rotulo: 'E-mail', grupo: 'Contato' },
+      { valor: 'funil', rotulo: 'Funil', grupo: 'Negócio' },
+    ]);
+    await fixture.whenStable();
+    const select = (fixture.nativeElement as HTMLElement).querySelector('select')!;
+    expect(
+      Array.from(select.querySelectorAll('optgroup')).map((g) => [g.label, g.children.length]),
+    ).toEqual([
+      ['Contato', 2],
+      ['Negócio', 1],
+    ]);
+    select.value = '2';
+    select.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    expect(fixture.componentInstance.valor()).toBe('funil');
+  });
 });

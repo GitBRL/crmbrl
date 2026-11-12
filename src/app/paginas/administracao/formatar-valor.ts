@@ -1,7 +1,12 @@
 import { formatarDataHora, formatarNumero } from '../../nucleo/formatos';
 import { ROTULO_PAPEL } from '../../nucleo/papeis';
-import { ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { CHAVES_BASE, nomeDoSetor } from '../../nucleo/setores/setores';
 import { ROTULO_ESTRATEGIA, ROTULO_MODELO } from '../integracoes/tipos';
+
+/** Rótulo de um código: os fixos ou, para as chaves de setor, o nome do setor. */
+function rotuloDoCodigo(codigo: string): string | undefined {
+  return CHAVES_BASE.includes(codigo) ? nomeDoSetor(codigo) : ROTULO_CODIGO[codigo];
+}
 
 /** Data e hora ISO (como a API grava: `2026-10-21T21:10:51.380Z`). */
 const DATA_HORA_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -11,7 +16,13 @@ const CODIGO = /^[A-Z][A-Z_]+$/;
 /** Códigos dos enums da API (prisma/schema.prisma) que aparecem no antes/depois. */
 const ROTULO_CODIGO: Readonly<Record<string, string>> = {
   ...ROTULO_PAPEL,
-  ...ROTULO_AREA,
+  // Papéis do modelo antigo, que ainda aparecem nos registros de auditoria.
+  LIDER_COMERCIAL: 'Líder Comercial',
+  COMERCIAL: 'Comercial',
+  LIDER_MARKETING: 'Líder Marketing',
+  MARKETING: 'Marketing',
+  LIDER_CS: 'Líder CS',
+  CS: 'Customer Success',
   ...ROTULO_ESTRATEGIA,
   ...ROTULO_MODELO,
   ABERTA: 'Aberta',
@@ -55,7 +66,7 @@ export type NomesConhecidos = ReadonlyMap<string, string>;
 /**
  * Um valor do antes/depois da auditoria, legível: vazio vira "—", booleano "Sim"/"Não", data
  * ISO "21/10/2026 às 18:10", número em pt-BR, códigos da API em português ("RODIZIO" →
- * "Rodízio da área"), ids viram o nome quando sabemos qual é, lista separada por vírgula e
+ * "Rodízio do setor"), ids viram o nome quando sabemos qual é, lista separada por vírgula e
  * objeto como "chave: valor". Campos sensíveis chegam como `[omitido]` (R3.1).
  */
 export function formatarValor(valor: unknown, nomes?: NomesConhecidos): ValorFormatado {
@@ -117,8 +128,8 @@ function formatarTexto(valor: string, nomes?: NomesConhecidos): ValorFormatado {
       ? { texto: nome, vazio: false, original: valor }
       : { texto: valor, vazio: false, id: true };
   }
-  if (CODIGO.test(valor) && ROTULO_CODIGO[valor]) {
-    return { texto: ROTULO_CODIGO[valor], vazio: false, original: valor };
+  if (CODIGO.test(valor) && rotuloDoCodigo(valor)) {
+    return { texto: rotuloDoCodigo(valor) as string, vazio: false, original: valor };
   }
   return { texto: valor, vazio: false };
 }
@@ -253,6 +264,6 @@ function comoPessoa(valor: unknown): string | null {
   if (typeof nome !== 'string') {
     return null;
   }
-  const rotuloPapel = typeof papel === 'string' ? ROTULO_CODIGO[papel] : undefined;
+  const rotuloPapel = typeof papel === 'string' ? rotuloDoCodigo(papel) : undefined;
   return rotuloPapel ? `${nome} (${rotuloPapel})` : nome;
 }

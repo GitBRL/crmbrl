@@ -6,8 +6,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CARREGADOR_ECHARTS } from '../../ui/grafico/grafico';
-import type { Papel } from '../../nucleo/papeis';
-import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
+import { entrarComo, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
 import { PAINEIS_DE_TESTE } from './bi-de-teste';
 import { Bi } from './bi';
 import { ROTAS_BI } from './bi.routes';
@@ -65,7 +64,7 @@ describe('BI (página)', () => {
   async function abrir(
     caminho: string,
     paineis: readonly IdPainel[],
-    papel: Papel = 'ADMIN',
+    papel: PapelDeTeste = 'ADMIN',
     responder = true,
   ) {
     entrarComo(papel);
@@ -152,6 +151,8 @@ describe('BI (página)', () => {
       'Sucesso do cliente',
       'Atendimento',
       'Financeiro',
+      // R33: os painéis de indicadores configuráveis ficam numa aba à parte.
+      'Indicadores',
     ]);
     expect(texto(raiz.querySelector('app-indicador .indicador__legenda'))).toBe('Leads');
     http.match(() => true);

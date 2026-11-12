@@ -1,7 +1,10 @@
 import { ROTULO_PAPEL, type Papel } from '../../nucleo/papeis';
-import { ROTULO_AREA, type Area } from '../../nucleo/sessao/perfil';
+import { type Area } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import type {
   ContagensEncaminhamento,
+  DivisaoDosNegocios,
+  MotivoDivisao,
   Equipe,
   Indicadores,
   MembroDaEquipe,
@@ -15,75 +18,19 @@ import type {
  * autoridade: aqui só o que evita erro bobo e explica o porquê.
  */
 
-/** Área de cada papel; `null` para Admin e C-level (R1, tabela da seção 1). */
-export const AREA_DO_PAPEL: Readonly<Record<Papel, Area | null>> = {
-  ADMIN: null,
-  C_LEVEL: null,
-  LIDER_COMERCIAL: 'COMERCIAL',
-  COMERCIAL: 'COMERCIAL',
-  LIDER_MARKETING: 'MARKETING',
-  MARKETING: 'MARKETING',
-  LIDER_CS: 'CS',
-  CS: 'CS',
-};
-
-/** O líder de cada área. */
-export const LIDER_DA_AREA: Readonly<Record<Area, Papel>> = {
-  COMERCIAL: 'LIDER_COMERCIAL',
-  MARKETING: 'LIDER_MARKETING',
-  CS: 'LIDER_CS',
-};
-
-const MEMBRO_DA_AREA: Readonly<Record<Area, Papel>> = {
-  COMERCIAL: 'COMERCIAL',
-  MARKETING: 'MARKETING',
-  CS: 'CS',
-};
-
-export function ehLiderDeArea(papel: Papel): boolean {
-  const area = AREA_DO_PAPEL[papel];
-  return area !== null && LIDER_DA_AREA[area] === papel;
-}
-
-export function ehMembroDeArea(papel: Papel): boolean {
-  const area = AREA_DO_PAPEL[papel];
-  return area !== null && MEMBRO_DA_AREA[area] === papel;
-}
-
-/**
- * O papel que o líder de quem tem `papel` precisa ter (R1.2): membro → o líder da mesma área;
- * líder → C-level (o "C-level responsável"); Admin e C-level → nenhum.
- */
+/** O papel que o líder de quem tem `papel` precisa ter (R1.2): membro → líder do mesmo setor; líder → C-level; Admin e C-level → nenhum. */
 export function liderEsperado(papel: Papel): Papel | null {
-  const area = AREA_DO_PAPEL[papel];
-  if (area === null) {
-    return null;
+  if (papel === 'MEMBRO') {
+    return 'LIDER';
   }
-  return ehLiderDeArea(papel) ? 'C_LEVEL' : LIDER_DA_AREA[area];
+  return papel === 'LIDER' ? 'C_LEVEL' : null;
 }
-
-/** "um Líder Comercial" / "um C-level". */
-function umPapel(papel: Papel): string {
-  return `um ${ROTULO_PAPEL[papel]}`;
-}
-
-/** Plural dos papéis de líder, para "Só aparecem Líderes Comerciais ativos". */
-const PLURAL_PAPEL: Readonly<Record<Papel, string>> = {
-  ADMIN: 'Admins',
-  C_LEVEL: 'C-levels',
-  LIDER_COMERCIAL: 'Líderes Comerciais',
-  COMERCIAL: 'pessoas do Comercial',
-  LIDER_MARKETING: 'Líderes Marketing',
-  MARKETING: 'pessoas do Marketing',
-  LIDER_CS: 'Líderes CS',
-  CS: 'pessoas de CS',
-};
 
 /**
  * Por que o seletor de líder só oferece certas pessoas (R1.2), para o papel escolhido. Vai na
  * dica do campo.
  */
-export function explicacaoDoLider(papel: Papel | null): string {
+export function explicacaoDoLider(papel: Papel | null, area?: string | null): string {
   if (papel === null) {
     return 'Escolha o papel primeiro: é ele que define quem pode ser o líder.';
   }
@@ -92,22 +39,29 @@ export function explicacaoDoLider(papel: Papel | null): string {
     return `Quem é ${ROTULO_PAPEL[papel]} não tem líder.`;
   }
   if (esperado === 'C_LEVEL') {
-    return `Quem é ${ROTULO_PAPEL[papel]} responde a um C-level ativo (o C-level responsável). Por isso só aparecem C-levels.`;
+    return 'Quem é Líder responde a um C-level ativo (o C-level responsável). Por isso só aparecem C-levels.';
   }
-  return `Quem é ${ROTULO_PAPEL[papel]} responde a ${umPapel(esperado)} ativo, da mesma área. Por isso só aparecem ${PLURAL_PAPEL[esperado]}.`;
+  if (!area) {
+    return 'Quem é Membro responde a um Líder ativo do mesmo setor. Escolha o setor primeiro.';
+  }
+  return `Quem é Membro responde a um Líder ativo do mesmo setor (${nomeDoSetor(area)}). Por isso só aparecem os líderes desse setor.`;
 }
 
 /** Texto curto da ajuda (balão) do seletor de líder. */
 export const AJUDA_LIDER =
-  'Cada pessoa responde a um líder: quem é de uma área responde ao líder daquela área; os líderes respondem a um C-level. Admin e C-level não têm líder. Só aparecem pessoas ativas.';
+  'Cada pessoa responde a um líder: quem é membro de um setor responde ao líder daquele setor; os líderes respondem a um C-level. Admin e C-level não têm líder. Só aparecem pessoas ativas.';
 
-/** Quando não há ninguém que possa liderar o papel. */
-export function semLiderDisponivel(papel: Papel): string {
+/** Quando não há ninguém que possa liderar o papel (no setor escolhido, para membro). */
+export function semLiderDisponivel(papel: Papel, area?: string | null): string {
   const esperado = liderEsperado(papel);
   if (esperado === null) {
     return '';
   }
-  return `Não há nenhum ${ROTULO_PAPEL[esperado]} ativo para liderar quem é ${ROTULO_PAPEL[papel]}. Convide ou reative ${umPapel(esperado)} antes.`;
+  if (esperado === 'C_LEVEL') {
+    return 'Não há nenhum C-level ativo para liderar quem é Líder. Convide ou reative um C-level antes.';
+  }
+  const onde = area ? ` em ${nomeDoSetor(area)}` : '';
+  return `Não há nenhum Líder ativo${onde} para liderar quem é Membro. Convide ou reative um Líder${area ? ' desse setor' : ''} antes.`;
 }
 
 /**
@@ -115,7 +69,9 @@ export function semLiderDisponivel(papel: Papel): string {
  * desligamento de um líder, os liderados respondem ao destinatário até o Admin definir um novo
  * líder). Só para ativos.
  */
-export function aguardaNovoLider(usuario: Pick<Usuario, 'papel' | 'ativo' | 'lider'>): boolean {
+export function aguardaNovoLider(
+  usuario: Pick<Usuario, 'papel' | 'ativo' | 'lider'> & { readonly area?: string | null },
+): boolean {
   if (!usuario.ativo) {
     return false;
   }
@@ -124,7 +80,13 @@ export function aguardaNovoLider(usuario: Pick<Usuario, 'papel' | 'ativo' | 'lid
     return false;
   }
   const lider = usuario.lider;
-  return lider === null || !lider.ativo || lider.papel !== esperado;
+  if (lider === null || !lider.ativo || lider.papel !== esperado) {
+    return true;
+  }
+  // Membro: o líder precisa ser do mesmo setor (R1.2).
+  return (
+    usuario.papel === 'MEMBRO' && !!lider.area && !!usuario.area && lider.area !== usuario.area
+  );
 }
 
 /** "Pedro" de "Pedro Santos" (a confirmação forte do desligamento). */
@@ -202,6 +164,29 @@ export function fraseDoEncaminhamento(previa: PreviaDesligamento): string {
   return `${inicio} de ${nome} ${verbo} para ${destino}.`;
 }
 
+/** Por que este destinatário recebe esta parte dos negócios abertos (R7.3), em português. */
+export const MOTIVO_DA_DIVISAO: Readonly<Record<MotivoDivisao, string>> = {
+  DESTINATARIO: 'é quem recebe o que era da pessoa',
+  LIDER_DO_SETOR_DO_FUNIL: 'é o líder do setor dono do funil, onde quem recebe não atua',
+  C_LEVEL: 'é um C-level: não há líder do setor do funil',
+  ADMIN: 'é o Admin: não há líder nem C-level para o funil',
+};
+
+/** "2 negócios abertos nos funis Comercial e Pós-venda". */
+export function frasePartilhaDosNegocios(divisao: DivisaoDosNegocios): string {
+  const negocios =
+    divisao.negocios === 1 ? '1 negócio aberto' : `${divisao.negocios} negócios abertos`;
+  const funis = divisao.funis.map((funil) => funil.nome);
+  return funis.length ? `${negocios} em ${juntarNomes(funis)}` : negocios;
+}
+
+/** A divisão só interessa quando há negócios a dividir. */
+export function divisaoComNegocios(
+  divisao: readonly DivisaoDosNegocios[] | undefined,
+): readonly DivisaoDosNegocios[] {
+  return (divisao ?? []).filter((parte) => parte.negocios > 0);
+}
+
 /** O que entra na frase da prévia (liderados e responsável fixo aparecem à parte). */
 const ITENS_DA_FRASE: readonly (keyof ContagensEncaminhamento)[] = [
   'atividades',
@@ -210,10 +195,9 @@ const ITENS_DA_FRASE: readonly (keyof ContagensEncaminhamento)[] = [
   'empresas',
 ];
 
-/** "Comercial", "Customer Success"; Admin e C-level → "Diretoria". */
-export function rotuloDaAreaDoPapel(papel: Papel): string {
-  const area = AREA_DO_PAPEL[papel];
-  return area ? ROTULO_AREA[area] : papel === 'ADMIN' ? 'Sistema' : 'Diretoria';
+/** Nome do setor da pessoa; Admin → "Sistema", C-level → "Diretoria". */
+export function rotuloDoSetorDe(papel: Papel, area?: string | null): string {
+  return area ? nomeDoSetor(area) : papel === 'ADMIN' ? 'Sistema' : 'Diretoria';
 }
 
 /** Situação de um usuário na lista: texto e cor do selo (nunca só a cor). */

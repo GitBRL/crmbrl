@@ -1,5 +1,5 @@
 import { formatarTempoRelativo } from '../../../nucleo/formatos';
-import { ROTULO_AREA } from '../../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../../nucleo/setores/setores';
 import type {
   DiaDaSemana,
   HorarioDeAtendimento,
@@ -69,7 +69,7 @@ export const ROTULO_UNIDADE: Readonly<Record<UnidadeDeTempo, string>> = {
 };
 
 export const DICA_SLA =
-  'SLA é o prazo combinado com o cliente. A primeira resposta conta da chegada da conversa até a primeira mensagem da equipe; a resolução, até a conversa ser resolvida. Quando o prazo estoura, a conversa ganha um selo coral no Atendimento e o líder da área é avisado.';
+  'SLA é o prazo combinado com o cliente. A primeira resposta conta da chegada da conversa até a primeira mensagem da equipe; a resolução, até a conversa ser resolvida. Quando o prazo estoura, a conversa ganha um selo coral no Atendimento e o líder do setor é avisado.';
 
 // Estratégias ------------------------------------------------------------------------------------
 
@@ -96,14 +96,14 @@ export const ESTRATEGIA: Readonly<Record<EstrategiaFila, EstrategiaVisual>> = {
 export const ESTRATEGIAS: readonly EstrategiaFila[] = ['RODIZIO', 'MENOR_CARGA', 'MANUAL'];
 
 export function rotuloDaArea(area: AreaDoAtendimento): string {
-  return ROTULO_AREA[area];
+  return nomeDoSetor(area);
 }
 
 // Pessoas na fila ---------------------------------------------------------------------------------
 
 /** O motivo, em uma frase, para a dica ao lado do nome. */
 export const MOTIVO_NA_FILA: Readonly<Record<MotivoNaFila, string>> = {
-  AREA: 'Recebe: é da área.',
+  AREA: 'Recebe: é do setor.',
   NA_LISTA: 'Recebe: está na lista da fila.',
   RETIRADO: 'Não recebe: foi tirada desta fila.',
   FORA_DA_LISTA: 'Não recebe: não está na lista da fila.',

@@ -1,0 +1,361 @@
+<header class="cabecalho">
+  <div class="cabecalho__texto">
+    <a class="cabecalho__voltar" routerLink="/bi">← Painéis do BI</a>
+    <h1 class="cabecalho__titulo">
+      @if (painel(); as p) {
+        {{ p.nome }}
+      } @else if (modo() === 'novo') {
+        Novo painel
+      } @else {
+        Indicadores&nbsp;<span class="tom-fraco">· painéis</span>
+      }
+    </h1>
+    <p class="cabecalho__frase">
+      @if (painel(); as p) {
+        {{ p.descricao || 'Indicadores configuráveis, com os números que você já pode ver.' }}
+      } @else {
+        Painéis de indicadores montados por Admin, C-level e líderes. Você vê só os números que já
+        veria no CRM.
+      }
+    </p>
+  </div>
+
+  <div class="cabecalho__acoes">
+    @if (painel() && modo() === 'ver') {
+      <button
+        appBotao
+        type="button"
+        tamanho="sm"
+        [icone]="icones.atualizar"
+        [carregando]="atualizando()"
+        (click)="atualizar()"
+      >
+        Atualizar
+      </button>
+      <button
+        appBotao
+        type="button"
+        tamanho="sm"
+        [icone]="icones.baixar"
+        [carregando]="exportando() === 'xlsx'"
+        [disabled]="exportando() !== null"
+        (click)="exportar('xlsx')"
+      >
+        Planilha (XLSX)
+      </button>
+      <button
+        appBotao
+        type="button"
+        tamanho="sm"
+        [icone]="icones.baixar"
+        [carregando]="exportando() === 'csv'"
+        [disabled]="exportando() !== null"
+        (click)="exportar('csv')"
+      >
+        Resumo (CSV)
+      </button>
+      @if (podeCriar()) {
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          [icone]="icones.duplicar"
+          (click)="duplicar(painel()!)"
+        >
+          Duplicar
+        </button>
+      }
+      @if (painel()!.podeEditar) {
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          [icone]="icones.compartilhar"
+          (click)="compartilhando.set(true)"
+        >
+          Compartilhar
+        </button>
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="marca"
+          [icone]="icones.editar"
+          (click)="modo.set('editar')"
+        >
+          Editar
+        </button>
+        <button
+          appBotao
+          type="button"
+          tamanho="sm"
+          variante="contorno"
+          [icone]="icones.excluir"
+          (click)="excluir(painel()!)"
+        >
+          Excluir
+        </button>
+      }
+    } @else if (!id() && modo() === 'ver' && podeCriar()) {
+      <button
+        appBotao
+        type="button"
+        tamanho="sm"
+        variante="marca"
+        [icone]="icones.novo"
+        [disabled]="!catalogo()"
+        (click)="novoPainel()"
+      >
+        Novo painel
+      </button>
+    }
+  </div>
+</header>
+
+@if (modo() === 'novo' || (modo() === 'editar' && painel())) {
+  @if (catalogo(); as catalogo) {
+    <app-editor-painel
+      [painel]="modo() === 'editar' ? painel() : null"
+      [catalogo]="catalogo"
+      [opcoes]="opcoes()"
+      [diretoria]="diretoria()"
+      (salvo)="aoSalvar($event)"
+      (cancelado)="modo.set('ver'); id() ? null : carregarLista()"
+    />
+  } @else {
+    <app-estado-vazio
+      variante="erro"
+      titulo="Não conseguimos carregar o catálogo"
+      texto="Tente de novo em instantes."
+    >
+      <button appBotao variante="invertido" type="button" (click)="tentarDeNovo()">
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  }
+} @else if (!id()) {
+  <!-- Lista -->
+  @switch (estadoLista()) {
+    @case ('carregando') {
+      <div class="carregando" aria-busy="true">
+        <span class="visualmente-oculto" role="status">Carregando os painéis…</span>
+        <app-esqueleto forma="bloco" altura="7rem" />
+        <app-esqueleto forma="bloco" altura="7rem" />
+      </div>
+    }
+    @case ('erro') {
+      <app-estado-vazio
+        variante="erro"
+        titulo="Não conseguimos carregar os painéis"
+        [falha]="erroLista()"
+        [texto]="erroLista()?.resumo ?? null"
+        [codigo]="erroLista()?.requisicaoId ?? null"
+      >
+        <button appBotao variante="invertido" type="button" (click)="tentarDeNovo()">
+          Tentar de novo
+        </button>
+      </app-estado-vazio>
+    }
+    @default {
+      @if ((lista() ?? []).length === 0) {
+        @if (podeCriar()) {
+          <app-estado-vazio
+            titulo="Nenhum painel ainda"
+            texto="Comece pelo modelo pronto do time comercial ou monte o seu a partir do catálogo."
+          >
+            @if (modeloTime(); as modelo) {
+              <button
+                appBotao
+                variante="marca"
+                type="button"
+                [carregando]="criandoModelo()"
+                (click)="criarModelo()"
+              >
+                Criar “{{ modelo.nome }}”
+              </button>
+            }
+          </app-estado-vazio>
+        } @else {
+          <app-estado-vazio
+            titulo="Nenhum painel foi compartilhado com você"
+            texto="Quando um líder ou o administrador compartilhar um painel de indicadores, ele aparece aqui."
+          />
+        }
+      } @else {
+        @if (podeCriar() && modeloTime(); as modelo) {
+          <div class="modelo">
+            <p class="modelo__texto">
+              <strong>{{ modelo.nome }}</strong> · {{ modelo.descricao }}
+            </p>
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              [carregando]="criandoModelo()"
+              (click)="criarModelo()"
+            >
+              Criar com um clique
+            </button>
+          </div>
+        }
+        <ul class="paineis" role="list">
+          @for (p of lista(); track p.id) {
+            <li class="paineis__item">
+              <app-cartao [titulo]="p.nome" [nivel]="2">
+                <div class="painel__selos">
+                  @if (p.minha) {
+                    <app-selo variante="menta" tamanho="sm">Meu</app-selo>
+                  } @else {
+                    <app-selo tamanho="sm">Compartilhado · {{ p.dono.nome }}</app-selo>
+                  }
+                  @if (p.modelo) {
+                    <app-selo variante="contorno" tamanho="sm">Modelo</app-selo>
+                  }
+                  <app-selo variante="contorno" tamanho="sm"
+                    >{{ p.quantidadeDeWidgets }}
+                    {{ p.quantidadeDeWidgets === 1 ? 'indicador' : 'indicadores' }}</app-selo
+                  >
+                </div>
+                @if (p.descricao) {
+                  <p class="painel__descricao">{{ p.descricao }}</p>
+                }
+                <div class="painel__acoes">
+                  <a appBotao tamanho="sm" variante="marca" [routerLink]="['/bi/indicadores', p.id]"
+                    >Abrir</a
+                  >
+                  @if (podeCriar()) {
+                    <button appBotao type="button" tamanho="sm" (click)="duplicar(p)">
+                      Duplicar
+                    </button>
+                  }
+                  @if (p.podeEditar) {
+                    <button
+                      appBotao
+                      type="button"
+                      tamanho="sm"
+                      variante="contorno"
+                      (click)="excluir(p)"
+                    >
+                      Excluir
+                    </button>
+                  }
+                </div>
+              </app-cartao>
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+} @else {
+  <!-- Um painel -->
+  @switch (estado()) {
+    @case ('carregando') {
+      <div class="carregando" aria-busy="true">
+        <span class="visualmente-oculto" role="status">Carregando o painel…</span>
+        <app-esqueleto forma="bloco" altura="3rem" />
+        <app-esqueleto forma="bloco" altura="12rem" />
+      </div>
+    }
+    @case ('sem-acesso') {
+      <app-estado-vazio
+        variante="sem-acesso"
+        titulo="Você não vê este painel"
+        texto="Ele não existe mais ou não foi compartilhado com você."
+      >
+        <a appBotao variante="invertido" routerLink="/bi/indicadores">Ver meus painéis</a>
+      </app-estado-vazio>
+    }
+    @case ('erro') {
+      <app-estado-vazio
+        variante="erro"
+        titulo="Não conseguimos carregar o painel"
+        [falha]="erro()"
+        [texto]="erro()?.resumo ?? null"
+        [codigo]="erro()?.requisicaoId ?? null"
+      >
+        <button appBotao variante="invertido" type="button" (click)="tentarDeNovo()">
+          Tentar de novo
+        </button>
+      </app-estado-vazio>
+    }
+    @default {
+      @if (painel(); as p) {
+        <div class="conteudo" [attr.aria-busy]="atualizando()">
+          <app-filtros-indicador
+            [(filtros)]="filtros"
+            [opcoes]="opcoes()"
+            [diretoria]="diretoria()"
+          />
+
+          @if (periodoTexto(); as t) {
+            <p class="periodo">
+              {{ t.atual }}
+              @if (t.anterior) {
+                <span> · comparado com {{ t.anterior }}</span>
+              }
+              <span class="periodo__hora"> · atualizado às {{ t.hora }}</span>
+            </p>
+          }
+
+          @if (erro(); as e) {
+            <app-estado-vazio
+              compacto
+              variante="erro"
+              titulo="Não conseguimos calcular os indicadores"
+              [falha]="e"
+              [texto]="e.resumo"
+              [codigo]="e.requisicaoId ?? null"
+            >
+              <button appBotao variante="invertido" type="button" (click)="atualizar()">
+                Tentar de novo
+              </button>
+            </app-estado-vazio>
+          } @else if (!resultado()) {
+            <div class="carregando" aria-busy="true">
+              <span class="visualmente-oculto" role="status">Calculando os números…</span>
+              <app-esqueleto forma="bloco" altura="8rem" />
+            </div>
+          } @else if (widgetsOrdenados().length === 0) {
+            <app-estado-vazio
+              titulo="Este painel ainda não tem indicadores"
+              [texto]="
+                p.podeEditar
+                  ? 'Abra o editor para adicionar indicadores do catálogo.'
+                  : 'Quem criou o painel ainda não adicionou indicadores.'
+              "
+            >
+              @if (p.podeEditar) {
+                <button appBotao variante="marca" type="button" (click)="modo.set('editar')">
+                  Editar painel
+                </button>
+              }
+            </app-estado-vazio>
+          } @else {
+            <div class="grade">
+              @for (w of widgetsOrdenados(); track w.id) {
+                <app-widget-indicador
+                  class="grade__item"
+                  [class.grade__item--2]="w.largura === 2"
+                  [class.grade__item--3]="w.largura === 3"
+                  [resultado]="w"
+                  (abrir)="abrirLista($event)"
+                  (tentarDeNovo)="atualizar()"
+                />
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+  }
+}
+
+<app-compartilhar-painel
+  [(aberto)]="compartilhando"
+  [painel]="painel()"
+  [pessoasDisponiveis]="pessoas()"
+  [diretoria]="diretoria()"
+  [setorDoLider]="setorDaPessoa()"
+  (salvo)="aoCompartilhar($event)"
+/>

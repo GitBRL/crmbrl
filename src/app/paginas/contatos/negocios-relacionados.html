@@ -8,7 +8,7 @@
       }
       <span class="jornada__etapa" [class.jornada__etapa--vazia]="!etapa.total">
         <span class="jornada__ponto" [style.background]="dadoDaArea[etapa.area]"></span>
-        <span class="jornada__nome">{{ rotuloArea[etapa.area] }}</span>
+        <span class="jornada__nome">{{ rotuloArea(etapa.area) }}</span>
         <!-- Separa nome e resumo para o leitor de tela ("Marketing: nenhum"). -->
         <span class="visualmente-oculto">{{ ': ' }}</span>
         @if (etapa.semAcesso) {

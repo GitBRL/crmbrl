@@ -1,6 +1,7 @@
-import { ROTULO_PAPEL, type Papel } from '../../nucleo/papeis';
+import { rotuloDoPapel } from '../../nucleo/papeis';
+import { desdobrarPapel, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import type { Equipe, Indicadores, Usuario, UsuarioResumo } from './configuracoes.modelos';
-import { AREA_DO_PAPEL, ehLiderDeArea } from './hierarquia';
 
 /**
  * **Só para testes (specs) de Configurações.** Usuários e equipes falsos, no formato da API.
@@ -9,16 +10,18 @@ import { AREA_DO_PAPEL, ehLiderDeArea } from './hierarquia';
 export function resumo(
   id: string,
   nome: string,
-  papel: Papel,
+  papelDeTeste: PapelDeTeste,
   ajustes: Partial<UsuarioResumo> = {},
 ): UsuarioResumo {
+  const { papel, area } = desdobrarPapel(papelDeTeste);
   return {
     id,
     nome,
     email: `${nome.split(' ')[0].toLowerCase()}@brl.com.br`,
     papel,
-    rotuloPapel: ROTULO_PAPEL[papel],
-    area: AREA_DO_PAPEL[papel],
+    rotuloPapel: rotuloDoPapel(papel, area ? nomeDoSetor(area) : null),
+    area,
+    nomeSetor: area ? nomeDoSetor(area) : null,
     ativo: true,
     ...ajustes,
   };
@@ -27,17 +30,18 @@ export function resumo(
 export function usuario(
   id: string,
   nome: string,
-  papel: Papel,
+  papelDeTeste: PapelDeTeste,
   ajustes: Partial<Usuario> = {},
 ): Usuario {
+  const { papel } = desdobrarPapel(papelDeTeste);
   return {
-    ...resumo(id, nome, papel),
+    ...resumo(id, nome, papelDeTeste),
     nivel:
       papel === 'ADMIN'
         ? 'ADMINISTRADOR'
         : papel === 'C_LEVEL'
           ? 'DIRETORIA'
-          : ehLiderDeArea(papel)
+          : papel === 'LIDER'
             ? 'LIDER'
             : 'MEMBRO',
     lider: null,

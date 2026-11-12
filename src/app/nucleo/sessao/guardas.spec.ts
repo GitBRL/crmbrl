@@ -55,7 +55,7 @@ const ROTAS: Routes = [
       },
       {
         path: 'configuracoes/equipe',
-        canActivate: [exigirPapel('C_LEVEL', 'LIDER_CS')],
+        canActivate: [exigirPapel('C_LEVEL', 'LIDER')],
         component: Pagina,
       },
       { path: 'integracoes', component: Pagina },
@@ -123,6 +123,17 @@ describe('guardas de rota', () => {
     sessao.definirPerfil(perfilDeTeste('COMERCIAL'));
     expect(await navegar('/funis/comercial')).toBe('/funis/comercial');
     expect(await navegar('/funis/marketing')).toBe('/sem-acesso?pagina=%2Ffunis%2Fmarketing');
+    expect(await navegar('/integracoes')).toBe('/sem-acesso?pagina=%2Fintegracoes');
+  });
+
+  it('funil de outro setor visto por acesso (R5.11): o link com ?funil=<id> entra; sem ele, não', async () => {
+    sessao.definirPerfil(perfilDeTeste('COMERCIAL'));
+    const id = '9c8cf58d-319a-4537-bda2-e74a46384a31';
+    expect(await navegar(`/funis/marketing?funil=${id}`)).toBe(`/funis/marketing?funil=${id}`);
+    await navegar('/inicio');
+    expect(await navegar('/funis/marketing?funil=nao-e-uuid')).toBe(
+      '/sem-acesso?pagina=%2Ffunis%2Fmarketing%3Ffunil%3Dnao-e-uuid',
+    );
     expect(await navegar('/integracoes')).toBe('/sem-acesso?pagina=%2Fintegracoes');
   });
 

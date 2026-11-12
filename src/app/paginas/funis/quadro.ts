@@ -22,10 +22,11 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import {
   LucideChevronsLeft,
   LucideChevronsRight,
+  LucideListChecks,
   LucidePlus,
   LucideSettings,
   LucideSlidersHorizontal,
@@ -34,7 +35,8 @@ import {
 import { gravarArmazenado, lerArmazenado } from '../../nucleo/armazenamento';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarMoedaAbreviada, paraNumero } from '../../nucleo/formatos';
-import { type Area, areaDoSlug, ROTULO_AREA, SLUG_AREA } from '../../nucleo/sessao/perfil';
+import { type Area } from '../../nucleo/sessao/perfil';
+import { areaDoSlug, nomeDoSetor, slugDaArea } from '../../nucleo/setores/setores';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
@@ -42,29 +44,30 @@ import { CampoBusca } from '../../ui/campo-busca/campo-busca';
 import { Dica } from '../../ui/dica/dica';
 import { Esqueleto } from '../../ui/esqueleto/esqueleto';
 import { EstadoVazio } from '../../ui/estado-vazio/estado-vazio';
-import { FiltrosPilula, type OpcaoFiltro } from '../../ui/filtros-pilula/filtros-pilula';
+import { FiltrosPilula } from '../../ui/filtros-pilula/filtros-pilula';
 import { type OpcaoSeletor, Seletor } from '../../ui/seletor/seletor';
 import { Selo } from '../../ui/selo/selo';
 import { partirTitulo } from '../../ui/tipos';
+import { BarraAcoesMassa } from './barra-acoes-massa';
 import { type AcaoCartao, CartaoNegocio } from './cartao-negocio';
 import { ConfigurarEtapas } from './configurar-etapas';
-import { EstadoQuadro, type Movimento } from './estado-quadro';
+import { EscolherResponsavel } from './escolher-responsavel';
+import { EstadoQuadro, type Movimento, type OpcaoResponsavel } from './estado-quadro';
 import type { ColunaQuadro, Funil, Negocio } from './funis.tipos';
 import { MotivoPerda } from './motivo-perda';
 import { NovoNegocio } from './novo-negocio';
+import { falhaClara, opcoesDeFunisPorSetor, ROTULO_NIVEL } from './nivel-funil';
 import { RegrasFunil } from './regras-funil';
 import {
   ehFechada,
   ehVisao,
-  FRASE_DO_FUNIL,
+  fraseDoFunil,
   type Lugar,
   lugarDoNegocio,
   mensagemDaMovimentacao,
   mostraValores,
   nomeDoItem,
   opcoesDeVisao,
-  podeConfigurarFunil,
-  podeReabrir,
   podeSerResponsavel,
   somarValores,
   textoPrazo,
@@ -94,6 +97,7 @@ interface Pego {
 @Component({
   selector: 'app-quadro-funil',
   imports: [
+    BarraAcoesMassa,
     Botao,
     BotaoIcone,
     CampoBusca,
@@ -104,12 +108,14 @@ interface Pego {
     CdkScrollable,
     ConfigurarEtapas,
     Dica,
+    EscolherResponsavel,
     Esqueleto,
     EstadoVazio,
     FiltrosPilula,
     MotivoPerda,
     NovoNegocio,
     RegrasFunil,
+    RouterLink,
     RouterOutlet,
     Seletor,
     Selo,
@@ -118,11 +124,15 @@ interface Pego {
   templateUrl: './quadro.html',
   styleUrl: './quadro.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown.escape)': 'aoApertarEsc($event)',
+    '[class.quadro--selecionando]': 'estado.modoSelecao()',
+  },
 })
 export class QuadroFunil {
   /** `marketing`, `comercial` ou `cs` (parâmetro `:area`). */
   readonly area = input.required<string>();
-  /** Funil específico da área (query `funil`), quando há mais de um. */
+  /** Funil específico do setor (query `funil`), quando há mais de um. */
   readonly funil = input<string | null>(null);
   /** Etapa a destacar (query `etapaId`, os cliques do BI): o quadro mostra só essa coluna. */
   readonly etapaId = input<string | null>(null);
@@ -142,12 +152,13 @@ export class QuadroFunil {
     recolher: LucideChevronsRight,
     expandir: LucideChevronsLeft,
     filtros: LucideSlidersHorizontal,
+    selecionar: LucideListChecks,
   };
   protected readonly atrasoArraste = ATRASO_ARRASTE;
 
   protected readonly areaAtual = computed<Area>(() => areaDoSlug(this.area()) ?? 'COMERCIAL');
-  protected readonly slug = computed(() => SLUG_AREA[this.areaAtual()]);
-  protected readonly frase = computed(() => FRASE_DO_FUNIL[this.areaAtual()]);
+  protected readonly slug = computed(() => slugDaArea(this.areaAtual()));
+  protected readonly frase = computed(() => fraseDoFunil(this.areaAtual()));
   protected readonly mostrarValores = computed(() => mostraValores(this.areaAtual()));
   protected readonly itens = computed(() => nomeDoItem(this.areaAtual(), true));
   protected readonly titulo = computed(() => this.estado.funil()?.nome ?? this.rotuloArea());
@@ -159,19 +170,32 @@ export class QuadroFunil {
     const resto = this.complemento();
     return partirTitulo(this.titulo(), resto ? `· ${resto}` : null);
   });
-  protected readonly podeConfigurar = computed(() =>
-    podeConfigurarFunil(this.sessao.perfil(), this.areaAtual()),
+  /** Níveis (R5.12): `VER` só olha; `MEMBRO` e `GESTOR` agem; `CONFIGURAR` também reabre e configura. */
+  protected readonly podeConfigurar = computed(() => this.estado.podeConfigurar());
+  protected readonly podeReabrir = computed(() => this.estado.podeConfigurar());
+  protected readonly podeAgir = computed(() => this.estado.podeAgir());
+  /** Só leitura: funil aberto e a pessoa só vê. */
+  protected readonly somenteLeitura = computed(
+    () => !!this.estado.funil() && this.estado.nivel() === 'VER',
   );
-  protected readonly podeReabrir = computed(() =>
-    podeReabrir(this.sessao.perfil(), this.areaAtual()),
+  protected readonly podeAssumir = computed(
+    () => this.podeAgir() && podeSerResponsavel(this.sessao.usuario(), this.areaAtual()),
   );
-  protected readonly podeAssumir = computed(() =>
-    podeSerResponsavel(this.sessao.usuario(), this.areaAtual()),
-  );
+  /** Age neste negócio (R5.12): quem só tem "Como membro" não age no de outra pessoa. */
+  protected podeAgirEm(negocio: Negocio): boolean {
+    return this.estado.podeAgirEm(negocio);
+  }
+  protected readonly rotuloNivel = computed(() => ROTULO_NIVEL[this.estado.nivel()]);
+  protected readonly linkConfigurarFunil = computed(() => [
+    '/configuracoes/funis',
+    this.estado.funilId() ?? '',
+  ]);
   protected readonly opcoesVisao = computed(() => opcoesDeVisao(this.sessao.perfil()));
-  protected readonly opcoesFunil = computed<OpcaoFiltro[]>(() =>
-    this.estado.funisAtivos().map((funil) => ({ id: funil.id, rotulo: funil.nome })),
-  );
+  /** Funis de todos os setores que a pessoa vê, agrupados por setor (o do setor, se a lista geral falhar). */
+  protected readonly opcoesFunil = computed<readonly OpcaoSeletor<string>[]>(() => {
+    const todos = this.estado.todosOsFunis();
+    return opcoesDeFunisPorSetor(todos.length ? todos : this.estado.funis());
+  });
   protected readonly opcoesEtiqueta = computed<OpcaoSeletor<string>[]>(() =>
     this.estado.etiquetas().map((etiqueta) => ({ valor: etiqueta, rotulo: etiqueta })),
   );
@@ -193,7 +217,9 @@ export class QuadroFunil {
   });
   protected readonly queryParams = computed<Record<string, string> | null>(() => {
     const funil = this.estado.funil();
-    return funil && !funil.base ? { funil: funil.id } : null;
+    const doSetorDaPessoa =
+      !!funil && !!this.sessao.permissoes()?.areasVisiveis.includes(funil.area);
+    return funil && (!funil.base || !doSetorDaPessoa) ? { funil: funil.id } : null;
   });
   protected readonly filtrando = computed(() => {
     const { visao, busca, etiqueta } = this.estado.filtros();
@@ -217,6 +243,12 @@ export class QuadroFunil {
   protected readonly assumindo = signal<ReadonlySet<string>>(new Set());
   protected readonly novoAberto = signal(false);
   protected readonly configurarAberto = signal(false);
+  /** Cartão cujo responsável está sendo trocado (R5.15). */
+  protected readonly trocandoResponsavelDe = signal<Negocio | null>(null);
+  protected readonly responsavelAberto = signal(false);
+  protected readonly opcoesResponsavel = computed<readonly OpcaoResponsavel[]>(() =>
+    this.estado.opcoesDeResponsavel(this.trocandoResponsavelDe()?.responsavel ?? null),
+  );
   /** Movimento esperando o motivo da perda. */
   protected readonly aguardandoMotivo = signal<Movimento | null>(null);
 
@@ -237,7 +269,7 @@ export class QuadroFunil {
   }
 
   protected rotuloArea(): string {
-    return ROTULO_AREA[this.areaAtual()];
+    return nomeDoSetor(this.areaAtual());
   }
 
   // Filtros -----------------------------------------------------------------------------------
@@ -259,9 +291,14 @@ export class QuadroFunil {
     if (!funilId) {
       return;
     }
-    const funil = this.estado.funisAtivos().find((item) => item.id === funilId);
-    void this.router.navigate(['/funis', this.slug()], {
-      queryParams: funil && !funil.base ? { funil: funil.id } : {},
+    const funil = [...this.estado.todosOsFunis(), ...this.estado.funis()].find(
+      (item) => item.id === funilId,
+    );
+    // Funil de outro setor (por acesso) sempre leva o id: o link abre o quadro dele (R5.11).
+    const doSetorDaPessoa =
+      !!funil && !!this.sessao.permissoes()?.areasVisiveis.includes(funil.area);
+    void this.router.navigate(['/funis', slugDaArea(funil?.area ?? this.areaAtual())], {
+      queryParams: funil && (!funil.base || !doSetorDaPessoa) ? { funil: funil.id } : {},
     });
   }
 
@@ -370,6 +407,11 @@ export class QuadroFunil {
       });
     } else if (acao.tipo === 'assumir') {
       void this.assumir(negocio);
+    } else if (acao.tipo === 'responsavel') {
+      this.abrirResponsavel(negocio);
+    } else if (acao.tipo === 'selecionar') {
+      this.estado.alternarSelecao(negocio.id);
+      this.carregarPessoas();
     } else {
       const movimento = this.estado.moverPara(negocio.id, acao.etapaId);
       if (movimento) {
@@ -378,13 +420,87 @@ export class QuadroFunil {
     }
   }
 
+  // Responsável pelo cartão (R5.15) ------------------------------------------------------------
+
+  private abrirResponsavel(negocio: Negocio): void {
+    this.carregarPessoas();
+    this.trocandoResponsavelDe.set(negocio);
+    this.responsavelAberto.set(true);
+  }
+
+  protected async trocarResponsavel(opcao: OpcaoResponsavel | null): Promise<void> {
+    const negocio = this.trocandoResponsavelDe();
+    this.trocandoResponsavelDe.set(null);
+    if (!negocio || (opcao?.id ?? null) === (negocio.responsavel?.id ?? null)) {
+      return;
+    }
+    try {
+      const atualizado = await this.estado.trocarResponsavel(negocio, opcao);
+      const nome = atualizado.responsavel?.nome;
+      // Quem vê todos os negócios deste funil (acesso "Só ver", "Ver e editar todos" ou quem configura,
+      // R5.11/R5.12: `veTodos`) continua vendo o cartão; sem a informação do funil, vale o papel.
+      const veTodos =
+        this.estado.funil()?.veTodos ?? this.sessao.permissoes()?.verNegocios !== 'PROPRIOS';
+      const vouDeixarDeVer = !veTodos && !!opcao && opcao.id !== this.sessao.usuario()?.id;
+      if (vouDeixarDeVer) {
+        this.estado.removerNegocio(negocio.id);
+        this.avisos.sucesso(
+          `“${negocio.titulo}” agora é de ${nome}. Ele sai do seu quadro, porque você não é mais o responsável.`,
+        );
+      } else {
+        this.avisos.sucesso(
+          nome
+            ? `Responsável de “${negocio.titulo}” trocado para ${nome}.`
+            : `“${negocio.titulo}” ficou sem responsável.`,
+        );
+      }
+    } catch (falha) {
+      this.avisos.erro(falhaClara(falha), {
+        titulo: `Não deu para trocar o responsável de “${negocio.titulo}”`,
+      });
+    }
+  }
+
+  private carregarPessoas(): void {
+    void this.estado.carregarUsuarios().catch(() => undefined);
+  }
+
+  // Modo seleção (R5.16) ------------------------------------------------------------------------
+
+  protected alternarSelecao(): void {
+    if (this.estado.modoSelecao()) {
+      this.estado.sairDaSelecao();
+      return;
+    }
+    this.cancelarPego();
+    this.estado.entrarNaSelecao();
+    this.carregarPessoas();
+  }
+
+  protected rotuloEtapa(coluna: ColunaQuadro): string {
+    return `Selecionar todos desta etapa: ${coluna.etapa.nome}`;
+  }
+
+  /** Esc sai do modo seleção (se nenhum modal ou menu aberto o consumiu). */
+  protected aoApertarEsc(evento: Event): void {
+    if (!this.estado.modoSelecao() || evento.defaultPrevented) {
+      return;
+    }
+    const documento = this.elemento.nativeElement.ownerDocument;
+    if (documento.querySelector('dialog[open], .cdk-overlay-pane')) {
+      return;
+    }
+    this.estado.sairDaSelecao();
+    this.anunciar('Modo seleção encerrado.');
+  }
+
   private async assumir(negocio: Negocio): Promise<void> {
     this.assumindo.update((atual) => new Set(atual).add(negocio.id));
     try {
       await this.estado.assumir(negocio);
       this.avisos.sucesso(`Você assumiu “${negocio.titulo}”.`);
     } catch (falha) {
-      this.avisos.erro(falha);
+      this.avisos.erro(falhaClara(falha));
     } finally {
       this.assumindo.update((atual) => {
         const nova = new Set(atual);
@@ -400,7 +516,7 @@ export class QuadroFunil {
     const pego = this.pego();
     const tecla = evento.key;
     if (!pego || pego.negocio.id !== negocio.id) {
-      if (tecla === ' ' || tecla === 'Enter') {
+      if ((tecla === ' ' || tecla === 'Enter') && this.podeAgirEm(negocio)) {
         evento.preventDefault();
         this.pegar(negocio);
       }
@@ -620,7 +736,9 @@ export class QuadroFunil {
             : undefined,
       });
     } catch (falha) {
-      this.avisos.erro(falha, { titulo: `Não deu para mover “${movimento.negocio.titulo}”` });
+      this.avisos.erro(falhaClara(falha), {
+        titulo: `Não deu para mover “${movimento.negocio.titulo}”`,
+      });
     }
   }
 
@@ -646,7 +764,7 @@ export class QuadroFunil {
         this.focarAlca(movimento.negocio.id);
       }
     } catch (falha) {
-      this.avisos.erro(falha);
+      this.avisos.erro(falhaClara(falha));
     }
   }
 

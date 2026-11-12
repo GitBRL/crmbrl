@@ -21,6 +21,8 @@ import { type Pagina, POR_PAGINA_PADRAO, totalDePaginas } from '../../nucleo/api
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarDataHora, formatarTempoRelativo, semCodigoDeRegra } from '../../nucleo/formatos';
 import type { Papel } from '../../nucleo/papeis';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
+import { SetoresService } from '../../nucleo/setores/setores.service';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
@@ -59,6 +61,7 @@ const COLUNAS: readonly ColunaTabela[] = [
   { id: 'nome', rotulo: 'Nome' },
   { id: 'email', rotulo: 'E-mail' },
   { id: 'papel', rotulo: 'Papel' },
+  { id: 'setor', rotulo: 'Setor' },
   { id: 'lider', rotulo: 'Líder' },
   { id: 'situacao', rotulo: 'Situação' },
   { id: 'ultimoAcesso', rotulo: 'Último acesso' },
@@ -122,19 +125,26 @@ export class Usuarios {
 
   protected readonly iconeConvidar = LucidePlus;
   protected readonly iconeTentar = LucideRefreshCw;
+  protected readonly nomeDoSetor = nomeDoSetor;
   protected readonly colunas = COLUNAS;
   protected readonly situacoes = SITUACOES;
   protected readonly opcoesPapel = OPCOES_PAPEL;
+  protected readonly setores = inject(SetoresService);
 
   // Filtros ----------------------------------------------------------------------------------
   protected readonly busca = signal('');
   private readonly termo = signal('');
   protected readonly situacao = signal<string | null>('ativos');
   protected readonly papel = signal<Papel | null>(null);
+  protected readonly setor = signal<string | null>(null);
   protected readonly pagina = signal(1);
   protected readonly porPagina = signal(POR_PAGINA_PADRAO);
   protected readonly temFiltro = computed(
-    () => this.termo() !== '' || this.papel() !== null || this.situacao() !== 'ativos',
+    () =>
+      this.termo() !== '' ||
+      this.papel() !== null ||
+      this.setor() !== null ||
+      this.situacao() !== 'ativos',
   );
   /** O pedido à API (`GET /usuarios`) que os filtros e a página formam. */
   private readonly filtros = computed<FiltrosUsuarios>(() => {
@@ -142,6 +152,7 @@ export class Usuarios {
     return {
       busca: this.termo(),
       papel: this.papel(),
+      area: this.setor(),
       ativo: situacao === 'ativos' ? true : situacao === 'desligados' ? false : null,
       pagina: this.pagina(),
       porPagina: this.porPagina(),
@@ -182,6 +193,7 @@ export class Usuarios {
   protected readonly definindoSenha = signal<Usuario | null>(null);
 
   constructor() {
+    void this.setores.carregar();
     // Busca enquanto digita, com uma pausa curta (Enter busca na hora).
     effect((aoLimpar) => {
       const texto = this.busca().trim();
@@ -212,6 +224,7 @@ export class Usuarios {
     this.busca.set('');
     this.termo.set('');
     this.papel.set(null);
+    this.setor.set(null);
     this.situacao.set('ativos');
     this.pagina.set(1);
   }

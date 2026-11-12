@@ -19,6 +19,8 @@ const RESUMO_DA_SECAO: Readonly<Record<string, string>> = {
   usuarios: 'quem usa o CRM',
   equipe: 'a sua equipe',
   distribuicao: 'a distribuição dos leads',
+  funis: 'os funis e quem os vê',
+  setores: 'os setores e quem os vê',
   passagens: 'as passagens entre funis',
   canais: 'os canais de atendimento',
   atendimento: 'as filas e os horários do atendimento',

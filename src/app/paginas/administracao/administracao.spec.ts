@@ -137,7 +137,7 @@ describe('apoio da Administração', () => {
     expect(formatarValor({ a: 1, b: null }).texto).toBe('a: 1; b: —');
     expect(formatarValor({ a: { b: 1 } }).texto).toBe('{"a":{"b":1}}');
     expect(formatarValor('RODIZIO')).toEqual({
-      texto: 'Rodízio da área',
+      texto: 'Rodízio do setor',
       vazio: false,
       original: 'RODIZIO',
     });

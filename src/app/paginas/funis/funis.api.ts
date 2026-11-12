@@ -6,7 +6,11 @@ import { type Pagina, parametros, POR_PAGINA_MAXIMO, urlApi } from '../../nucleo
 import { fusoDoNavegador } from '../../nucleo/formatos';
 import type { Area } from '../../nucleo/sessao/perfil';
 import type {
+  AcessosDoFunil,
   AlteracaoEtapa,
+  AlteracaoFunil,
+  LinhaDeAcesso,
+  NovoFunil,
   AlteracaoNegocio,
   Atividade,
   Contato,
@@ -22,11 +26,13 @@ import type {
   NovoContato,
   NovoNegocio,
   PassagemDoFunil,
+  PedidoEmMassa,
   PedidoMover,
   Quadro,
   RegraDoRodizio,
   RegistroLinhaDoTempo,
   ResultadoCriacaoContato,
+  ResultadoEmMassa,
   ResultadoMovimentacao,
   Usuario,
 } from './funis.tipos';
@@ -42,10 +48,42 @@ export class FunisApi {
 
   // Funis e etapas -------------------------------------------------------------------------
 
-  /** Funis visíveis da área, com as etapas em ordem. */
+  /** Funis visíveis do setor, com as etapas em ordem. */
   funisDaArea(area: Area): Promise<readonly Funil[]> {
     return firstValueFrom(
       this.http.get<Funil[]>(urlApi('funis'), { params: parametros({ area }) }),
+    );
+  }
+
+  /** Todos os funis que a pessoa vê (inclusive de outros setores, por acesso). */
+  funis(incluirArquivados = false): Promise<readonly Funil[]> {
+    return firstValueFrom(
+      this.http.get<Funil[]>(urlApi('funis'), {
+        params: parametros({ incluirArquivados: incluirArquivados ? true : undefined }),
+      }),
+    );
+  }
+
+  criarFunil(dados: NovoFunil): Promise<Funil> {
+    return firstValueFrom(this.http.post<Funil>(urlApi('funis'), dados));
+  }
+
+  alterarFunil(id: string, alteracao: AlteracaoFunil): Promise<Funil> {
+    return firstValueFrom(this.http.patch<Funil>(urlApi('funis', id), alteracao));
+  }
+
+  excluirFunil(id: string): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(urlApi('funis', id)));
+  }
+
+  acessosDoFunil(id: string): Promise<AcessosDoFunil> {
+    return firstValueFrom(this.http.get<AcessosDoFunil>(urlApi('funis', id, 'acessos')));
+  }
+
+  /** A lista enviada substitui a atual. */
+  substituirAcessos(id: string, acessos: readonly LinhaDeAcesso[]): Promise<AcessosDoFunil> {
+    return firstValueFrom(
+      this.http.put<AcessosDoFunil>(urlApi('funis', id, 'acessos'), { acessos }),
     );
   }
 
@@ -58,7 +96,7 @@ export class FunisApi {
     return firstValueFrom(this.http.get<readonly PassagemDoFunil[]>(urlApi('passagens')));
   }
 
-  /** Regras do rodízio que o papel configura (Admin, C-level, liderança da área). */
+  /** Regras do rodízio que o papel configura (Admin, C-level, liderança do setor). */
   regrasDistribuicao(): Promise<readonly RegraDoRodizio[]> {
     return firstValueFrom(this.http.get<readonly RegraDoRodizio[]>(urlApi('regras-distribuicao')));
   }
@@ -146,6 +184,11 @@ export class FunisApi {
     return firstValueFrom(this.http.patch<Negocio>(urlApi('negocios', id), alteracao));
   }
 
+  /** Ação em massa nos negócios do quadro (R5.16): sucesso parcial, falhas na resposta. */
+  acaoEmMassa(pedido: PedidoEmMassa): Promise<ResultadoEmMassa> {
+    return firstValueFrom(this.http.post<ResultadoEmMassa>(urlApi('negocios', 'em-massa'), pedido));
+  }
+
   mover(id: string, pedido: PedidoMover): Promise<ResultadoMovimentacao> {
     return firstValueFrom(
       this.http.post<ResultadoMovimentacao>(urlApi('negocios', id, 'mover'), pedido),
@@ -160,6 +203,11 @@ export class FunisApi {
         etapaId ? { etapaId } : {},
       ),
     );
+  }
+
+  /** Exclusão lógica do negócio (só `CONFIGURAR`, R5.12). */
+  excluirNegocio(id: string): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(urlApi('negocios', id)));
   }
 
   assumir(id: string): Promise<Negocio> {
@@ -221,8 +269,14 @@ export class FunisApi {
     return firstValueFrom(this.http.post<Atividade>(urlApi('atividades'), atividade));
   }
 
-  concluirAtividade(id: string): Promise<Atividade> {
-    return firstValueFrom(this.http.post<Atividade>(urlApi('atividades', id, 'concluir'), {}));
+  /** R6.6: a reunião só conclui com `resultadoReuniao` (e `novaData` se remarcada). */
+  concluirAtividade(
+    id: string,
+    conclusao: { readonly resultadoReuniao?: string; readonly novaData?: string } = {},
+  ): Promise<Atividade> {
+    return firstValueFrom(
+      this.http.post<Atividade>(urlApi('atividades', id, 'concluir'), conclusao),
+    );
   }
 
   reabrirAtividade(id: string): Promise<Atividade> {

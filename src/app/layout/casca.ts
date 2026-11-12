@@ -35,6 +35,7 @@ import {
 
 import { AvisosService } from '../nucleo/avisos.service';
 import { LigacaoService } from '../nucleo/ligacoes/ligacao.service';
+import { TrescPlusService } from '../nucleo/tresc-plus/tresc-plus.service';
 import { TemaService } from '../nucleo/tema.service';
 import { Avisos } from '../ui/avisos/avisos';
 import { CamadaModal } from '../ui/camada-modal';
@@ -46,10 +47,14 @@ import { EstadoCasca } from './estado-casca';
 import { FaixaPwa } from './faixa-pwa';
 import { AvisoToque } from './ligacao/aviso-toque';
 import { BarraLigacao } from './ligacao/barra-ligacao';
+import { AvisoRecebida } from './tresc-plus/aviso-recebida';
+import { BarraLigacaoTresc } from './tresc-plus/barra-ligacao-tresc';
+import { ModalQualificacao } from './tresc-plus/modal-qualificacao';
 import { provideIcones } from './icones';
 import { MenuLateral } from './menu-lateral';
 import { NavegacaoInferior } from './navegacao-inferior';
 import { ancestralRolavel, RolagemEsmaecida, trazerParaVista } from './rolagem';
+import { SetoresService } from '../nucleo/setores/setores.service';
 
 /** Para onde o foco vai quando a gaveta fecha. */
 type FocoAposGaveta = 'anterior' | 'conteudo';
@@ -94,6 +99,9 @@ const FOCAVEIS =
     FaixaPwa,
     AvisoToque,
     BarraLigacao,
+    BarraLigacaoTresc,
+    AvisoRecebida,
+    ModalQualificacao,
     NavegacaoInferior,
     BotaoIcone,
     Logo,
@@ -104,7 +112,7 @@ const FOCAVEIS =
   styleUrl: './casca.scss',
   host: {
     '[style.--casca-ligacao]':
-      "ligacoes.emCurso() !== null || ligacoes.fim() !== null ? '84px' : '0px'",
+      "(ligacoes.emCurso() !== null || ligacoes.fim() !== null ? 84 : 0) + (tresc.ligacao() !== null || tresc.entrando() ? 84 : 0) + 'px'",
   },
   providers: [EstadoCasca, provideIcones()],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -114,6 +122,7 @@ export class Casca {
   protected readonly tema = inject(TemaService);
   protected readonly avisos = inject(AvisosService);
   protected readonly ligacoes = inject(LigacaoService);
+  protected readonly tresc = inject(TrescPlusService);
   protected readonly icones = { fechar: LucideX, sol: LucideSun, lua: LucideMoon };
   protected readonly alternador = computed(() =>
     this.estado.recolhida()
@@ -136,6 +145,10 @@ export class Casca {
   private esperaProgresso: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
+    this.tresc.iniciar();
+    // Setores (nomes e cores) para todas as telas: uma vez por sessão.
+    void inject(SetoresService).carregar();
+
     // O <dialog> da gaveta acompanha o estado (aberta pelo botão da barra superior).
     effect(() => {
       const aberta = this.estado.gavetaAberta();

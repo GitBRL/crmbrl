@@ -109,9 +109,14 @@ Detalhes: artigos `atendimento-*.md`.
 - **Buscar e filtrar** na lista; o detalhe do contato reúne dados, empresa, negócios (só das áreas que o seu papel
   acessa), atividades e a linha do tempo.
 - **Criar contato ou empresa:** botão de novo cadastro. O CRM avisa de possíveis duplicados (telefone e e-mail).
-- **Importar de planilha** (Admin, C-level e líderes): assistente em quatro passos (Arquivo, Colunas, Opções,
-  Importação) com relatório em Excel; o primeiro passo oferece **Baixar planilha modelo** (contatos, empresas ou
-  parcelas), com as colunas já reconhecidas sozinhas e uma aba "Como preencher".
+- **Importar de planilha** (Admin, C-level e líderes): tela única com abas **Nova importação** e **Execuções**.
+  Em *Nova importação*: cartões de **Arquivo** (com **Baixar planilha modelo**), **Opções do arquivo** (cabeçalho,
+  delimitador, duplicados, DDI padrão), **Etiquetas**, **Responsável** e **Negócio para todos** (funil, etapa, título
+  e valor); o cartão **Filtrar linhas da planilha** importa só as linhas que passam nas regras (mostra "X de Y linhas
+  passam"); e o **Mapeamento de colunas** (inclui funil, etapa, título, valor e responsável por linha). **Criar
+  importação** inicia o processamento em segundo plano; em *Execuções* ficam o andamento ao vivo, as contagens
+  (inclusive linhas fora do filtro e negócios criados), o relatório em Excel e as linhas com problema. **Ver
+  tutorial** abre a Ajuda do CRM com a pergunta sobre importação.
 - **Qualificação (SDR com IA):** o detalhe do contato tem o cartão **Qualificação**, com a nota de 0 a 100, a
   temperatura (**Quente**, **Morno** ou **Frio**, sempre em texto), cada critério que a IA descobriu (valor, quem
   descobriu e confiança) e o resumo. Se a IA nunca conversou com o contato, o cartão diz isso.

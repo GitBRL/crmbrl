@@ -23,7 +23,7 @@
     <app-estado-vazio
       variante="sem-acesso"
       titulo="As ligações não fazem parte do seu papel"
-      texto="As ligações com clientes ficam com o Comercial e o Customer Success. Se você precisa acompanhar alguma, peça para a liderança dessas áreas."
+      texto="As ligações com clientes ficam com os setores que atendem (Comercial, Customer Success e outros). Se você precisa acompanhar alguma, peça para a liderança desses setores."
     />
   </div>
 } @else {
@@ -207,7 +207,19 @@
                             · {{ ligacao.atendente?.nome ?? 'Sem atendente' }}</span
                           >
                         </span>
-                        <span class="item__canal-nome">{{ ligacao.canal.nome }}</span>
+                        @if (ligacao.provedor === 'TRESC_PLUS') {
+                          <span class="item__canal-nome item__3c">
+                            <app-selo tamanho="sm" variante="ciano">3C+</app-selo>
+                            @if (ligacao.campanha?.nome; as campanha) {
+                              {{ campanha }}
+                            }
+                            @if (ligacao.qualificacao; as qualificacao) {
+                              · {{ qualificacao.nome }}
+                            }
+                          </span>
+                        } @else {
+                          <span class="item__canal-nome">{{ ligacao.canal?.nome }}</span>
+                        }
                         @if (linha.assunto) {
                           <span class="item__assunto">{{ linha.assunto }}</span>
                         }

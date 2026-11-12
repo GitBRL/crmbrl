@@ -35,28 +35,55 @@
         (click)="configurarAberto.set(true)"
       ></button>
     }
-    <button
-      appBotao
-      type="button"
-      variante="invertido"
-      class="cabecalho__novo"
-      [icone]="icones.mais"
-      [disabled]="!estado.funil()"
-      (click)="novoAberto.set(true)"
-    >
-      Novo negócio
-    </button>
+    @if (podeConfigurar()) {
+      <a
+        appBotao
+        variante="contorno"
+        class="cabecalho__configurar"
+        [icone]="icones.configurar"
+        [routerLink]="linkConfigurarFunil()"
+        >Configurar funil</a
+      >
+    }
+    @if (!somenteLeitura() && estado.situacao() === 'pronto') {
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        class="cabecalho__selecionar"
+        [icone]="icones.selecionar"
+        [attr.aria-pressed]="estado.modoSelecao()"
+        (click)="alternarSelecao()"
+      >
+        {{ estado.modoSelecao() ? 'Sair da seleção' : 'Selecionar' }}
+      </button>
+    }
+    @if (!somenteLeitura()) {
+      <button
+        appBotao
+        type="button"
+        variante="invertido"
+        class="cabecalho__novo"
+        [icone]="icones.mais"
+        [disabled]="!estado.funil()"
+        (click)="novoAberto.set(true)"
+      >
+        Novo negócio
+      </button>
+    }
   </div>
 </header>
 
 <div class="filtros">
-  @if (opcoesFunil().length > 1) {
-    <app-filtros-pilula
+  @if (opcoesFunil().length > 1 || (opcoesFunil().length === 1 && !estado.funil())) {
+    <app-seletor
       class="filtros__funil"
       rotulo="Funil"
+      rotuloOculto
+      placeholder="Escolha um funil"
       [opcoes]="opcoesFunil()"
-      [selecionado]="estado.funilId()"
-      (selecionadoChange)="escolherFunil($event)"
+      [valor]="estado.funilId()"
+      (valorChange)="escolherFunil($event)"
     />
   }
   <app-filtros-pilula
@@ -161,11 +188,18 @@
   @case ('sem-funil') {
     <app-estado-vazio
       class="quadro__estado"
-      titulo="Nenhum funil ativo nesta área"
-      texto="Os funis desta área estão arquivados. A liderança da área, o C-level ou o Admin podem reativá-los."
+      titulo="Nenhum funil disponível neste setor"
+      texto="Os funis deste setor estão arquivados ou são restritos a líderes e convidados. Peça acesso a quem lidera o setor, ou escolha outro funil acima, se houver."
     />
   }
   @default {
+    @if (somenteLeitura()) {
+      <p class="quadro__aviso">
+        <app-selo variante="contorno">{{ rotuloNivel() }}</app-selo>
+        Você só pode ver este funil: criar, editar e mover negócios exige o acesso “Como membro” ou
+        mais.
+      </p>
+    }
     @if (!estado.funilAtivo()) {
       <p class="quadro__aviso">
         <app-selo variante="contorno">Arquivado</app-selo>
@@ -227,6 +261,17 @@
               <app-selo tamanho="sm" aria-hidden="true" class="coluna__contagem">{{
                 coluna.total
               }}</app-selo>
+              @if (estado.modoSelecao() && !recolhida(coluna) && coluna.negocios.length) {
+                <input
+                  type="checkbox"
+                  class="coluna__marcar"
+                  [checked]="estado.etapaMarcada(coluna.etapa.id) === 'todos'"
+                  [indeterminate]="estado.etapaMarcada(coluna.etapa.id) === 'alguns'"
+                  [attr.aria-label]="rotuloEtapa(coluna)"
+                  [title]="'Selecionar todos desta etapa (os carregados)'"
+                  (change)="estado.alternarEtapa(coluna.etapa.id)"
+                />
+              }
               @if (prazoDaColuna(coluna); as prazo) {
                 <app-dica
                   class="coluna__dica"
@@ -290,6 +335,7 @@
                   <app-cartao-negocio
                     role="listitem"
                     cdkDrag
+                    [cdkDragDisabled]="!podeAgirEm(negocio) || estado.modoSelecao()"
                     [cdkDragData]="negocio"
                     [cdkDragStartDelay]="atrasoArraste"
                     [negocio]="negocio"
@@ -298,7 +344,11 @@
                     [queryParams]="queryParams()"
                     [etapas]="estado.etapas()"
                     [podeSair]="podeSair(negocio)"
-                    [podeAssumir]="podeAssumir()"
+                    [podeMover]="podeAgirEm(negocio)"
+                    [podeAssumir]="podeAssumir() && podeAgirEm(negocio)"
+                    [podeTrocarResponsavel]="podeAgirEm(negocio)"
+                    [selecionando]="estado.modoSelecao()"
+                    [selecionado]="estado.selecao().has(negocio.id)"
                     [assumindo]="assumindo().has(negocio.id)"
                     [mostrarValor]="mostrarValores()"
                     [pego]="pego()?.negocio?.id === negocio.id"
@@ -342,17 +392,30 @@
   }
 }
 
-<button
-  appBotaoIcone
-  type="button"
-  variante="invertido"
-  tamanho="lg"
-  class="novo-flutuante"
-  rotulo="Novo negócio"
-  [icone]="icones.mais"
-  [disabled]="!estado.funil()"
-  (click)="novoAberto.set(true)"
-></button>
+@if (!estado.modoSelecao()) {
+  <button
+    appBotaoIcone
+    type="button"
+    variante="invertido"
+    tamanho="lg"
+    class="novo-flutuante"
+    rotulo="Novo negócio"
+    [icone]="icones.mais"
+    [disabled]="!estado.funil()"
+    (click)="novoAberto.set(true)"
+  ></button>
+} @else {
+  <app-barra-acoes-massa />
+}
+
+<app-escolher-responsavel
+  [(aberto)]="responsavelAberto"
+  titulo="Trocar responsável"
+  [frase]="trocandoResponsavelDe() ? '“' + trocandoResponsavelDe()!.titulo + '”' : null"
+  [opcoes]="opcoesResponsavel()"
+  [atualId]="trocandoResponsavelDe()?.responsavel?.id ?? null"
+  (escolhido)="trocarResponsavel($event)"
+/>
 
 <app-motivo-perda
   [aberto]="!!aguardandoMotivo()"

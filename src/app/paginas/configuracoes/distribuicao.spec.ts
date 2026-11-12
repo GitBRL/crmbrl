@@ -16,8 +16,8 @@ function regraMarketing(ajustes: Partial<RegraDistribuicao> = {}): RegraDistribu
     ultimoUsuario: null,
     proximo: { id: 'u-thiago', nome: 'Thiago Lima' },
     participantes: [
-      { id: 'u-mariana', nome: 'Mariana Costa', papel: 'MARKETING', motivo: 'MEMBRO_DA_AREA' },
-      { id: 'u-thiago', nome: 'Thiago Lima', papel: 'MARKETING', motivo: 'MEMBRO_DA_AREA' },
+      { id: 'u-mariana', nome: 'Mariana Costa', papel: 'MEMBRO', motivo: 'MEMBRO_DA_AREA' },
+      { id: 'u-thiago', nome: 'Thiago Lima', papel: 'MEMBRO', motivo: 'MEMBRO_DA_AREA' },
     ],
     ajustes: [],
     atualizadoEm: '2026-10-21T12:00:00.000Z',
@@ -102,14 +102,14 @@ describe('Distribuicao (rodízio por área, R5.8)', () => {
     pedido.flush(
       regraMarketing({
         participantes: [
-          { id: 'u-mariana', nome: 'Mariana Costa', papel: 'MARKETING', motivo: 'MEMBRO_DA_AREA' },
+          { id: 'u-mariana', nome: 'Mariana Costa', papel: 'MEMBRO', motivo: 'MEMBRO_DA_AREA' },
         ],
         proximo: { id: 'u-mariana', nome: 'Mariana Costa' },
         ajustes: [
           {
             id: 'u-thiago',
             nome: 'Thiago Lima',
-            papel: 'MARKETING',
+            papel: 'MEMBRO',
             ativo: true,
             participa: false,
           },
@@ -147,7 +147,7 @@ describe('Distribuicao (rodízio por área, R5.8)', () => {
           {
             id: 'u-camila',
             nome: 'Camila Rocha',
-            papel: 'LIDER_MARKETING',
+            papel: 'LIDER',
             motivo: 'LIDER_INCLUIDO_PELA_REGRA',
           },
         ],
@@ -189,7 +189,7 @@ describe('Distribuicao (rodízio por área, R5.8)', () => {
           {
             id: 'u-rodrigo',
             nome: 'Rodrigo Nunes',
-            papel: 'MARKETING',
+            papel: 'MEMBRO',
             motivo: 'CONVITE_PENDENTE',
           },
         ],

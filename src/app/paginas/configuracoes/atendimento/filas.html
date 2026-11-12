@@ -57,7 +57,7 @@
   } @else if (filas().length === 0) {
     <app-estado-vazio
       titulo="Nenhuma fila ainda"
-      texto="Crie uma fila para distribuir as conversas entre as pessoas da área e combinar os prazos de resposta."
+      texto="Crie uma fila para distribuir as conversas entre as pessoas do setor e combinar os prazos de resposta."
     >
       @if (podeCriar()) {
         <button
@@ -188,7 +188,7 @@
 
                 @if (fila.estrategia === 'MANUAL') {
                   <p class="fila__vazio">
-                    Na fila manual ninguém recebe sozinho: qualquer pessoa da área vê as conversas
+                    Na fila manual ninguém recebe sozinho: qualquer pessoa do setor vê as conversas
                     sem responsável e assume a que puder.
                   </p>
                 }
@@ -197,7 +197,7 @@
                     <span class="fila__rotulo">
                       {{
                         fila.modoParticipantes === 'AREA'
-                          ? 'Quem recebe · a área inteira'
+                          ? 'Quem recebe · o setor inteiro'
                           : 'Quem recebe · só a lista'
                       }}
                     </span>
@@ -230,7 +230,7 @@
                           }
                         </li>
                       } @empty {
-                        <li class="fila__vazio">Ninguém ativo nesta área ainda.</li>
+                        <li class="fila__vazio">Ninguém ativo neste setor ainda.</li>
                       }
                     </ul>
                   </div>

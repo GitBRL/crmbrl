@@ -5,36 +5,13 @@ import type { Papel } from '../papeis';
  * crmbrl-api, auth/dto/auth.dto.ts (`PerfilDto`).
  */
 
-/** Áreas de negócio (enum `Area` do banco). Admin e C-level não têm área. */
-export type Area = 'MARKETING' | 'COMERCIAL' | 'CS';
-
-export const AREAS: readonly Area[] = ['MARKETING', 'COMERCIAL', 'CS'];
-
-export const ROTULO_AREA: Readonly<Record<Area, string>> = {
-  MARKETING: 'Marketing',
-  COMERCIAL: 'Comercial',
-  CS: 'Customer Success',
-};
-
-/** Pedaço da URL de cada funil: `/funis/marketing`, `/funis/comercial`, `/funis/cs`. */
-export type SlugArea = 'marketing' | 'comercial' | 'cs';
-
-export const SLUG_AREA: Readonly<Record<Area, SlugArea>> = {
-  MARKETING: 'marketing',
-  COMERCIAL: 'comercial',
-  CS: 'cs',
-};
-
-/** `"comercial"` → `"COMERCIAL"`; outro texto → `null`. */
-export function areaDoSlug(slug: string | null | undefined): Area | null {
-  const area = AREAS.find((item) => SLUG_AREA[item] === slug?.toLowerCase());
-  return area ?? null;
-}
+/** Setor da pessoa: a chave do setor (`COMERCIAL`, `POS_VENDA`…). Admin e C-level não têm setor. */
+export type Area = string;
 
 /**
  * Alcance de uma permissão (matriz da §12 das regras):
- * `TODOS` sem restrição · `AREA` o que é da área do usuário · `EQUIPE` ele e os liderados ·
- * `PROPRIOS` só o que é dele (em negócios, também os sem responsável da área, R5.9) ·
+ * `TODOS` sem restrição · `AREA` o que é do setor do usuário · `EQUIPE` ele e os liderados ·
+ * `PROPRIOS` só o que é dele (em negócios, também os sem responsável do setor, R5.9) ·
  * `NENHUM` não pode.
  */
 export type Escopo = 'TODOS' | 'AREA' | 'EQUIPE' | 'PROPRIOS' | 'NENHUM';
@@ -92,6 +69,7 @@ export interface ResumoUsuario {
   readonly id: string;
   readonly nome: string;
   readonly papel: Papel;
+  readonly area?: Area | null;
 }
 
 export interface UsuarioDoPerfil {
@@ -101,8 +79,10 @@ export interface UsuarioDoPerfil {
   readonly papel: Papel;
   /** "Líder Comercial". */
   readonly rotuloPapel: string;
-  /** `null` para Admin e C-level. */
+  /** Chave do setor; `null` para Admin e C-level. */
   readonly area: Area | null;
+  /** Nome do setor; `null` para Admin e C-level. */
+  readonly nomeSetor?: string | null;
   readonly nivel: NivelUsuario;
   readonly lider: ResumoUsuario | null;
   readonly avatarUrl: string | null;
@@ -141,14 +121,14 @@ export function podeGerenciarCanais(permissoes: Permissoes, perfil: Perfil): boo
 
 /**
  * Configurações → Atendimento: a permissão `configurarAtendimento` quando a API a manda; sem
- * ela, Admin, C-level e os líderes das áreas que atendem (Comercial e CS — o Marketing não
- * acessa o Atendimento, R12).
+ * ela, Admin, C-level e os líderes dos setores que atendem (todos menos o Marketing, R12).
  */
 export function podeConfigurarAtendimento(permissoes: Permissoes, perfil: Perfil): boolean {
   if (permissoes.configurarAtendimento !== undefined) {
     return permissoes.configurarAtendimento !== 'NENHUM';
   }
-  return ['ADMIN', 'C_LEVEL', 'LIDER_COMERCIAL', 'LIDER_CS'].includes(perfil.usuario.papel);
+  const { papel, area } = perfil.usuario;
+  return papel === 'ADMIN' || papel === 'C_LEVEL' || (papel === 'LIDER' && area !== 'MARKETING');
 }
 
 /**
@@ -157,9 +137,6 @@ export function podeConfigurarAtendimento(permissoes: Permissoes, perfil: Perfil
  */
 export function podeImportarContatos(permissoes: Permissoes, perfil: Perfil): boolean {
   return (
-    permissoes.importarContatos ??
-    ['ADMIN', 'C_LEVEL', 'LIDER_COMERCIAL', 'LIDER_MARKETING', 'LIDER_CS'].includes(
-      perfil.usuario.papel,
-    )
+    permissoes.importarContatos ?? ['ADMIN', 'C_LEVEL', 'LIDER'].includes(perfil.usuario.papel)
   );
 }

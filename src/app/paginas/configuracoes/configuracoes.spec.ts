@@ -11,8 +11,7 @@ import {
   UrlTree,
 } from '@angular/router';
 
-import type { Papel } from '../../nucleo/papeis';
-import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
+import { entrarComo, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
 import { Configuracoes, trazerPilulaParaVista } from './configuracoes';
 import { ROTAS_CONFIGURACOES } from './configuracoes.routes';
 import { formatarTelefone, gerarSenha } from './textos';
@@ -34,7 +33,7 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     });
   });
 
-  function secoesDe(papel: Papel): string[] {
+  function secoesDe(papel: PapelDeTeste): string[] {
     entrarComo(papel);
     const fixture = TestBed.createComponent(Configuracoes);
     fixture.detectChanges();
@@ -47,6 +46,8 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     expect(secoesDe('ADMIN')).toEqual([
       'Usuários',
       'Distribuição de leads',
+      'Funis',
+      'Setores',
       'Passagens entre funis',
       'Canais',
       'Atendimento',
@@ -65,20 +66,22 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     expect(
       (admin.nativeElement as HTMLElement).querySelector('.configuracoes__frase')?.textContent,
     ).toBe(
-      'Quem usa o CRM, a distribuição dos leads, as passagens entre funis, os canais de atendimento, as filas e os horários do atendimento, os apps de login, os limites dos disparos, o assistente de ajuda, o SDR com IA e o seu perfil.',
+      'Quem usa o CRM, a distribuição dos leads, os funis e quem os vê, os setores e quem os vê, as passagens entre funis, os canais de atendimento, as filas e os horários do atendimento, os apps de login, os limites dos disparos, o assistente de ajuda, o SDR com IA e o seu perfil.',
     );
     entrarComo('MARKETING');
     const membro = TestBed.createComponent(Configuracoes);
     membro.detectChanges();
     expect(
       (membro.nativeElement as HTMLElement).querySelector('.configuracoes__frase')?.textContent,
-    ).toBe('O seu acesso ao CRM.');
+    ).toBe('Os funis e quem os vê e o seu perfil.');
   });
 
-  it('C-level: equipe, distribuição, passagens, atendimento e perfil', () => {
+  it('C-level: equipe, distribuição, funis, setores, passagens, atendimento e perfil', () => {
     expect(secoesDe('C_LEVEL')).toEqual([
       'Minha equipe',
       'Distribuição de leads',
+      'Funis',
+      'Setores',
       'Passagens entre funis',
       'Atendimento',
       'Disparos',
@@ -86,17 +89,19 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     ]);
   });
 
-  it('líder: equipe, distribuição e perfil; membro: só o perfil', () => {
+  it('líder: equipe, distribuição, funis, setores e perfil; membro: funis e perfil', () => {
     expect(secoesDe('LIDER_CS')).toEqual([
       'Minha equipe',
       'Distribuição de leads',
+      'Funis',
+      'Setores',
       'Atendimento',
       'Meu perfil',
     ]);
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient()] });
-    // Uma seção só: sem as pílulas de navegação.
-    expect(secoesDe('MARKETING')).toEqual([]);
+    // O membro vê a lista dos funis que enxerga e o próprio perfil.
+    expect(secoesDe('MARKETING')).toEqual(['Funis', 'Meu perfil']);
   });
 
   it('/configuracoes abre a primeira seção permitida; membro não entra em Usuários', () => {
@@ -118,6 +123,7 @@ describe('Configuracoes (moldura e seções por papel)', () => {
     expect(guarda('', '/configuracoes')).toBe('/configuracoes/usuarios');
     expect(guarda('usuarios', '/configuracoes/usuarios')).toBe(true);
     entrarComo('COMERCIAL');
+    // Membro abre em Meu perfil (Funis é só consulta e continua na lista de abas).
     expect(guarda('', '/configuracoes')).toBe('/configuracoes/perfil');
     expect(guarda('usuarios', '/configuracoes/usuarios')).toBe(
       '/sem-acesso?pagina=%2Fconfiguracoes%2Fusuarios',

@@ -15,7 +15,8 @@ export type TipoCanal =
 export type StatusConversa = 'ABERTA' | 'PENDENTE' | 'RESOLVIDA';
 export type PrioridadeConversa = 'BAIXA' | 'NORMAL' | 'ALTA' | 'URGENTE';
 export type EscopoConversas = 'MINHAS' | 'SEM_RESPONSAVEL' | 'TODAS';
-export type AreaDoAtendimento = Extract<Area, 'COMERCIAL' | 'CS'>;
+/** Setor que atende (chave): todos os ativos, menos o Marketing. */
+export type AreaDoAtendimento = Area;
 
 export const TIPOS_CANAL: readonly TipoCanal[] = [
   'WHATSAPP',

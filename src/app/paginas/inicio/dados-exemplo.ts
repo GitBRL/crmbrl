@@ -1,4 +1,4 @@
-import { ROTULO_PAPEL, type Papel } from '../../nucleo/papeis';
+import { rotuloDoPapel, type Papel } from '../../nucleo/papeis';
 import type { SerieFunil } from '../../ui/barra-funil/barra-funil';
 
 /**
@@ -251,12 +251,12 @@ const ETAPAS: readonly { readonly id: IdEtapa; readonly nome: string; readonly a
 
 /** Equipe comercial do ranking (Pedro Martins foi desligado: não aparece). */
 const VENDEDORES: readonly { readonly nome: string; readonly papel: Papel }[] = [
-  { nome: 'João Batista', papel: 'COMERCIAL' },
-  { nome: 'Marina Costa', papel: 'COMERCIAL' },
-  { nome: 'Carla Nogueira', papel: 'LIDER_COMERCIAL' },
-  { nome: 'Diego Fernandes', papel: 'COMERCIAL' },
-  { nome: 'Paula Mendes', papel: 'COMERCIAL' },
-  { nome: 'Thiago Moreira', papel: 'COMERCIAL' },
+  { nome: 'João Batista', papel: 'MEMBRO' },
+  { nome: 'Marina Costa', papel: 'MEMBRO' },
+  { nome: 'Carla Nogueira', papel: 'LIDER' },
+  { nome: 'Diego Fernandes', papel: 'MEMBRO' },
+  { nome: 'Paula Mendes', papel: 'MEMBRO' },
+  { nome: 'Thiago Moreira', papel: 'MEMBRO' },
 ];
 
 /** MRR e health score são "de hoje": iguais em todos os períodos; só a variação muda. */
@@ -444,7 +444,7 @@ function montarEquipe(bruto: PeriodoBruto): DadosEquipe {
     .map<PessoaRanking>((pessoa, indice) => ({
       ...pessoa,
       posicao: indice + 1,
-      rotuloPapel: ROTULO_PAPEL[pessoa.papel],
+      rotuloPapel: rotuloDoPapel(pessoa.papel, 'Comercial'),
     }));
   return { pessoas, ganhos: somar(pessoas.map((pessoa) => pessoa.ganhos)) };
 }
@@ -486,5 +486,5 @@ export const DESLIGAMENTO = {
   pessoa: 'Pedro Martins',
   atividades: 12,
   destino: 'Carla Nogueira',
-  papelDestino: ROTULO_PAPEL.LIDER_COMERCIAL,
+  papelDestino: rotuloDoPapel('LIDER', 'Comercial'),
 } as const;

@@ -104,7 +104,7 @@
   }
 }
 
-.secao--ligar:not(:has(.ligar)) {
+.secao--ligar:not(:has(.ligar, app-botao-ligar-tresc button)) {
   display: none;
 }
 

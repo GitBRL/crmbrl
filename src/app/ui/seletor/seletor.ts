@@ -17,6 +17,13 @@ export interface OpcaoSeletor<T = unknown> {
   readonly valor: T;
   readonly rotulo: string;
   readonly desabilitada?: boolean;
+  /** Opções seguidas com o mesmo grupo ficam sob um `<optgroup>` com este título. */
+  readonly grupo?: string;
+}
+
+interface BlocoDeOpcoes<T> {
+  readonly grupo: string | null;
+  readonly itens: readonly { readonly opcao: OpcaoSeletor<T>; readonly indice: number }[];
 }
 
 /**
@@ -65,14 +72,30 @@ export interface OpcaoSeletor<T = unknown> {
           <option value="" [disabled]="!permitirVazio()" [selected]="indiceSelecionado() < 0">
             {{ placeholder() }}
           </option>
-          @for (opcao of opcoes(); track $index) {
-            <option
-              [value]="$index"
-              [disabled]="!!opcao.desabilitada"
-              [selected]="$index === indiceSelecionado()"
-            >
-              {{ opcao.rotulo }}
-            </option>
+          @for (bloco of blocos(); track $index) {
+            @if (bloco.grupo) {
+              <optgroup [label]="bloco.grupo">
+                @for (item of bloco.itens; track item.indice) {
+                  <option
+                    [value]="item.indice"
+                    [disabled]="!!item.opcao.desabilitada"
+                    [selected]="item.indice === indiceSelecionado()"
+                  >
+                    {{ item.opcao.rotulo }}
+                  </option>
+                }
+              </optgroup>
+            } @else {
+              @for (item of bloco.itens; track item.indice) {
+                <option
+                  [value]="item.indice"
+                  [disabled]="!!item.opcao.desabilitada"
+                  [selected]="item.indice === indiceSelecionado()"
+                >
+                  {{ item.opcao.rotulo }}
+                </option>
+              }
+            }
           }
         </select>
         <svg lucideChevronDown class="controle__seta" [size]="18" />
@@ -94,6 +117,21 @@ export class Seletor<T = unknown> extends CampoBase<T | null> {
   readonly comparar = input<(a: T | null, b: T) => boolean>(Object.is);
 
   protected override readonly mensagensPadrao: MensagensErro = { required: 'Escolha uma opção.' };
+
+  protected readonly blocos = computed<readonly BlocoDeOpcoes<T>[]>(() => {
+    const blocos: { grupo: string | null; itens: { opcao: OpcaoSeletor<T>; indice: number }[] }[] =
+      [];
+    this.opcoes().forEach((opcao, indice) => {
+      const grupo = opcao.grupo ?? null;
+      const ultimo = blocos[blocos.length - 1];
+      if (ultimo && ultimo.grupo === grupo) {
+        ultimo.itens.push({ opcao, indice });
+      } else {
+        blocos.push({ grupo, itens: [{ opcao, indice }] });
+      }
+    });
+    return blocos;
+  });
 
   protected readonly indiceSelecionado = computed(() => {
     const valor = this.valor();

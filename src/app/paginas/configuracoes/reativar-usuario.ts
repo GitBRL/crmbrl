@@ -12,7 +12,8 @@ import {
 
 import { type ErroApi, erroDaApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
-import type { Papel } from '../../nucleo/papeis';
+import { papelExigeSetor, type Papel } from '../../nucleo/papeis';
+import { SetoresService } from '../../nucleo/setores/setores.service';
 import { Botao } from '../../ui/botao/botao';
 import { Modal } from '../../ui/modal/modal';
 import { Seletor, type OpcaoSeletor } from '../../ui/seletor/seletor';
@@ -52,6 +53,19 @@ import { CandidatosALider } from './lideres';
             [valor]="papel()"
             (valorChange)="aoMudarPapel($event)"
           />
+          @if (exigeSetor()) {
+            <app-seletor
+              rotulo="Setor"
+              placeholder="Escolha o setor"
+              [opcoes]="setores.opcoes()"
+              [valor]="area()"
+              [erro]="erroSetor()"
+              (valorChange)="aoMudarSetor($event)"
+            />
+          }
+        </div>
+
+        <div class="reativar__par">
           @if (liderNecessario()) {
             <app-seletor
               rotulo="Líder"
@@ -154,12 +168,23 @@ export class ReativarUsuario {
 
   private readonly api = inject(ConfiguracoesApi);
   private readonly avisos = inject(AvisosService);
+  protected readonly setores = inject(SetoresService);
 
   protected readonly idFormulario = gerarId('reativar');
   protected readonly opcoesPapel = OPCOES_PAPEL;
   protected readonly ajudaLider = AJUDA_LIDER;
   protected readonly lideres = new CandidatosALider(this.api);
   protected readonly papel = signal<Papel | null>(null);
+  protected readonly area = signal<string | null>(null);
+  protected readonly exigeSetor = computed(() => papelExigeSetor(this.papel()));
+  /** Erro da API sobre o setor (R1.9), mostrado no campo. */
+  private readonly erroDoSetor = signal<string | null>(null);
+  protected readonly erroSetor = computed(() => {
+    if (this.erroDoSetor()) {
+      return this.erroDoSetor();
+    }
+    return this.tentouEnviar() && this.exigeSetor() && !this.area() ? 'Escolha o setor.' : null;
+  });
   protected readonly liderId = signal<string | null>(null);
   protected readonly enviando = signal(false);
   protected readonly tentouEnviar = signal(false);
@@ -174,7 +199,7 @@ export class ReativarUsuario {
     const papel = this.papel();
     return papel !== null && liderEsperado(papel) !== null;
   });
-  protected readonly explicacaoLider = computed(() => explicacaoDoLider(this.papel()));
+  protected readonly explicacaoLider = computed(() => explicacaoDoLider(this.papel(), this.area()));
   protected readonly opcoesLider = computed<readonly OpcaoSeletor<string>[]>(() =>
     (this.lideres.candidatos() ?? [])
       .filter((candidato) => candidato.id !== this.usuario()?.id)
@@ -189,7 +214,7 @@ export class ReativarUsuario {
       return `Não conseguimos carregar quem pode liderar: ${this.lideres.erro()!.resumo}`;
     }
     if (this.lideres.candidatos() !== null && this.opcoesLider().length === 0) {
-      return semLiderDisponivel(papel);
+      return semLiderDisponivel(papel, this.area());
     }
     if (this.erroDoLider()) {
       return this.erroDoLider();
@@ -198,6 +223,7 @@ export class ReativarUsuario {
   });
 
   constructor() {
+    void this.setores.carregar();
     effect(() => {
       const usuario = this.usuario();
       if (usuario) {
@@ -213,7 +239,19 @@ export class ReativarUsuario {
   protected aoMudarPapel(papel: Papel | null): void {
     this.papel.set(papel);
     this.erroDoLider.set(null);
+    this.erroDoSetor.set(null);
+    if (!papelExigeSetor(papel)) {
+      this.area.set(null);
+    }
     void this.carregarLideres(papel);
+  }
+
+  protected aoMudarSetor(area: string | null): void {
+    this.area.set(area);
+    this.erroDoSetor.set(null);
+    this.erroDoLider.set(null);
+    this.liderId.set(null);
+    void this.carregarLideres(this.papel());
   }
 
   protected async reativar(evento: Event): Promise<void> {
@@ -225,6 +263,9 @@ export class ReativarUsuario {
     }
     this.tentouEnviar.set(true);
     this.erro.set(null);
+    if (this.exigeSetor() && !this.area()) {
+      return;
+    }
     if (this.liderNecessario() && (!this.liderId() || this.erroLider())) {
       return;
     }
@@ -232,6 +273,7 @@ export class ReativarUsuario {
     try {
       const reativado = await this.api.reativar(usuario.id, {
         ...(papel !== usuario.papel ? { papel } : {}),
+        ...(papelExigeSetor(papel) ? { area: this.area() } : {}),
         liderId: this.liderNecessario() ? this.liderId() : null,
       });
       this.avisos.sucesso(`${reativado.nome} foi reativado(a) e já pode entrar no CRM.`);
@@ -239,7 +281,9 @@ export class ReativarUsuario {
       this.fechado.emit();
     } catch (falha) {
       const erro = erroDaApi(falha);
-      if ((erro.regra === 'R1.2' || erro.regra === 'R7.5') && this.liderNecessario()) {
+      if (erro.regra === 'R1.9' && this.exigeSetor()) {
+        this.erroDoSetor.set(erro.resumo);
+      } else if ((erro.regra === 'R1.2' || erro.regra === 'R7.5') && this.liderNecessario()) {
         this.erroDoLider.set(erro.resumo);
       } else {
         this.erro.set(erro);
@@ -255,6 +299,9 @@ export class ReativarUsuario {
     this.enviando.set(false);
     this.tentouEnviar.set(false);
     this.papel.set(usuario.papel);
+    this.erroDoSetor.set(null);
+    // O setor de antes, se ainda estiver ativo; senão, a pessoa escolhe.
+    this.area.set(usuario.area && this.setores.estaAtivo(usuario.area) ? usuario.area : null);
     // O líder de antes, se ainda puder liderar; senão, a pessoa escolhe.
     this.liderId.set(usuario.lider?.ativo ? usuario.lider.id : null);
     this.lideres.esquecer();
@@ -263,7 +310,7 @@ export class ReativarUsuario {
   }
 
   private async carregarLideres(papel: Papel | null): Promise<void> {
-    const candidatos = await this.lideres.carregar(papel);
+    const candidatos = await this.lideres.carregar(papel, this.area());
     if (candidatos === null) {
       return;
     }

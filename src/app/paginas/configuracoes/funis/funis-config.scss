@@ -1,0 +1,77 @@
+@use '../secao' as s;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+@include s.acao-flutuante;
+
+.filtro {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.grupos {
+  display: grid;
+  gap: var(--esp-entre-cartoes);
+}
+
+.funis {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.funil {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3) var(--esp-6);
+  padding: var(--esp-4) 0;
+  border-top: 1px solid var(--cor-borda);
+
+  &:first-child {
+    border-top: 0;
+  }
+}
+
+.funil--arquivado .funil__nome {
+  color: var(--cor-texto-suave);
+}
+
+.funil__texto {
+  display: grid;
+  flex: 1 1 22rem;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+.funil__nome {
+  font: var(--fonte-rotulo);
+  font-size: 1rem;
+}
+
+.funil__descricao {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-corpo);
+}
+
+.funil__selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.funil__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}

@@ -82,7 +82,15 @@
                   }
                   <p class="item__meta">
                     {{ ligacao.atendente?.nome ?? 'Sem atendente' }}
-                    @if (ligacao.canalNome) {
+                    @if (ligacao.provedor === 'TRESC_PLUS') {
+                      · <app-selo tamanho="sm" variante="ciano">3C+</app-selo>
+                      @if (ligacao.campanhaNome) {
+                        {{ ligacao.campanhaNome }}
+                      }
+                      @if (ligacao.qualificacaoNome) {
+                        · {{ ligacao.qualificacaoNome }}
+                      }
+                    } @else if (ligacao.canalNome) {
                       · {{ ligacao.canalNome }}
                     }
                     ·

@@ -22,8 +22,8 @@ import { filter, map } from 'rxjs';
 
 import {
   agruparModulos,
-  MODULOS,
-  moduloPorRota,
+  moduloDaNavegacaoPorRota,
+  modulosDaNavegacao,
   type IdGrupo,
   type Modulo,
 } from '../nucleo/navegacao';
@@ -43,7 +43,8 @@ interface DicaMenu {
 
 /**
  * Navegação principal (DESIGN-SYSTEM.md §5): os módulos que o usuário logado acessa (papel e
- * permissões do `auth/eu`), agrupados como em `nucleo/navegacao.ts`. Cada item é uma pílula
+ * permissões do `auth/eu`), agrupados como em `nucleo/navegacao.ts`; no grupo Funis, um item por
+ * setor ativo (`GET /setores`, carregado pela casca), inclusive os criados depois. Cada item é uma pílula
  * com o ícone num círculo; o item do módulo da página atual (inclusive as rotas relacionadas,
  * como `/empresas/:id` em Contatos e empresas) tem o círculo invertido e
  * `aria-current="page"`. Módulos "em breve" levam um selo.
@@ -83,11 +84,16 @@ export class MenuLateral {
   /** Só os círculos (desktop recolhido e tablet). */
   readonly recolhida = input(false, { transform: booleanAttribute });
 
+  /** Setores da pessoa (o funil do próprio setor aparece antes de a lista de setores chegar). */
+  private readonly areas = computed(() => this.sessao.permissoes()?.areasVisiveis ?? []);
+  /** Um item por funil de setor ativo (os criados depois também), com o que a pessoa acessa. */
   protected readonly secoes = computed(() =>
-    agruparModulos(MODULOS.filter((modulo) => this.sessao.pode(modulo))),
+    agruparModulos(modulosDaNavegacao(this.areas()).filter((modulo) => this.sessao.pode(modulo))),
   );
   /** Id do módulo da página atual. */
-  protected readonly ativo = computed(() => moduloPorRota(this.url())?.id ?? null);
+  protected readonly ativo = computed(
+    () => moduloDaNavegacaoPorRota(this.url(), this.areas())?.id ?? null,
+  );
   /** Não lidas por módulo (só Atendimento e Chat da equipe têm contador). */
   protected readonly contagens = computed<Readonly<Record<string, number>>>(() => {
     const naoLidas = this.tempoReal.naoLidas();

@@ -43,7 +43,7 @@
           @for (r of [revisao()]; track r) {
             <app-alternador
               rotulo="Campanhas de membros precisam da aprovação do líder"
-              dica="Ligado: a campanha criada por um membro só começa a enviar depois que o líder da área aprova. Desligado: o membro inicia sozinho."
+              dica="Ligado: a campanha criada por um membro só começa a enviar depois que o líder do setor aprova. Desligado: o membro inicia sozinho."
               [valor]="aprovacao()"
               (valorChange)="aprovacao.set($event)"
             />

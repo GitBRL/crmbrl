@@ -8,15 +8,15 @@ import { liderEsperado } from './hierarquia';
 
 /**
  * Quem pode liderar cada papel (R1.2), para os seletores de líder do convite, da edição e da
- * reativação: os usuários **ativos** com o papel de líder esperado (membro → líder da mesma
- * área; líder → C-level). Guarda as respostas por papel e ignora a resposta de uma troca de
+ * reativação: os usuários **ativos** com o papel de líder esperado (membro → líderes do mesmo
+ * setor; líder → C-levels). Guarda as respostas por papel e setor e ignora a resposta de uma troca de
  * papel que já ficou para trás.
  */
 export class CandidatosALider {
   private readonly _candidatos = signal<readonly Usuario[] | null>(null);
   private readonly _carregando = signal(false);
   private readonly _erro = signal<ErroApi | null>(null);
-  private readonly cache = new Map<Papel, Promise<readonly Usuario[]>>();
+  private readonly cache = new Map<string, Promise<readonly Usuario[]>>();
   private pedido = 0;
 
   /** `null` enquanto não carregou (ou falhou); `[]` para Admin e C-level. */
@@ -30,22 +30,28 @@ export class CandidatosALider {
    * Carrega para o `papel` de quem vai ser liderado. Devolve a lista, ou `null` se falhou ou se
    * outra troca de papel chegou antes.
    */
-  async carregar(papel: Papel | null, recarregar = false): Promise<readonly Usuario[] | null> {
+  async carregar(
+    papel: Papel | null,
+    area: string | null = null,
+    recarregar = false,
+  ): Promise<readonly Usuario[] | null> {
     const atual = ++this.pedido;
     this._erro.set(null);
     const esperado = papel ? liderEsperado(papel) : null;
-    if (!esperado) {
+    // Membro só tem candidatos quando o setor já foi escolhido (o líder é do mesmo setor).
+    if (!esperado || (esperado === 'LIDER' && !area)) {
       this._candidatos.set([]);
       this._carregando.set(false);
       return [];
     }
+    const chave = esperado === 'LIDER' ? `${esperado}:${area}` : esperado;
     if (recarregar) {
-      this.cache.delete(esperado);
+      this.cache.delete(chave);
     }
-    let busca = this.cache.get(esperado);
+    let busca = this.cache.get(chave);
     if (!busca) {
-      busca = this.api.listarAtivosDoPapel(esperado);
-      this.cache.set(esperado, busca);
+      busca = this.api.listarAtivosDoPapel(esperado, esperado === 'LIDER' ? area : null);
+      this.cache.set(chave, busca);
     }
     this._carregando.set(true);
     try {
@@ -56,7 +62,7 @@ export class CandidatosALider {
       this._candidatos.set(candidatos);
       return candidatos;
     } catch (falha) {
-      this.cache.delete(esperado);
+      this.cache.delete(chave);
       if (atual === this.pedido) {
         this._candidatos.set(null);
         this._erro.set(erroDaApi(falha));
