@@ -45,6 +45,19 @@
         >Configurar funil</a
       >
     }
+    @if (!somenteLeitura() && estado.situacao() === 'pronto') {
+      <button
+        appBotao
+        type="button"
+        variante="contorno"
+        class="cabecalho__selecionar"
+        [icone]="icones.selecionar"
+        [attr.aria-pressed]="estado.modoSelecao()"
+        (click)="alternarSelecao()"
+      >
+        {{ estado.modoSelecao() ? 'Sair da seleção' : 'Selecionar' }}
+      </button>
+    }
     @if (!somenteLeitura()) {
       <button
         appBotao
@@ -248,6 +261,17 @@
               <app-selo tamanho="sm" aria-hidden="true" class="coluna__contagem">{{
                 coluna.total
               }}</app-selo>
+              @if (estado.modoSelecao() && !recolhida(coluna) && coluna.negocios.length) {
+                <input
+                  type="checkbox"
+                  class="coluna__marcar"
+                  [checked]="estado.etapaMarcada(coluna.etapa.id) === 'todos'"
+                  [indeterminate]="estado.etapaMarcada(coluna.etapa.id) === 'alguns'"
+                  [attr.aria-label]="rotuloEtapa(coluna)"
+                  [title]="'Selecionar todos desta etapa (os carregados)'"
+                  (change)="estado.alternarEtapa(coluna.etapa.id)"
+                />
+              }
               @if (prazoDaColuna(coluna); as prazo) {
                 <app-dica
                   class="coluna__dica"
@@ -311,7 +335,7 @@
                   <app-cartao-negocio
                     role="listitem"
                     cdkDrag
-                    [cdkDragDisabled]="!podeAgirEm(negocio)"
+                    [cdkDragDisabled]="!podeAgirEm(negocio) || estado.modoSelecao()"
                     [cdkDragData]="negocio"
                     [cdkDragStartDelay]="atrasoArraste"
                     [negocio]="negocio"
@@ -322,6 +346,9 @@
                     [podeSair]="podeSair(negocio)"
                     [podeMover]="podeAgirEm(negocio)"
                     [podeAssumir]="podeAssumir() && podeAgirEm(negocio)"
+                    [podeTrocarResponsavel]="podeAgirEm(negocio)"
+                    [selecionando]="estado.modoSelecao()"
+                    [selecionado]="estado.selecao().has(negocio.id)"
                     [assumindo]="assumindo().has(negocio.id)"
                     [mostrarValor]="mostrarValores()"
                     [pego]="pego()?.negocio?.id === negocio.id"
@@ -365,17 +392,30 @@
   }
 }
 
-<button
-  appBotaoIcone
-  type="button"
-  variante="invertido"
-  tamanho="lg"
-  class="novo-flutuante"
-  rotulo="Novo negócio"
-  [icone]="icones.mais"
-  [disabled]="!estado.funil()"
-  (click)="novoAberto.set(true)"
-></button>
+@if (!estado.modoSelecao()) {
+  <button
+    appBotaoIcone
+    type="button"
+    variante="invertido"
+    tamanho="lg"
+    class="novo-flutuante"
+    rotulo="Novo negócio"
+    [icone]="icones.mais"
+    [disabled]="!estado.funil()"
+    (click)="novoAberto.set(true)"
+  ></button>
+} @else {
+  <app-barra-acoes-massa />
+}
+
+<app-escolher-responsavel
+  [(aberto)]="responsavelAberto"
+  titulo="Trocar responsável"
+  [frase]="trocandoResponsavelDe() ? '“' + trocandoResponsavelDe()!.titulo + '”' : null"
+  [opcoes]="opcoesResponsavel()"
+  [atualId]="trocandoResponsavelDe()?.responsavel?.id ?? null"
+  (escolhido)="trocarResponsavel($event)"
+/>
 
 <app-motivo-perda
   [aberto]="!!aguardandoMotivo()"

@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 
 import { AvisosService } from '../../nucleo/avisos.service';
 import type { Papel } from '../../nucleo/papeis';
@@ -448,5 +448,294 @@ describe('QuadroFunil', () => {
     fixture.detectChanges();
     expect(raiz.textContent).toContain('Não conseguimos carregar o quadro');
     expect(raiz.textContent).toContain('Tentar de novo');
+  });
+
+  describe('responsável pelo cartão (R5.15)', () => {
+    const PESSOAS = {
+      itens: [
+        {
+          id: 'u-bia',
+          nome: 'Bia Souza',
+          papel: 'MEMBRO',
+          rotuloPapel: 'Comercial',
+          area: 'COMERCIAL',
+          ativo: true,
+          nivel: 'MEMBRO',
+        },
+        {
+          id: 'u-cs',
+          nome: 'Caio do CS',
+          papel: 'MEMBRO',
+          rotuloPapel: 'CS',
+          area: 'CS',
+          ativo: true,
+          nivel: 'MEMBRO',
+        },
+      ],
+      total: 2,
+      pagina: 1,
+      porPagina: 100,
+    };
+
+    function botaoResponsavel(negocioId: string): HTMLButtonElement | null {
+      return raiz.querySelector<HTMLButtonElement>(
+        `[data-negocio-id="${negocioId}"] .cartao__responsavel--botao, [data-negocio-id="${negocioId}"] .cartao__sem-responsavel--botao`,
+      );
+    }
+
+    async function abrirSeletor(negocioId: string) {
+      botaoResponsavel(negocioId)!.click();
+      await microtarefas();
+      http.expectOne((req) => req.url === '/api/v1/usuarios').flush(PESSOAS);
+      await microtarefas();
+      fixture.detectChanges();
+    }
+
+    function opcoesDoSeletor(): HTMLButtonElement[] {
+      return [
+        ...raiz.querySelectorAll<HTMLButtonElement>('app-escolher-responsavel .escolher__opcao'),
+      ];
+    }
+
+    it('o responsável vira botão com o nome acessível "Responsável: Fulano. Trocar responsável"', async () => {
+      await abrir();
+      const botao = botaoResponsavel('a')!;
+      expect(botao.getAttribute('aria-label')).toMatch(/^Responsável: .+\. Trocar responsável$/);
+      expect(botaoResponsavel('b')!.getAttribute('aria-label')).toBe(
+        'Sem responsável. Trocar responsável',
+      );
+    });
+
+    it('lista só quem pode ser responsável no setor (e "Sem responsável"); trocar manda o PATCH e atualiza o cartão', async () => {
+      await abrir();
+      await abrirSeletor('a');
+      const nomes = opcoesDoSeletor().map((o) => o.textContent!.replace(/\s+/g, ' ').trim());
+      expect(nomes.some((n) => n.startsWith('Sem responsável'))).toBe(true);
+      expect(nomes.some((n) => n.includes('Bia Souza'))).toBe(true);
+      expect(nomes.some((n) => n.includes('Caio do CS'))).toBe(false);
+
+      opcoesDoSeletor()
+        .find((o) => o.textContent!.includes('Bia Souza'))!
+        .click();
+      fixture.detectChanges();
+      // Otimista: o cartão já mostra a Bia.
+      expect(
+        raiz.querySelector('[data-negocio-id="a"] .cartao__responsavel-nome')?.textContent,
+      ).toBe('Bia');
+      const pedido = http.expectOne('/api/v1/negocios/a');
+      expect(pedido.request.method).toBe('PATCH');
+      expect(pedido.request.body).toEqual({ responsavelId: 'u-bia' });
+      pedido.flush(negocioDeTeste('a', NOVO, { responsavel: { id: 'u-bia', nome: 'Bia Souza' } }));
+      await microtarefas();
+      fixture.detectChanges();
+      expect(TestBed.inject(AvisosService).lista().at(-1)?.tipo).toBe('sucesso');
+    });
+
+    it('a API recusando: o cartão volta ao responsável de antes e o aviso explica', async () => {
+      await abrir();
+      const antes = raiz.querySelector(
+        '[data-negocio-id="a"] .cartao__responsavel-nome',
+      )?.textContent;
+      await abrirSeletor('a');
+      opcoesDoSeletor()
+        .find((o) => o.textContent!.includes('Bia Souza'))!
+        .click();
+      http.expectOne('/api/v1/negocios/a').flush(
+        {
+          statusCode: 422,
+          erro: 'regra_violada',
+          mensagem: 'x',
+          detalhes: { regra: 'R5.13' },
+          requisicaoId: 'r',
+        },
+        { status: 422, statusText: 'Unprocessable' },
+      );
+      await microtarefas();
+      fixture.detectChanges();
+      expect(
+        raiz.querySelector('[data-negocio-id="a"] .cartao__responsavel-nome')?.textContent,
+      ).toBe(antes);
+      const aviso = TestBed.inject(AvisosService).lista().at(-1);
+      expect(aviso?.tipo).toBe('erro');
+      expect(aviso?.mensagem).toContain('Como membro');
+    });
+
+    it('"Sem responsável" tira o responsável (null)', async () => {
+      await abrir();
+      await abrirSeletor('a');
+      opcoesDoSeletor()
+        .find((o) => o.textContent!.trim().startsWith('Sem responsável'))!
+        .click();
+      const pedido = http.expectOne('/api/v1/negocios/a');
+      expect(pedido.request.body).toEqual({ responsavelId: null });
+      pedido.flush(negocioDeTeste('a', NOVO, { responsavel: null }));
+      await microtarefas();
+    });
+
+    it('quem só vê o funil (VER) não tem o botão: o responsável fica como texto', async () => {
+      await abrir('LIDER_COMERCIAL', undefined, undefined, {
+        funil: funilDeTeste({ nivel: 'VER' }),
+      });
+      expect(botaoResponsavel('a')).toBeNull();
+      expect(raiz.querySelector('[data-negocio-id="a"] .cartao__responsavel')).not.toBeNull();
+    });
+
+    it('clicar no responsável não abre o detalhe do negócio', async () => {
+      await abrir();
+      botaoResponsavel('a')!.click();
+      await microtarefas();
+      http.match((req) => req.url === '/api/v1/usuarios').forEach((p) => p.flush(PESSOAS));
+      expect(TestBed.inject(Router).url).toBe('/');
+    });
+  });
+
+  describe('ações em massa (R5.16)', () => {
+    function botao(texto: string): HTMLButtonElement {
+      return [...raiz.querySelectorAll<HTMLButtonElement>('button')].find(
+        (b) => b.textContent?.replace(/\s+/g, ' ').trim() === texto,
+      )!;
+    }
+
+    async function entrarNaSelecao() {
+      botao('Selecionar').click();
+      await microtarefas();
+      http
+        .match((req) => req.url === '/api/v1/usuarios')
+        .forEach((p) => p.flush({ itens: [], total: 0, pagina: 1, porPagina: 100 }));
+      fixture.detectChanges();
+    }
+
+    it('Selecionar liga o modo: cada cartão ganha a caixa de marcar e o clique no cartão marca em vez de abrir', async () => {
+      await abrir();
+      await entrarNaSelecao();
+      expect(raiz.querySelectorAll('.cartao__marcar').length).toBe(3);
+      expect(raiz.querySelector('app-barra-acoes-massa')).not.toBeNull();
+      expect(raiz.querySelector('app-barra-acoes-massa .barra__contagem')?.textContent).toContain(
+        'Nenhum selecionado',
+      );
+      raiz.querySelector<HTMLElement>('[data-negocio-id="a"] .cartao')!.click();
+      fixture.detectChanges();
+      expect(
+        raiz.querySelector<HTMLInputElement>('[data-negocio-id="a"] .cartao__marcar')!.checked,
+      ).toBe(true);
+      expect(raiz.querySelector('.barra__contagem')?.textContent?.replace(/\s+/g, ' ')).toContain(
+        '1 selecionado',
+      );
+      expect(botao('Selecionar') ?? botao('Sair da seleção')).toBeTruthy();
+    });
+
+    it('"Selecionar todos desta etapa" marca os cartões carregados da coluna', async () => {
+      await abrir();
+      await entrarNaSelecao();
+      colunaDe('Novo').querySelector<HTMLInputElement>('.coluna__marcar')!.click();
+      fixture.detectChanges();
+      expect(raiz.querySelector('.barra__contagem')?.textContent?.replace(/\s+/g, ' ')).toContain(
+        '2 selecionados',
+      );
+    });
+
+    it('Ganho manda a ação em massa e mostra "N negócios atualizados"; recarrega o quadro', async () => {
+      await abrir();
+      await entrarNaSelecao();
+      colunaDe('Novo').querySelector<HTMLInputElement>('.coluna__marcar')!.click();
+      fixture.detectChanges();
+      botao('Ganho').click();
+      const pedido = http.expectOne('/api/v1/negocios/em-massa');
+      expect(pedido.request.body).toEqual({ negocioIds: ['a', 'b'], acao: 'GANHAR' });
+      pedido.flush({ total: 2, sucesso: 2, falhas: [] });
+      await microtarefas();
+      http
+        .expectOne((req) => req.url === `/api/v1/funis/${FUNIL_ID}/quadro`)
+        .flush(quadroDeTeste(colunasDeTeste({ proposta: [negocioDeTeste('c', PROPOSTA)] })));
+      await microtarefas();
+      http
+        .match((req) => req.url === '/api/v1/atividades')
+        .forEach((p) => p.flush({ itens: [], total: 0, pagina: 1, porPagina: 100 }));
+      fixture.detectChanges();
+      const aviso = TestBed.inject(AvisosService).lista().at(-1);
+      expect(aviso?.tipo).toBe('sucesso');
+      expect(aviso?.mensagem).toBe('2 negócios atualizados.');
+    });
+
+    it('sucesso parcial: aviso "1 de 2" e a lista das falhas (título e motivo); só as falhas ficam marcadas', async () => {
+      await abrir();
+      await entrarNaSelecao();
+      colunaDe('Novo').querySelector<HTMLInputElement>('.coluna__marcar')!.click();
+      fixture.detectChanges();
+      botao('Ganho').click();
+      http.expectOne('/api/v1/negocios/em-massa').flush({
+        total: 2,
+        sucesso: 1,
+        falhas: [
+          {
+            negocioId: 'b',
+            titulo: 'Negócio b',
+            statusCode: 403,
+            regra: 'R5.12',
+            mensagem: 'Só pode ver.',
+          },
+        ],
+      });
+      await microtarefas();
+      http
+        .expectOne((req) => req.url === `/api/v1/funis/${FUNIL_ID}/quadro`)
+        .flush(
+          quadroDeTeste(
+            colunasDeTeste({
+              novo: [negocioDeTeste('b', NOVO)],
+              proposta: [negocioDeTeste('c', PROPOSTA)],
+            }),
+          ),
+        );
+      await microtarefas();
+      http
+        .match((req) => req.url === '/api/v1/atividades')
+        .forEach((p) => p.flush({ itens: [], total: 0, pagina: 1, porPagina: 100 }));
+      fixture.detectChanges();
+      const aviso = TestBed.inject(AvisosService).lista().at(-1);
+      expect(aviso?.tipo).toBe('atencao');
+      expect(aviso?.mensagem).toBe('1 de 2 negócios atualizados.');
+      expect(raiz.querySelector('.falhas')?.textContent).toContain('Negócio b');
+      expect(raiz.querySelector('.falhas')?.textContent).toContain('Só pode ver.');
+      expect(raiz.querySelector('.barra__contagem')?.textContent?.replace(/\s+/g, ' ')).toContain(
+        '1 selecionado',
+      );
+    });
+
+    it('Excluir fica indisponível (aria-disabled, com a dica) para quem não configura o funil', async () => {
+      await abrir('COMERCIAL');
+      await entrarNaSelecao();
+      const excluir = botao('Excluir');
+      expect(excluir.disabled).toBe(true);
+      expect(excluir.getAttribute('title')).toContain('Só quem configura');
+    });
+
+    it('Cancelar sai do modo e limpa a seleção', async () => {
+      await abrir();
+      await entrarNaSelecao();
+      raiz.querySelector<HTMLElement>('[data-negocio-id="a"] .cartao')!.click();
+      fixture.detectChanges();
+      botao('Cancelar').click();
+      fixture.detectChanges();
+      expect(raiz.querySelector('app-barra-acoes-massa')).toBeNull();
+      expect(raiz.querySelectorAll('.cartao__marcar').length).toBe(0);
+    });
+
+    it('Esc sai do modo seleção', async () => {
+      await abrir();
+      await entrarNaSelecao();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.detectChanges();
+      expect(raiz.querySelector('app-barra-acoes-massa')).toBeNull();
+    });
+
+    it('quem só vê o funil não tem o botão Selecionar', async () => {
+      await abrir('LIDER_COMERCIAL', undefined, undefined, {
+        funil: funilDeTeste({ nivel: 'VER' }),
+      });
+      expect(
+        [...raiz.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'Selecionar'),
+      ).toBe(false);
+    });
   });
 });

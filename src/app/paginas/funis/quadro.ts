@@ -26,6 +26,7 @@ import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import {
   LucideChevronsLeft,
   LucideChevronsRight,
+  LucideListChecks,
   LucidePlus,
   LucideSettings,
   LucideSlidersHorizontal,
@@ -47,9 +48,11 @@ import { FiltrosPilula } from '../../ui/filtros-pilula/filtros-pilula';
 import { type OpcaoSeletor, Seletor } from '../../ui/seletor/seletor';
 import { Selo } from '../../ui/selo/selo';
 import { partirTitulo } from '../../ui/tipos';
+import { BarraAcoesMassa } from './barra-acoes-massa';
 import { type AcaoCartao, CartaoNegocio } from './cartao-negocio';
 import { ConfigurarEtapas } from './configurar-etapas';
-import { EstadoQuadro, type Movimento } from './estado-quadro';
+import { EscolherResponsavel } from './escolher-responsavel';
+import { EstadoQuadro, type Movimento, type OpcaoResponsavel } from './estado-quadro';
 import type { ColunaQuadro, Funil, Negocio } from './funis.tipos';
 import { MotivoPerda } from './motivo-perda';
 import { NovoNegocio } from './novo-negocio';
@@ -94,6 +97,7 @@ interface Pego {
 @Component({
   selector: 'app-quadro-funil',
   imports: [
+    BarraAcoesMassa,
     Botao,
     BotaoIcone,
     CampoBusca,
@@ -104,6 +108,7 @@ interface Pego {
     CdkScrollable,
     ConfigurarEtapas,
     Dica,
+    EscolherResponsavel,
     Esqueleto,
     EstadoVazio,
     FiltrosPilula,
@@ -119,6 +124,10 @@ interface Pego {
   templateUrl: './quadro.html',
   styleUrl: './quadro.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown.escape)': 'aoApertarEsc($event)',
+    '[class.quadro--selecionando]': 'estado.modoSelecao()',
+  },
 })
 export class QuadroFunil {
   /** `marketing`, `comercial` ou `cs` (parâmetro `:area`). */
@@ -143,6 +152,7 @@ export class QuadroFunil {
     recolher: LucideChevronsRight,
     expandir: LucideChevronsLeft,
     filtros: LucideSlidersHorizontal,
+    selecionar: LucideListChecks,
   };
   protected readonly atrasoArraste = ATRASO_ARRASTE;
 
@@ -233,6 +243,12 @@ export class QuadroFunil {
   protected readonly assumindo = signal<ReadonlySet<string>>(new Set());
   protected readonly novoAberto = signal(false);
   protected readonly configurarAberto = signal(false);
+  /** Cartão cujo responsável está sendo trocado (R5.15). */
+  protected readonly trocandoResponsavelDe = signal<Negocio | null>(null);
+  protected readonly responsavelAberto = signal(false);
+  protected readonly opcoesResponsavel = computed<readonly OpcaoResponsavel[]>(() =>
+    this.estado.opcoesDeResponsavel(this.trocandoResponsavelDe()?.responsavel ?? null),
+  );
   /** Movimento esperando o motivo da perda. */
   protected readonly aguardandoMotivo = signal<Movimento | null>(null);
 
@@ -391,12 +407,90 @@ export class QuadroFunil {
       });
     } else if (acao.tipo === 'assumir') {
       void this.assumir(negocio);
+    } else if (acao.tipo === 'responsavel') {
+      this.abrirResponsavel(negocio);
+    } else if (acao.tipo === 'selecionar') {
+      this.estado.alternarSelecao(negocio.id);
+      this.carregarPessoas();
     } else {
       const movimento = this.estado.moverPara(negocio.id, acao.etapaId);
       if (movimento) {
         void this.concluir(movimento);
       }
     }
+  }
+
+  // Responsável pelo cartão (R5.15) ------------------------------------------------------------
+
+  private abrirResponsavel(negocio: Negocio): void {
+    this.carregarPessoas();
+    this.trocandoResponsavelDe.set(negocio);
+    this.responsavelAberto.set(true);
+  }
+
+  protected async trocarResponsavel(opcao: OpcaoResponsavel | null): Promise<void> {
+    const negocio = this.trocandoResponsavelDe();
+    this.trocandoResponsavelDe.set(null);
+    if (!negocio || (opcao?.id ?? null) === (negocio.responsavel?.id ?? null)) {
+      return;
+    }
+    try {
+      const atualizado = await this.estado.trocarResponsavel(negocio, opcao);
+      const nome = atualizado.responsavel?.nome;
+      const vouDeixarDeVer =
+        this.sessao.permissoes()?.verNegocios === 'PROPRIOS' &&
+        !!opcao &&
+        opcao.id !== this.sessao.usuario()?.id;
+      if (vouDeixarDeVer) {
+        this.estado.removerNegocio(negocio.id);
+        this.avisos.sucesso(
+          `“${negocio.titulo}” agora é de ${nome}. Ele sai do seu quadro, porque você não é mais o responsável.`,
+        );
+      } else {
+        this.avisos.sucesso(
+          nome
+            ? `Responsável de “${negocio.titulo}” trocado para ${nome}.`
+            : `“${negocio.titulo}” ficou sem responsável.`,
+        );
+      }
+    } catch (falha) {
+      this.avisos.erro(falhaClara(falha), {
+        titulo: `Não deu para trocar o responsável de “${negocio.titulo}”`,
+      });
+    }
+  }
+
+  private carregarPessoas(): void {
+    void this.estado.carregarUsuarios().catch(() => undefined);
+  }
+
+  // Modo seleção (R5.16) ------------------------------------------------------------------------
+
+  protected alternarSelecao(): void {
+    if (this.estado.modoSelecao()) {
+      this.estado.sairDaSelecao();
+      return;
+    }
+    this.cancelarPego();
+    this.estado.entrarNaSelecao();
+    this.carregarPessoas();
+  }
+
+  protected rotuloEtapa(coluna: ColunaQuadro): string {
+    return `Selecionar todos desta etapa: ${coluna.etapa.nome}`;
+  }
+
+  /** Esc sai do modo seleção (se nenhum modal ou menu aberto o consumiu). */
+  protected aoApertarEsc(evento: Event): void {
+    if (!this.estado.modoSelecao() || evento.defaultPrevented) {
+      return;
+    }
+    const documento = this.elemento.nativeElement.ownerDocument;
+    if (documento.querySelector('dialog[open], .cdk-overlay-pane')) {
+      return;
+    }
+    this.estado.sairDaSelecao();
+    this.anunciar('Modo seleção encerrado.');
   }
 
   private async assumir(negocio: Negocio): Promise<void> {
