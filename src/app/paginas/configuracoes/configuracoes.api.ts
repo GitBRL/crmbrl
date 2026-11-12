@@ -75,6 +75,31 @@ export class ConfiguracoesApi {
     return firstValueFrom(this.http.patch<Usuario>(urlApi('usuarios', id), dados));
   }
 
+  /**
+   * A própria foto de perfil (R2.10): envia a imagem como `AVATAR` (JPG, PNG, GIF ou WebP, até
+   * 5 MB) e liga ao perfil. Devolve o novo endereço da foto.
+   */
+  async trocarMinhaFoto(arquivo: File): Promise<string | null> {
+    const corpo = new FormData();
+    corpo.append('arquivo', arquivo, arquivo.name);
+    const enviado = await firstValueFrom(
+      this.http.post<{ readonly id: string }>(urlApi('arquivos'), corpo, {
+        params: parametros({ contexto: 'AVATAR' }),
+      }),
+    );
+    const foto = await firstValueFrom(
+      this.http.put<{ readonly avatarUrl: string | null }>(urlApi('usuarios', 'eu', 'foto'), {
+        arquivoId: enviado.id,
+      }),
+    );
+    return foto.avatarUrl;
+  }
+
+  /** Remove a própria foto de perfil (R2.10): volta às iniciais. */
+  async removerMinhaFoto(): Promise<void> {
+    await firstValueFrom(this.http.delete(urlApi('usuarios', 'eu', 'foto')));
+  }
+
   definirSenhaTemporaria(id: string, senha: string): Promise<Usuario> {
     return firstValueFrom(
       this.http.post<Usuario>(urlApi('usuarios', id, 'senha-temporaria'), { senha }),

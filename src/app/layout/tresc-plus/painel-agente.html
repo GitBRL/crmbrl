@@ -1,0 +1,144 @@
+@if (tresc.vinculado()) {
+  <div class="agente">
+    <button
+      #botao
+      type="button"
+      class="agente__botao"
+      [attr.data-estado]="estado()"
+      [attr.aria-label]="rotuloBotao()"
+      [attr.aria-expanded]="aberto()"
+      [attr.aria-controls]="aberto() ? idPainel : null"
+      (click)="alternar()"
+    >
+      <span class="agente__ponto" aria-hidden="true"></span>
+      <svg class="agente__icone" [lucideIcon]="icones.agente" [size]="18" aria-hidden="true" />
+      <span class="agente__texto" aria-hidden="true">
+        {{ visao().rotulo }}
+        @if (dentro()) {
+          <span class="numeros agente__tempo">{{ tempo() }}</span>
+        }
+      </span>
+    </button>
+
+    @if (aberto()) {
+      <section class="agente__painel" [id]="idPainel" [attr.aria-labelledby]="idTitulo">
+        <header class="agente__cabecalho">
+          <h2 class="agente__titulo" [id]="idTitulo">Agente do 3C+</h2>
+          <app-selo [variante]="visao().variante" ponto>{{ visao().rotulo }}</app-selo>
+        </header>
+
+        @if (tresc.reconectando()) {
+          <p class="agente__aviso" role="status">
+            Reconectando… o estado pode estar desatualizado.
+          </p>
+        }
+        @if (tresc.erro()) {
+          <p class="agente__aviso agente__aviso--erro" role="alert">{{ tresc.erro() }}</p>
+        }
+
+        <p class="agente__descricao">{{ visao().descricao }}</p>
+
+        @if (dentro()) {
+          <dl class="agente__dados">
+            <div>
+              <dt>Campanha</dt>
+              <dd>{{ tresc.agente()?.campanha?.nome ?? 'Sem campanha' }}</dd>
+            </div>
+            <div>
+              <dt>Modo</dt>
+              <dd>{{ tresc.agente()?.modo === 'dialer' ? 'Discador' : 'Manual' }}</dd>
+            </div>
+            @if (estado() === 'pausa') {
+              <div>
+                <dt>Pausa</dt>
+                <dd>{{ tresc.agente()?.pausa?.nome ?? 'Pausa' }}</dd>
+              </div>
+            }
+            <div>
+              <dt>{{ estado() === 'pausa' ? 'Em pausa há' : 'Neste estado há' }}</dt>
+              <dd class="numeros" [attr.aria-label]="tempoFalado()">{{ tempo() }}</dd>
+            </div>
+          </dl>
+        }
+
+        @if (estado() === 'pos_atendimento' && tresc.qualificacaoPendente()) {
+          <button appBotao type="button" variante="invertido" (click)="qualificarAgora()">
+            Qualificar a ligação
+          </button>
+        }
+
+        @if (estado() === 'desconectado') {
+          @if (erroListas(); as falha) {
+            <p class="agente__aviso agente__aviso--erro" role="alert">{{ falha }}</p>
+            <button appBotao type="button" tamanho="sm" (click)="carregarListas()">
+              Tentar de novo
+            </button>
+          } @else {
+            <div class="agente__form">
+              <app-seletor
+                rotulo="Campanha"
+                [opcoes]="opcoesCampanha()"
+                placeholder="Campanha padrão da empresa"
+                permitirVazio
+                [(valor)]="campanhaEscolhida"
+              />
+              <app-seletor rotulo="Modo" [opcoes]="modos" [(valor)]="modoEscolhido" />
+              <button
+                appBotao
+                type="button"
+                variante="invertido"
+                [carregando]="tresc.entrando()"
+                [disabled]="tresc.agindo() || carregandoListas()"
+                (click)="entrar()"
+              >
+                {{ tresc.entrando() ? 'Entrando na campanha…' : 'Entrar na campanha' }}
+              </button>
+            </div>
+          }
+        } @else {
+          <div class="agente__form">
+            @if (estado() === 'pausa') {
+              <button
+                appBotao
+                type="button"
+                variante="invertido"
+                [carregando]="tresc.agindo()"
+                (click)="tresc.voltarDaPausa()"
+              >
+                Voltar da pausa
+              </button>
+            } @else if (podePausar() && opcoesPausa().length) {
+              <app-seletor
+                rotulo="Pausa"
+                [opcoes]="opcoesPausa()"
+                placeholder="Escolha o motivo"
+                [(valor)]="pausaEscolhida"
+              />
+              <button
+                appBotao
+                type="button"
+                variante="contorno"
+                [disabled]="pausaEscolhida() === null || tresc.agindo()"
+                (click)="entrarNaPausa()"
+              >
+                Entrar em pausa
+              </button>
+            }
+            <button
+              appBotao
+              type="button"
+              variante="contorno"
+              [disabled]="!podeSair() || tresc.agindo()"
+              (click)="tresc.sairDaCampanha()"
+            >
+              Sair da campanha
+            </button>
+            @if (!podeSair()) {
+              <p class="agente__descricao">Termine e qualifique a ligação para sair.</p>
+            }
+          </div>
+        }
+      </section>
+    }
+  </div>
+}

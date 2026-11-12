@@ -8,6 +8,12 @@ import type {
 } from '../ligacoes/ligacoes.tipos';
 import type { EventoLigacaoProcessada } from '../ligacoes/gravacao.tipos';
 import type { Notificacao } from '../notificacoes.service';
+import type {
+  EventoTrescAgente,
+  EventoTrescLigacao,
+  EventoTrescQualificar,
+  EventoTrescRecebida,
+} from '../tresc-plus/tresc-plus.tipos';
 
 /**
  * Eventos do tempo real (contrato da Onda A, §2.2): o que o servidor emite no namespace
@@ -39,6 +45,10 @@ import type { Notificacao } from '../notificacoes.service';
  * | `ligacao.estado`      | `{ ligacaoId, estado, motivo?, atendidaEm? }` (E2)                     |
  * | `ligacao.encerrada`   | `{ ligacaoId, estado, duracaoSegundos, motivo, motivoTexto }` (E2)     |
  * | `ligacao.permissao`   | a permissão de ligar do contato (sala `conversa:<id>`) (E2)            |
+ * | `tresc.agente`        | `{ estado, desde, campanha, modo, pausa, erro }` — 3C+ (R34)            |
+ * | `tresc.ligacao`       | `{ ligacaoId, estado, direcao, telefone, contatoId… }` — 3C+             |
+ * | `tresc.recebida`      | `{ ligacaoId, telefone, contato, negocios, novoContato }` — 3C+          |
+ * | `tresc.qualificar`    | `{ ligacaoId, campanhaId }` — abre a qualificação                       |
  * | `sdr.atualizado`      | `{ conversaId, situacao, modo, nota, temperatura, sugestaoPendente, motivo }` (G) |
  *
  * Cliente → servidor (com confirmação `{ ok }` ou `{ ok: false, erro, mensagem }`):
@@ -247,6 +257,10 @@ export interface EventosServidor {
   'ligacao.encerrada': EventoLigacaoEncerrada;
   'ligacao.processada': EventoLigacaoProcessada;
   'ligacao.permissao': EventoLigacaoPermissao;
+  'tresc.agente': EventoTrescAgente;
+  'tresc.ligacao': EventoTrescLigacao;
+  'tresc.recebida': EventoTrescRecebida;
+  'tresc.qualificar': EventoTrescQualificar;
   'sdr.atualizado': EventoSdrAtualizado;
 }
 

@@ -164,9 +164,13 @@ export class ContatosApi {
     return firstValueFrom(this.http.post<AtividadeRelacionada>(urlApi('atividades'), dados));
   }
 
-  concluirAtividade(id: string): Promise<AtividadeRelacionada> {
+  /** R6.6: a reunião só conclui com `resultadoReuniao` (e `novaData` se remarcada). */
+  concluirAtividade(
+    id: string,
+    conclusao: { readonly resultadoReuniao?: string; readonly novaData?: string } = {},
+  ): Promise<AtividadeRelacionada> {
     return firstValueFrom(
-      this.http.post<AtividadeRelacionada>(urlApi('atividades', id, 'concluir'), {}),
+      this.http.post<AtividadeRelacionada>(urlApi('atividades', id, 'concluir'), conclusao),
     );
   }
 

@@ -7,7 +7,7 @@ import { AcaoDaSecao } from './comum/acao-da-secao';
 
 /**
  * Integrações (`/integracoes`, Admin) — TELAS-FASE1 §7 e Onda H: o título, a frase de propósito,
- * as seções (aplicativos, histórico e webhooks de saída) como links e a seção aberta no
+ * as seções (aplicativos, histórico, webhooks de saída e 3C+) como links e a seção aberta no
  * `<router-outlet>`.
  * A ação principal da seção ("Novo webhook…") fica à direita do título; no celular, vira o
  * botão flutuante circular.
@@ -71,5 +71,6 @@ export class Integracoes {
     { caminho: 'aplicativos', rotulo: 'Aplicativos' },
     { caminho: 'historico', rotulo: 'Histórico' },
     { caminho: 'saida', rotulo: 'Webhooks de saída' },
+    { caminho: '3c-plus', rotulo: '3C+' },
   ] as const;
 }

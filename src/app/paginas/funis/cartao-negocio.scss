@@ -33,6 +33,27 @@
   padding-inline-start: calc(var(--esp-4) - 2px);
 }
 
+// Modo seleção (R5.16): caixa de marcar ao lado do título e contorno quando marcado.
+.cartao--selecionavel {
+  cursor: pointer;
+}
+
+.cartao--selecionado {
+  border-color: var(--cor-destaque);
+  background: color-mix(in srgb, var(--cor-destaque) 8%, var(--cor-superficie-2));
+}
+
+.cartao__marcar {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: var(--esp-1) 0 0;
+  accent-color: var(--cor-destaque);
+  cursor: pointer;
+}
+
 // Pego pelo teclado: o mesmo "arrastando" do chip (vidro tingido de coral, borda coral, sombra).
 .cartao--pego {
   border-color: var(--cor-destaque);
@@ -231,6 +252,38 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cartao__sem {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  min-width: 0;
+}
+
+// Responsável como botão (R5.15): por cima do link que estica sobre o cartão.
+.cartao__responsavel--botao,
+.cartao__sem-responsavel--botao {
+  position: relative;
+  z-index: 1;
+  min-height: var(--altura-sm);
+  padding: 0 var(--esp-2) 0 var(--esp-1);
+  border: 1px solid transparent;
+  border-radius: var(--raio-pilula, 999px);
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--cor-borda-forte);
+    color: var(--cor-texto);
+  }
+}
+
+.cartao__sem-responsavel--botao {
+  padding-inline: var(--esp-2);
+  border-color: var(--cor-borda);
+  border-style: dashed;
 }
 
 .cartao__assumir {

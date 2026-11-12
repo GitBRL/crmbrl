@@ -28,6 +28,7 @@ import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
 import { AreaTexto } from '../../ui/area-texto/area-texto';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
+import { ResultadoReuniaoModal } from './resultado-reuniao';
 import { CampoData, isoParaLocal, localParaIso } from '../../ui/campo-data/campo-data';
 import { CampoTexto } from '../../ui/campo-texto/campo-texto';
 import { Dica } from '../../ui/dica/dica';
@@ -44,6 +45,7 @@ import {
   quandoDaAtividade,
   quandoPorExtenso,
   ROTULO_PRIORIDADE,
+  RESULTADOS,
   TIPOS,
   TIPOS_DA_AGENDA,
 } from './apresentacao';
@@ -53,6 +55,7 @@ import {
   vinculoParaAlterar,
   type AlteracaoAtividade,
   type Atividade,
+  type ConclusaoDeAtividade,
   type PrioridadeAtividade,
   type Responsavel,
   type TipoAtividade,
@@ -91,6 +94,7 @@ export interface MudancaAtividade {
     MenuAcoes,
     PainelLateral,
     ReactiveFormsModule,
+    ResultadoReuniaoModal,
     RouterLink,
     Seletor,
     Selo,
@@ -113,6 +117,7 @@ export class DetalheAtividade {
   readonly fechado = output<void>();
   readonly mudou = output<MudancaAtividade>();
 
+  protected readonly resultados = RESULTADOS;
   protected readonly icones = {
     concluir: LucideCheck,
     reabrir: LucideRotateCcw,
@@ -283,8 +288,36 @@ export class DetalheAtividade {
     }
   }
 
+  /** R6.6 — modal do resultado: ao concluir uma reunião ou ao corrigir o resultado dela. */
+  protected readonly resultadoAberto = signal(false);
+  protected readonly corrigindo = signal(false);
+
+  protected corrigirResultado(): void {
+    this.corrigindo.set(true);
+    this.resultadoAberto.set(true);
+  }
+
+  protected aoConfirmarResultado(conclusao: ConclusaoDeAtividade): void {
+    if (this.corrigindo()) {
+      this.corrigindo.set(false);
+      void this.salvarResultado(conclusao);
+      return;
+    }
+    void this.mudarStatus('concluir', conclusao);
+  }
+
+  protected aoCancelarResultado(): void {
+    this.corrigindo.set(false);
+  }
+
   protected concluirOuReabrir(): void {
-    void this.mudarStatus(this.atividade()?.status === 'PENDENTE' ? 'concluir' : 'reabrir');
+    const atividade = this.atividade();
+    if (atividade?.status === 'PENDENTE' && atividade.tipo === 'REUNIAO') {
+      this.corrigindo.set(false);
+      this.resultadoAberto.set(true);
+      return;
+    }
+    void this.mudarStatus(atividade?.status === 'PENDENTE' ? 'concluir' : 'reabrir');
   }
 
   /** Abre a edição já no modo de formulário (ação "Editar" da lista). */
@@ -435,7 +468,28 @@ export class DetalheAtividade {
     }
   }
 
-  private async mudarStatus(acao: 'concluir' | 'reabrir'): Promise<void> {
+  private async salvarResultado(conclusao: ConclusaoDeAtividade): Promise<void> {
+    const atividade = this.atividade();
+    if (!atividade || this.ocupado()) {
+      return;
+    }
+    this.ocupado.set(true);
+    try {
+      const nova = await this.api.atualizar(atividade.id, conclusao);
+      this.aplicar(nova);
+      this.avisos.sucesso('Resultado da reunião corrigido.');
+      this.mudou.emit({ atividade: nova, acao: 'alterada' });
+    } catch (falha) {
+      this.avisos.erro(falha);
+    } finally {
+      this.ocupado.set(false);
+    }
+  }
+
+  private async mudarStatus(
+    acao: 'concluir' | 'reabrir',
+    conclusao?: ConclusaoDeAtividade,
+  ): Promise<void> {
     const atividade = this.atividade();
     if (!atividade || this.ocupado()) {
       return;
@@ -444,7 +498,7 @@ export class DetalheAtividade {
     try {
       const nova =
         acao === 'concluir'
-          ? await this.api.concluir(atividade.id)
+          ? await this.api.concluir(atividade.id, conclusao)
           : await this.api.reabrir(atividade.id);
       this.aplicar(nova);
       if (acao === 'concluir') {

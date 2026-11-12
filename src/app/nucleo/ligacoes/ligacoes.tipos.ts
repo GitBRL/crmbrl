@@ -37,7 +37,26 @@ export interface Ligacao {
   readonly estado: EstadoLigacao;
   readonly motivo: string | null;
   readonly motivoTexto: string | null;
-  readonly canal: { readonly id: string; readonly nome: string };
+  /** `null` nas ligações do 3C+ (não pertencem a um canal do WhatsApp). */
+  readonly canal: { readonly id: string; readonly nome: string } | null;
+  /** De onde vem a ligação (R34.3). Ausente = `WHATSAPP`. */
+  readonly provedor?: 'WHATSAPP' | 'TRESC_PLUS';
+  readonly idExterno?: string | null;
+  readonly negocioId?: string | null;
+  /** Qualificação dada no 3C+. */
+  readonly qualificacao?: {
+    readonly id: number | null;
+    readonly nome: string;
+    readonly observacao: string | null;
+    readonly conversao: boolean | null;
+    readonly qualificadaEm: string | null;
+  } | null;
+  /** Campanha do 3C+ e o modo da chamada (`manual`, `dialer` ou `receptive`). */
+  readonly campanha?: {
+    readonly id: number;
+    readonly nome: string | null;
+    readonly modo: string | null;
+  } | null;
   readonly contato: ContatoDaLigacao;
   readonly conversaId: string | null;
   readonly atendente: { readonly id: string; readonly nome: string } | null;

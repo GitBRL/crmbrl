@@ -162,6 +162,20 @@ describe('Atividades', () => {
   const caixaDe = (raiz: HTMLElement, id: string) =>
     raiz.querySelector<HTMLInputElement>(`[data-atividade="${id}"] input[type="checkbox"]`);
 
+  it('R33.8 — os filtros que vêm na URL (clique dos indicadores do BI) valem na agenda: tipo e resultado da reunião', async () => {
+    const fixture = TestBed.createComponent(Atividades);
+    fixture.componentRef.setInput('tipo', 'REUNIAO');
+    fixture.componentRef.setInput('resultado', 'NAO_COMPARECEU');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const pedidos = http.match(ehAgenda);
+    const ultimo = pedidos[pedidos.length - 1];
+    expect(ultimo.request.params.getAll('tipo')).toEqual(['REUNIAO']);
+    expect(ultimo.request.params.getAll('resultadoReuniao')).toEqual(['NAO_COMPARECEU']);
+    http.match(() => true);
+  });
+
   it('agrupa as pendentes na ordem da agenda, com os totais, e esconde os grupos vazios', async () => {
     const atrasada = atividade('a1', {
       titulo: 'Retornar sobre a proposta',
@@ -304,7 +318,7 @@ describe('Atividades', () => {
     await estabilizar(fixture);
 
     expect(texto(raiz.querySelector('app-estado-vazio'))).toContain(
-      'Nenhuma pendente desses tipos',
+      'Nenhuma pendente com esses filtros',
     );
     botao(raiz, 'Limpar filtros')?.click();
     await estabilizar(fixture);
@@ -353,6 +367,53 @@ describe('Atividades', () => {
     expect(titulosDasLinhas(raiz)).toEqual(['Enviar contrato', 'Ligar para Ana']);
     expect(avisos.lista().at(-1)?.mensagem).toBe('Atividade reaberta.');
     expect(raiz.querySelector('[data-atividade="a1"]')?.classList).toContain('item--destacada');
+  });
+
+  it('R6.6 — concluir uma reunião abre o resultado; cancelar não conclui e confirmar manda o resultado', async () => {
+    const r1 = atividade('r1', {
+      titulo: 'Apresentação',
+      tipo: 'REUNIAO',
+      inicioEm: dia(0).toISOString(),
+      fimEm: dia(0, 19).toISOString(),
+      aguardandoResultado: true,
+    });
+    const { fixture, raiz } = await criar(agenda({ HOJE: [r1] }));
+
+    expect(texto(raiz.querySelector('[data-atividade="r1"]'))).toContain('Aguardando resultado');
+    caixaDe(raiz, 'r1')?.click();
+    await estabilizar(fixture);
+    http.expectNone('/api/v1/atividades/r1/concluir');
+    expect(document.body.textContent).toContain('Como foi');
+
+    // Cancelar: nada vai à API e a caixa volta.
+    const cancelar = [...document.querySelectorAll('dialog[open] button')].find((b) =>
+      b.textContent?.includes('Cancelar'),
+    ) as HTMLButtonElement;
+    cancelar.click();
+    await new Promise((resolver) => setTimeout(resolver, 20)); // o evento "close" do diálogo
+    await estabilizar(fixture);
+    http.expectNone('/api/v1/atividades/r1/concluir');
+    expect(caixaDe(raiz, 'r1')?.checked).toBe(false);
+
+    // Confirmar com "Compareceu".
+    caixaDe(raiz, 'r1')?.click();
+    await estabilizar(fixture);
+    const opcao = [...document.querySelectorAll('dialog[open] label.opcao')].find((o) =>
+      o.textContent?.includes('Compareceu'),
+    );
+    opcao?.querySelector<HTMLInputElement>('input')?.click();
+    await estabilizar(fixture);
+    const confirmar = [...document.querySelectorAll('dialog[open] button')].find((b) =>
+      b.textContent?.includes('Concluir reunião'),
+    ) as HTMLButtonElement;
+    confirmar.click();
+    await estabilizar(fixture);
+    const pedido = http.expectOne('/api/v1/atividades/r1/concluir');
+    expect(pedido.request.body).toEqual({ resultadoReuniao: 'COMPARECEU' });
+    pedido.flush({ ...r1, status: 'CONCLUIDA', resultadoReuniao: 'COMPARECEU' });
+    await estabilizar(fixture);
+    responder(agenda({ CONCLUIDAS: { itens: [], total: 1 } }));
+    await estabilizar(fixture);
   });
 
   it('falha ao concluir: a caixa volta e o erro aparece no aviso', async () => {

@@ -1,0 +1,195 @@
+<app-cartao
+  class="widget"
+  [titulo]="resultado().titulo"
+  [nivel]="3"
+  [dica]="resultado().nome"
+  regiao
+>
+  @if (!resultado().ok) {
+    <app-estado-vazio
+      compacto
+      variante="erro"
+      titulo="Não foi possível calcular"
+      [texto]="resultado().erro?.mensagem ?? null"
+    >
+      <button
+        appBotao
+        tamanho="sm"
+        variante="invertido"
+        type="button"
+        (click)="tentarDeNovo.emit()"
+      >
+        Tentar de novo
+      </button>
+    </app-estado-vazio>
+  } @else {
+    <p class="widget__periodo">
+      {{ periodo() }}
+      @if (agrupamento(); as a) {
+        <span> · {{ a }}</span>
+      }
+    </p>
+
+    @switch (resultado().visualizacao) {
+      @case ('NUMERO') {
+        @if (valor(); as v) {
+          <app-indicador
+            tamanho="sm"
+            variacaoAbaixo
+            [valor]="v.valor"
+            [prefixo]="v.prefixo"
+            [unidade]="v.unidade"
+            [casas]="v.casas"
+            [legenda]="resultado().nome"
+            [variacao]="resultado().variacao ?? null"
+            [quedaEhBoa]="resultado().melhorQuando === 'menor'"
+          />
+        } @else {
+          <app-indicador
+            tamanho="sm"
+            valor="—"
+            [legenda]="resultado().nome"
+            dica="Sem base para calcular no período."
+          />
+        }
+        @if (resultado().meta; as meta) {
+          <div class="meta">
+            <div
+              class="meta__trilho"
+              role="progressbar"
+              [attr.aria-valuenow]="meta.progresso ?? 0"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-label]="'Meta de ' + resultado().titulo"
+            >
+              <div
+                class="meta__barra"
+                [class.meta__barra--ok]="meta.atingida"
+                [style.width.%]="larguraDaBarra(meta.progresso)"
+              ></div>
+            </div>
+            <p class="meta__texto">
+              Meta {{ metaTexto() }}:
+              {{ meta.progresso === null ? '—' : (meta.progresso | number: '1.0-0') + '%' }}
+              @if (meta.atingida) {
+                <strong> · atingida</strong>
+              }
+            </p>
+          </div>
+        }
+        @if (destino()) {
+          <button appBotao tamanho="sm" variante="contorno" type="button" (click)="abrirLista()">
+            Ver a lista
+          </button>
+        }
+      }
+      @case ('RANKING') {
+        @if (vazio()) {
+          <app-estado-vazio
+            compacto
+            titulo="Sem dados no período"
+            texto="Escolha um período maior ou tire algum filtro."
+          />
+        } @else {
+          <ol class="ranking" [attr.aria-label]="'Ranking: ' + resultado().titulo">
+            @for (linha of resultado().linhas; track linha.id ?? $index; let i = $index) {
+              <li class="ranking__item">
+                <span class="ranking__posicao">{{ i + 1 }}</span>
+                <div class="ranking__corpo">
+                  <div class="ranking__linha">
+                    @if (destino() && linha.id) {
+                      <button
+                        type="button"
+                        class="ranking__nome ranking__nome--link"
+                        (click)="abrirLista(linha.id)"
+                      >
+                        {{ linha.rotulo }}
+                      </button>
+                    } @else {
+                      <span class="ranking__nome">{{ linha.rotulo }}</span>
+                    }
+                    <strong class="ranking__valor">{{ textoLinha(linha) }}</strong>
+                  </div>
+                  @if (linha.meta; as meta) {
+                    <div class="meta meta--linha">
+                      <div
+                        class="meta__trilho"
+                        role="progressbar"
+                        [attr.aria-valuenow]="meta.progresso ?? 0"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        [attr.aria-label]="'Meta de ' + linha.rotulo"
+                      >
+                        <div
+                          class="meta__barra"
+                          [class.meta__barra--ok]="meta.atingida"
+                          [style.width.%]="larguraDaBarra(meta.progresso)"
+                        ></div>
+                      </div>
+                      <span class="meta__texto">
+                        meta {{ textoMeta(linha) }} ·
+                        {{
+                          meta.progresso === null ? '—' : (meta.progresso | number: '1.0-0') + '%'
+                        }}
+                      </span>
+                    </div>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        }
+        @if (resultado().meta; as meta) {
+          <p class="meta__texto">
+            Meta geral {{ metaTexto() }}:
+            {{ meta.progresso === null ? '—' : (meta.progresso | number: '1.0-0') + '%' }}
+            @if (meta.atingida) {
+              <strong> · atingida</strong>
+            }
+          </p>
+        }
+      }
+      @default {
+        @if (vazio()) {
+          <app-estado-vazio
+            compacto
+            titulo="Sem dados no período"
+            texto="Escolha um período maior ou tire algum filtro."
+          />
+        } @else {
+          @if (resultado().funil; as funil) {
+            <p class="widget__periodo">Funil: {{ funil.nome }}</p>
+          }
+          <app-abas
+            tamanho="sm"
+            modo="opcoes"
+            [rotulo]="'Como ver: ' + resultado().titulo"
+            [abas]="modos"
+            [(selecionada)]="modo"
+          />
+          @if (modo() === 'grafico' && grafico(); as g) {
+            <app-grafico
+              [opcao]="g.opcao"
+              [rotulo]="g.descricao"
+              altura="14rem"
+              (clique)="aoClicarNoGrafico($event)"
+            />
+            @if (clicavelNaLinha()) {
+              <p class="widget__ajuda">Clique numa barra para ver os negócios daquela etapa.</p>
+            }
+          } @else {
+            <app-tabela
+              densa
+              [rotulo]="resultado().titulo"
+              [colunas]="colunas()"
+              [linhas]="linhasTabela()"
+              [chave]="chaveDaLinha"
+              [clicavel]="clicavelNaLinha()"
+              (abrir)="aoAbrirLinha($event)"
+            />
+          }
+        }
+      }
+    }
+  }
+</app-cartao>

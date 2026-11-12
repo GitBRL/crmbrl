@@ -1,0 +1,145 @@
+@use 'mixins' as m;
+@use '../painel-suspenso' as p;
+
+// Botão do estado do agente e o painel suspenso. Só tokens.
+:host {
+  display: contents;
+}
+
+.agente {
+  position: relative;
+  display: inline-flex;
+}
+
+.agente__botao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 44px;
+  padding: 0 var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pilula, 999px);
+  background: var(--cor-vidro);
+  color: var(--cor-texto);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color var(--duracao) var(--curva);
+
+  &:hover {
+    background: var(--cor-vidro-forte);
+  }
+}
+
+.agente__ponto {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cor-texto-fraco);
+}
+
+.agente__botao[data-estado='ocioso'] .agente__ponto,
+.agente__botao[data-estado='manual'] .agente__ponto {
+  background: var(--cor-sucesso);
+}
+
+.agente__botao[data-estado='em_ligacao'] .agente__ponto {
+  background: var(--cor-info);
+}
+
+.agente__botao[data-estado='pos_atendimento'] .agente__ponto {
+  background: var(--cor-aviso);
+}
+
+.agente__botao[data-estado='pausa'] .agente__ponto {
+  background: var(--cor-erro);
+}
+
+.agente__tempo {
+  margin-left: var(--esp-1);
+  color: var(--cor-texto-suave);
+}
+
+// No celular fica o ícone com o ponto de cor; o texto está no painel.
+@include m.abaixo(m.$md) {
+  .agente__texto {
+    display: none;
+  }
+
+  .agente__botao {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+    gap: var(--esp-1);
+  }
+}
+
+@include m.acima(m.$md) {
+  .agente__icone {
+    display: none;
+  }
+}
+
+.agente__painel {
+  @include p.painel-suspenso(340px);
+
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+}
+
+.agente__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.agente__titulo {
+  font: var(--fonte-h3);
+}
+
+.agente__descricao {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.875rem;
+}
+
+.agente__aviso {
+  margin: 0;
+  padding: var(--esp-2) var(--esp-3);
+  border-radius: var(--raio-lg);
+  background: var(--cor-vidro);
+  font-size: 0.875rem;
+
+  &--erro {
+    color: var(--cor-erro);
+  }
+}
+
+.agente__dados {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+
+  div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--esp-2);
+  }
+
+  dt {
+    color: var(--cor-texto-suave);
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 600;
+  }
+}
+
+.agente__form {
+  display: grid;
+  gap: var(--esp-3);
+}

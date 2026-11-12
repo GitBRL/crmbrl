@@ -11,7 +11,7 @@ import {
   erroDaApiFalso,
   microtarefas,
 } from './dados-de-teste';
-import { MeuPerfil } from './meu-perfil';
+import { FOTO_MAXIMO_BYTES, MeuPerfil, problemaDaFoto } from './meu-perfil';
 
 describe('MeuPerfil', () => {
   let http: HttpTestingController;
@@ -68,6 +68,100 @@ describe('MeuPerfil', () => {
     await microtarefas();
     fixture.detectChanges();
     expect(raiz().querySelector('.perfil__nome')?.textContent).toBe('Ana Ribeiro Lima');
+  });
+
+  describe('foto de perfil (R2.10)', () => {
+    /** Escolhe um arquivo no campo de foto, como o seletor do navegador faria. */
+    function escolher(arquivo: File) {
+      const campo = raiz().querySelector<HTMLInputElement>('input[type="file"]')!;
+      Object.defineProperty(campo, 'files', { value: [arquivo], configurable: true });
+      campo.dispatchEvent(new Event('change'));
+    }
+    const png = () =>
+      new File([new Uint8Array([137, 80, 78, 71])], 'eu.png', { type: 'image/png' });
+
+    it('confere tipo e tamanho antes de enviar', () => {
+      expect(problemaDaFoto({ type: 'image/png', size: 10 })).toBeNull();
+      expect(problemaDaFoto({ type: 'image/webp', size: FOTO_MAXIMO_BYTES })).toBeNull();
+      expect(problemaDaFoto({ type: 'image/svg+xml', size: 10 })).toContain(
+        'JPG, PNG, GIF ou WebP',
+      );
+      expect(problemaDaFoto({ type: 'application/pdf', size: 10 })).toContain('imagem');
+      expect(problemaDaFoto({ type: 'image/jpeg', size: FOTO_MAXIMO_BYTES + 1 })).toContain('5 MB');
+      expect(problemaDaFoto({ type: 'image/gif', size: 0 })).toContain('vazio');
+    });
+
+    it('membro adiciona a foto: envia como AVATAR, liga ao perfil e recarrega a sessão', async () => {
+      criar('COMERCIAL');
+      expect(() => botaoComTexto(raiz(), 'Remover foto')).toThrow();
+      const campo = raiz().querySelector<HTMLInputElement>('input[type="file"]')!;
+      expect(campo.accept).toBe('image/jpeg,image/png,image/gif,image/webp');
+      expect(botaoComTexto(raiz(), 'Adicionar foto').getAttribute('aria-describedby')).toBe(
+        'perfil-foto-dica',
+      );
+      escolher(png());
+      const envio = http.expectOne((pedido) => pedido.url === '/api/v1/arquivos');
+      expect(envio.request.method).toBe('POST');
+      expect(envio.request.params.get('contexto')).toBe('AVATAR');
+      expect((envio.request.body as FormData).get('arquivo')).toBeInstanceOf(File);
+      envio.flush({ id: 'arq-1' });
+      await microtarefas();
+      const ligar = http.expectOne('/api/v1/usuarios/eu/foto');
+      expect(ligar.request.method).toBe('PUT');
+      expect(ligar.request.body).toEqual({ arquivoId: 'arq-1' });
+      ligar.flush({ avatarUrl: '/api/v1/arquivos/arq-1' });
+      await microtarefas();
+      http
+        .expectOne('/api/v1/auth/eu')
+        .flush(perfilDeTeste('COMERCIAL', { usuario: { avatarUrl: '/api/v1/arquivos/arq-1' } }));
+      await microtarefas();
+      fixture.detectChanges();
+      expect(raiz().querySelector('app-avatar img')?.getAttribute('src')).toBe(
+        '/api/v1/arquivos/arq-1',
+      );
+      expect(botaoComTexto(raiz(), 'Trocar foto')).toBeTruthy();
+      expect(botaoComTexto(raiz(), 'Remover foto')).toBeTruthy();
+    });
+
+    it('arquivo que não é imagem aceita: avisa e não envia nada', () => {
+      criar('COMERCIAL');
+      escolher(new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' }));
+      fixture.detectChanges();
+      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain(
+        'JPG, PNG, GIF ou WebP',
+      );
+      // http.verify() no afterEach: nenhum pedido.
+    });
+
+    it('recusa da API aparece junto da foto', async () => {
+      criar('COMERCIAL');
+      escolher(png());
+      const { corpo, opcoes } = erroDaApiFalso(
+        413,
+        'muito_grande',
+        'O arquivo passa do limite de 5 MB.',
+      );
+      http.expectOne((pedido) => pedido.url === '/api/v1/arquivos').flush(corpo, opcoes);
+      await microtarefas();
+      fixture.detectChanges();
+      expect(raiz().querySelector('[role="alert"]')?.textContent).toContain('5 MB');
+    });
+
+    it('remove a foto e volta às iniciais', async () => {
+      entrarComo('LIDER_CS', { usuario: { avatarUrl: '/api/v1/arquivos/arq-1' } });
+      fixture = TestBed.createComponent(MeuPerfil);
+      fixture.detectChanges();
+      botaoComTexto(raiz(), 'Remover foto').click();
+      const pedido = http.expectOne('/api/v1/usuarios/eu/foto');
+      expect(pedido.request.method).toBe('DELETE');
+      pedido.flush({ avatarUrl: null });
+      await microtarefas();
+      http.expectOne('/api/v1/auth/eu').flush(perfilDeTeste('LIDER_CS'));
+      await microtarefas();
+      fixture.detectChanges();
+      expect(raiz().querySelector('app-avatar img')).toBeNull();
+      expect(botaoComTexto(raiz(), 'Adicionar foto')).toBeTruthy();
+    });
   });
 
   it('troca a senha conferindo a confirmação', async () => {

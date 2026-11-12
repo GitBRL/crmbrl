@@ -88,9 +88,11 @@ export class Bi {
   protected readonly estadoPaineis = signal<'carregando' | 'pronto' | 'erro'>('carregando');
   protected readonly erroPaineis = signal<ErroApi | null>(null);
 
-  protected readonly abas = computed<readonly ItemAba[]>(() =>
-    (this.paineis() ?? []).map((id) => ({ id, rotulo: ROTULO_PAINEL[id] })),
-  );
+  protected readonly abas = computed<readonly ItemAba[]>(() => [
+    ...(this.paineis() ?? []).map((id) => ({ id, rotulo: ROTULO_PAINEL[id] })),
+    // Indicadores configuráveis (R33): painéis montados pelo líder, em outra rota.
+    ...((this.paineis() ?? []).length > 0 ? [{ id: 'indicadores', rotulo: 'Indicadores' }] : []),
+  ]);
 
   /** O painel aberto: o da URL se o papel o vê; sem painel na URL, o primeiro da lista. */
   protected readonly painelAtual = computed<IdPainel | null>(() => {

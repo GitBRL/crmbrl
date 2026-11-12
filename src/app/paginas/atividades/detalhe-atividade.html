@@ -122,12 +122,19 @@
               @switch (atividade.status) {
                 @case ('CONCLUIDA') {
                   <app-selo variante="menta" [icone]="icones.concluir">Concluída</app-selo>
+                  @if (atividade.resultadoReuniao; as resultado) {
+                    <app-selo [variante]="resultados[resultado].variante">{{
+                      resultados[resultado].rotulo
+                    }}</app-selo>
+                  }
                 }
                 @case ('CANCELADA') {
                   <app-selo variante="contorno">Cancelada</app-selo>
                 }
                 @default {
-                  @if (atividade.atrasada) {
+                  @if (atividade.aguardandoResultado) {
+                    <app-selo variante="lima">Aguardando resultado</app-selo>
+                  } @else if (atividade.atrasada) {
                     <app-selo variante="coral">Atrasada</app-selo>
                   } @else {
                     <app-selo>Pendente</app-selo>
@@ -297,7 +304,22 @@
             Editar
           </button>
         }
+        @if (atividade.status === 'CONCLUIDA' && atividade.tipo === 'REUNIAO') {
+          <button appBotao type="button" variante="contorno" (click)="corrigirResultado()">
+            Corrigir resultado
+          </button>
+        }
       }
     </div>
   }
 </app-painel-lateral>
+
+<app-resultado-reuniao
+  [(aberto)]="resultadoAberto"
+  [reuniao]="atividade()?.titulo ?? ''"
+  [titulo]="corrigindo() ? 'Corrigir o resultado' : 'Resultado da reunião'"
+  [rotuloConfirmar]="corrigindo() ? 'Salvar resultado' : 'Concluir reunião'"
+  [resultadoAtual]="corrigindo() ? (atividade()?.resultadoReuniao ?? null) : null"
+  (confirmado)="aoConfirmarResultado($event)"
+  (cancelado)="aoCancelarResultado()"
+/>

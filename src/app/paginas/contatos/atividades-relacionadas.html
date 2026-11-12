@@ -83,7 +83,7 @@
             tamanho="lg"
             forma="circulo"
             [rotulo]="'Concluir: ' + atividade.titulo"
-            [valor]="false"
+            [valor]="reuniaoAguardando()?.id === atividade.id"
             (valorChange)="$event && concluir(atividade)"
           />
         } @else {
@@ -124,6 +124,14 @@
               >
             }
           </p>
+          @if (atividade.aguardandoResultado) {
+            <app-selo tamanho="sm" variante="lima">Aguardando resultado</app-selo>
+          }
+          @if (atividade.resultadoReuniao; as resultado) {
+            <app-selo tamanho="sm" [variante]="resultados[resultado].variante">{{
+              resultados[resultado].rotulo
+            }}</app-selo>
+          }
           @if (atividade.encaminhadaDe; as de) {
             <app-selo tamanho="sm" variante="contorno">Encaminhada de {{ de.nome }}</app-selo>
           }
@@ -145,4 +153,11 @@
   [id]="id()"
   [nome]="nome()"
   (criada)="aoCriar()"
+/>
+
+<app-resultado-reuniao
+  [(aberto)]="resultadoAberto"
+  [reuniao]="reuniaoAguardando()?.titulo ?? ''"
+  (confirmado)="confirmarResultado($event)"
+  (cancelado)="cancelarResultado()"
 />
