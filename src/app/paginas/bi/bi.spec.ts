@@ -151,6 +151,8 @@ describe('BI (página)', () => {
       'Sucesso do cliente',
       'Atendimento',
       'Financeiro',
+      // R33: os painéis de indicadores configuráveis ficam numa aba à parte.
+      'Indicadores',
     ]);
     expect(texto(raiz.querySelector('app-indicador .indicador__legenda'))).toBe('Leads');
     http.match(() => true);

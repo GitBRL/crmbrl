@@ -108,6 +108,12 @@ export class Atividades {
   /** Atividade a abrir no painel (query `atividade`, vinda das notificações). */
   readonly atividade = input<string | null>(null);
 
+  /** Filtros iniciais vindos da URL (os cliques dos indicadores do BI, R33.8): `tipo`, `resultado`, `escopo` e `aba`. */
+  readonly tipoDaUrl = input<string | null>(null, { alias: 'tipo' });
+  readonly resultadoDaUrl = input<string | null>(null, { alias: 'resultado' });
+  readonly escopoDaUrl = input<string | null>(null, { alias: 'escopo' });
+  readonly abaDaUrl = input<string | null>(null, { alias: 'aba' });
+
   protected readonly iconeNova = LucidePlus;
   /** Linhas dos dois cartões-esqueleto da agenda. */
   protected readonly esqueleto = [
@@ -255,6 +261,34 @@ export class Atividades {
     inject(DestroyRef).onDestroy(() => {
       clearInterval(relogio);
       clearTimeout(this.esperaDestaque);
+    });
+
+    // Filtros que vieram na URL (cliques do BI): valem uma vez, sem sair do que a pessoa pode usar.
+    effect(() => {
+      const tipo = this.tipoDaUrl();
+      const resultado = this.resultadoDaUrl();
+      const escopo = this.escopoDaUrl();
+      const aba = this.abaDaUrl();
+      untracked(() => {
+        const tipos = (tipo ?? '')
+          .split(',')
+          .filter((t): t is TipoAtividade => (TIPOS_DA_AGENDA as readonly string[]).includes(t));
+        if (tipos.length > 0) {
+          this.tipos.set(tipos);
+        }
+        if (resultado && this.opcoesResultado.some((o) => o.id === resultado)) {
+          this.resultado.set(resultado as FiltroDeResultado);
+        }
+        const permitido = this.opcoesEscopo().find((o) => o.id === escopo && !o.desabilitada);
+        if (permitido) {
+          this.escopo.set(permitido.id as EscopoAtividades);
+        } else if (escopo === 'TODAS' && this.temEquipe()) {
+          this.escopo.set('EQUIPE');
+        }
+        if (aba === 'concluidas' || aba === 'pendentes') {
+          this.aba.set(aba);
+        }
+      });
     });
 
     // Filtros novos: a agenda recomeça (sem os "mostrar mais"), e a aba aberta também.

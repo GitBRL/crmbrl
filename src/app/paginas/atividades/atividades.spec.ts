@@ -162,6 +162,20 @@ describe('Atividades', () => {
   const caixaDe = (raiz: HTMLElement, id: string) =>
     raiz.querySelector<HTMLInputElement>(`[data-atividade="${id}"] input[type="checkbox"]`);
 
+  it('R33.8 — os filtros que vêm na URL (clique dos indicadores do BI) valem na agenda: tipo e resultado da reunião', async () => {
+    const fixture = TestBed.createComponent(Atividades);
+    fixture.componentRef.setInput('tipo', 'REUNIAO');
+    fixture.componentRef.setInput('resultado', 'NAO_COMPARECEU');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const pedidos = http.match(ehAgenda);
+    const ultimo = pedidos[pedidos.length - 1];
+    expect(ultimo.request.params.getAll('tipo')).toEqual(['REUNIAO']);
+    expect(ultimo.request.params.getAll('resultadoReuniao')).toEqual(['NAO_COMPARECEU']);
+    http.match(() => true);
+  });
+
   it('agrupa as pendentes na ordem da agenda, com os totais, e esconde os grupos vazios', async () => {
     const atrasada = atividade('a1', {
       titulo: 'Retornar sobre a proposta',

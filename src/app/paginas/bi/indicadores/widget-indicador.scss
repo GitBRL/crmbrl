@@ -1,0 +1,120 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.widget {
+  display: block;
+  min-width: 0;
+  height: 100%;
+}
+
+.widget__periodo {
+  margin: 0 0 var(--esp-3);
+  font: var(--fonte-legenda);
+  color: var(--cor-texto-fraco);
+}
+
+.widget__ajuda {
+  margin: var(--esp-3) 0 0;
+  font: var(--fonte-legenda);
+  color: var(--cor-texto-fraco);
+}
+
+.meta {
+  display: grid;
+  gap: var(--esp-2);
+  margin: var(--esp-3) 0;
+}
+
+.meta--linha {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--esp-3);
+  margin: var(--esp-2) 0 0;
+}
+
+.meta__trilho {
+  height: 0.5rem;
+  border-radius: var(--raio-pilula, 999px);
+  background: var(--cor-borda);
+  overflow: hidden;
+}
+
+.meta__barra {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cor-marca);
+  box-shadow: inset 0 0 0 1px var(--cor-borda);
+  transition: width 200ms ease;
+}
+
+.meta__barra--ok {
+  background: var(--cor-sucesso);
+}
+
+.meta__texto {
+  margin: 0;
+  font: var(--fonte-legenda);
+  color: var(--cor-texto-suave);
+}
+
+.ranking {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ranking__item {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: var(--esp-3);
+  align-items: start;
+}
+
+.ranking__posicao {
+  font: var(--fonte-legenda);
+  color: var(--cor-texto-fraco);
+  text-align: right;
+}
+
+.ranking__corpo {
+  min-width: 0;
+}
+
+.ranking__linha {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.ranking__nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.ranking__nome--link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.ranking__nome--link:focus-visible {
+  outline: 2px solid var(--cor-foco);
+  outline-offset: 2px;
+}
+
+.ranking__valor {
+  flex: none;
+}
