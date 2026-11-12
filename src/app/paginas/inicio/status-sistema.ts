@@ -146,57 +146,62 @@ export function formatarLatencia(ms: number): string {
                   } @else {
                     <app-selo variante="lima" [icone]="icones.alerta">No ar, com falhas</app-selo>
                   }
-                  <span class="status__extra"
-                    >v{{ dados.versao }} · {{ ambiente(dados.ambiente) }}</span
-                  >
-                </dd>
-              </div>
-              <div class="status__linha">
-                <dt>Banco de dados</dt>
-                <dd>
-                  @if (dados.banco.status === 'ok') {
-                    <app-selo variante="menta" [icone]="icones.ok">Conectado</app-selo>
-                    @if (dados.banco.latenciaMs !== undefined) {
-                      <span class="status__extra">{{ latencia(dados.banco.latenciaMs) }}</span>
-                    }
-                  } @else {
-                    <app-selo variante="coral" [icone]="icones.erro">Com erro</app-selo>
-                    <span class="status__extra">{{
-                      dados.banco.erro ?? 'O banco não respondeu.'
-                    }}</span>
+                  @if (dados.versao !== undefined && dados.ambiente !== undefined) {
+                    <span class="status__extra"
+                      >v{{ dados.versao }} · {{ ambiente(dados.ambiente) }}</span
+                    >
                   }
                 </dd>
               </div>
-              <div class="status__linha">
-                <dt>Atualizações do banco</dt>
-                <dd>
-                  @if (dados.migrations; as migrations) {
-                    <span>
-                      {{ migrations.aplicadas }}
-                      {{ migrations.aplicadas === 1 ? 'aplicada' : 'aplicadas' }}
-                    </span>
-                    @if (migrations.ultima; as ultima) {
-                      @let partes = migracao(ultima);
-                      <span class="status__migracao">
-                        <code
-                          class="status__codigo"
-                          [title]="'Última atualização aplicada: ' + ultima"
-                          >{{ partes.nome }}</code
-                        >
-                        @if (partes.data) {
-                          <span class="status__extra">&#32;de {{ partes.data }}</span>
-                        }
+              <!-- O detalhe (banco, atualizações, tempo no ar) só vem para o Admin; os demais veem só se a API está no ar. -->
+              @if (dados.banco; as banco) {
+                <div class="status__linha">
+                  <dt>Banco de dados</dt>
+                  <dd>
+                    @if (banco.status === 'ok') {
+                      <app-selo variante="menta" [icone]="icones.ok">Conectado</app-selo>
+                      @if (banco.latenciaMs !== undefined) {
+                        <span class="status__extra">{{ latencia(banco.latenciaMs) }}</span>
+                      }
+                    } @else {
+                      <app-selo variante="coral" [icone]="icones.erro">Com erro</app-selo>
+                      <span class="status__extra">{{
+                        banco.erro ?? 'O banco não respondeu.'
+                      }}</span>
+                    }
+                  </dd>
+                </div>
+                <div class="status__linha">
+                  <dt>Atualizações do banco</dt>
+                  <dd>
+                    @if (dados.migrations; as migrations) {
+                      <span>
+                        {{ migrations.aplicadas }}
+                        {{ migrations.aplicadas === 1 ? 'aplicada' : 'aplicadas' }}
                       </span>
+                      @if (migrations.ultima; as ultima) {
+                        @let partes = migracao(ultima);
+                        <span class="status__migracao">
+                          <code
+                            class="status__codigo"
+                            [title]="'Última atualização aplicada: ' + ultima"
+                            >{{ partes.nome }}</code
+                          >
+                          @if (partes.data) {
+                            <span class="status__extra">&#32;de {{ partes.data }}</span>
+                          }
+                        </span>
+                      }
+                    } @else {
+                      <span class="status__extra">Sem leitura enquanto o banco não responde</span>
                     }
-                  } @else {
-                    <span class="status__extra">Sem leitura enquanto o banco não responde</span>
-                  }
-                </dd>
-              </div>
-              <div class="status__linha">
-                <dt>No ar há</dt>
-                <dd>{{ noAr() }}</dd>
-              </div>
+                  </dd>
+                </div>
+                <div class="status__linha">
+                  <dt>No ar há</dt>
+                  <dd>{{ noAr() }}</dd>
+                </div>
+              }
             </dl>
           }
         }
@@ -246,7 +251,7 @@ export class StatusSistema {
   protected readonly noAr = computed(() => {
     const dados = this.saude.dados();
     const consulta = this.saude.atualizadoEm();
-    if (!dados) {
+    if (!dados || dados.uptimeSegundos === undefined) {
       return '';
     }
     const desde = consulta ? Math.max(0, this.agora().getTime() - consulta.getTime()) / 1000 : 0;

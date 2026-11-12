@@ -4,6 +4,12 @@
 {
 	admin off
 	auto_https off
+	servers {
+		# IP real do cliente (R2.5): o proxy de borda do Railway chega pela rede privada, então só
+		# nela se confia nos cabeçalhos X-Forwarded-*; de qualquer outra origem eles são ignorados.
+		trusted_proxies static private_ranges
+		client_ip_headers X-Forwarded-For X-Real-IP
+	}
 }
 
 # Cabeçalhos de segurança de toda resposta, inclusive as da API e as de erro (ex.: 502 com a
@@ -20,6 +26,11 @@
 		-Via
 		-X-Powered-By
 	}
+	# HSTS só quando a requisição chegou por https (o proxy de borda informa em X-Forwarded-Proto):
+	# o endereço local em http (:8080) não é afetado.
+	# (O nome do matcher leva o argumento do import: o snippet é importado em dois lugares.)
+	@https_{args[0]} header X-Forwarded-Proto https
+	header @https_{args[0]} Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	# Content-Security-Policy com o hash de cada <script> inline do index.html, gerada no
 	# build da imagem (Dockerfile). Fora da imagem (ex.: validar só este arquivo), o padrão
 	# não encontra o arquivo e a política fica de fora.
@@ -28,7 +39,7 @@
 
 :{$PORT:8080} {
 	encode zstd gzip
-	import seguranca
+	import seguranca resposta
 
 	# Arquivos do build com hash no nome (main-…, chunk-…, styles-…, media/): nunca mudam.
 	# Só valem se existirem — um chunk antigo que sumiu não ganha cache longo.
@@ -54,7 +65,11 @@
 	# sem barra.
 	@api path /api /api/*
 	handle @api {
-		reverse_proxy {$API_UPSTREAM:api:3000}
+		# A API enxerga um único IP no X-Forwarded-For: o do cliente (R2.5). Sem isto, um valor
+		# forjado pelo cliente iria junto e o limite por IP / bloqueio de força bruta seria burlado.
+		reverse_proxy {$API_UPSTREAM:api:3000} {
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 
 	# Front (SPA): rota de navegação que não é arquivo cai no index.html, e o roteador do
@@ -75,7 +90,7 @@
 	# Erros (ex.: API fora do ar → 502, arquivo ausente → 404): resposta curta, sem cache, com
 	# os mesmos cabeçalhos de segurança.
 	handle_errors {
-		import seguranca
+		import seguranca erro
 		header Cache-Control "no-store"
 		respond "{err.status_code} {err.status_text}"
 	}

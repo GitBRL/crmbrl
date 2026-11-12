@@ -97,6 +97,99 @@ describe('Entrar', () => {
     );
   });
 
+  describe('verificação em duas etapas (R2.11)', () => {
+    async function ateOCodigo() {
+      await criar('/contatos');
+      (await entrarCom('ana@demo.local', 'Demo@2026')).flush({
+        doisFatoresNecessario: true,
+        desafio: 'desafio-1',
+        expiraEm: '2026-11-12T12:05:00Z',
+      });
+      await assentar(fixture);
+    }
+
+    async function enviarCodigo(codigo: string) {
+      digitar(raiz, 'codigo', codigo);
+      enviar(raiz);
+      await fixture.whenStable();
+      return http.expectOne('/api/v1/auth/entrar/dois-fatores');
+    }
+
+    it('depois da senha certa pede o código; só com ele abre a sessão e segue para a rota', async () => {
+      await ateOCodigo();
+      expect(texto(raiz.querySelector('h1'))).toBe('Verificação em duas etapas');
+      expect(raiz.querySelector('input[name=senha]')).toBeNull();
+      const campo = raiz.querySelector<HTMLInputElement>('input[name=codigo]');
+      expect(campo?.getAttribute('autocomplete')).toBe('one-time-code');
+      expect(campo?.getAttribute('inputmode')).toBe('numeric');
+      expect(TestBed.inject(SessaoService).autenticado()).toBe(false);
+
+      const requisicao = await enviarCodigo('123456');
+      expect(requisicao.request.body).toEqual({ desafio: 'desafio-1', codigo: '123456' });
+      requisicao.flush(perfilDeTeste('COMERCIAL'));
+      await assentar(fixture);
+      expect(TestBed.inject(Router).url).toBe('/contatos');
+      expect(TestBed.inject(SessaoService).autenticado()).toBe(true);
+    });
+
+    it('código errado: avisa, mostra as tentativas que restam e limpa o campo', async () => {
+      await ateOCodigo();
+      falhar(await enviarCodigo('000000'), 400, 'dados_invalidos', 'Código incorreto.', {
+        tentativasRestantes: 3,
+      });
+      await assentar(fixture);
+      const aviso = raiz.querySelector('app-aviso-acesso');
+      expect(texto(aviso)).toContain('Código incorreto');
+      expect(texto(aviso)).toContain('Você ainda tem 3 tentativas.');
+      expect(raiz.querySelector<HTMLInputElement>('input[name=codigo]')?.value).toBe('');
+    });
+
+    it('"Usar um código de recuperação" troca o campo; "Voltar" recomeça pela senha', async () => {
+      await ateOCodigo();
+      const alternar = [...raiz.querySelectorAll<HTMLButtonElement>('button.acesso-link')].find(
+        (b) => texto(b).includes('código de recuperação'),
+      );
+      alternar?.click();
+      await fixture.whenStable();
+      expect(texto(raiz)).toContain('Código de recuperação');
+      expect(
+        raiz.querySelector<HTMLInputElement>('input[name=codigo]')?.getAttribute('inputmode'),
+      ).toBe('text');
+
+      const voltar = [...raiz.querySelectorAll<HTMLButtonElement>('button.acesso-link')].find((b) =>
+        texto(b).includes('Voltar'),
+      );
+      voltar?.click();
+      await fixture.whenStable();
+      expect(texto(raiz.querySelector('h1'))).toBe('Entrar');
+      expect(raiz.querySelector<HTMLInputElement>('input[name=email]')?.value).toBe(
+        'ana@demo.local',
+      );
+      expect(raiz.querySelector<HTMLInputElement>('input[name=senha]')?.value).toBe('');
+    });
+
+    it('desafio vencido (401): volta para a senha com a mensagem da API', async () => {
+      await ateOCodigo();
+      falhar(
+        await enviarCodigo('123456'),
+        401,
+        'nao_autenticado',
+        'A verificação expirou. Entre de novo com e-mail e senha.',
+      );
+      await assentar(fixture);
+      expect(texto(raiz.querySelector('h1'))).toBe('Entrar');
+      expect(texto(raiz.querySelector('app-aviso-acesso'))).toContain('A verificação expirou');
+    });
+
+    it('sem código não chama a API', async () => {
+      await ateOCodigo();
+      enviar(raiz);
+      await fixture.whenStable();
+      expect(texto(raiz)).toContain('Digite o código.');
+      http.expectNone('/api/v1/auth/entrar/dois-fatores');
+    });
+  });
+
   it('credenciais erradas (R2.3): mensagem genérica, mantém o e-mail e limpa a senha', async () => {
     await criar();
     falhar(

@@ -63,6 +63,8 @@ function arquivosDeTemplate(): { caminho: string; texto: string }[] {
 const TELAS_DE_SENHA_DO_USUARIO = [
   'paginas/acesso/',
   'paginas/configuracoes/meu-perfil.html',
+  // Desativar a verificação em duas etapas pede a senha atual do próprio usuário (R2.11).
+  'paginas/configuracoes/cartao-dois-fatores.ts',
   // O comentário de documentação do próprio componente cita o uso.
   'ui/campo-senha/campo-senha.ts',
 ];

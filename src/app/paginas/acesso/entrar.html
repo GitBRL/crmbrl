@@ -1,72 +1,132 @@
-<app-moldura-acesso slogan titulo="Entrar" frase="Use o seu e-mail de trabalho e a sua senha.">
-  <form class="acesso-formulario" novalidate [formGroup]="formulario" (ngSubmit)="entrar()">
-    <app-campo-texto
-      #campoEmail
-      rotulo="E-mail"
-      tipo="email"
-      nome="email"
-      autocomplete="username"
-      placeholder="nome@empresa.com.br"
-      formControlName="email"
-      [mensagens]="{ required: 'Digite o seu e-mail.' }"
-    />
-    <app-campo-senha
-      #campoSenha
-      rotulo="Senha"
-      nome="senha"
-      autocomplete="current-password"
-      formControlName="senha"
-      [mensagens]="{ required: 'Digite a sua senha.' }"
-    />
+<app-moldura-acesso
+  slogan
+  [titulo]="desafio() ? 'Verificação em duas etapas' : 'Entrar'"
+  [frase]="
+    desafio()
+      ? usarRecuperacao()
+        ? 'Digite um dos códigos de recuperação que você guardou. Cada um vale uma vez só.'
+        : 'Digite o código de 6 dígitos do seu aplicativo autenticador.'
+      : 'Use o seu e-mail de trabalho e a sua senha.'
+  "
+>
+  @if (desafio()) {
+    <form
+      class="acesso-formulario"
+      novalidate
+      [formGroup]="formularioCodigo"
+      (ngSubmit)="verificar()"
+    >
+      <app-campo-texto
+        #campoCodigo
+        [rotulo]="usarRecuperacao() ? 'Código de recuperação' : 'Código de verificação'"
+        nome="codigo"
+        autocomplete="one-time-code"
+        [teclado]="usarRecuperacao() ? 'text' : 'numeric'"
+        [placeholder]="usarRecuperacao() ? 'XXXXX-XXXXX' : '000000'"
+        [maximoCaracteres]="usarRecuperacao() ? 16 : 7"
+        formControlName="codigo"
+        [mensagens]="{ required: 'Digite o código.' }"
+      />
 
-    @if (bloqueioAtivo()) {
-      <app-aviso-acesso
-        tipo="bloqueio"
-        [titulo]="
-          bloqueioDoEmail() ? 'Muitas tentativas com este e-mail' : 'Muitas tentativas desta rede'
-        "
-      >
-        <p>
-          Por segurança, o acesso
-          {{ bloqueioDoEmail() ? 'a este e-mail' : 'por esta rede' }} está bloqueado. Tente de novo
-          em <strong class="numeros">{{ esperaRestante() }}</strong
-          >, às <span class="numeros">{{ horaDeLiberar() }}</span
-          >. Até lá, nem a senha certa funciona.
-        </p>
-      </app-aviso-acesso>
-    } @else if (falha(); as problema) {
-      <app-aviso-acesso
-        [tipo]="problema.tipo"
-        [titulo]="problema.titulo ?? null"
-        [codigo]="problema.codigo ?? null"
-      >
-        <p>{{ problema.mensagem }}</p>
-        @if (problema.detalhe; as detalhe) {
-          <p class="texto-suave">{{ detalhe }}</p>
-        }
-      </app-aviso-acesso>
-    }
+      @if (falha(); as problema) {
+        <app-aviso-acesso
+          [tipo]="problema.tipo"
+          [titulo]="problema.titulo ?? null"
+          [codigo]="problema.codigo ?? null"
+        >
+          <p>{{ problema.mensagem }}</p>
+          @if (problema.detalhe; as detalhe) {
+            <p class="texto-suave">{{ detalhe }}</p>
+          }
+        </app-aviso-acesso>
+      }
 
-    <div class="acesso-acoes">
-      <button
-        appBotao
-        type="submit"
-        variante="invertido"
-        tamanho="lg"
-        [carregando]="enviando()"
-        [disabled]="!!bloqueioAtivo()"
-      >
-        Entrar
-      </button>
-      <div class="acesso-links">
-        @if (estado.envioPorEmail() === 'indisponivel') {
-          <p class="acesso-nota">Esqueceu a senha? Peça ao administrador uma senha temporária.</p>
-        } @else {
-          <a class="acesso-link" routerLink="/esqueci-senha" (click)="lembrarEmail()">
-            Esqueci minha senha
-          </a>
-        }
+      <div class="acesso-acoes">
+        <button appBotao type="submit" variante="invertido" tamanho="lg" [carregando]="enviando()">
+          Verificar
+        </button>
+        <div class="acesso-links">
+          <button type="button" class="acesso-link" (click)="alternarRecuperacao()">
+            {{
+              usarRecuperacao() ? 'Usar o código do aplicativo' : 'Usar um código de recuperação'
+            }}
+          </button>
+          <button type="button" class="acesso-link" (click)="voltarParaSenha()">
+            Voltar e entrar com outra conta
+          </button>
+        </div>
       </div>
-    </div>
-  </form>
+    </form>
+  } @else {
+    <form class="acesso-formulario" novalidate [formGroup]="formulario" (ngSubmit)="entrar()">
+      <app-campo-texto
+        #campoEmail
+        rotulo="E-mail"
+        tipo="email"
+        nome="email"
+        autocomplete="username"
+        placeholder="nome@empresa.com.br"
+        formControlName="email"
+        [mensagens]="{ required: 'Digite o seu e-mail.' }"
+      />
+      <app-campo-senha
+        #campoSenha
+        rotulo="Senha"
+        nome="senha"
+        autocomplete="current-password"
+        formControlName="senha"
+        [mensagens]="{ required: 'Digite a sua senha.' }"
+      />
+
+      @if (bloqueioAtivo()) {
+        <app-aviso-acesso
+          tipo="bloqueio"
+          [titulo]="
+            bloqueioDoEmail() ? 'Muitas tentativas com este e-mail' : 'Muitas tentativas desta rede'
+          "
+        >
+          <p>
+            Por segurança, o acesso
+            {{ bloqueioDoEmail() ? 'a este e-mail' : 'por esta rede' }} está bloqueado. Tente de
+            novo em <strong class="numeros">{{ esperaRestante() }}</strong
+            >, às <span class="numeros">{{ horaDeLiberar() }}</span
+            >. Até lá, nem a senha certa funciona.
+          </p>
+        </app-aviso-acesso>
+      } @else if (falha(); as problema) {
+        <app-aviso-acesso
+          [tipo]="problema.tipo"
+          [titulo]="problema.titulo ?? null"
+          [codigo]="problema.codigo ?? null"
+        >
+          <p>{{ problema.mensagem }}</p>
+          @if (problema.detalhe; as detalhe) {
+            <p class="texto-suave">{{ detalhe }}</p>
+          }
+        </app-aviso-acesso>
+      }
+
+      <div class="acesso-acoes">
+        <button
+          appBotao
+          type="submit"
+          variante="invertido"
+          tamanho="lg"
+          [carregando]="enviando()"
+          [disabled]="!!bloqueioAtivo()"
+        >
+          Entrar
+        </button>
+        <div class="acesso-links">
+          @if (estado.envioPorEmail() === 'indisponivel') {
+            <p class="acesso-nota">Esqueceu a senha? Peça ao administrador uma senha temporária.</p>
+          } @else {
+            <a class="acesso-link" routerLink="/esqueci-senha" (click)="lembrarEmail()">
+              Esqueci minha senha
+            </a>
+          }
+        </div>
+      </div>
+    </form>
+  }
 </app-moldura-acesso>

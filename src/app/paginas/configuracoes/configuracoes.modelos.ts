@@ -31,6 +31,8 @@ export interface Usuario extends UsuarioResumo {
   readonly deveTrocarSenha: boolean;
   /** Falso para quem foi convidado e ainda não definiu a senha (R2.8). */
   readonly senhaDefinida: boolean;
+  /** A pessoa usa a verificação em duas etapas (R2.11): o Admin pode redefini-la. */
+  readonly doisFatoresAtivo?: boolean;
   readonly telefone: string | null;
   /** Nome com que o usuário aparece nas integrações (campo "dono" do recebimento); opcional e único. */
   readonly identificadorIntegracao?: string | null;

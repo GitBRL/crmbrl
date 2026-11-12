@@ -11,6 +11,7 @@ import {
   erroDaApiFalso,
   microtarefas,
 } from './dados-de-teste';
+import { DoisFatoresApi } from './dois-fatores.api';
 import { FOTO_MAXIMO_BYTES, MeuPerfil, problemaDaFoto } from './meu-perfil';
 
 describe('MeuPerfil', () => {
@@ -19,7 +20,15 @@ describe('MeuPerfil', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        // O cartão de duas etapas tem o próprio spec; aqui não faz pedidos.
+        {
+          provide: DoisFatoresApi,
+          useValue: { situacao: () => new Promise(() => undefined) },
+        },
+      ],
     });
     http = TestBed.inject(HttpTestingController);
   });
@@ -68,6 +77,19 @@ describe('MeuPerfil', () => {
     await microtarefas();
     fixture.detectChanges();
     expect(raiz().querySelector('.perfil__nome')?.textContent).toBe('Ana Ribeiro Lima');
+  });
+
+  describe('outras sessões (R2.2)', () => {
+    it('encerra as outras sessões e avisa quantas', async () => {
+      criar('COMERCIAL');
+      const sucesso = vi.spyOn(TestBed.inject(AvisosService), 'sucesso');
+      botaoComTexto(raiz(), 'Encerrar as outras sessões').click();
+      const pedido = http.expectOne('/api/v1/auth/sessoes/encerrar-outras');
+      expect(pedido.request.method).toBe('POST');
+      pedido.flush({ encerradas: 2 });
+      await microtarefas();
+      expect(sucesso).toHaveBeenCalledWith('2 outras sessões foram encerradas.');
+    });
   });
 
   describe('foto de perfil (R2.10)', () => {

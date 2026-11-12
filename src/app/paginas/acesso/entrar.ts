@@ -12,6 +12,8 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
+  FormControl,
+  FormGroup,
   FormGroupDirective,
   NonNullableFormBuilder,
   ReactiveFormsModule,
@@ -21,6 +23,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { erroDaApi, type ErroApi } from '../../nucleo/api/erro-api';
 import { formatarEspera, formatarHora } from '../../nucleo/formatos';
+import { ehDesafioDoisFatores } from '../../nucleo/sessao/perfil';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Botao } from '../../ui/botao/botao';
 import { CampoSenha } from '../../ui/campo-senha/campo-senha';
@@ -91,6 +94,16 @@ export class Entrar {
   private readonly campoEmail = viewChild.required<CampoTexto>('campoEmail');
   private readonly campoSenha = viewChild.required<CampoSenha>('campoSenha');
 
+  /** Segunda etapa (R2.11): o desafio recebido depois da senha certa; `null` na primeira etapa. */
+  protected readonly desafio = signal<string | null>(null);
+  protected readonly usarRecuperacao = signal(false);
+  protected readonly codigo = new FormControl('', {
+    nonNullable: true,
+    validators: [Validators.required],
+  });
+  protected readonly formularioCodigo = new FormGroup({ codigo: this.codigo });
+  private readonly campoCodigo = viewChild<CampoTexto>('campoCodigo');
+
   protected readonly enviando = signal(false);
   protected readonly falha = signal<Falha | null>(null);
 
@@ -147,10 +160,18 @@ export class Entrar {
     this.enviando.set(true);
     this.falha.set(null);
     try {
-      const perfil = await this.sessao.entrar(email.value, senha.value);
+      const resposta = await this.sessao.entrar(email.value, senha.value);
+      if (ehDesafioDoisFatores(resposta)) {
+        // R2.11: a senha está certa, falta o código. A sessão só nasce depois dele.
+        this.desafio.set(resposta.desafio);
+        this.codigo.reset('');
+        this.usarRecuperacao.set(false);
+        afterNextRender(() => this.campoCodigo()?.focar(), { injector: this.injector });
+        return;
+      }
       this.estado.email.set('');
-      if (perfil.deveTrocarSenha) {
-        this.estado.guardarSenhaTemporaria(perfil.usuario.email, senha.value);
+      if (resposta.deveTrocarSenha) {
+        this.estado.guardarSenhaTemporaria(resposta.usuario.email, senha.value);
       }
       await this.router.navigateByUrl(this.sessao.rotaAposEntrar(this.voltar()));
     } catch (falha) {
@@ -158,6 +179,85 @@ export class Entrar {
     } finally {
       this.enviando.set(false);
     }
+  }
+
+  /** Segunda etapa do login (R2.11): código do aplicativo ou de recuperação. */
+  protected async verificar(): Promise<void> {
+    const desafio = this.desafio();
+    if (this.enviando() || !desafio) {
+      return;
+    }
+    if (this.codigo.invalid) {
+      this.codigo.markAsTouched();
+      this.campoCodigo()?.focar();
+      return;
+    }
+    this.enviando.set(true);
+    this.falha.set(null);
+    try {
+      const perfil = await this.sessao.concluirEntrada(desafio, this.codigo.value);
+      this.estado.email.set('');
+      if (perfil.deveTrocarSenha) {
+        const senha = this.formulario.controls.senha.value;
+        this.estado.guardarSenhaTemporaria(perfil.usuario.email, senha);
+      }
+      await this.router.navigateByUrl(this.sessao.rotaAposEntrar(this.voltar()));
+    } catch (falha) {
+      this.tratarFalhaDoCodigo(erroDaApi(falha));
+    } finally {
+      this.enviando.set(false);
+    }
+  }
+
+  protected alternarRecuperacao(): void {
+    this.usarRecuperacao.update((valor) => !valor);
+    this.codigo.reset('');
+    this.falha.set(null);
+    afterNextRender(() => this.campoCodigo()?.focar(), { injector: this.injector });
+  }
+
+  /** Volta à senha (o desafio é descartado). */
+  protected voltarParaSenha(aviso?: string): void {
+    this.desafio.set(null);
+    this.codigo.reset('');
+    this.formulario.controls.senha.reset('');
+    this.falha.set(aviso ? { tipo: 'info', mensagem: aviso } : null);
+    afterNextRender(() => this.campoSenha().focar(), { injector: this.injector });
+  }
+
+  private tratarFalhaDoCodigo(erro: ErroApi): void {
+    if (erro.ehMuitasTentativas) {
+      this.voltarParaSenha();
+      this.bloquear(erro);
+      return;
+    }
+    if (erro.status === 401) {
+      // Desafio vencido (5 minutos) ou sem tentativas: recomeça pela senha.
+      this.voltarParaSenha(erro.resumo);
+      return;
+    }
+    if (erro.status === 403) {
+      this.voltarParaSenha();
+      this.falha.set({ tipo: 'bloqueio', mensagem: erro.resumo });
+      return;
+    }
+    if (erro.ehDadosInvalidos) {
+      const restantes = erro.detalhes?.['tentativasRestantes'];
+      this.codigo.reset('');
+      this.falha.set({
+        tipo: 'erro',
+        mensagem: this.usarRecuperacao()
+          ? 'Código de recuperação incorreto ou já usado.'
+          : 'Código incorreto. Confira o aplicativo: ele muda a cada 30 segundos.',
+        detalhe:
+          typeof restantes === 'number'
+            ? `Você ainda tem ${restantes} ${restantes === 1 ? 'tentativa' : 'tentativas'}.`
+            : undefined,
+      });
+      afterNextRender(() => this.campoCodigo()?.focar(), { injector: this.injector });
+      return;
+    }
+    this.falha.set({ tipo: 'erro', mensagem: erro.resumo, codigo: erro.requisicaoId });
   }
 
   /** Leva o e-mail digitado para "Esqueci minha senha". */
