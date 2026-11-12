@@ -531,6 +531,25 @@ describe('QuadroFunil', () => {
       expect(TestBed.inject(AvisosService).lista().at(-1)?.tipo).toBe('sucesso');
     });
 
+    it('R5.11 — membro que vê todos no funil (veTodos) continua vendo o cartão depois de trocar o responsável', async () => {
+      await abrir('COMERCIAL', undefined, undefined, {
+        funil: funilDeTeste({ nivel: 'GESTOR', veTodos: true }),
+      });
+      await abrirSeletor('a');
+      opcoesDoSeletor()
+        .find((o) => o.textContent!.includes('Bia Souza'))!
+        .click();
+      http
+        .expectOne('/api/v1/negocios/a')
+        .flush(negocioDeTeste('a', NOVO, { responsavel: { id: 'u-bia', nome: 'Bia Souza' } }));
+      await microtarefas();
+      fixture.detectChanges();
+      expect(raiz.querySelector('[data-negocio-id="a"]')).not.toBeNull();
+      const aviso = TestBed.inject(AvisosService).lista().at(-1);
+      expect(aviso?.tipo).toBe('sucesso');
+      expect(aviso?.mensagem).not.toContain('sai do seu quadro');
+    });
+
     it('a API recusando: o cartão volta ao responsável de antes e o aviso explica', async () => {
       await abrir();
       const antes = raiz.querySelector(

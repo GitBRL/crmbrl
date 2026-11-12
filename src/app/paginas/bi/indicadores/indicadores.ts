@@ -41,7 +41,7 @@ import {
   SEM_OPCOES_INDICADOR,
 } from './filtros-indicador';
 import { IndicadoresApi } from './indicadores.api';
-import type { DestinoDaLista } from './indicadores.formatos';
+import { filtrosEscolhidos, type DestinoDaLista } from './indicadores.formatos';
 import type {
   Catalogo,
   FiltrosDoIndicador,
@@ -302,7 +302,10 @@ export class Indicadores {
     const consulta = ++this.consulta;
     this.atualizando.set(true);
     try {
-      const resposta = await this.api.calcular({ painelId: painel.id, filtros }, semCache);
+      const resposta = await this.api.calcular(
+        { painelId: painel.id, filtros: filtrosEscolhidos(filtros, painel.filtrosPadrao) },
+        semCache,
+      );
       if (consulta === this.consulta) {
         this.resultado.set(resposta);
         this.erro.set(null);

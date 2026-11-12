@@ -437,10 +437,11 @@ export class QuadroFunil {
     try {
       const atualizado = await this.estado.trocarResponsavel(negocio, opcao);
       const nome = atualizado.responsavel?.nome;
-      const vouDeixarDeVer =
-        this.sessao.permissoes()?.verNegocios === 'PROPRIOS' &&
-        !!opcao &&
-        opcao.id !== this.sessao.usuario()?.id;
+      // Quem vê todos os negócios deste funil (acesso "Só ver", "Ver e editar todos" ou quem configura,
+      // R5.11/R5.12: `veTodos`) continua vendo o cartão; sem a informação do funil, vale o papel.
+      const veTodos =
+        this.estado.funil()?.veTodos ?? this.sessao.permissoes()?.verNegocios !== 'PROPRIOS';
+      const vouDeixarDeVer = !veTodos && !!opcao && opcao.id !== this.sessao.usuario()?.id;
       if (vouDeixarDeVer) {
         this.estado.removerNegocio(negocio.id);
         this.avisos.sucesso(

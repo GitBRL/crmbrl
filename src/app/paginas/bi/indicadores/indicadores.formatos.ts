@@ -228,3 +228,32 @@ export function reordenarWidgets(
 }
 
 export const SEM_COMPARTILHAMENTO: Compartilhamento = { setores: [], pessoas: [], papeis: [] };
+
+/**
+ * O que a pessoa escolheu no topo, em relação aos filtros padrão do painel (R33.3): só as chaves que
+ * mudaram. A API valida os filtros escolhidos para a chamada inteira (R20.3) e os do painel por widget;
+ * mandar o padrão como escolha faria um painel compartilhado com filtro fora do alcance falhar inteiro.
+ * Lista padrão que a pessoa limpou vai vazia (a API trata a lista vazia como "sem filtro").
+ */
+export function filtrosEscolhidos(
+  atuais: FiltrosDoIndicador,
+  padrao: FiltrosDoIndicador | null | undefined,
+): FiltrosDoIndicador {
+  const base = (padrao ?? {}) as Record<string, unknown>;
+  const agora = atuais as Record<string, unknown>;
+  const escolhidos: Record<string, unknown> = {};
+  for (const chave of new Set([...Object.keys(base), ...Object.keys(agora)])) {
+    const valor = agora[chave];
+    if (JSON.stringify(valor ?? null) === JSON.stringify(base[chave] ?? null)) {
+      continue;
+    }
+    if (valor === undefined || valor === null) {
+      if (Array.isArray(base[chave])) {
+        escolhidos[chave] = [];
+      }
+      continue;
+    }
+    escolhidos[chave] = valor;
+  }
+  return escolhidos as FiltrosDoIndicador;
+}

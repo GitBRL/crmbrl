@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import type { FiltrosDoIndicador } from './indicadores.tipos';
+
 import {
   destinoDaEtapa,
   destinoDoClique,
   filtrosAtivos,
+  filtrosEscolhidos,
   parametrosPadrao,
   reordenarWidgets,
   tabelaDoWidget,
@@ -100,5 +103,15 @@ describe('indicadores.formatos', () => {
     const leads = CATALOGO_DE_TESTE.indicadores[0];
     expect(parametrosPadrao(leads, 'SERIE')).toEqual({ agrupamento: 'DIA' });
     expect(parametrosPadrao(leads, 'NUMERO')).toEqual({});
+  });
+
+  it('R33.3 — manda só os filtros que a pessoa mudou em relação ao padrão do painel', () => {
+    const padrao: FiltrosDoIndicador = { periodo: { tipo: 'MES_ATUAL' }, funilIds: ['f1'] };
+    expect(filtrosEscolhidos({ ...padrao }, padrao)).toEqual({});
+    expect(filtrosEscolhidos({ ...padrao, periodo: { tipo: 'ANO' } }, padrao)).toEqual({
+      periodo: { tipo: 'ANO' },
+    });
+    expect(filtrosEscolhidos({ periodo: { tipo: 'MES_ATUAL' } }, padrao)).toEqual({ funilIds: [] });
+    expect(filtrosEscolhidos({ pessoaIds: ['p1'] }, null)).toEqual({ pessoaIds: ['p1'] });
   });
 });
