@@ -100,10 +100,29 @@ import { PainelLigacao } from './painel-ligacao/painel-ligacao';
             <dt>Atendente</dt>
             <dd>{{ l.atendente?.nome ?? 'Sem atendente' }}</dd>
           </div>
-          <div>
-            <dt>Canal</dt>
-            <dd>{{ l.canal.nome }}</dd>
-          </div>
+          @if (l.provedor === 'TRESC_PLUS') {
+            <div>
+              <dt>Origem</dt>
+              <dd><app-selo tamanho="sm" variante="ciano">3C+</app-selo></dd>
+            </div>
+            @if (l.campanha?.nome; as campanha) {
+              <div>
+                <dt>Campanha</dt>
+                <dd>{{ campanha }}</dd>
+              </div>
+            }
+            @if (l.qualificacao; as q) {
+              <div>
+                <dt>Qualificação</dt>
+                <dd>{{ q.nome }}{{ q.observacao ? ' · ' + q.observacao : '' }}</dd>
+              </div>
+            }
+          } @else {
+            <div>
+              <dt>Canal</dt>
+              <dd>{{ l.canal?.nome }}</dd>
+            </div>
+          }
           @if (l.motivoTexto && l.estado !== 'ENCERRADA') {
             <div class="ligacao__motivo">
               <dt>O que aconteceu</dt>

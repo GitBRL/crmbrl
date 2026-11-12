@@ -476,7 +476,8 @@ export type AcaoEmMassa =
   | 'ETIQUETAR'
   | 'DESETIQUETAR'
   | 'ATIVIDADE'
-  | 'EXCLUIR';
+  | 'EXCLUIR'
+  | 'DISCADOR';
 
 export interface PedidoEmMassa {
   readonly negocioIds: readonly string[];

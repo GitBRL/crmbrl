@@ -1,0 +1,201 @@
+@if (erroCarga(); as falha) {
+  <app-estado-vazio
+    variante="erro"
+    [falha]="falha"
+    titulo="Não conseguimos carregar a conexão com o 3C+"
+    [texto]="falha.resumo"
+    [codigo]="falha.requisicaoId"
+  >
+    <button appBotao type="button" variante="invertido" (click)="carregar()">Tentar de novo</button>
+  </app-estado-vazio>
+} @else if (carregando() && !conexao()) {
+  <app-cartao titulo="3C+" regiao>
+    <div aria-busy="true">
+      <p class="visualmente-oculto" role="status">Carregando a conexão com o 3C+…</p>
+      <app-esqueleto [linhas]="6" />
+    </div>
+  </app-cartao>
+} @else if (conexao(); as c) {
+  <app-cartao
+    regiao
+    titulo="3C+ · Conexão da empresa"
+    dica="Liga o CRM ao discador 3C+: os vendedores ligam pelos contatos e negócios, e as ligações voltam para a linha do tempo com a gravação e a qualificação."
+  >
+    <div cartao-acoes class="tresc__selos">
+      @if (c.ativa) {
+        <app-selo variante="menta" ponto>Ativa</app-selo>
+      } @else {
+        <app-selo variante="neutro" ponto>Desativada</app-selo>
+      }
+      <app-selo [variante]="ouvinte(c).variante" ponto>{{ ouvinte(c).rotulo }}</app-selo>
+    </div>
+
+    <form class="tresc__form" novalidate [formGroup]="form" (ngSubmit)="salvar()">
+      <app-alternador
+        rotulo="Integração ativa"
+        formControlName="ativa"
+        dica="Para ativar, o token do gestor precisa estar salvo."
+      />
+      <div class="tresc__grade">
+        <app-campo-texto
+          rotulo="Endereço da API"
+          teclado="url"
+          dica="O padrão do 3C+ é https://3c.plus/api/v1."
+          formControlName="urlApi"
+        />
+        <app-campo-texto
+          rotulo="Endereço do socket"
+          teclado="url"
+          dica="Vazio: o mesmo domínio da API. Confirme com a conta real."
+          formControlName="urlSocket"
+        />
+        <app-campo-texto
+          rotulo="Caminho do socket"
+          dica="Normalmente /socket.io."
+          formControlName="caminhoSocket"
+        />
+        <app-seletor
+          rotulo="Formato dos eventos"
+          [opcoes]="envelopes"
+          formControlName="formatoEnvelope"
+        />
+      </div>
+      <app-campo-senha
+        rotulo="Token do gestor"
+        segredo
+        [placeholder]="
+          c.token ? c.token + ' (guardado; digite para trocar)' : 'Cole o token do gestor'
+        "
+        dica="Fica cifrado e nunca volta inteiro para a tela: só os 4 últimos caracteres."
+        formControlName="token"
+      />
+      <div class="tresc__campanha">
+        <app-seletor
+          rotulo="Campanha padrão do modo manual"
+          placeholder="Sem campanha padrão"
+          permitirVazio
+          [opcoes]="opcoesCampanha()"
+          [(valor)]="campanhaPadrao"
+        />
+        @if (erroCampanhas(); as texto) {
+          <p class="tresc__aviso" role="status">
+            Não deu para listar as campanhas: {{ texto }}
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              (click)="carregarCampanhas()"
+            >
+              Tentar de novo
+            </button>
+          </p>
+        } @else if (!c.tokenConfigurado) {
+          <p class="tresc__aviso">Salve o token do gestor para escolher a campanha.</p>
+        }
+      </div>
+
+      @if (erroSalvar(); as falha) {
+        <p class="tresc__erro" role="alert">{{ falha.mensagem }}</p>
+      }
+      <div class="tresc__acoes">
+        <button appBotao type="submit" variante="invertido" [carregando]="salvando()">
+          Salvar conexão
+        </button>
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          [carregando]="testando()"
+          [disabled]="!c.tokenConfigurado"
+          (click)="testar()"
+        >
+          Testar conexão
+        </button>
+        <button
+          appBotao
+          type="button"
+          variante="contorno"
+          [carregando]="reconciliando()"
+          [disabled]="!c.ativa"
+          (click)="reconciliar()"
+        >
+          Reconciliar agora
+        </button>
+      </div>
+      @if (resultadoTeste(); as r) {
+        <p class="tresc__resultado" [class.tresc__resultado--erro]="!r.ok" role="status">
+          {{ r.ok ? 'Conexão ok. ' : 'Falhou. ' }}{{ r.mensagem }}
+        </p>
+      } @else if (c.teste; as t) {
+        <p class="tresc__resultado" [class.tresc__resultado--erro]="!t.ok">
+          Último teste ({{ dataHora(t.em) }}): {{ t.mensagem }}
+        </p>
+      }
+      <p class="tresc__rodape">
+        Ouvinte desde {{ c.ouvinte.em ? dataHora(c.ouvinte.em) : 'nunca conectou' }} · Última
+        reconciliação:
+        {{ c.reconciliadaEm ? dataHora(c.reconciliadaEm) : 'ainda não rodou' }}
+      </p>
+    </form>
+  </app-cartao>
+
+  <app-cartao
+    regiao
+    titulo="Vendedores conectados"
+    dica="Quem conectou o usuário do 3C+ no Meu perfil. Desvincular tira a pessoa do discador no CRM; ela pode conectar de novo."
+  >
+    @if (erroVinculos(); as texto) {
+      <app-estado-vazio
+        compacto
+        variante="erro"
+        titulo="Não conseguimos listar os vínculos"
+        [texto]="texto"
+      >
+        <button appBotao type="button" variante="invertido" (click)="carregarVinculos()">
+          Tentar de novo
+        </button>
+      </app-estado-vazio>
+    } @else if (!vinculos()) {
+      <div aria-busy="true">
+        <p class="visualmente-oculto" role="status">Carregando os vendedores conectados…</p>
+        <app-esqueleto [linhas]="3" />
+      </div>
+    } @else if (!vinculos()!.length) {
+      <app-estado-vazio
+        compacto
+        titulo="Ninguém conectou ainda"
+        texto="Cada vendedor conecta o próprio usuário do 3C+ em Meu perfil, no cartão Conectar ao 3C+."
+      />
+    } @else {
+      <ul class="tresc__vinculos" aria-label="Vendedores conectados ao 3C+">
+        @for (v of vinculos(); track v.usuarioId) {
+          <li class="tresc__vinculo">
+            <div class="tresc__quem">
+              <span class="tresc__nome">{{ v.usuarioNome ?? 'Usuário' }}</span>
+              <span class="tresc__detalhe">
+                3C+: {{ v.nome3c ?? '—' }} · ramal
+                <span class="numeros">{{ v.ramal ?? '—' }}</span> · token
+                <span class="numeros">{{ v.token }}</span>
+                @if (v.vinculadoEm) {
+                  · desde {{ dataHora(v.vinculadoEm) }}
+                }
+              </span>
+            </div>
+            <button
+              appBotao
+              type="button"
+              tamanho="sm"
+              variante="contorno"
+              [attr.aria-label]="'Desvincular ' + (v.usuarioNome ?? 'usuário')"
+              [carregando]="desvinculando() === v.usuarioId"
+              (click)="desvincular(v)"
+            >
+              Desvincular
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </app-cartao>
+}

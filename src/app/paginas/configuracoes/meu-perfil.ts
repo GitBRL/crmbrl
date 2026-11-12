@@ -30,6 +30,7 @@ import { CampoTexto } from '../../ui/campo-texto/campo-texto';
 import { Cartao } from '../../ui/cartao/cartao';
 import { Selo } from '../../ui/selo/selo';
 import { ConfiguracoesApi } from './configuracoes.api';
+import { ConectarAo3c } from './conectar-3c';
 import { CartaoPush } from './preferencias-push';
 import { formatarTelefone } from './textos';
 
@@ -62,7 +63,17 @@ export function problemaDaFoto(arquivo: Pick<File, 'type' | 'size'>): string | n
 
 @Component({
   selector: 'app-meu-perfil',
-  imports: [ReactiveFormsModule, Avatar, Botao, CampoSenha, CampoTexto, Cartao, CartaoPush, Selo],
+  imports: [
+    ReactiveFormsModule,
+    Avatar,
+    Botao,
+    CampoSenha,
+    CampoTexto,
+    Cartao,
+    CartaoPush,
+    ConectarAo3c,
+    Selo,
+  ],
   templateUrl: './meu-perfil.html',
   styleUrl: './meu-perfil.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

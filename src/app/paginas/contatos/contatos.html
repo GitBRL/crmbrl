@@ -63,5 +63,10 @@
   (click)="abrirCadastro()"
 ></button>
 
-<app-formulario-contato [(aberto)]="cadastroDeContato" (salvo)="aoCriarContato($event)" />
+<app-formulario-contato
+  [(aberto)]="cadastroDeContato"
+  [telefoneInicial]="telefoneDoCadastro()"
+  (abertoChange)="$event || telefoneDoCadastro.set(null)"
+  (salvo)="aoCriarContato($event)"
+/>
 <app-formulario-empresa [(aberto)]="cadastroDeEmpresa" (salvo)="aoCriarEmpresa($event)" />

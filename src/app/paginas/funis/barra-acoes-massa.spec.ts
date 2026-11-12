@@ -99,12 +99,42 @@ describe('BarraAcoesMassa', () => {
     http.expectNone('/api/v1/negocios/em-massa');
   });
 
+  it('R5.16 — acima de 500 marcados as ações ficam indisponíveis com a dica (a API recusaria tudo)', () => {
+    montar('LIDER_COMERCIAL', []);
+    estado.colunas.set(
+      colunasDeTeste({
+        novo: Array.from({ length: 501 }, (_, i) => negocioDeTeste(`n${i}`, NOVO)),
+      }),
+    );
+    estado.selecao.set(new Set(Array.from({ length: 501 }, (_, i) => `n${i}`)));
+    fixture.detectChanges();
+    expect(botao('Ganho').disabled).toBe(true);
+    expect(botao('Ganho').getAttribute('title')).toContain('até 500 negócios');
+    expect(raiz.querySelector('.barra__dica')?.textContent).toContain('501 marcados');
+    http.expectNone('/api/v1/negocios/em-massa');
+  });
+
   it('Excluir fica desabilitado, com a dica visível, para quem não configura o funil', () => {
     montar('COMERCIAL');
     expect(botao('Excluir').disabled).toBe(true);
     expect(botao('Excluir').getAttribute('title')).toContain('Só quem configura');
     expect(raiz.querySelector('.barra__dica')?.textContent).toContain('Só quem configura');
     expect(botao('Ganho').disabled).toBe(false);
+  });
+
+  it('Enviar ao discador (3C+) não aparece para o membro', () => {
+    montar('COMERCIAL');
+    expect(botao('Enviar ao discador…')).toBeUndefined();
+  });
+
+  it('o líder vê Enviar ao discador e o modal recebe os negócios marcados', () => {
+    montar('LIDER_COMERCIAL');
+    expect(botao('Enviar ao discador…').disabled).toBe(false);
+    botao('Enviar ao discador…').click();
+    fixture.detectChanges();
+    http.expectOne('/api/v1/tresc-plus/campanhas').flush([{ id: 1, nome: 'Prospecção Demo' }]);
+    expect(raiz.querySelector('app-modal-discador dialog')).not.toBeNull();
+    expect(raiz.querySelector('app-modal-discador')?.textContent).toContain('Envia 2 negócios');
   });
 
   it('Mover para etapa manda MOVER com a etapa escolhida', async () => {

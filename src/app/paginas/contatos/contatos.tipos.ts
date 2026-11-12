@@ -365,6 +365,11 @@ export interface LigacaoDaLinhaDoTempo {
   readonly conversaId: string | null;
   readonly canalId: string | null;
   readonly canalNome: string | null;
+  /** R34.3: de onde vem a ligação (ausente = WhatsApp). */
+  readonly provedor?: 'WHATSAPP' | 'TRESC_PLUS';
+  readonly negocioId?: string | null;
+  readonly qualificacaoNome?: string | null;
+  readonly campanhaNome?: string | null;
   readonly atendente: { readonly id: string; readonly nome: string } | null;
   readonly iniciadaEm: string;
   readonly encerradaEm: string | null;

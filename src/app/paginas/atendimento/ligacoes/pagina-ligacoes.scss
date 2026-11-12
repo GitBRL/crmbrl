@@ -375,3 +375,11 @@ router-outlet {
     }
   }
 }
+
+.item__3c {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1) var(--esp-2);
+  white-space: normal;
+}

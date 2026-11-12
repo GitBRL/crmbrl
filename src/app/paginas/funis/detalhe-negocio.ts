@@ -10,6 +10,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { BotaoLigarTresc } from '../../layout/tresc-plus/botao-ligar-tresc';
 import { Router, RouterLink } from '@angular/router';
 import { LucideWorkflow } from '@lucide/angular';
 
@@ -122,6 +123,7 @@ interface Vinculo {
 @Component({
   selector: 'app-detalhe-negocio',
   imports: [
+    BotaoLigarTresc,
     Abas,
     AreaTexto,
     AtividadesNegocio,

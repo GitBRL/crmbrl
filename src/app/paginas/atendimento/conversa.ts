@@ -51,6 +51,7 @@ import {
 } from '../../nucleo/tempo-real/auxiliares';
 import { TempoRealService } from '../../nucleo/tempo-real/tempo-real.service';
 import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
+import { BotaoLigarTresc } from '../../layout/tresc-plus/botao-ligar-tresc';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
@@ -130,6 +131,7 @@ interface Pendente {
     Botao,
     BotaoIcone,
     BotaoLigar,
+    BotaoLigarTresc,
     Compositor,
     CriarNegocio,
     Dica,

@@ -153,6 +153,8 @@ export class FormularioContato {
   readonly contato = input<Contato | null>(null);
   /** Na criação: a empresa já escolhida (cadastro a partir do detalhe da empresa). */
   readonly empresaInicial = input<EmpresaEscolhida | null>(null);
+  /** Na criação: telefone já preenchido (ligação recebida de número desconhecido, R34.7). */
+  readonly telefoneInicial = input<string | null>(null);
   readonly salvo = output<Contato>();
 
   private readonly api = inject(ContatosApi);
@@ -380,6 +382,7 @@ export class FormularioContato {
         responsavelId: this.sessao.usuario()?.id ?? null,
         origem: 'MANUAL',
         empresa: this.empresaInicial(),
+        telefone: this.telefoneInicial() ? formatarTelefone(this.telefoneInicial()!) : '',
       });
     }
   }

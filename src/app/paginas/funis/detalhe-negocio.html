@@ -165,6 +165,13 @@
                   }}{{ f.telefone }}
                 </span>
               }
+              @if (f.telefone) {
+                <app-botao-ligar-tresc
+                  [contatoId]="n.contato.id"
+                  [negocioId]="n.id"
+                  [nome]="n.contato.nome"
+                />
+              }
             </dd>
           </div>
           <div class="vinculo">
@@ -237,7 +244,7 @@
             />
           }
           @case ('cliente') {
-            <app-cliente-negocio [contatoId]="n.contato.id" />
+            <app-cliente-negocio [contatoId]="n.contato.id" [negocioId]="n.id" />
           }
           @case ('dados') {
             <div class="dados">

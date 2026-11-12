@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
 import { AvisosService } from '../../nucleo/avisos.service';
+import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { AreaTexto } from '../../ui/area-texto/area-texto';
 import { Botao } from '../../ui/botao/botao';
@@ -13,10 +14,18 @@ import { EscolherResponsavel } from './escolher-responsavel';
 import { EstadoQuadro, type OpcaoResponsavel } from './estado-quadro';
 import type { FalhaEmMassa, PedidoEmMassa, ResultadoEmMassa, TipoAtividade } from './funis.tipos';
 import { ROTULO_TIPO_ATIVIDADE } from './linha-do-tempo-negocio';
+import { ModalDiscador } from './modal-discador';
 import { MotivoPerda } from './motivo-perda';
 
 /** Tipos que dá para criar em massa (a reunião pede início e fim: só pelo negócio). */
 const TIPOS_EM_MASSA: readonly TipoAtividade[] = ['TAREFA', 'LIGACAO', 'EMAIL', 'WHATSAPP', 'NOTA'];
+
+/** Limite de negócios por ação em massa (R5.16): a API recusa a lista inteira acima disso. */
+export const MAXIMO_POR_ACAO = 500;
+
+function textoAcimaDoMaximo(quantos: number): string {
+  return `Cada ação vale para até ${MAXIMO_POR_ACAO} negócios e há ${quantos} marcados: desmarque alguns e faça em partes.`;
+}
 
 /** Ação que espera o motivo da perda. */
 type Pendente = { readonly acao: 'PERDER' } | { readonly acao: 'MOVER'; readonly etapaId: string };
@@ -56,6 +65,7 @@ export function resumoDoResultado(resultado: Pick<ResultadoEmMassa, 'total' | 's
     GrupoOpcoes,
     MenuAcoes,
     Modal,
+    ModalDiscador,
     MotivoPerda,
   ],
   template: `
@@ -130,6 +140,19 @@ export function resumoDoResultado(resultado: Pick<ResultadoEmMassa, 'total' | 's
         >
           Criar atividade…
         </button>
+        @if (podeDiscador()) {
+          <button
+            appBotao
+            type="button"
+            variante="contorno"
+            tamanho="sm"
+            [disabled]="!!indisponivelDiscador()"
+            [attr.title]="indisponivelDiscador()"
+            (click)="se(!indisponivelDiscador(), abrirDiscador)"
+          >
+            Enviar ao discador…
+          </button>
+        }
         <button
           appBotao
           type="button"
@@ -274,6 +297,8 @@ export function resumoDoResultado(resultado: Pick<ResultadoEmMassa, 'total' | 's
       </div>
     </app-modal>
 
+    <app-modal-discador [(aberto)]="discadorAberto" [negocioIds]="idsSelecionados()" />
+
     <app-modal [(aberto)]="falhasAbertas" [titulo]="tituloDoResultado()" largura="md">
       <div class="formulario">
         <p class="formulario__frase">
@@ -305,12 +330,27 @@ export class BarraAcoesMassa {
   private readonly estado = inject(EstadoQuadro);
   private readonly avisos = inject(AvisosService);
   private readonly confirmacao = inject(ConfirmacaoService);
+  private readonly sessao = inject(SessaoService);
 
   protected readonly quantos = computed(() => this.estado.selecionados().length);
   protected readonly textoSelecionados = computed(() => textoDeNegocios(this.quantos()));
   protected readonly marketing = computed(() => this.estado.area() === 'MARKETING');
   protected readonly rotuloPerdido = computed(() => (this.marketing() ? 'Descartado' : 'Perdido'));
   protected readonly executando = signal(false);
+
+  // Enviar ao discador (3C+, R34.6): só Admin, C-level e líder.
+  protected readonly podeDiscador = computed(() =>
+    this.sessao.temPapel('ADMIN', 'C_LEVEL', 'LIDER'),
+  );
+  protected readonly discadorAberto = signal(false);
+  protected readonly idsSelecionados = computed(() => this.estado.selecionados().map((n) => n.id));
+  protected readonly indisponivelDiscador = computed<string | null>(() =>
+    this.quantos() === 0
+      ? 'Marque ao menos um negócio.'
+      : this.quantos() > MAXIMO_POR_ACAO
+        ? textoAcimaDoMaximo(this.quantos())
+        : null,
+  );
 
   /** Por que as ações estão indisponíveis (vazio = disponíveis). */
   protected readonly indisponivel = computed<string | null>(() => {
@@ -319,6 +359,9 @@ export class BarraAcoesMassa {
     }
     if (this.quantos() === 0) {
       return 'Marque ao menos um negócio.';
+    }
+    if (this.quantos() > MAXIMO_POR_ACAO) {
+      return textoAcimaDoMaximo(this.quantos());
     }
     return this.executando() ? 'Aguarde: a ação anterior ainda está rodando.' : null;
   });
@@ -390,6 +433,10 @@ export class BarraAcoesMassa {
   protected readonly falhasAbertas = signal(false);
   protected readonly falhas = signal<readonly FalhaEmMassa[]>([]);
   protected readonly tituloDoResultado = signal('Alguns negócios não foram atualizados');
+
+  protected abrirDiscador(): void {
+    this.discadorAberto.set(true);
+  }
 
   /** Executa `acao` só se estiver disponível (os botões usam `aria-disabled`, não `disabled`). */
   protected se(disponivel: boolean, acao: () => void): void {

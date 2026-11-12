@@ -88,6 +88,31 @@ describe('PaginaLigacoes', () => {
     expect(texto(raiz.querySelector('.lista__total'))).toContain('2 ligações');
   });
 
+  it('ligação do 3C+ (sem canal) mostra o selo 3C+, a campanha e a qualificação', async () => {
+    const { raiz } = await criar([
+      item({
+        id: 'lig-3c',
+        canal: null,
+        provedor: 'TRESC_PLUS',
+        campanha: { id: 1, nome: 'Prospecção Demo', modo: 'manual' },
+        qualificacao: {
+          id: 2,
+          nome: 'Retornar depois',
+          observacao: null,
+          conversao: false,
+          qualificadaEm: null,
+        },
+      }),
+      item({ id: 'lig-wa' }),
+    ]);
+    const linhas = [...raiz.querySelectorAll<HTMLAnchorElement>('a.item')];
+    expect(texto(linhas[0])).toContain('3C+');
+    expect(texto(linhas[0])).toContain('Prospecção Demo');
+    expect(texto(linhas[0])).toContain('Retornar depois');
+    expect(texto(linhas[1])).toContain('WhatsApp Oficial');
+    expect(texto(linhas[1])).not.toContain('3C+');
+  });
+
   it('estado vazio sem filtros explica de onde vêm as ligações', async () => {
     const { raiz } = await criar([], 0);
     expect(raiz.querySelector('a.item')).toBeNull();

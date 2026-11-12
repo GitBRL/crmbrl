@@ -19,6 +19,7 @@ import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { NOME_PRODUTO } from '../../nucleo/titulo-pagina';
 import { Abas, type ItemAba } from '../../ui/abas/abas';
 import { BotaoLigar } from '../../layout/ligacao/botao-ligar';
+import { BotaoLigarTresc } from '../../layout/tresc-plus/botao-ligar-tresc';
 import { Avatar } from '../../ui/avatar/avatar';
 import { Botao } from '../../ui/botao/botao';
 import { BotaoIcone } from '../../ui/botao-icone/botao-icone';
@@ -76,6 +77,7 @@ export function motivoSemEdicao(
     Botao,
     BotaoIcone,
     BotaoLigar,
+    BotaoLigarTresc,
     Cartao,
     Dica,
     Esqueleto,
