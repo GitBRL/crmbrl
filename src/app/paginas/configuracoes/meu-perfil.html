@@ -177,6 +177,31 @@
           </div>
         </form>
       </app-cartao>
+      <app-cartao
+        class="perfil__cartao"
+        regiao
+        [nivel]="3"
+        titulo="Sessões abertas"
+        dica="Entrou em um computador ou celular que não é mais seu? Encerre as outras sessões: só esta continua aberta."
+      >
+        <div class="perfil__formulario">
+          <p class="perfil__nota">
+            Você sai do CRM em todos os outros navegadores e aparelhos. Nesta tela, nada muda.
+          </p>
+          <div class="perfil__acoes">
+            <button
+              appBotao
+              type="button"
+              variante="contorno"
+              [carregando]="encerrandoSessoes()"
+              (click)="encerrarOutrasSessoes()"
+            >
+              Encerrar as outras sessões
+            </button>
+          </div>
+        </div>
+      </app-cartao>
+      <app-cartao-dois-fatores />
       <app-conectar-3c />
       <app-preferencias-push />
     </div>

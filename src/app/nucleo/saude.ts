@@ -1,19 +1,22 @@
 /**
- * Contrato do `GET /api/saude` (crmbrl-api, contrato §3.4). Com o banco fora do ar a API
- * responde HTTP 503 com o mesmo corpo: `status: 'degradado'`, `banco.status: 'erro'` e
- * `migrations: null`.
+ * Contrato do `GET /api/saude` (crmbrl-api). Para qualquer pessoa vem só `{ status }`; o detalhe
+ * (versão, ambiente, banco, migrations, avisos de configuração) vem apenas para o Admin logado.
+ * Com o banco fora do ar a API responde HTTP 503: `status: 'degradado'` e, para o Admin,
+ * `banco.status: 'erro'` e `migrations: null`.
  */
 export interface RespostaSaude {
   readonly status: 'ok' | 'degradado';
-  /** Versão do package.json da API. */
-  readonly versao: string;
-  /** NODE_ENV da API ("production", "development"…). */
-  readonly ambiente: string;
-  /** Horário do servidor, ISO 8601. */
-  readonly horario: string;
-  readonly uptimeSegundos: number;
-  readonly banco: SaudeBanco;
-  readonly migrations: SaudeMigrations | null;
+  /** Versão do package.json da API (só Admin). */
+  readonly versao?: string;
+  /** NODE_ENV da API ("production", "development"…) (só Admin). */
+  readonly ambiente?: string;
+  /** Horário do servidor, ISO 8601 (só Admin). */
+  readonly horario?: string;
+  readonly uptimeSegundos?: number;
+  readonly banco?: SaudeBanco;
+  readonly migrations?: SaudeMigrations | null;
+  /** Avisos de configuração da subida, sem valores secretos (só Admin). */
+  readonly avisos?: readonly string[];
 }
 
 export interface SaudeBanco {
@@ -43,10 +46,5 @@ export function ehRespostaSaude(valor: unknown): valor is RespostaSaude {
     return false;
   }
   const resposta = valor as Partial<RespostaSaude>;
-  return (
-    (resposta.status === 'ok' || resposta.status === 'degradado') &&
-    typeof resposta.versao === 'string' &&
-    typeof resposta.banco === 'object' &&
-    resposta.banco !== null
-  );
+  return resposta.status === 'ok' || resposta.status === 'degradado';
 }

@@ -123,6 +123,13 @@ describe('StatusSistema (dados reais de /api/saude)', () => {
     ]);
   });
 
+  it('quem não é Admin recebe só { status }: mostra apenas que a API está no ar, sem versão nem banco', () => {
+    const { fixture, linhas } = criar();
+    http.expectOne(URL_SAUDE).flush({ status: 'ok' });
+    fixture.detectChanges();
+    expect(linhas()).toEqual([['API', 'No ar']]);
+  });
+
   it('sem conexão: explica o que fazer e "Tentar de novo" consulta outra vez', () => {
     const { fixture, raiz, botao } = criar();
     http.expectOne(URL_SAUDE).error(new ProgressEvent('error'), { status: 0 });
