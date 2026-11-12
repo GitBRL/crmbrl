@@ -5,11 +5,10 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { AvisosService } from '../../nucleo/avisos.service';
-import type { Papel } from '../../nucleo/papeis';
 import type { RespostaSaude } from '../../nucleo/saude';
 import { URL_SAUDE } from '../../nucleo/saude.service';
 import type { Area } from '../../nucleo/sessao/perfil';
-import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
+import { entrarComo, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
 import type { Atividade, GrupoAtividade } from '../atividades/atividades.api';
 import { formatarIntervalo, Inicio } from './inicio';
 import { COMERCIAL, CS, MARKETING, metricas } from './metricas-de-teste';
@@ -86,9 +85,11 @@ const GANHOS = [
   { valor: '9999.00', ganhoEm: dias(60), atualizadoEm: dias(3) },
 ];
 
-const AREAS_DO_PAPEL: Readonly<Record<Papel, readonly Area[]>> = {
+const AREAS_DO_PAPEL: Readonly<Record<PapelDeTeste, readonly Area[]>> = {
   ADMIN: ['MARKETING', 'COMERCIAL', 'CS'],
   C_LEVEL: ['MARKETING', 'COMERCIAL', 'CS'],
+  LIDER: ['COMERCIAL'],
+  MEMBRO: ['COMERCIAL'],
   LIDER_COMERCIAL: ['COMERCIAL'],
   COMERCIAL: ['COMERCIAL'],
   LIDER_MARKETING: ['MARKETING'],
@@ -97,9 +98,11 @@ const AREAS_DO_PAPEL: Readonly<Record<Papel, readonly Area[]>> = {
   CS: ['CS'],
 };
 
-const PAINEIS_DO_PAPEL: Readonly<Record<Papel, readonly IdPainel[]>> = {
+const PAINEIS_DO_PAPEL: Readonly<Record<PapelDeTeste, readonly IdPainel[]>> = {
   ADMIN: ['marketing', 'comercial', 'cs', 'atendimento', 'financeiro'],
   C_LEVEL: ['marketing', 'comercial', 'cs', 'atendimento', 'financeiro'],
+  LIDER: ['comercial', 'atendimento'],
+  MEMBRO: ['comercial', 'atendimento'],
   LIDER_COMERCIAL: ['comercial', 'atendimento'],
   COMERCIAL: ['comercial', 'atendimento'],
   LIDER_MARKETING: ['marketing'],
@@ -260,7 +263,7 @@ describe('Inicio (visão geral)', () => {
   /** Cria a página e responde tudo o que ela pede ao abrir. */
   async function criar(
     opcoes: {
-      readonly papel?: Papel;
+      readonly papel?: PapelDeTeste;
       readonly atuais?: Readonly<Record<Area, MetricasDoFunil>>;
       readonly proximas?: ReturnType<typeof agenda>;
       readonly paineis?: readonly IdPainel[];

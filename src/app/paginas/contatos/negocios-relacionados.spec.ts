@@ -1,8 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import type { Papel } from '../../nucleo/papeis';
-import { entrarComo } from '../../nucleo/sessao/sessao-de-teste';
+import { entrarComo, type PapelDeTeste } from '../../nucleo/sessao/sessao-de-teste';
 import type { NegocioRelacionado } from './contatos.tipos';
 import { NegociosRelacionados } from './negocios-relacionados';
 
@@ -22,7 +21,7 @@ const ABERTO_NO_COMERCIAL: NegocioRelacionado = {
   criadoEm: '2026-10-21T12:00:00.000Z',
 };
 
-function montar(papel: Papel) {
+function montar(papel: PapelDeTeste) {
   entrarComo(papel);
   const fixture = TestBed.createComponent(NegociosRelacionados);
   fixture.componentRef.setInput('negocios', [ABERTO_NO_COMERCIAL]);

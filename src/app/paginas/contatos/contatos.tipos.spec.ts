@@ -12,10 +12,11 @@ import {
   primeiroNome,
   resumoDoEvento,
 } from './contatos.tipos';
+import { definirRegistroDeSetores, type Setor } from '../../nucleo/setores/setores';
 
 function negocio(
   id: string,
-  area: 'MARKETING' | 'COMERCIAL' | 'CS',
+  area: string,
   criadoEm: string,
   negocioOrigemId: string | null = null,
 ): NegocioRelacionado {
@@ -135,6 +136,30 @@ describe('contatos.tipos', () => {
     expect(com2.veioDe).toBeNull();
     expect(com2.veioDeOculto).toBe(true);
     expect(cs.gerou).toEqual([]);
+  });
+
+  it('setores novos entram depois dos de base, pela ordem; desconhecido ou inativo vai para o fim', () => {
+    const setor = (chave: string, ordem: number, ativo = true) =>
+      ({ chave, nome: chave, ordem, ativo, base: false }) as unknown as Setor;
+    definirRegistroDeSetores([
+      setor('MARKETING', 1),
+      setor('COMERCIAL', 2),
+      setor('CS', 3),
+      setor('POS_VENDA', 4),
+      setor('ANTIGO', 5, false),
+    ]);
+    try {
+      const jornada = montarJornada([
+        negocio('x', 'DESCONHECIDO', '2026-10-01T00:00:00Z'),
+        negocio('a', 'ANTIGO', '2026-10-01T00:00:00Z'),
+        negocio('pv', 'POS_VENDA', '2026-10-01T00:00:00Z'),
+        negocio('cs', 'CS', '2026-10-01T00:00:00Z'),
+        negocio('mkt', 'MARKETING', '2026-10-01T00:00:00Z'),
+      ]);
+      expect(jornada.map((item) => item.negocio.id)).toEqual(['mkt', 'cs', 'pv', 'a', 'x']);
+    } finally {
+      definirRegistroDeSetores([]);
+    }
   });
 
   it('pega o primeiro nome', () => {

@@ -1,0 +1,110 @@
+@use '../secao' as s;
+
+:host {
+  display: block;
+}
+
+.secao {
+  display: grid;
+  gap: var(--esp-6);
+}
+
+@include s.cabecalho;
+
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--cor-texto);
+  }
+}
+
+.formulario {
+  display: grid;
+  gap: var(--esp-5);
+  max-width: 44rem;
+}
+
+.setor-fixo {
+  display: grid;
+  gap: var(--esp-1);
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--raio-lg);
+  background: var(--cor-superficie-2);
+}
+
+.setor-fixo__rotulo,
+.setor-fixo__dica {
+  color: var(--cor-texto-fraco);
+  font: var(--fonte-legenda);
+}
+
+.etapas {
+  display: grid;
+  gap: var(--esp-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.etapas__titulo {
+  padding: 0;
+  font: var(--fonte-rotulo);
+}
+
+.etapas__frase {
+  color: var(--cor-texto-suave);
+  font: var(--fonte-legenda-lg);
+}
+
+.etapas__lista {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.etapa {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  gap: var(--esp-3);
+  align-items: start;
+}
+
+.etapa__ordem {
+  padding-top: var(--esp-3);
+  color: var(--cor-texto-fraco);
+  text-align: center;
+}
+
+.etapa__botoes {
+  display: inline-flex;
+  gap: var(--esp-1);
+  padding-top: 4px;
+}
+
+.etapas__fim {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--esp-4);
+  margin-top: var(--esp-2);
+}
+
+.erro {
+  color: var(--cor-erro);
+  font: var(--fonte-legenda-lg);
+  font-weight: 500;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+}

@@ -16,8 +16,8 @@ import { POR_PAGINA_PADRAO, type Pagina } from '../../../nucleo/api/api';
 import { erroDaApi, type ErroApi } from '../../../nucleo/api/erro-api';
 import { AvisosService } from '../../../nucleo/avisos.service';
 import { formatarTempoRelativo, formatarDataHora } from '../../../nucleo/formatos';
-import { ROTULO_PAPEL } from '../../../nucleo/papeis';
-import { AREAS, ROTULO_AREA } from '../../../nucleo/sessao/perfil';
+import { rotuloDaPessoa } from '../../../nucleo/setores/setores';
+import { nomeDoSetor } from '../../../nucleo/setores/setores';
 import {
   ROTULO_CATEGORIA,
   type AvaliacaoFiltro,
@@ -39,6 +39,7 @@ import { BiApi } from '../../bi/bi.api';
 import type { FormatoExportacao } from '../../bi/bi.tipos';
 import { DetalheConversaDuvida } from './detalhe-conversa';
 import { DuvidasApi } from './duvidas.api';
+import { SetoresService } from '../../../nucleo/setores/setores.service';
 
 const COLUNAS: readonly ColunaTabela[] = [
   { id: 'quando', rotulo: 'Quando', largura: '8rem' },
@@ -88,6 +89,7 @@ const SELO_CATEGORIA: Readonly<Record<CategoriaAssistente, VarianteSelo>> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HistoricoDuvidas {
+  protected readonly setores = inject(SetoresService);
   protected readonly numeroCurto = numeroCurtoDoChamado;
   private readonly api = inject(DuvidasApi);
   private readonly biApi = inject(BiApi);
@@ -102,17 +104,17 @@ export class HistoricoDuvidas {
   protected readonly icones = { baixar: LucideDownload };
   protected readonly colunas = COLUNAS;
   protected readonly porPagina = POR_PAGINA_PADRAO;
-  protected readonly rotuloPapel = ROTULO_PAPEL;
+  protected readonly rotuloPessoa = rotuloDaPessoa;
   protected readonly rotuloCategoria = ROTULO_CATEGORIA;
   protected readonly simNao = SIM_NAO;
 
   protected readonly opcoesCategoria: readonly OpcaoSeletor<CategoriaAssistente>[] = (
     Object.keys(ROTULO_CATEGORIA) as CategoriaAssistente[]
   ).map((valor) => ({ valor, rotulo: ROTULO_CATEGORIA[valor] }));
-  protected readonly opcoesArea: readonly OpcaoSeletor<string>[] = [
-    ...AREAS.map((a) => ({ valor: a, rotulo: ROTULO_AREA[a] })),
-    { valor: 'SEM_AREA', rotulo: 'Sem área' },
-  ];
+  protected readonly opcoesArea = computed<readonly OpcaoSeletor<string>[]>(() => [
+    ...this.setores.opcoes(),
+    { valor: 'SEM_AREA', rotulo: 'Sem setor' },
+  ]);
   protected readonly opcoesAvaliacao: readonly OpcaoSeletor<AvaliacaoFiltro>[] = [
     { valor: 'UTIL', rotulo: 'Útil' },
     { valor: 'NAO_UTIL', rotulo: 'Não útil' },
@@ -168,6 +170,7 @@ export class HistoricoDuvidas {
   }));
 
   constructor() {
+    void this.setores.carregar();
     void this.carregarPessoas();
     // Filtros que vieram de fora entram uma vez.
     effect(() => {

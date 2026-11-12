@@ -4,13 +4,8 @@ import { firstValueFrom } from 'rxjs';
 
 import { parametros, urlApi, type Pagina } from '../../nucleo/api/api';
 import { paraNumero } from '../../nucleo/formatos';
-import {
-  AREAS,
-  ROTULO_AREA,
-  SLUG_AREA,
-  type Area,
-  type SlugArea,
-} from '../../nucleo/sessao/perfil';
+import { type Area } from '../../nucleo/sessao/perfil';
+import { CHAVES_BASE, nomeDoSetor, slugDaArea } from '../../nucleo/setores/setores';
 import type { SerieFunil } from '../../ui/barra-funil/barra-funil';
 
 /**
@@ -80,7 +75,7 @@ interface NegocioGanho {
   readonly atualizadoEm: string;
 }
 
-/** O que a jornada recebe de cada área visível. */
+/** O que a jornada recebe de cada setor visível. */
 export interface MedidasDaArea {
   readonly funil: FunilDaJornada;
   readonly atual: MetricasDoFunil;
@@ -112,7 +107,7 @@ export class MetricasJornadaApi {
    */
   async carregar(de: Date, ate: Date): Promise<MedidasDaJornada> {
     const funis = await firstValueFrom(this.http.get<readonly FunilDaJornada[]>(urlApi('funis')));
-    const base = AREAS.map((area) =>
+    const base = CHAVES_BASE.map((area) =>
       funis.find((funil) => funil.area === area && funil.base && funil.ativo),
     ).filter((funil): funil is FunilDaJornada => !!funil);
     const duracao = ate.getTime() - de.getTime();
@@ -202,7 +197,7 @@ export interface EtapaDaJornada {
 export interface AreaDaJornada {
   readonly area: Area;
   readonly rotulo: string;
-  readonly slug: SlugArea;
+  readonly slug: string;
   readonly funilId: string;
   /** Todas as etapas da conversão: as abertas em ordem e, por último, a de ganho. */
   readonly etapas: readonly EtapaDaJornada[];
@@ -378,8 +373,8 @@ function montarArea(medidas: MedidasDaArea, anterior: Area | null): AreaDaJornad
   const passagem = PASSAGENS[funil.area];
   return {
     area: funil.area,
-    rotulo: ROTULO_AREA[funil.area],
-    slug: SLUG_AREA[funil.area],
+    rotulo: nomeDoSetor(funil.area),
+    slug: slugDaArea(funil.area),
     funilId: funil.id,
     etapas: comSeries(passos),
     extremos: comSeries(extremos),

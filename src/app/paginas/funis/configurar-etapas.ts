@@ -102,7 +102,7 @@ export function textoEtapaComNegocios(quantos: number): string {
 }
 
 /**
- * "Configurar etapas" (TELAS-FASE1 §3.4; líder da área, C-level e Admin, R5.1): lista
+ * "Configurar etapas" (TELAS-FASE1 §3.4; líder do setor, C-level e Admin, R5.1): lista
  * reordenável (CDK, com botões para cima/para baixo no teclado) com nome, tipo, prazo-alvo e
  * probabilidade; adicionar e remover — a remoção é bloqueada, com a explicação, se a etapa
  * tiver negócios (R5.2). Ganho e perda ficam sempre no fim e não saem do funil.

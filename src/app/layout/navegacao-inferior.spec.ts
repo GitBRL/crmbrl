@@ -57,6 +57,17 @@ describe('NavegacaoInferior', () => {
     expect(raiz.querySelector('a[href="/funis/marketing"]')).not.toBeNull();
   });
 
+  it('membro de um setor criado depois: Funis leva ao funil do setor dele', async () => {
+    entrarComo('MEMBRO', {
+      usuario: { area: 'POS_VENDA' },
+      permissoes: { areasVisiveis: ['POS_VENDA'] },
+    });
+    const fixture = TestBed.createComponent(NavegacaoInferior);
+    fixture.detectChanges();
+    const raiz = fixture.nativeElement as HTMLElement;
+    expect(raiz.querySelector('a[href="/funis/pos_venda"]')?.textContent?.trim()).toBe('Funis');
+  });
+
   it('CS: Funis leva ao funil de Customer Success', async () => {
     const { raiz } = await criar('CS');
     expect(raiz.querySelector('a[href="/funis/cs"]')).not.toBeNull();

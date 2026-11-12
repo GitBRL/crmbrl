@@ -6,7 +6,7 @@ import { provideRouter } from '@angular/router';
 import { AvisosService } from '../avisos.service';
 import type { Papel } from '../papeis';
 import { SessaoService } from '../sessao/sessao.service';
-import { perfilDeTeste } from '../sessao/sessao-de-teste';
+import { perfilDeTeste, type PapelDeTeste } from '../sessao/sessao-de-teste';
 import { provideSocketFalso } from '../tempo-real/tempo-real-de-teste';
 import { LigacaoService } from './ligacao.service';
 import { ligacaoDeTeste, provideNavegadorFalso } from './ligacoes-de-teste';
@@ -33,7 +33,7 @@ describe('LigacaoService (softphone)', () => {
   let falso: ReturnType<typeof provideSocketFalso>;
   let navegador: ReturnType<typeof provideNavegadorFalso>;
 
-  function iniciar(papel: Papel = 'COMERCIAL') {
+  function iniciar(papel: PapelDeTeste = 'COMERCIAL') {
     TestBed.inject(SessaoService).definirPerfil(perfilDeTeste(papel));
     const servico = TestBed.inject(LigacaoService);
     TestBed.tick();

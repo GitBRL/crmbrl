@@ -109,7 +109,7 @@ export const USUARIOS: readonly UsuarioDoDestino[] = [
   {
     id: 'u-camila',
     nome: 'Camila Rocha',
-    papel: 'LIDER_MARKETING',
+    papel: 'LIDER',
     rotuloPapel: 'Líder Marketing',
     area: 'MARKETING',
     ativo: true,
@@ -117,7 +117,7 @@ export const USUARIOS: readonly UsuarioDoDestino[] = [
   {
     id: 'u-lucas',
     nome: 'Lucas Pereira',
-    papel: 'COMERCIAL',
+    papel: 'MEMBRO',
     rotuloPapel: 'Comercial',
     area: 'COMERCIAL',
     ativo: true,

@@ -1,3 +1,4 @@
+import { ErroApi } from '../../nucleo/api/erro-api';
 import type { PassoDefinicao } from './chatbot.tipos';
 import {
   alternarRamoExtra,
@@ -9,6 +10,7 @@ import {
   novoPasso,
   opcoesDaPergunta,
   problemasDaArvore,
+  problemasDeNegocioDoPasso,
   problemasDoPasso,
   sincronizarRamosDaPergunta,
   textoParaCabecalhos,
@@ -118,5 +120,32 @@ describe('definicao do fluxo', () => {
     expect(moverItem(lista, 0, 2)).toEqual(['b', 'c', 'a']);
     expect(moverItem(lista, 0, -1)).toEqual(['a', 'b', 'c']);
     expect(lista).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('problemasDeNegocioDoPasso (422 R5.9 e R5.12)', () => {
+  const erro = (status: number, detalhes: unknown) =>
+    new ErroApi({
+      status,
+      codigo: 'regra_violada',
+      mensagemDaApi: 'Sem acesso ao funil.',
+      detalhes,
+    } as never);
+
+  it('vira um problema por passo "criar negócio", com a mensagem da API', () => {
+    const problemas = problemasDeNegocioDoPasso(erro(422, { regra: 'R5.9', passos: ['p1', 'p2'] }));
+    expect(problemas?.map((p) => [p.passoId, p.mensagem])).toEqual([
+      ['p1', 'Sem acesso ao funil.'],
+      ['p2', 'Sem acesso ao funil.'],
+    ]);
+    expect(problemasDeNegocioDoPasso(erro(422, { regra: 'R5.12', passos: ['p3'] }))).toHaveLength(
+      1,
+    );
+  });
+
+  it('outros erros e erros sem passos não destacam nada', () => {
+    expect(problemasDeNegocioDoPasso(erro(422, { regra: 'R5.2', passos: ['p1'] }))).toBeNull();
+    expect(problemasDeNegocioDoPasso(erro(400, { regra: 'R5.9', passos: ['p1'] }))).toBeNull();
+    expect(problemasDeNegocioDoPasso(erro(422, { regra: 'R5.9' }))).toEqual([]);
   });
 });

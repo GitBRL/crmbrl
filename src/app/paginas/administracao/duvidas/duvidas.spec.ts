@@ -30,7 +30,7 @@ const PERGUNTA: PerguntaDoHistorico = {
   chamado: null,
   criadoEm: '2026-10-31T10:00:00Z',
   tokens: 120,
-  usuario: { id: 'u1', nome: 'Lucas Pereira', papel: 'COMERCIAL', area: 'COMERCIAL' },
+  usuario: { id: 'u1', nome: 'Lucas Pereira', papel: 'MEMBRO', area: 'COMERCIAL' },
 };
 const TEMA: TemaSemResposta = {
   resumo: 'Integração Pipedrive',

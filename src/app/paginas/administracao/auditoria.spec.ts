@@ -205,7 +205,7 @@ describe('Auditoria (Administração)', () => {
     expect(linhas[0].depois?.getAttribute('title')).toBe(ETAPA_PROPOSTA);
     expect(linhas[2].antes?.textContent?.trim()).toBe(desconhecido);
     expect(linhas[2].depois?.textContent?.trim()).toBe('Tatiane Souza');
-    expect(linhas[3].depois?.textContent?.trim()).toBe('Rodízio da área');
+    expect(linhas[3].depois?.textContent?.trim()).toBe('Rodízio do setor');
   });
 
   it('o negócio abre sobre o quadro do funil dele e "Ligado a" leva às telas', async () => {

@@ -39,24 +39,43 @@ function previa(ajustes: Partial<PreviaDesligamento> = {}): PreviaDesligamento {
 }
 
 describe('hierarquia (R1.2, R7)', () => {
-  it('líder esperado: membro → líder da área; líder → C-level; Admin e C-level → nenhum', () => {
-    expect(liderEsperado('COMERCIAL')).toBe('LIDER_COMERCIAL');
-    expect(liderEsperado('CS')).toBe('LIDER_CS');
-    expect(liderEsperado('LIDER_MARKETING')).toBe('C_LEVEL');
+  it('líder esperado: membro → líder (do mesmo setor); líder → C-level; Admin e C-level → nenhum', () => {
+    expect(liderEsperado('MEMBRO')).toBe('LIDER');
+    expect(liderEsperado('LIDER')).toBe('C_LEVEL');
     expect(liderEsperado('ADMIN')).toBeNull();
     expect(liderEsperado('C_LEVEL')).toBeNull();
   });
 
   it('explica por que o seletor de líder só oferece certas pessoas', () => {
-    expect(explicacaoDoLider('COMERCIAL')).toBe(
-      'Quem é Comercial responde a um Líder Comercial ativo, da mesma área. Por isso só aparecem Líderes Comerciais.',
+    expect(explicacaoDoLider('MEMBRO', 'COMERCIAL')).toBe(
+      'Quem é Membro responde a um Líder ativo do mesmo setor (Comercial). Por isso só aparecem os líderes desse setor.',
     );
-    expect(explicacaoDoLider('LIDER_CS')).toContain('responde a um C-level ativo');
+    expect(explicacaoDoLider('MEMBRO')).toContain('Escolha o setor primeiro');
+    expect(explicacaoDoLider('LIDER')).toContain('responde a um C-level ativo');
     expect(explicacaoDoLider('ADMIN')).toBe('Quem é Admin não tem líder.');
     expect(explicacaoDoLider(null)).toContain('Escolha o papel primeiro');
-    expect(semLiderDisponivel('MARKETING')).toBe(
-      'Não há nenhum Líder Marketing ativo para liderar quem é Marketing. Convide ou reative um Líder Marketing antes.',
+    expect(semLiderDisponivel('MEMBRO', 'MARKETING')).toBe(
+      'Não há nenhum Líder ativo em Marketing para liderar quem é Membro. Convide ou reative um Líder desse setor antes.',
     );
+    expect(semLiderDisponivel('LIDER')).toContain('Não há nenhum C-level ativo');
+  });
+
+  it('membro com líder de outro setor fica "aguardando novo líder" (R1.2)', () => {
+    const lider = (area: string) => ({
+      id: 'l',
+      nome: 'L',
+      email: 'l@x.com',
+      papel: 'LIDER' as const,
+      rotuloPapel: 'Líder',
+      area,
+      ativo: true,
+    });
+    expect(aguardaNovoLider({ papel: 'MEMBRO', ativo: true, area: 'CS', lider: lider('CS') })).toBe(
+      false,
+    );
+    expect(
+      aguardaNovoLider({ papel: 'MEMBRO', ativo: true, area: 'CS', lider: lider('COMERCIAL') }),
+    ).toBe(true);
   });
 
   it('marca quem responde provisoriamente a quem não é o líder do papel (R7.3)', () => {

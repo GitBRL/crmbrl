@@ -16,7 +16,7 @@ import { erroDaApi } from '../api/erro-api';
 import { urlApi } from '../api/api';
 import { moduloBasePorId, moduloBasePorRota, MODULOS_BASE, type ModuloBase } from '../modulos';
 import { PushService } from '../pwa/push.service';
-import { LIDERES, ROTULO_PAPEL, type Papel } from '../papeis';
+import { ehDiretoria, ehLider, rotuloDe, type Papel } from '../papeis';
 import type { ConsultaToken, Perfil, Permissoes, UsuarioDoPerfil } from './perfil';
 
 /**
@@ -88,7 +88,7 @@ export class SessaoService {
   /** "Líder Comercial" (vazio sem sessão). */
   readonly rotuloPapel = computed(() => {
     const usuario = this.usuario();
-    return usuario ? usuario.rotuloPapel || ROTULO_PAPEL[usuario.papel] : '';
+    return usuario ? rotuloDe(usuario) : '';
   });
   readonly permissoes: Signal<Permissoes | null> = computed(
     () => this._perfil()?.permissoes ?? null,
@@ -97,12 +97,13 @@ export class SessaoService {
   readonly deveTrocarSenha = computed(() => this._perfil()?.deveTrocarSenha ?? false);
   readonly ehAdmin = computed(() => this.papel() === 'ADMIN');
   /** Admin ou C-level. */
-  readonly ehDiretoria = computed(() => this.papel() === 'ADMIN' || this.papel() === 'C_LEVEL');
-  /** Líder de área (Comercial, Marketing ou CS). */
-  readonly ehLider = computed(() => {
-    const papel = this.papel();
-    return papel !== null && LIDERES.includes(papel);
-  });
+  readonly ehDiretoria = computed(() => ehDiretoria(this.usuario()));
+  /** Líder de um setor. */
+  readonly ehLider = computed(() => ehLider(this.usuario()));
+  /** Chave do setor da pessoa (`null` para Admin e C-level). */
+  readonly area = computed(() => this.usuario()?.area ?? null);
+  /** Nome do setor da pessoa. */
+  readonly nomeSetor = computed(() => this.usuario()?.nomeSetor ?? null);
   /**
    * Módulos que o usuário enxerga, na ordem do menu (vazio sem sessão). Sem ícones: para
    * desenhar, use `MODULOS` de `nucleo/navegacao.ts` com `sessao.pode(modulo)`.
@@ -313,7 +314,7 @@ export class SessaoService {
     if (!perfil || !modulo.papeis.includes(perfil.usuario.papel)) {
       return false;
     }
-    return modulo.acesso ? modulo.acesso(perfil.permissoes) : true;
+    return modulo.acesso ? modulo.acesso(perfil.permissoes, perfil.usuario) : true;
   }
 }
 

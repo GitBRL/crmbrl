@@ -12,6 +12,7 @@ import { Cartao } from '../../ui/cartao/cartao';
 import { Selo } from '../../ui/selo/selo';
 import { FinanceiroApi } from './financeiro.api';
 import { ROTULO_NIVEL_RISCO, type RiscoChurn, VARIANTE_NIVEL_RISCO } from './financeiro.tipos';
+import { ehDoMarketing } from './acesso-financeiro';
 
 const ROTULO_FATOR: Readonly<Record<string, string>> = {
   ATRASO: 'Pagamento em atraso',
@@ -100,7 +101,7 @@ export class RiscoChurnCartao {
   private readonly dados = resource({
     params: () =>
       // Marketing não tem acesso ao Financeiro: nem pergunta.
-      this.sessao.temPapel('MARKETING', 'LIDER_MARKETING')
+      ehDoMarketing(this.sessao.usuario())
         ? { contato: null, negocio: null }
         : { contato: this.contatoId(), negocio: this.negocioId() },
     loader: async ({ params }): Promise<RiscoChurn | null> => {

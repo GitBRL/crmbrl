@@ -13,7 +13,10 @@ export interface UsuarioResumo {
   readonly email: string;
   readonly papel: Papel;
   readonly rotuloPapel: string;
+  /** Chave do setor; `null` para Admin e C-level. */
   readonly area: Area | null;
+  /** Nome do setor; `null` para Admin e C-level. */
+  readonly nomeSetor?: string | null;
   /** Falso para quem foi desligado. */
   readonly ativo: boolean;
 }
@@ -21,7 +24,7 @@ export interface UsuarioResumo {
 /** `UsuarioDto`. */
 export interface Usuario extends UsuarioResumo {
   readonly nivel: NivelUsuario;
-  /** Membro → líder da área; líder → C-level responsável; Admin e C-level: nulo (R1.2). */
+  /** Membro → líder ativo do mesmo setor; líder → C-level responsável; Admin e C-level: nulo (R1.2). */
   readonly lider: UsuarioResumo | null;
   readonly desligadoEm: string | null;
   /** Troca de senha obrigatória no próximo acesso (R2.7). */
@@ -54,6 +57,8 @@ export interface DadosNovoUsuario {
   readonly nome: string;
   readonly email: string;
   readonly papel: Papel;
+  /** Setor (chave): obrigatório para Líder e Membro. */
+  readonly area?: Area | null;
   readonly liderId?: string | null;
   readonly telefone?: string | null;
   readonly identificadorIntegracao?: string | null;
@@ -65,6 +70,7 @@ export interface DadosEdicaoUsuario {
   readonly nome?: string;
   readonly email?: string;
   readonly papel?: Papel;
+  readonly area?: Area | null;
   readonly liderId?: string | null;
   readonly telefone?: string | null;
   readonly identificadorIntegracao?: string | null;
@@ -107,6 +113,20 @@ export interface ContagensEncaminhamento {
   readonly responsavelFixo: number;
 }
 
+/** Por que este destinatário recebe esta parte dos negócios (R7.3). */
+export type MotivoDivisao = 'DESTINATARIO' | 'LIDER_DO_SETOR_DO_FUNIL' | 'C_LEVEL' | 'ADMIN';
+
+/**
+ * Quem recebe quais negócios abertos: o destinatário, ou — nos funis em que ele não atua — o líder
+ * do setor dono do funil (R7.3).
+ */
+export interface DivisaoDosNegocios {
+  readonly destinatario: UsuarioResumo;
+  readonly motivo: MotivoDivisao;
+  readonly negocios: number;
+  readonly funis: readonly { readonly id: string; readonly nome: string; readonly area: Area }[];
+}
+
 /** `PreviaDesligamentoDto`. */
 export interface PreviaDesligamento {
   readonly usuario: UsuarioResumo;
@@ -121,6 +141,8 @@ export interface PreviaDesligamento {
   /** Líderes desligados pulados ao subir na cadeia. */
   readonly ignorados: readonly UsuarioResumo[];
   readonly contagens: ContagensEncaminhamento;
+  /** Quem recebe quais negócios (opcional: API anterior). */
+  readonly divisaoDosNegocios?: readonly DivisaoDosNegocios[];
   readonly liderados: readonly UsuarioResumo[];
   /** Desligamento de um líder: os Admins recebem o alerta "equipe sem líder" (R7.3). */
   readonly alertaEquipeSemLider: boolean;
@@ -132,11 +154,13 @@ export interface ResultadoDesligamento {
   readonly destinatario: UsuarioResumo;
   readonly motivoDestinatario: MotivoDestinatario;
   readonly contagens: ContagensEncaminhamento & { readonly sessoesRevogadas: number };
+  readonly divisaoDosNegocios?: readonly DivisaoDosNegocios[];
 }
 
 /** `POST /usuarios/:id/reativar`. */
 export interface DadosReativacao {
   readonly papel?: Papel;
+  readonly area?: Area | null;
   readonly liderId?: string | null;
 }
 
@@ -162,6 +186,7 @@ export interface Equipe {
   readonly lider: MembroDaEquipe;
   /** Nula para a equipe de um C-level. */
   readonly area: Area | null;
+  readonly nomeSetor?: string | null;
   readonly membros: readonly MembroDaEquipe[];
 }
 
@@ -177,6 +202,8 @@ export type MotivoNoRodizio =
 
 export interface ParticipanteDoRodizio extends ResumoPessoa {
   readonly papel: Papel;
+  /** Setor da pessoa, quando a API manda. */
+  readonly area?: Area | null;
   readonly motivo: MotivoNoRodizio;
 }
 
@@ -189,12 +216,14 @@ export type MotivoAguardandoAcesso = 'CONVITE_PENDENTE' | 'PRIMEIRO_ACESSO_PENDE
 /** `AguardandoAcessoDto`: fora da fila até ativar o acesso; entra sozinho quando ativar. */
 export interface AguardandoAcesso extends ResumoPessoa {
   readonly papel: Papel;
+  readonly area?: Area | null;
   readonly motivo: MotivoAguardandoAcesso;
 }
 
 /** Ajuste manual: alguém incluído (`participa`) ou tirado do rodízio. */
 export interface AjusteDoRodizio extends ResumoPessoa {
   readonly papel: Papel;
+  readonly area?: Area | null;
   readonly ativo: boolean;
   readonly participa: boolean;
 }
@@ -203,11 +232,11 @@ export interface AjusteDoRodizio extends ResumoPessoa {
 export interface RegraDistribuicao {
   readonly id: string;
   readonly area: Area;
-  /** O líder da área entra no rodízio. */
+  /** O líder do setor entra no rodízio. */
   readonly incluirLideres: boolean;
   /** O último escolhido (o ponteiro). */
   readonly ultimoUsuario: ResumoPessoa | null;
-  /** Quem recebe o próximo negócio. Sem participantes: o líder da área ou um C-level. */
+  /** Quem recebe o próximo negócio. Sem participantes: o líder do setor ou um C-level. */
   readonly proximo: ResumoPessoa | null;
   /** Quem está no rodízio agora, na ordem em que recebe. */
   readonly participantes: readonly ParticipanteDoRodizio[];

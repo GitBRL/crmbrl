@@ -42,7 +42,13 @@ import {
   ROTULO_GATILHO,
 } from './chatbot.tipos';
 import { ContextoEditor } from './contexto-editor';
-import { contarPassos, problemasDaArvore, textoParaLista, variaveisDoFluxo } from './definicao';
+import {
+  contarPassos,
+  problemasDaArvore,
+  problemasDeNegocioDoPasso,
+  textoParaLista,
+  variaveisDoFluxo,
+} from './definicao';
 import { DADOS_PADRAO, type DadosDoFluxo, FormularioFluxo } from './formulario-fluxo';
 import { HistoricoFluxo } from './historico-fluxo';
 import { SimuladorFluxo } from './simulador';
@@ -161,7 +167,7 @@ export class EditorFluxo {
     if (!f) {
       return [];
     }
-    const semEdicao = f.podeEditar ? undefined : 'Só quem cuida da área edita este fluxo.';
+    const semEdicao = f.podeEditar ? undefined : 'Só quem cuida do setor edita este fluxo.';
     return [
       f.ativo
         ? {
@@ -298,7 +304,9 @@ export class EditorFluxo {
       return true;
     } catch (falha) {
       this.estadoSalvamento.set('erro');
-      this.avisos.erro(erroDaApi(falha));
+      const erro = erroDaApi(falha);
+      this.problemasDaApi.set(problemasDeNegocioDoPasso(erro) ?? []);
+      this.avisos.erro(erro);
       return false;
     }
   }
@@ -348,7 +356,12 @@ export class EditorFluxo {
       const erro = erroDaApi(falha);
       const problemas = erro.detalhes?.['problemas'];
       this.publicarAberto.set(false);
-      if (erro.status === 400 && Array.isArray(problemas)) {
+      const doNegocio = problemasDeNegocioDoPasso(erro);
+      if (doNegocio) {
+        this.problemasDaApi.set(doNegocio);
+        this.aba.set('passos');
+        this.avisos.erro(erro);
+      } else if (erro.status === 400 && Array.isArray(problemas)) {
         this.problemasDaApi.set(problemas as ProblemaDefinicao[]);
         this.aba.set('passos');
         this.avisos.erro(erro);

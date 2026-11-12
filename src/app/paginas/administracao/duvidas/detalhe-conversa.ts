@@ -11,7 +11,7 @@ import {
 
 import { erroDaApi, type ErroApi } from '../../../nucleo/api/erro-api';
 import { formatarDataHora } from '../../../nucleo/formatos';
-import { ROTULO_PAPEL } from '../../../nucleo/papeis';
+import { rotuloDaPessoa } from '../../../nucleo/setores/setores';
 import { AjudaApi } from '../../../layout/ajuda/ajuda.api';
 import {
   ROTULO_CATEGORIA,
@@ -165,7 +165,7 @@ export class DetalheConversaDuvida {
       this.detalhe.set(d);
       this.descricao.set(
         d.usuario
-          ? `${d.usuario.nome}${d.usuario.papel ? ' · ' + ROTULO_PAPEL[d.usuario.papel] : ''}`
+          ? `${d.usuario.nome}${d.usuario.papel ? ' · ' + rotuloDaPessoa({ papel: d.usuario.papel, area: d.usuario.area }) : ''}`
           : d.titulo,
       );
     } catch (falha) {

@@ -107,7 +107,7 @@ function validarAtalho(controle: AbstractControl<string>): ValidationErrors | nu
           <app-grupo-opcoes
             rotulo="Quem usa"
             disposicao="pilulas"
-            ajuda="“Todas as áreas” aparece para Comercial e CS. Só Admin e C-level criam essas; o líder cria as da área dele."
+            ajuda="“Todos os setores” aparece para Comercial e CS. Só Admin e C-level criam essas; o líder cria as do setor dele."
             [opcoes]="opcoesArea()"
             formControlName="area"
           />
@@ -268,7 +268,7 @@ function validarAtalho(controle: AbstractControl<string>): ValidationErrors | nu
 export class FormularioResposta {
   readonly pedido = input<PedidoFormularioResposta | null>(null);
   /** Áreas que a pessoa gerencia; `TODAS` só para Admin e C-level. */
-  readonly areasPermitidas = input<readonly AreaEscolhida[]>(['TODAS', 'COMERCIAL', 'CS']);
+  readonly areasPermitidas = input<readonly AreaEscolhida[]>(['TODAS']);
   readonly variaveis = input<readonly Variavel[]>([]);
   readonly salva = output<RespostaRapida>();
   readonly fechado = output<void>();
@@ -316,14 +316,16 @@ export class FormularioResposta {
     const areas = new Set<AreaEscolhida>(this.areasPermitidas());
     const atual = this.editando()?.area;
     if (this.editando()) {
-      areas.add(atual === 'COMERCIAL' || atual === 'CS' ? atual : 'TODAS');
+      areas.add(atual ? atual : 'TODAS');
     }
-    return (['TODAS', 'COMERCIAL', 'CS'] as const)
-      .filter((area) => areas.has(area))
-      .map((area) => ({
-        valor: area,
-        rotulo: area === 'TODAS' ? 'Todas as áreas' : rotuloDaArea(area),
-      }));
+    const ordenadas = [
+      ...(areas.has('TODAS') ? ['TODAS'] : []),
+      ...[...areas].filter((area) => area !== 'TODAS'),
+    ] as AreaEscolhida[];
+    return ordenadas.map((area) => ({
+      valor: area,
+      rotulo: area === 'TODAS' ? 'Todos os setores' : rotuloDaArea(area),
+    }));
   });
 
   protected readonly rotuloAreaFixa = computed(() => {
@@ -360,9 +362,7 @@ export class FormularioResposta {
     this.erro.set(null);
     const resposta = pedido.modo === 'editar' ? pedido.resposta : null;
     const area: AreaEscolhida = resposta
-      ? resposta.area === 'COMERCIAL' || resposta.area === 'CS'
-        ? resposta.area
-        : 'TODAS'
+      ? (resposta.area ?? 'TODAS')
       : (this.areasPermitidas()[0] ?? 'TODAS');
     this.formulario.reset({
       atalho: resposta?.atalho ?? '',

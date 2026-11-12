@@ -78,3 +78,31 @@
   justify-content: flex-end;
   gap: var(--esp-2);
 }
+
+.desligar__divisao {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-md);
+}
+
+.desligar__divisao-titulo {
+  margin: 0;
+  font: var(--fonte-corpo-sm);
+  font-weight: 600;
+}
+
+.desligar__divisao-lista {
+  display: grid;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: var(--fonte-corpo-sm);
+}
+
+.desligar__divisao-texto {
+  display: block;
+  color: var(--cor-texto-suave);
+}

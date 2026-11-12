@@ -39,6 +39,8 @@ export interface ApoioDePassos {
   readonly modelosWhatsapp: readonly OpcaoSeletor<string>[];
   readonly modelosEmail: readonly OpcaoSeletor<string>[];
   readonly etiquetas: readonly OpcaoSeletor<string>[];
+  /** Setores ativos (a escolha de setor do rodízio e do líder do setor). */
+  readonly setores: readonly OpcaoSeletor<string>[];
 }
 
 export const APOIO_VAZIO: ApoioDePassos = {
@@ -49,6 +51,7 @@ export const APOIO_VAZIO: ApoioDePassos = {
   modelosWhatsapp: [],
   modelosEmail: [],
   etiquetas: [],
+  setores: [],
 };
 
 const DICA_VARIAVEIS =
@@ -206,8 +209,8 @@ export function definicoesDePassos(apoio: ApoioDePassos): readonly DefinicaoPass
           padrao: 'RODIZIO',
           opcoes: [
             { valor: 'RESPONSAVEL_FIXO', rotulo: 'Uma pessoa específica' },
-            { valor: 'RODIZIO', rotulo: 'Rodízio da área' },
-            { valor: 'LIDER_DA_AREA', rotulo: 'O líder da área' },
+            { valor: 'RODIZIO', rotulo: 'Rodízio do setor' },
+            { valor: 'LIDER_DA_AREA', rotulo: 'O líder do setor' },
           ],
         },
         {
@@ -218,14 +221,9 @@ export function definicoesDePassos(apoio: ApoioDePassos): readonly DefinicaoPass
         },
         {
           id: 'area',
-          rotulo: 'Área (rodízio ou líder)',
+          rotulo: 'Setor (rodízio ou líder)',
           tipo: 'opcao',
-          opcoes: [
-            { valor: '', rotulo: '(a do registro)' },
-            { valor: 'MARKETING', rotulo: 'Marketing' },
-            { valor: 'COMERCIAL', rotulo: 'Comercial' },
-            { valor: 'CS', rotulo: 'CS' },
-          ],
+          opcoes: [{ valor: '', rotulo: '(o do registro)' }, ...apoio.setores],
         },
       ],
     },

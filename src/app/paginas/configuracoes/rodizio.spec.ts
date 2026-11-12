@@ -10,8 +10,8 @@ function regra(ajustes: Partial<RegraDistribuicao> = {}): RegraDistribuicao {
     ultimoUsuario: { id: 'u-mariana', nome: 'Mariana Costa' },
     proximo: { id: 'u-thiago', nome: 'Thiago Lima' },
     participantes: [
-      { id: 'u-mariana', nome: 'Mariana Costa', papel: 'MARKETING', motivo: 'MEMBRO_DA_AREA' },
-      { id: 'u-thiago', nome: 'Thiago Lima', papel: 'MARKETING', motivo: 'MEMBRO_DA_AREA' },
+      { id: 'u-mariana', nome: 'Mariana Costa', papel: 'MEMBRO', motivo: 'MEMBRO_DA_AREA' },
+      { id: 'u-thiago', nome: 'Thiago Lima', papel: 'MEMBRO', motivo: 'MEMBRO_DA_AREA' },
     ],
     ajustes: [],
     atualizadoEm: '2026-10-21T12:00:00.000Z',
@@ -32,12 +32,12 @@ describe('rodízio (R5.8)', () => {
     const pessoas = pessoasDoRodizio(
       regra({
         ajustes: [
-          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MARKETING', ativo: true, participa: false },
+          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MEMBRO', ativo: true, participa: false },
           // Desligado de outra área: não aparece.
           {
             id: 'u-pedro',
             nome: 'Pedro Santos',
-            papel: 'COMERCIAL',
+            papel: 'MEMBRO',
             ativo: false,
             participa: false,
           },
@@ -52,7 +52,7 @@ describe('rodízio (R5.8)', () => {
       ['Camila Rocha', null, false],
     ]);
     expect(pessoas[1].proximo).toBe(true);
-    expect(pessoas[1].motivo).toBe('Recebe o próximo lead · Marketing · membro da área');
+    expect(pessoas[1].motivo).toBe('Recebe o próximo lead · Marketing · membro do setor');
     expect(pessoas[2]).toEqual(
       expect.objectContaining({
         ajuste: 'tirado',
@@ -77,7 +77,7 @@ describe('rodízio (R5.8)', () => {
           {
             id: 'u-camila',
             nome: 'Camila Rocha',
-            papel: 'LIDER_MARKETING',
+            papel: 'LIDER',
             motivo: 'LIDER_INCLUIDO_PELA_REGRA',
           },
         ],
@@ -86,7 +86,7 @@ describe('rodízio (R5.8)', () => {
       [PESSOAS[0]],
     );
     expect(pela[0].motivo).toBe(
-      'Recebe o próximo lead · Líder Marketing · entra pela regra da área',
+      'Recebe o próximo lead · Líder Marketing · entra pela regra do setor',
     );
 
     const amao = pessoasDoRodizio(
@@ -95,7 +95,7 @@ describe('rodízio (R5.8)', () => {
           {
             id: 'u-camila',
             nome: 'Camila Rocha',
-            papel: 'LIDER_MARKETING',
+            papel: 'LIDER',
             motivo: 'INCLUIDO_MANUALMENTE',
           },
         ],
@@ -103,7 +103,7 @@ describe('rodízio (R5.8)', () => {
           {
             id: 'u-camila',
             nome: 'Camila Rocha',
-            papel: 'LIDER_MARKETING',
+            papel: 'LIDER',
             ativo: true,
             participa: true,
           },
@@ -142,15 +142,21 @@ describe('rodízio (R5.8)', () => {
     const pessoas = pessoasDoRodizio(
       regra({
         aguardandoAcesso: [
-          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MARKETING', motivo: 'CONVITE_PENDENTE' },
+          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MEMBRO', motivo: 'CONVITE_PENDENTE' },
           {
             id: 'u-rui',
             nome: 'Rui Prado',
-            papel: 'MARKETING',
+            papel: 'MEMBRO',
             motivo: 'PRIMEIRO_ACESSO_PENDENTE',
           },
           // De outra área: ignorado.
-          { id: 'u-lucas', nome: 'Lucas Pereira', papel: 'COMERCIAL', motivo: 'CONVITE_PENDENTE' },
+          {
+            id: 'u-lucas',
+            nome: 'Lucas Pereira',
+            papel: 'MEMBRO',
+            area: 'COMERCIAL',
+            motivo: 'CONVITE_PENDENTE',
+          },
         ],
       }),
       PESSOAS,
@@ -164,10 +170,10 @@ describe('rodízio (R5.8)', () => {
     ]);
     expect(pessoas[2].proximo).toBe(false);
     expect(pessoas[2].motivo).toBe(
-      'Convite pendente: entra na fila quando definir a senha do convite · Marketing · membro da área',
+      'Convite pendente: entra na fila quando definir a senha do convite · Marketing · membro do setor',
     );
     expect(pessoas[4].motivo).toBe(
-      'Primeiro acesso pendente: entra na fila quando entrar e trocar a senha temporária · Marketing · membro da área',
+      'Primeiro acesso pendente: entra na fila quando entrar e trocar a senha temporária · Marketing · membro do setor',
     );
   });
 
@@ -175,10 +181,10 @@ describe('rodízio (R5.8)', () => {
     const [, , bia] = pessoasDoRodizio(
       regra({
         aguardandoAcesso: [
-          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MARKETING', motivo: 'CONVITE_PENDENTE' },
+          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MEMBRO', motivo: 'CONVITE_PENDENTE' },
         ],
         ajustes: [
-          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MARKETING', ativo: true, participa: false },
+          { id: 'u-bia', nome: 'Beatriz Souza', papel: 'MEMBRO', ativo: true, participa: false },
         ],
       }),
       PESSOAS,

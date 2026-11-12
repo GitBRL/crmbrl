@@ -5,7 +5,8 @@ export type StatusImportacao =
   'RASCUNHO' | 'NA_FILA' | 'PROCESSANDO' | 'CONCLUIDA' | 'FALHOU' | 'CANCELADA';
 export type PoliticaDuplicados = 'ATUALIZAR_VAZIOS' | 'IGNORAR' | 'SOBRESCREVER';
 export type EstrategiaResponsavel = 'RODIZIO' | 'RESPONSAVEL_FIXO';
-export type AreaRodizio = 'MARKETING' | 'COMERCIAL' | 'CS';
+/** Setor do rodízio (chave do setor ativo). */
+export type AreaRodizio = string;
 export type ResultadoLinha = 'CRIADO' | 'ATUALIZADO' | 'IGNORADO' | 'ERRO';
 
 export interface LeituraArquivo {
@@ -13,7 +14,45 @@ export interface LeituraArquivo {
   readonly codificacao?: 'utf-8' | 'latin1';
   readonly aba?: string;
   readonly linhaCabecalho?: number;
+  /** Planilha sem linha de títulos: as colunas viram "Coluna 1", "Coluna 2"… */
+  readonly semCabecalho?: boolean;
 }
+
+export type OperadorFiltro =
+  | 'IGUAL'
+  | 'DIFERENTE'
+  | 'CONTEM'
+  | 'NAO_CONTEM'
+  | 'COMECA_COM'
+  | 'TERMINA_COM'
+  | 'UM_DE'
+  | 'VAZIO'
+  | 'PREENCHIDO'
+  | 'MAIOR_QUE'
+  | 'MENOR_QUE';
+
+export interface RegraDoFiltro {
+  readonly coluna: string;
+  readonly operador: OperadorFiltro;
+  readonly valor?: string | null;
+}
+
+export interface FiltroDaPlanilha {
+  readonly combinacao: 'TODAS' | 'QUALQUER';
+  readonly regras: readonly RegraDoFiltro[];
+}
+
+export interface NegocioParaTodos {
+  readonly funilId: string;
+  readonly etapaId: string;
+  readonly titulo?: string | null;
+  readonly valor?: string | null;
+}
+
+export type NegocioDaImportacao = NegocioParaTodos & {
+  readonly funil: { readonly id: string; readonly nome: string };
+  readonly etapa: { readonly id: string; readonly nome: string };
+};
 
 /** `{ coluna do arquivo: campo do CRM }`. Colunas não importadas ficam de fora. */
 export type Mapeamento = Readonly<Record<string, string>>;
@@ -48,7 +87,26 @@ export interface Importacao {
   readonly concluidaEm: string | null;
   readonly criadoEm: string;
   readonly criadoPor: { readonly id: string; readonly nome: string } | null;
+  readonly filtro?: FiltroDaPlanilha | null;
+  readonly negocio?: NegocioDaImportacao | null;
+  /** '55' quando não definido. */
+  readonly ddiPadrao?: string;
+  readonly filtradas?: number;
+  readonly negociosCriados?: number;
+  readonly negociosReconvertidos?: number;
+  /** Negócios que já existiam (mesmo ID na origem) e foram atualizados em vez de criados. */
+  readonly negociosAtualizados?: number;
+  readonly formatoOrigem?: FormatoOrigem | null;
+  /** `{ valor do funil na planilha (normalizado): id do funil }`. */
+  readonly traducaoFunis?: TraducaoFunis;
+  /** `{ id do funil: { valor da etapa (normalizado): id da etapa } }`. */
+  readonly traducaoEtapas?: TraducaoEtapas;
 }
+
+/** Planilha de outro sistema reconhecida pelo cabeçalho. */
+export type FormatoOrigem = 'CLINT';
+export type TraducaoFunis = Readonly<Record<string, string>>;
+export type TraducaoEtapas = Readonly<Record<string, Readonly<Record<string, string>>>>;
 
 export interface LinhaDaPrevia {
   readonly numero: number;
@@ -61,6 +119,9 @@ export interface Previa {
   readonly totalLinhas: number;
   readonly sugestao: Mapeamento;
   readonly abas?: readonly string[];
+  /** Linhas que passam no filtro (igual a `totalLinhas` sem filtro). */
+  readonly linhasNoFiltro?: number;
+  readonly formatoOrigem?: FormatoOrigem | null;
 }
 
 export interface ImportacaoCriada extends Importacao {
@@ -71,6 +132,8 @@ export interface CampoImportavel {
   readonly chave: string;
   readonly rotulo: string;
   readonly obrigatorio: boolean;
+  /** 'Contato' | 'Negócio' | 'Campos personalizados' | 'Empresa' | 'Parcela'. */
+  readonly grupo?: string;
 }
 
 export interface ModeloMapeamento {
@@ -81,6 +144,11 @@ export interface ModeloMapeamento {
   readonly opcoes?: {
     readonly duplicados?: PoliticaDuplicados;
     readonly etiquetas?: readonly string[];
+    readonly filtro?: FiltroDaPlanilha | null;
+    readonly negocio?: NegocioParaTodos | null;
+    readonly ddiPadrao?: string;
+    readonly traducaoFunis?: TraducaoFunis;
+    readonly traducaoEtapas?: TraducaoEtapas;
   };
   readonly criadoEm: string;
 }
@@ -103,6 +171,11 @@ export interface AlteracaoImportacao {
   readonly areaRodizio?: AreaRodizio | null;
   readonly origemDetalhe?: string | null;
   readonly leitura?: LeituraArquivo;
+  readonly filtro?: FiltroDaPlanilha | null;
+  readonly negocio?: NegocioParaTodos | null;
+  readonly ddiPadrao?: string;
+  readonly traducaoFunis?: TraducaoFunis;
+  readonly traducaoEtapas?: TraducaoEtapas;
 }
 
 /** Evento de tempo real `importacao.progresso`. */
@@ -115,6 +188,7 @@ export interface ProgressoImportacao {
   readonly atualizados: number;
   readonly ignorados: number;
   readonly erros: number;
+  readonly negociosAtualizados?: number;
   readonly relatorioId?: string | null;
 }
 
@@ -160,12 +234,6 @@ export const VARIANTE_RESULTADO: Readonly<
   ERRO: 'coral',
 };
 
-export const ROTULO_AREA_RODIZIO: Readonly<Record<AreaRodizio, string>> = {
-  MARKETING: 'Marketing',
-  COMERCIAL: 'Comercial',
-  CS: 'Sucesso do Cliente',
-};
-
 export const OPCOES_DUPLICADOS: readonly {
   readonly valor: PoliticaDuplicados;
   readonly rotulo: string;
@@ -192,11 +260,6 @@ export const ESTADOS_ATIVOS: readonly StatusImportacao[] = ['NA_FILA', 'PROCESSA
 
 export function estaEmAndamento(status: StatusImportacao): boolean {
   return ESTADOS_ATIVOS.includes(status);
-}
-
-/** Etapa do assistente (1 a 4) para o estado da importação. */
-export function etapaDoStatus(status: StatusImportacao): 2 | 4 {
-  return status === 'RASCUNHO' ? 2 : 4;
 }
 
 /**
@@ -278,6 +341,7 @@ export function aplicarProgresso(atual: Importacao, evento: ProgressoImportacao)
     atualizados: evento.atualizados,
     ignorados: evento.ignorados,
     erros: evento.erros,
+    negociosAtualizados: evento.negociosAtualizados ?? atual.negociosAtualizados,
     relatorioId: evento.relatorioId ?? atual.relatorioId,
     progresso: concluida
       ? 100
@@ -299,4 +363,156 @@ export function erroDoArquivo(arquivo: {
     return 'O arquivo está vazio.';
   }
   return null;
+}
+
+export const ROTULO_OPERADOR: Readonly<Record<OperadorFiltro, string>> = {
+  IGUAL: 'é igual a',
+  DIFERENTE: 'não é igual a',
+  CONTEM: 'contém',
+  NAO_CONTEM: 'não contém',
+  COMECA_COM: 'começa com',
+  TERMINA_COM: 'termina com',
+  UM_DE: 'é um destes',
+  VAZIO: 'está vazio',
+  PREENCHIDO: 'está preenchido',
+  MAIOR_QUE: 'maior que',
+  MENOR_QUE: 'menor que',
+};
+
+export const MAXIMO_REGRAS_FILTRO = 10;
+
+/** Estes operadores não têm valor para digitar. */
+export function operadorSemValor(operador: OperadorFiltro): boolean {
+  return operador === 'VAZIO' || operador === 'PREENCHIDO';
+}
+
+/** Regra em edição na tela: pode estar incompleta até a pessoa terminar de preencher. */
+export interface RegraEmEdicao {
+  readonly chave: number;
+  readonly coluna: string | null;
+  readonly operador: OperadorFiltro;
+  readonly valor: string;
+}
+
+export function regraCompleta(regra: RegraEmEdicao): boolean {
+  return regra.coluna !== null && (operadorSemValor(regra.operador) || regra.valor.trim() !== '');
+}
+
+/** O filtro a enviar à API: só as regras completas; `null` quando não sobra nenhuma. */
+export function filtroDasRegras(
+  combinacao: FiltroDaPlanilha['combinacao'],
+  regras: readonly RegraEmEdicao[],
+): FiltroDaPlanilha | null {
+  const prontas = regras.filter(regraCompleta).map<RegraDoFiltro>((r) => ({
+    coluna: r.coluna as string,
+    operador: r.operador,
+    ...(operadorSemValor(r.operador) ? {} : { valor: r.valor.trim() }),
+  }));
+  return prontas.length > 0 ? { combinacao, regras: prontas } : null;
+}
+
+/** Etapas que um negócio criado pela importação pode ter: a de perda não serve (R5.x). */
+export function etapasParaImportacao<E extends { readonly tipo: string }>(
+  etapas: readonly E[],
+): readonly E[] {
+  return etapas.filter((e) => e.tipo !== 'PERDIDO');
+}
+
+/** Resumo do rodapé: "1.240 de 3.500 linhas · negócio em Comercial › Novo lead". */
+export function resumoDoRodape(dados: {
+  readonly totalLinhas: number;
+  readonly linhasNoFiltro: number | null;
+  readonly negocio: { readonly funil: string; readonly etapa: string } | null;
+}): string {
+  const numero = (n: number) => n.toLocaleString('pt-BR');
+  const partes: string[] = [];
+  partes.push(
+    dados.linhasNoFiltro !== null
+      ? `${numero(dados.linhasNoFiltro)} de ${numero(dados.totalLinhas)} linhas`
+      : `${numero(dados.totalLinhas)} linhas`,
+  );
+  if (dados.negocio) {
+    partes.push(`negócio em ${dados.negocio.funil} › ${dados.negocio.etapa}`);
+  }
+  return partes.join(' · ');
+}
+
+// ----- Conferência de funis e etapas (planilha de outro sistema, ex.: Clint) -------------------
+
+export type ComoAchou = 'NOME' | 'TRADUCAO';
+export type ProblemaDoFunil = 'NAO_ENCONTRADO' | 'ARQUIVADO' | 'SEM_PERMISSAO';
+export type ProblemaDaEtapa = 'NAO_ENCONTRADA' | 'ETAPA_DE_PERDA';
+
+export interface EtapaDaPlanilha {
+  readonly valor: string;
+  readonly linhas: number;
+  readonly etapa: { readonly id: string; readonly nome: string; readonly tipo: string } | null;
+  readonly como: ComoAchou | null;
+  readonly problema: ProblemaDaEtapa | null;
+}
+
+export interface FunilDaPlanilha {
+  readonly valor: string;
+  readonly linhas: number;
+  readonly porStatus: { readonly ABERTO: number; readonly GANHO: number; readonly PERDIDO: number };
+  readonly funil: { readonly id: string; readonly nome: string; readonly area: string } | null;
+  readonly como: ComoAchou | null;
+  readonly problema: ProblemaDoFunil | null;
+  readonly etapas: readonly EtapaDaPlanilha[];
+}
+
+export interface FunisDaPlanilha {
+  readonly funis: readonly FunilDaPlanilha[];
+  readonly semFunil: number;
+}
+
+/** Como a API guarda o valor da planilha nas traduções: sem acento, minúsculas, aparado. */
+export function normalizarValor(valor: string): string {
+  return valor.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+/** "7 abertas, 1 ganha, 2 perdidas" (só o que não é zero). */
+export function resumoPorStatus(p: FunilDaPlanilha['porStatus']): string {
+  const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+  const partes: string[] = [];
+  if (p.ABERTO > 0) {
+    partes.push(plural(p.ABERTO, 'aberta', 'abertas'));
+  }
+  if (p.GANHO > 0) {
+    partes.push(plural(p.GANHO, 'ganha', 'ganhas'));
+  }
+  if (p.PERDIDO > 0) {
+    partes.push(plural(p.PERDIDO, 'perdida', 'perdidas'));
+  }
+  return partes.join(', ');
+}
+
+/** Quantas linhas ficarão sem negócio por funil ou etapa sem destino (o contato entra mesmo assim). */
+export function linhasSemDestino(dados: FunisDaPlanilha | null): number {
+  let total = 0;
+  for (const f of dados?.funis ?? []) {
+    if (f.problema !== null) {
+      total += f.linhas;
+      continue;
+    }
+    for (const e of f.etapas) {
+      if (e.problema !== null) {
+        total += e.linhas;
+      }
+    }
+  }
+  return total;
+}
+
+/** Compara dois objetos de dados (mapeamento, traduções) sem depender da ordem das chaves. */
+export function valoresIguais(a: unknown, b: unknown): boolean {
+  const canonico = (v: unknown): unknown =>
+    v !== null && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(
+          Object.entries(v as Record<string, unknown>)
+            .sort(([x], [y]) => (x < y ? -1 : 1))
+            .map(([k, val]) => [k, canonico(val)]),
+        )
+      : v;
+  return JSON.stringify(canonico(a)) === JSON.stringify(canonico(b));
 }

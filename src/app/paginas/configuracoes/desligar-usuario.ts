@@ -25,12 +25,21 @@ import { gerarId } from '../../ui/tipos';
 import { Carregamento } from './carregamento';
 import { ConfiguracoesApi } from './configuracoes.api';
 import type {
+  DivisaoDosNegocios,
   PreviaDesligamento,
   ResultadoDesligamento,
   Usuario,
   UsuarioResumo,
 } from './configuracoes.modelos';
-import { fraseDoEncaminhamento, itensEncaminhados, juntarNomes, primeiroNome } from './hierarquia';
+import {
+  divisaoComNegocios,
+  fraseDoEncaminhamento,
+  frasePartilhaDosNegocios,
+  itensEncaminhados,
+  juntarNomes,
+  MOTIVO_DA_DIVISAO,
+  primeiroNome,
+} from './hierarquia';
 
 /**
  * Desligar usuário (TELAS-FASE1 §6, R7): o modal mostra a prévia da API (R7.1) — quem recebe e
@@ -104,6 +113,10 @@ export class DesligarUsuario {
     );
     return lista;
   });
+  /** Quem recebe quais negócios abertos (R7.3): só as partes com negócios. */
+  protected readonly divisao = computed(() =>
+    divisaoComNegocios(this.previa.dados()?.divisaoDosNegocios),
+  );
   protected readonly confere = computed(() => textoConfere(this.digitado(), this.primeiro()));
   protected readonly podeDesligar = computed(
     () =>
@@ -120,6 +133,14 @@ export class DesligarUsuario {
         untracked(() => this.comecar(usuario));
       }
     });
+  }
+
+  protected fraseDaParte(parte: DivisaoDosNegocios): string {
+    return frasePartilhaDosNegocios(parte);
+  }
+
+  protected motivoDaParte(parte: DivisaoDosNegocios): string {
+    return MOTIVO_DA_DIVISAO[parte.motivo];
   }
 
   protected fechar(): void {
@@ -208,6 +229,13 @@ export class DesligarUsuario {
     const total = itens.reduce((soma, item) => soma + item.quantidade, 0);
     const lista = juntarNomes(itens.map((item) => `${item.quantidade} ${item.rotulo}`));
     const verbo = total === 1 ? 'foi' : 'foram';
-    return `${resultado.usuario.nome} foi desligado(a). ${lista} ${verbo} para ${resultado.destinatario.nome}.`;
+    const partes = divisaoComNegocios(resultado.divisaoDosNegocios);
+    const divisao =
+      partes.length > 1 || partes.some((parte) => parte.motivo !== 'DESTINATARIO')
+        ? ` Os negócios abertos foram divididos: ${partes
+            .map((parte) => `${parte.negocios} para ${parte.destinatario.nome}`)
+            .join(', ')}.`
+        : '';
+    return `${resultado.usuario.nome} foi desligado(a). ${lista} ${verbo} para ${resultado.destinatario.nome}.${divisao}`;
   }
 }

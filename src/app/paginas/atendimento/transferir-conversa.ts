@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { LucideUsers, LucideUserRound } from '@lucide/angular';
 
-import { ROTULO_AREA } from '../../nucleo/sessao/perfil';
+import { nomeDoSetor } from '../../nucleo/setores/setores';
 import { AreaTexto } from '../../ui/area-texto/area-texto';
 import { Botao } from '../../ui/botao/botao';
 import { Dica } from '../../ui/dica/dica';
@@ -43,7 +43,7 @@ const OPCOES_DESTINO: readonly OpcaoGrupo<Destino>[] = [
 ];
 
 /**
- * Transferir a conversa (R12): para uma pessoa (e, se ela for de outra área, para uma fila
+ * Transferir a conversa (R12): para uma pessoa (e, se ela for de outro setor, para uma fila
  * dessa área) ou só para uma fila, com uma nota para quem recebe. Tudo fica no histórico da
  * conversa e na auditoria.
  */
@@ -79,7 +79,7 @@ const OPCOES_DESTINO: readonly OpcaoGrupo<Destino>[] = [
         @if (destino() === 'fila' || precisaFila()) {
           <div class="transferir__fila">
             <app-seletor
-              [rotulo]="destino() === 'fila' ? 'Fila' : 'Fila da área ' + areaDaPessoa()"
+              [rotulo]="destino() === 'fila' ? 'Fila' : 'Fila do setor ' + areaDaPessoa()"
               placeholder="Escolha a fila"
               [opcoes]="opcoesFila()"
               [valor]="filaId()"
@@ -88,12 +88,12 @@ const OPCOES_DESTINO: readonly OpcaoGrupo<Destino>[] = [
               [dica]="
                 destino() === 'fila'
                   ? 'Sem pessoa, a conversa entra na distribuição da fila.'
-                  : 'A pessoa é de outra área: a conversa vai também para uma fila dessa área.'
+                  : 'A pessoa é de outro setor: a conversa vai também para uma fila desse setor.'
               "
             />
             <app-dica
               titulo="Filas"
-              texto="As filas organizam as conversas por área (Comercial ou Customer Success), com os prazos de resposta (SLA) e o jeito de distribuir. Quem atende a área vê as conversas sem responsável das filas dela."
+              texto="As filas organizam as conversas por setor (Comercial, Customer Success ou outro que atenda), com os prazos de resposta (SLA) e o jeito de distribuir. Quem atende o setor vê as conversas sem responsável das filas dele."
             />
           </div>
         }
@@ -187,7 +187,7 @@ export class TransferirConversa {
     () => this.atendentes().find((item) => item.id === this.usuarioId()) ?? null,
   );
 
-  /** A pessoa escolhida é de outra área que a fila atual: precisa de uma fila da área dela. */
+  /** A pessoa escolhida é de outro setor que a fila atual: precisa de uma fila do setor dela. */
   protected readonly precisaFila = computed(() => {
     const pessoa = this.pessoa();
     const areaFila = this.conversa().fila?.area ?? null;
@@ -196,7 +196,7 @@ export class TransferirConversa {
 
   protected readonly areaDaPessoa = computed(() => {
     const area = this.pessoa()?.area;
-    return area ? ROTULO_AREA[area] : '';
+    return area ? nomeDoSetor(area) : '';
   });
 
   protected readonly opcoesFila = computed<readonly OpcaoSeletor<string>[]>(() => {

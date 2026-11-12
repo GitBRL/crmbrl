@@ -74,6 +74,23 @@
           }
         </ul>
 
+        @if (divisao().length > 0) {
+          <section class="desligar__divisao" aria-label="Quem recebe os negócios abertos">
+            <h3 class="desligar__divisao-titulo">Negócios abertos: quem recebe cada parte</h3>
+            <ul class="desligar__divisao-lista">
+              @for (parte of divisao(); track $index) {
+                <li>
+                  <strong>{{ parte.destinatario.nome }}</strong>
+                  <span class="desligar__destino-papel">{{ parte.destinatario.rotuloPapel }}</span>
+                  <span class="desligar__divisao-texto">
+                    {{ fraseDaParte(parte) }} — {{ motivoDaParte(parte) }}.
+                  </span>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
         @if (dados.destinatario) {
           <app-campo-texto
             [rotulo]="rotuloConfirmacao()"
