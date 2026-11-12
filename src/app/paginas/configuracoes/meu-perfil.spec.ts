@@ -11,6 +11,7 @@ import {
   erroDaApiFalso,
   microtarefas,
 } from './dados-de-teste';
+import { DoisFatoresApi } from './dois-fatores.api';
 import { FOTO_MAXIMO_BYTES, MeuPerfil, problemaDaFoto } from './meu-perfil';
 
 describe('MeuPerfil', () => {
@@ -19,7 +20,15 @@ describe('MeuPerfil', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        // O cartão de duas etapas tem o próprio spec; aqui não faz pedidos.
+        {
+          provide: DoisFatoresApi,
+          useValue: { situacao: () => new Promise(() => undefined) },
+        },
+      ],
     });
     http = TestBed.inject(HttpTestingController);
   });

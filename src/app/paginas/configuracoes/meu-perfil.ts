@@ -29,6 +29,7 @@ import { CampoSenha } from '../../ui/campo-senha/campo-senha';
 import { CampoTexto } from '../../ui/campo-texto/campo-texto';
 import { Cartao } from '../../ui/cartao/cartao';
 import { Selo } from '../../ui/selo/selo';
+import { CartaoDoisFatores } from './cartao-dois-fatores';
 import { ConfiguracoesApi } from './configuracoes.api';
 import { ConectarAo3c } from './conectar-3c';
 import { CartaoPush } from './preferencias-push';
@@ -70,6 +71,7 @@ export function problemaDaFoto(arquivo: Pick<File, 'type' | 'size'>): string | n
     CampoSenha,
     CampoTexto,
     Cartao,
+    CartaoDoisFatores,
     CartaoPush,
     ConectarAo3c,
     Selo,

@@ -22,6 +22,7 @@ import { erroDaApi, type ErroApi } from '../../nucleo/api/erro-api';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarDataHora } from '../../nucleo/formatos';
 import type { ConsultaToken } from '../../nucleo/sessao/perfil';
+import { ehDesafioDoisFatores } from '../../nucleo/sessao/perfil';
 import { SessaoService } from '../../nucleo/sessao/sessao.service';
 import { Botao } from '../../ui/botao/botao';
 import { CampoSenha } from '../../ui/campo-senha/campo-senha';
@@ -257,7 +258,14 @@ export class SenhaPorLink {
     const convite = this.convite();
     const email = this.email();
     try {
-      await this.sessao.entrar(email, senha);
+      const resposta = await this.sessao.entrar(email, senha);
+      if (ehDesafioDoisFatores(resposta)) {
+        // R2.11: a conta usa verificação em duas etapas; o código vem na tela de entrar.
+        this.estado.email.set(email);
+        this.avisos.info('Senha definida. Entre com a senha nova e o código de verificação.');
+        await this.router.navigateByUrl('/entrar');
+        return;
+      }
       this.avisos.sucesso(
         convite
           ? 'Senha criada. Boas-vindas ao BRL CRM!'

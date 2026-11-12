@@ -17,7 +17,14 @@ import { urlApi } from '../api/api';
 import { moduloBasePorId, moduloBasePorRota, MODULOS_BASE, type ModuloBase } from '../modulos';
 import { PushService } from '../pwa/push.service';
 import { ehDiretoria, ehLider, rotuloDe, type Papel } from '../papeis';
-import type { ConsultaToken, Perfil, Permissoes, UsuarioDoPerfil } from './perfil';
+import {
+  type ConsultaToken,
+  type DesafioDoisFatores,
+  ehDesafioDoisFatores,
+  type Perfil,
+  type Permissoes,
+  type UsuarioDoPerfil,
+} from './perfil';
 
 /**
  * Requisição que trata o 401/403 por conta própria: o interceptor não leva para `/entrar`
@@ -146,16 +153,37 @@ export class SessaoService {
   }
 
   /**
-   * `POST /auth/entrar`. Devolve o perfil (e passa a valer como sessão atual). Erros: 401
-   * credenciais (mensagem genérica, R2.3), 403 conta desativada, 429 bloqueio (R2.5) — todos
-   * como `ErroApi`, com a `mensagem` pronta.
+   * `POST /auth/entrar`. Devolve o perfil (e passa a valer como sessão atual) ou, quando a
+   * conta usa verificação em duas etapas (R2.11), o desafio da segunda etapa — ainda sem
+   * sessão: siga com `concluirEntrada`. Erros: 401 credenciais (mensagem genérica, R2.3), 403
+   * conta desativada, 429 bloqueio (R2.5) — todos como `ErroApi`, com a `mensagem` pronta.
    */
-  async entrar(email: string, senha: string): Promise<Perfil> {
+  async entrar(email: string, senha: string): Promise<Perfil | DesafioDoisFatores> {
+    try {
+      const resposta = await firstValueFrom(
+        this.http.post<Perfil | DesafioDoisFatores>(
+          urlApi('auth', 'entrar'),
+          { email: email.trim(), senha },
+          { context: semRedirecionar() },
+        ),
+      );
+      return ehDesafioDoisFatores(resposta) ? resposta : this.definirPerfil(resposta);
+    } catch (falha) {
+      throw erroDaApi(falha);
+    }
+  }
+
+  /**
+   * Segunda etapa do login (R2.11): `POST /auth/entrar/dois-fatores` com o desafio e o código
+   * do aplicativo (6 dígitos) ou um código de recuperação. 400 código incorreto (com
+   * `tentativasRestantes`), 401 desafio expirado, 429 bloqueio.
+   */
+  async concluirEntrada(desafio: string, codigo: string): Promise<Perfil> {
     try {
       const perfil = await firstValueFrom(
         this.http.post<Perfil>(
-          urlApi('auth', 'entrar'),
-          { email: email.trim(), senha },
+          urlApi('auth', 'entrar', 'dois-fatores'),
+          { desafio, codigo: codigo.trim() },
           { context: semRedirecionar() },
         ),
       );

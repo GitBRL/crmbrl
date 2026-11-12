@@ -88,6 +88,22 @@ export interface UsuarioDoPerfil {
   readonly avatarUrl: string | null;
   readonly telefone: string | null;
   readonly ultimoAcessoEm: string | null;
+  /** Verificação em duas etapas ativa na conta (R2.11). */
+  readonly doisFatoresAtivo?: boolean;
+}
+
+/** Resposta de `POST /auth/entrar` quando a conta usa verificação em duas etapas (R2.11): ainda não há sessão. */
+export interface DesafioDoisFatores {
+  readonly doisFatoresNecessario: true;
+  /** Token de uso único, válido por 5 minutos, para `POST /auth/entrar/dois-fatores`. */
+  readonly desafio: string;
+  readonly expiraEm: string;
+}
+
+export function ehDesafioDoisFatores(
+  resposta: Perfil | DesafioDoisFatores,
+): resposta is DesafioDoisFatores {
+  return 'doisFatoresNecessario' in resposta;
 }
 
 export interface Perfil {

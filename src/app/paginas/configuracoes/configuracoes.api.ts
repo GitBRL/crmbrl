@@ -106,6 +106,13 @@ export class ConfiguracoesApi {
     );
   }
 
+  /** Admin: desliga a verificação em duas etapas de quem perdeu o aparelho (R2.11). */
+  redefinirDoisFatores(id: string): Promise<Usuario> {
+    return firstValueFrom(
+      this.http.post<Usuario>(urlApi('usuarios', id, 'dois-fatores', 'redefinir'), {}),
+    );
+  }
+
   reenviarConvite(id: string): Promise<ConviteEnviado> {
     return firstValueFrom(this.http.post<ConviteEnviado>(urlApi('usuarios', id, 'convite'), {}));
   }

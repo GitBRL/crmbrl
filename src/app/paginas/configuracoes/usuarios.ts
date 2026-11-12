@@ -12,12 +12,14 @@ import {
   LucidePlus,
   LucideRefreshCw,
   LucideSend,
+  LucideShieldCheck,
   LucideTriangleAlert,
   LucideUserMinus,
   LucideUserRound,
 } from '@lucide/angular';
 
 import { type Pagina, POR_PAGINA_PADRAO, totalDePaginas } from '../../nucleo/api/api';
+import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { AvisosService } from '../../nucleo/avisos.service';
 import { formatarDataHora, formatarTempoRelativo, semCodigoDeRegra } from '../../nucleo/formatos';
 import type { Papel } from '../../nucleo/papeis';
@@ -121,6 +123,7 @@ interface LinhaUsuario {
 export class Usuarios {
   private readonly api = inject(ConfiguracoesApi);
   private readonly avisos = inject(AvisosService);
+  private readonly confirmacao = inject(ConfirmacaoService);
   private readonly sessao = inject(SessaoService);
 
   protected readonly iconeConvidar = LucidePlus;
@@ -271,12 +274,34 @@ export class Usuarios {
       case 'senha':
         this.definindoSenha.set(usuario);
         break;
+      case 'dois-fatores':
+        void this.redefinirDoisFatores(usuario);
+        break;
       case 'desligar':
         this.desligando.set(usuario);
         break;
       case 'reativar':
         this.reativando.set(usuario);
         break;
+    }
+  }
+
+  private async redefinirDoisFatores(usuario: Usuario): Promise<void> {
+    const ok = await this.confirmacao.confirmar({
+      titulo: 'Redefinir a verificação em duas etapas?',
+      mensagem: `${usuario.nome} poderá entrar só com a senha e será avisada(o) no CRM. A pessoa pode ativar a verificação de novo no Meu perfil. A ação fica na auditoria.`,
+      confirmar: 'Redefinir',
+      perigo: true,
+    });
+    if (!ok) {
+      return;
+    }
+    try {
+      await this.api.redefinirDoisFatores(usuario.id);
+      this.avisos.sucesso(`Verificação em duas etapas de ${usuario.nome} redefinida.`);
+      await this.recarregar();
+    } catch (falha) {
+      this.avisos.erro(falha);
     }
   }
 
@@ -346,6 +371,15 @@ export class Usuarios {
       desabilitado: ehVoce,
       motivo: ehVoce ? 'Para a sua senha, use Meu perfil.' : undefined,
     });
+    if (usuario.doisFatoresAtivo) {
+      itens.push({
+        id: 'dois-fatores',
+        rotulo: 'Redefinir verificação em duas etapas',
+        icone: LucideShieldCheck,
+        desabilitado: ehVoce,
+        motivo: ehVoce ? 'Para a sua, use Meu perfil.' : undefined,
+      });
+    }
     itens.push({
       id: 'desligar',
       rotulo: 'Desligar',
