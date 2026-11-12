@@ -29,6 +29,7 @@ import { CampoSenha } from '../../ui/campo-senha/campo-senha';
 import { CampoTexto } from '../../ui/campo-texto/campo-texto';
 import { Cartao } from '../../ui/cartao/cartao';
 import { Selo } from '../../ui/selo/selo';
+import { CartaoDoisFatores } from './cartao-dois-fatores';
 import { ConfiguracoesApi } from './configuracoes.api';
 import { ConectarAo3c } from './conectar-3c';
 import { CartaoPush } from './preferencias-push';
@@ -70,6 +71,7 @@ export function problemaDaFoto(arquivo: Pick<File, 'type' | 'size'>): string | n
     CampoSenha,
     CampoTexto,
     Cartao,
+    CartaoDoisFatores,
     CartaoPush,
     ConectarAo3c,
     Selo,
@@ -95,6 +97,9 @@ export class MeuPerfil {
     const criadaEm = this.sessao.perfil()?.sessao.criadaEm;
     return criadaEm ? formatarDataHora(criadaEm) : null;
   });
+
+  // Outras sessões (R2.2) -----------------------------------------------------------------------
+  protected readonly encerrandoSessoes = signal(false);
 
   // Foto (todos, R2.10) -----------------------------------------------------------------------
   protected readonly tiposDeFoto = TIPOS_DE_FOTO.join(',');
@@ -171,6 +176,27 @@ export class MeuPerfil {
       this.erroFoto.set(erroDaApi(falha).mensagem);
     } finally {
       this.enviandoFoto.set(false);
+    }
+  }
+
+  protected async encerrarOutrasSessoes(): Promise<void> {
+    if (this.encerrandoSessoes()) {
+      return;
+    }
+    this.encerrandoSessoes.set(true);
+    try {
+      const encerradas = await this.api.encerrarOutrasSessoes();
+      this.avisos.sucesso(
+        encerradas === 0
+          ? 'Não havia outras sessões abertas.'
+          : encerradas === 1
+            ? 'Uma outra sessão foi encerrada.'
+            : `${encerradas} outras sessões foram encerradas.`,
+      );
+    } catch (falha) {
+      this.avisos.erro(erroDaApi(falha));
+    } finally {
+      this.encerrandoSessoes.set(false);
     }
   }
 

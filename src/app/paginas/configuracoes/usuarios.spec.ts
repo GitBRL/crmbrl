@@ -1,3 +1,4 @@
+import { ConfirmacaoService } from '../../nucleo/confirmacao.service';
 import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -191,6 +192,31 @@ describe('Usuarios (Configurações › Usuários)', () => {
       mensagem: 'Convite enviado para rodrigo@brl.com.br.',
       expiraEm: '2026-10-22T18:05:00.000Z',
     });
+    await microtarefas();
+  });
+
+  it('R2.11 — quem usa verificação em duas etapas tem "Redefinir" no menu; confirmar chama a API e recarrega', async () => {
+    const ana: Usuario = { ...LUCAS, doisFatoresAtivo: true };
+    await criar([ana, RODRIGO]);
+    const componente = fixture.componentInstance as unknown as {
+      agir: (acao: string, linha: unknown) => void;
+      linhas: () => { acoes: { id: string; rotulo: string }[] }[];
+    };
+    const [primeira, segunda] = componente.linhas();
+    expect(primeira.acoes.find((a) => a.id === 'dois-fatores')?.rotulo).toBe(
+      'Redefinir verificação em duas etapas',
+    );
+    expect(segunda.acoes.some((a) => a.id === 'dois-fatores')).toBe(false);
+
+    vi.spyOn(TestBed.inject(ConfirmacaoService), 'confirmar').mockResolvedValue(true);
+    componente.agir('dois-fatores', primeira);
+    await microtarefas();
+    const pedido = http.expectOne(`/api/v1/usuarios/${ana.id}/dois-fatores/redefinir`);
+    expect(pedido.request.method).toBe('POST');
+    pedido.flush({ ...ana, doisFatoresAtivo: false });
+    await microtarefas();
+    http.expectOne(LISTA_ATIVOS).flush(pagina([{ ...ana, doisFatoresAtivo: false }, RODRIGO]));
+    http.expectOne('/api/v1/usuarios/equipes').flush([]);
     await microtarefas();
   });
 

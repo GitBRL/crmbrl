@@ -100,9 +100,27 @@ export class ConfiguracoesApi {
     await firstValueFrom(this.http.delete(urlApi('usuarios', 'eu', 'foto')));
   }
 
+  /** Encerra as outras sessões da própria pessoa (outros navegadores e aparelhos); a atual continua (R2.2). */
+  async encerrarOutrasSessoes(): Promise<number> {
+    const resposta = await firstValueFrom(
+      this.http.post<{ readonly encerradas: number }>(
+        urlApi('auth', 'sessoes', 'encerrar-outras'),
+        {},
+      ),
+    );
+    return resposta.encerradas;
+  }
+
   definirSenhaTemporaria(id: string, senha: string): Promise<Usuario> {
     return firstValueFrom(
       this.http.post<Usuario>(urlApi('usuarios', id, 'senha-temporaria'), { senha }),
+    );
+  }
+
+  /** Admin: desliga a verificação em duas etapas de quem perdeu o aparelho (R2.11). */
+  redefinirDoisFatores(id: string): Promise<Usuario> {
+    return firstValueFrom(
+      this.http.post<Usuario>(urlApi('usuarios', id, 'dois-fatores', 'redefinir'), {}),
     );
   }
 

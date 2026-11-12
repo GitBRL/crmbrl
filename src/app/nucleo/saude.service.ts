@@ -39,7 +39,7 @@ export class SaudeService {
     if (!dados) {
       return 'carregando';
     }
-    return dados.status === 'ok' && dados.banco.status === 'ok' ? 'ok' : 'degradado';
+    return dados.status === 'ok' && dados.banco?.status !== 'erro' ? 'ok' : 'degradado';
   });
 
   constructor() {

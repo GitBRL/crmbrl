@@ -7,6 +7,7 @@ import { ErroApi } from '../api/erro-api';
 import { interceptarErros } from '../api/interceptor-erros';
 import { RECARREGAR_EM, SessaoService, voltarSeguro } from './sessao.service';
 import { PushService } from '../pwa/push.service';
+import type { Perfil } from './perfil';
 import { perfilDeTeste } from './sessao-de-teste';
 
 describe('SessaoService', () => {
@@ -77,7 +78,7 @@ describe('SessaoService', () => {
     const req = http.expectOne('/api/v1/auth/entrar');
     expect(req.request.body).toEqual({ email: 'ana@brl.com.br', senha: 'segredo' });
     req.flush(perfilDeTeste('ADMIN'));
-    expect((await certo).usuario.papel).toBe('ADMIN');
+    expect(((await certo) as Perfil).usuario.papel).toBe('ADMIN');
     expect(sessao.ehAdmin()).toBe(true);
 
     const errado = sessao.entrar('x@brl.com.br', 'errada');
@@ -88,6 +89,25 @@ describe('SessaoService', () => {
         { status: 401, statusText: 'Unauthorized' },
       );
     await expect(errado).rejects.toMatchObject({ mensagem: 'E-mail ou senha incorretos.' });
+  });
+
+  it('R2.11 — com verificação em duas etapas, entrar devolve o desafio e não abre sessão; concluirEntrada abre', async () => {
+    const primeira = sessao.entrar('ana@brl.com.br', 'segredo');
+    http.expectOne('/api/v1/auth/entrar').flush({
+      doisFatoresNecessario: true,
+      desafio: 'abc',
+      expiraEm: '2026-11-12T12:05:00Z',
+    });
+    const resposta = await primeira;
+    expect(resposta).toMatchObject({ doisFatoresNecessario: true, desafio: 'abc' });
+    expect(sessao.autenticado()).toBe(false);
+
+    const segunda = sessao.concluirEntrada('abc', ' 123456 ');
+    const req = http.expectOne('/api/v1/auth/entrar/dois-fatores');
+    expect(req.request.body).toEqual({ desafio: 'abc', codigo: '123456' });
+    req.flush(perfilDeTeste('ADMIN'));
+    expect((await segunda).usuario.papel).toBe('ADMIN');
+    expect(sessao.autenticado()).toBe(true);
   });
 
   it('sair encerra na API e recarrega em /entrar (mesmo com a sessão já vencida)', async () => {
