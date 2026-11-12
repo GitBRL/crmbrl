@@ -79,6 +79,19 @@ describe('MeuPerfil', () => {
     expect(raiz().querySelector('.perfil__nome')?.textContent).toBe('Ana Ribeiro Lima');
   });
 
+  describe('outras sessões (R2.2)', () => {
+    it('encerra as outras sessões e avisa quantas', async () => {
+      criar('COMERCIAL');
+      const sucesso = vi.spyOn(TestBed.inject(AvisosService), 'sucesso');
+      botaoComTexto(raiz(), 'Encerrar as outras sessões').click();
+      const pedido = http.expectOne('/api/v1/auth/sessoes/encerrar-outras');
+      expect(pedido.request.method).toBe('POST');
+      pedido.flush({ encerradas: 2 });
+      await microtarefas();
+      expect(sucesso).toHaveBeenCalledWith('2 outras sessões foram encerradas.');
+    });
+  });
+
   describe('foto de perfil (R2.10)', () => {
     /** Escolhe um arquivo no campo de foto, como o seletor do navegador faria. */
     function escolher(arquivo: File) {

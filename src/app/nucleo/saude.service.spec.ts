@@ -55,7 +55,19 @@ describe('SaudeService', () => {
     http.expectOne(URL_SAUDE).flush(degradada, { status: 503, statusText: 'Service Unavailable' });
     expect(saude.erro()).toBeNull();
     expect(saude.situacao()).toBe('degradado');
-    expect(saude.dados()?.banco.erro).toBe('conexão recusada');
+    expect(saude.dados()?.banco?.erro).toBe('conexão recusada');
+  });
+
+  it('corpo mínimo { status } (quem não é Admin) vale: "ok", e "degradado" no 503', () => {
+    http.expectOne(URL_SAUDE).flush({ status: 'ok' });
+    expect(saude.situacao()).toBe('ok');
+    expect(saude.dados()?.banco).toBeUndefined();
+    saude.recarregar();
+    http
+      .expectOne(URL_SAUDE)
+      .flush({ status: 'degradado' }, { status: 503, statusText: 'Service Unavailable' });
+    expect(saude.erro()).toBeNull();
+    expect(saude.situacao()).toBe('degradado');
   });
 
   it('API fora do ar vira "indisponivel" com mensagem sem jargão; recarregar() tenta de novo', () => {

@@ -98,6 +98,9 @@ export class MeuPerfil {
     return criadaEm ? formatarDataHora(criadaEm) : null;
   });
 
+  // Outras sessões (R2.2) -----------------------------------------------------------------------
+  protected readonly encerrandoSessoes = signal(false);
+
   // Foto (todos, R2.10) -----------------------------------------------------------------------
   protected readonly tiposDeFoto = TIPOS_DE_FOTO.join(',');
   protected readonly enviandoFoto = signal(false);
@@ -173,6 +176,27 @@ export class MeuPerfil {
       this.erroFoto.set(erroDaApi(falha).mensagem);
     } finally {
       this.enviandoFoto.set(false);
+    }
+  }
+
+  protected async encerrarOutrasSessoes(): Promise<void> {
+    if (this.encerrandoSessoes()) {
+      return;
+    }
+    this.encerrandoSessoes.set(true);
+    try {
+      const encerradas = await this.api.encerrarOutrasSessoes();
+      this.avisos.sucesso(
+        encerradas === 0
+          ? 'Não havia outras sessões abertas.'
+          : encerradas === 1
+            ? 'Uma outra sessão foi encerrada.'
+            : `${encerradas} outras sessões foram encerradas.`,
+      );
+    } catch (falha) {
+      this.avisos.erro(erroDaApi(falha));
+    } finally {
+      this.encerrandoSessoes.set(false);
     }
   }
 
