@@ -65,9 +65,10 @@ export const TEXTOS_DOS_APPS: Readonly<Record<AplicativoDeLogin, TextosDoApp>> =
       'URIs de redirecionamento OAuth válidos, nas configurações do Login do Facebook do app.',
     passos: [
       'Em developers.facebook.com, crie um app do tipo Empresa.',
-      'Adicione o produto Login do Facebook e cole o endereço de retorno acima em URIs de redirecionamento OAuth válidos.',
+      'Em Configurações > Básico, cole o domínio mostrado aqui em Domínios do app, cole a URL do site em Site (use + Adicionar plataforma se o bloco Site não existir) e salve.',
+      'Adicione o produto Login do Facebook, abra as configurações dele e cole o endereço de retorno acima em URIs de redirecionamento OAuth válidos.',
       'Adicione o produto Webhooks, escolha Page e cole o endereço e o token de verificação mostrados aqui; assine o campo leadgen.',
-      'Em Configurações > Básico, copie o ID e o segredo do app para os campos acima.',
+      'Ainda em Configurações > Básico, copie o ID e o segredo do app para os campos acima.',
       'Peça a permissão leads_retrieval na Análise de apps e libere o CRM em Leads Access.',
     ],
   },
@@ -114,4 +115,38 @@ export function resumoDoUso(uso: UsoDoApp): string {
 
 export function haUso(uso: UsoDoApp): boolean {
   return uso.conexoes + uso.canais + uso.integracoes > 0;
+}
+
+export interface ValoresDoPainelDaMeta {
+  readonly dominio: string;
+  readonly site: string;
+  readonly local: boolean;
+  readonly semHttps: boolean;
+}
+
+const HOSTS_LOCAIS = /^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)$/i;
+
+export function valoresDoPainelDaMeta(enderecoDeRetorno: string): ValoresDoPainelDaMeta | null {
+  let url: URL;
+  try {
+    url = new URL(enderecoDeRetorno);
+  } catch {
+    return null;
+  }
+  return {
+    dominio: url.hostname,
+    site: url.origin,
+    local: HOSTS_LOCAIS.test(url.hostname),
+    semHttps: url.protocol !== 'https:',
+  };
+}
+
+export function avisoDoPainelDaMeta(valores: ValoresDoPainelDaMeta): string | null {
+  if (valores.local) {
+    return 'A Meta não aceita endereços locais em Domínios do app. Para testar, mantenha o app em modo de desenvolvimento e cadastre só o endereço de retorno nos URIs de redirecionamento, ou publique o CRM num endereço https.';
+  }
+  if (valores.semHttps) {
+    return 'A Meta só carrega o login em endereços https. Publique o CRM com https e ajuste o endereço público do CRM.';
+  }
+  return null;
 }
