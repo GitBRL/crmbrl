@@ -25,11 +25,13 @@ import { ValorUnico } from '../../integracoes/comum/valor-unico';
 import { AppsDeLoginApi } from './apps-de-login.api';
 import {
   type AppDeLogin,
+  avisoDoPainelDaMeta,
   haUso,
   LOGOTIPO_DO_APP,
   resumoDoUso,
   TEXTOS_DOS_APPS,
   type UsoDoApp,
+  valoresDoPainelDaMeta,
 } from './apps-de-login.tipos';
 
 const NOMES_DAS_PERMISSOES: Readonly<Record<string, string>> = {
@@ -140,6 +142,31 @@ const NOMES_DAS_PERMISSOES: Readonly<Record<string, string>> = {
             [valor]="app().enderecoDeRetorno"
             [aviso]="null"
           />
+          @if (meta() && painel(); as valores) {
+            <div class="app__bloco" data-teste="dominio-meta">
+              <p class="app__nota">
+                Em <strong>Configurações &gt; Básico</strong>, no painel da Meta, cole o domínio
+                abaixo em <strong>Domínios do app</strong> e a URL do site em <strong>Site</strong>.
+                Sem isso a janela do login abre com
+                <em
+                  >“Não é possível carregar o URL: o domínio dessa URL não está incluído nos
+                  domínios do app”</em
+                >.
+              </p>
+              <app-valor-unico
+                rotulo="Domínio do app"
+                oQue="Domínio do app"
+                [valor]="valores.dominio"
+                [aviso]="avisoDoPainel()"
+              />
+              <app-valor-unico
+                rotulo="URL do site"
+                oQue="URL do site"
+                [valor]="valores.site"
+                [aviso]="null"
+              />
+            </div>
+          }
         </section>
 
         @if (meta()) {
@@ -245,6 +272,13 @@ export class CartaoAppDeLogin {
   protected readonly logotipo = computed(() => LOGOTIPO_DO_APP[this.app().aplicativo]);
   protected readonly idTitulo = computed(() => `app-login-${this.app().aplicativo}`);
   protected readonly uso = computed(() => resumoDoUso(this.app().emUso));
+  protected readonly painel = computed(() =>
+    this.meta() ? valoresDoPainelDaMeta(this.app().enderecoDeRetorno) : null,
+  );
+  protected readonly avisoDoPainel = computed(() => {
+    const valores = this.painel();
+    return valores ? avisoDoPainelDaMeta(valores) : null;
+  });
   /** O segredo é obrigatório no primeiro cadastro e quando o ID muda. */
   protected readonly idMudou = computed(
     () => this.app().configurado && this.clientId().trim() !== (this.app().clientId ?? ''),
